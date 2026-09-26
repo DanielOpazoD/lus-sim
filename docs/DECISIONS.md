@@ -8,6 +8,8 @@ observación que la motivó y sigue la plantilla de `CONTRIBUTING.md`. Referenci
 
 ## 1. Proyecto paralelo, nacido para unirse a EchoTwin y VExUS
 
+**Fecha.** 2026-09-26.
+
 **Contexto.** Daniel pidió (26-09-2026) un simulador de ecografía pulmonar con los mismos principios de
 alta fidelidad anatómica, ecográfica, clínica y física que EchoTwin y VExUS, desarrollado en paralelo y
 teniendo presente que probablemente los tres se unirán. Los dos simuladores existentes están en
@@ -40,6 +42,8 @@ su plan (`docs/UNIFICATION.md`).
 
 ## 2. Pila y convenciones de VExUS
 
+**Fecha.** 2026-09-26.
+
 **Contexto.** La física que más necesita un simulador pulmonar ya existe en VExUS: la pleura con
 reflexión de Fresnel y rugosidad, la serie de reverberaciones con las líneas A como réplicas del eco
 pleural, el deslizamiento anclado al pulmón, la pared torácica en capas y la compresión bajo la sonda
@@ -53,8 +57,10 @@ VExUS en el subconjunto que admite ts2glsl. Pila de VExUS: la pleura y la pared 
 framework de interfaz; Vitest + fast-check + Playwright con SwiftShader; pruebas en `src/validation/`;
 documentos con los mismos nombres que VExUS; las mismas herramientas (índice de decisiones, presupuesto
 de bundle, release por tag, Dependabot, hook de pre-push) y los mismos puertos desplazados en 100 (6700
-desarrollo, 6709 e2e). De EchoTwin se adoptan desde el primer día la bibliografía con claves citables y
-las guardas de documentación (decisión 4); la adopción de otras piezas se decide al portarlas.
+desarrollo, 6709 e2e). De EchoTwin se adoptan desde el primer día la bibliografía con claves citables,
+las guardas de documentación (decisión 4) y su lección de no reutilizar nunca un servidor de e2e ya
+levantado; ts2glsl entra con la primera física propia (decisión 8). El resto de candidatos, con su fase,
+está en `docs/PROVENANCE.md`.
 
 **Consecuencias.** Unir lus-sim con VExUS será reconciliar archivos con la misma ruta; con EchoTwin
 habrá que resolver además la diferencia de pila (`docs/UNIFICATION.md`).
@@ -63,6 +69,8 @@ habrá que resolver además la diferencia de pila (`docs/UNIFICATION.md`).
 VExUS; `src/validation/docs.test.ts` exige que los documentos solo citen archivos que existen.
 
 ## 3. Código portado con procedencia y deriva medida
+
+**Fecha.** 2026-09-26.
 
 **Contexto.** Dos copias del mismo motor divergen en silencio, y el costo de unirlas crece con la
 divergencia.
@@ -84,6 +92,8 @@ existen.
 
 ## 4. Evidencia verificable por máquina
 
+**Fecha.** 2026-09-26.
+
 **Contexto.** La guía de VExUS prohíbe inventar valores clínicos y pide etiquetar lo no respaldado;
 VExUS lo hace con comentarios (`[ESTIMADO]`, `NEEDS_CALIBRATION`), que ninguna prueba puede comprobar.
 EchoTwin cita la bibliografía con claves y verifica algunas tablas de su documentación.
@@ -104,6 +114,8 @@ registrar. `src/validation/docs.test.ts` comprueba que toda cita `[@clave]` exis
 
 ## 5. Repositorio público sin datos de pacientes; banco de referencia fuera del repo
 
+**Fecha.** 2026-09-26.
+
 **Contexto.** El repositorio es público. La fidelidad de la imagen se medirá contra ecografías reales,
 como EchoTwin lo hace con CAMUS, que guarda fuera de su repo.
 
@@ -120,6 +132,8 @@ lógica con datos sintéticos.
 
 ## 6. Cadena causal, tres estados y puntaje que emerge de la señal
 
+**Fecha.** 2026-09-26.
+
 **Contexto.** Principios de la guía de VExUS (§3–5, §21 y §23), que Daniel pidió conservar.
 
 **Decisión.** El estado del paciente (verdad latente, incluido el estado regional del pulmón y del
@@ -135,3 +149,56 @@ mezclarlos.
 **Verificación.** `src/validation/layers.test.ts`: `lus` no puede importar la imagen y `measure` es la
 única capa del motor que junta imagen y reglas. Las invariantes de la guía (§18) entran como pruebas a
 medida que llegan sus módulos.
+
+## 7. Marco anatómico y unidades de VExUS
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** Los dos simuladores de origen usan marcos incompatibles. VExUS trabaja en mm con +x a la
+izquierda del paciente, +y anterior y +z craneal, origen en el centro del tronco a la altura del
+xifoides: un marco levógiro que su navegador 3D espeja con escala x = −1 (su decisión 22). EchoTwin
+trabaja en cm con x izquierda, y superior y z anterior (dextrógiro), origen en la piel sobre el
+esternón.
+
+**Opciones.** (a) Marco propio dextrógiro en mm, con conversiones probadas hacia ambos orígenes: limpio,
+pero obliga a adaptar cada archivo portado de VExUS (anatomía, GLSL, pruebas) y rompe su identidad con
+el origen (decisión 3). (b) Heredar el marco y las unidades de VExUS y dejar la conversión a EchoTwin
+para la unión.
+
+**Decisión.** (b). mm, s y dB como unidades del motor; marco de VExUS con su origen. Al portar la
+anatomía se hereda también su limitación `left-handed-anatomy-frame` con el mismo identificador.
+
+**Consecuencias.** lus-sim y VExUS comparten marco y la unión entre ellos no convierte nada; la
+conversión a EchoTwin (cm, dextrógiro, otro origen) es deuda declarada de la unión
+(`docs/UNIFICATION.md`), que necesitará una función de conversión con su prueba.
+
+**Verificación.** Las pruebas de anatomía que lleguen en la fase 1 fijan puntos con el marco de VExUS
+(x positiva = izquierda del paciente).
+
+## 8. GLSL: gemelos a mano para lo portado; ts2glsl para la física propia
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** VExUS escribe a mano cada función GLSL junto a su gemela TypeScript y lo protege con una
+prueba de gemelas por nombre y una e2e de equivalencia. EchoTwin genera sus funciones escalares desde
+TypeScript con ts2glsl (344 líneas sobre la API del compilador, sin dependencias nuevas). Según su
+auditoría de ingeniería, antes de ts2glsl había unos 200 literales duplicados entre CPU y GPU, dos
+discrepancias reales de fórmula y tres reparaciones del espejo GLSL en seis días. El generador detecta en
+Node, en segundos, trampas que antes solo veía la e2e: `pow` con base negativa, `min` con tres
+argumentos.
+
+**Opciones.** (a) Solo gemelos a mano, como VExUS. (b) ts2glsl para todo: imposible, porque el
+clasificador de escena y las pasadas usan vectores, estructuras y texturas, fuera de su subconjunto. (c)
+Mixto.
+
+**Decisión.** (c). Los archivos portados de VExUS conservan sus gemelos a mano, idénticos al origen
+(decisión 3). La física escalar propia de lus-sim (líneas B, aireación subpleural, deslizamiento por
+región) se escribe una vez en TypeScript y se genera con ts2glsl, portado de EchoTwin con procedencia y
+con tres ampliaciones pequeñas: prototipos al principio del bloque, `**` con exponente entero y
+constantes de `Math`. La e2e de equivalencia sigue siendo el juez numérico.
+
+**Consecuencias.** Conviven dos mecanismos, cada uno con su guarda. Al unir, lo generado se alinea con
+EchoTwin y lo portado con VExUS.
+
+**Verificación.** Se implementa con la primera física escalar propia (fase 2): prueba de que el archivo
+generado está al día y de que cada identificador libre está declarado, y e2e de equivalencia.

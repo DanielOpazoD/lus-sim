@@ -91,6 +91,7 @@ términos técnicos de programación (como en VExUS, para facilitar la unión); 
 ```markdown
 ## N. Título en una línea
 
+**Fecha.** AAAA-MM-DD.
 **Contexto.** Qué problema o evidencia la motiva (con cifras o la prueba que falló).
 **Opciones.** Alternativas consideradas y por qué no.
 **Decisión.** Qué se hace, con los nombres de código y archivos.

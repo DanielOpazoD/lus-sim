@@ -1,7 +1,8 @@
 # Integración continua: lo mismo que `npm run check` en local (formato, lint, tipos, todas las pruebas
 # con umbrales de cobertura, build y presupuesto de bundle), más la auditoría de dependencias de
 # producción, el índice de decisiones y la e2e. Ningún paso se salta en CI; si algo es lento aquí, es
-# lento también en local. El trabajo `check` es el que exige la protección de `main`.
+# lento también en local. El trabajo `check` agrega `verificar` y `e2e` (práctica de EchoTwin): es el
+# único que exige la protección de `main`, así que renombrar o añadir un trabajo no la deja sin efecto.
 name: CI
 
 on:
@@ -17,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: check
+  verificar:
+    name: formato · lint · tipos · pruebas · build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -39,7 +40,7 @@ jobs:
       - name: Índice de decisiones al día
         run: npx tsx tools/docs/decisions-index.ts --check
 
-  # En paralelo con `check`: el tiempo total de CI es el del más lento
+  # En paralelo con `verificar`: el tiempo total de CI es el del más lento
   e2e:
     name: extremo a extremo (Chromium + SwiftShader)
     runs-on: ubuntu-latest
@@ -75,3 +76,18 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
+
+  # Agregador: falla si algún trabajo no terminó en verde (también si se canceló o se saltó)
+  check:
+    name: check
+    needs: [verificar, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todos los trabajos en verde
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTS"
+          for r in $RESULTS; do [ "$r" = "success" ] || exit 1; done

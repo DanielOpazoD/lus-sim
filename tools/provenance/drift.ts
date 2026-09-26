@@ -70,6 +70,71 @@ export function originContent(dir: string, commit: string, path: string): string
   return r.status === 0 ? r.stdout : null;
 }
 
+/**
+ * Contenidos del origen para varias rutas en un solo proceso (`git cat-file --batch`). La comprobación de
+ * la suite no puede lanzar un `git` por archivo: con la máquina cargada, ~116 procesos tardaron 68 s y la
+ * prueba agotó su plazo. Clave `commit:ruta`; `null` si el objeto no existe o no es un archivo.
+ */
+export function originContents(dir: string, specs: readonly string[]): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  if (specs.length === 0) return out;
+  const r = spawnSync('git', ['-C', dir, 'cat-file', '--batch'], { input: specs.join('\n') + '\n', maxBuffer: 256 * 1024 * 1024 });
+  const buf = r.stdout ?? Buffer.alloc(0);
+  let pos = 0;
+  for (const spec of specs) {
+    const nl = buf.indexOf(0x0a, pos);
+    if (nl < 0) {
+      out.set(spec, null);
+      continue;
+    }
+    const header = buf.subarray(pos, nl).toString('utf8');
+    pos = nl + 1;
+    // «<sha> <tipo> <bytes>» seguido del contenido y un salto de línea; «<spec> missing» si no existe
+    const m = /^[0-9a-f]+ (\w+) (\d+)$/.exec(header);
+    if (!m) {
+      out.set(spec, null);
+      continue;
+    }
+    const size = Number(m[2]);
+    out.set(spec, m[1] === 'blob' ? buf.subarray(pos, pos + size).toString('utf8') : null);
+    pos += size + 1;
+  }
+  return out;
+}
+
+export interface Honesty {
+  row: ProvenanceRow;
+  actual: Actual;
+  /** La tabla dice lo que el código es (solo se juzga si el origen está disponible). */
+  honest: boolean;
+}
+
+/** ¿Dice la tabla la verdad? Solo compara contenidos: un proceso `git` por repositorio de origen. */
+export function honestyOf(rows: readonly ProvenanceRow[], root: string, env: NodeJS.ProcessEnv = process.env): Honesty[] {
+  const byRepo = new Map<string, ProvenanceRow[]>();
+  for (const r of rows) byRepo.set(r.repo, [...(byRepo.get(r.repo) ?? []), r]);
+  const out: Honesty[] = [];
+  for (const [repo, list] of byRepo) {
+    const dir = originDir(repo, root, env);
+    const contents = dir
+      ? originContents(
+          dir,
+          list.map((r) => `${r.commit}:${r.originPath}`),
+        )
+      : new Map<string, string | null>();
+    for (const row of list) {
+      const origin = contents.get(`${row.commit}:${row.originPath}`) ?? null;
+      if (!dir || origin === null) {
+        out.push({ row, actual: 'origen no disponible', honest: true });
+        continue;
+      }
+      const same = origin === readFileSync(join(root, row.file), 'utf8');
+      out.push({ row, actual: same ? 'idéntico' : 'modificado', honest: row.declared === 'idéntico' ? same : !same });
+    }
+  }
+  return out;
+}
+
 /** Líneas añadidas y quitadas entre dos textos (git diff --no-index, sin shell). */
 export function lineDelta(before: string, after: string): { added: number; removed: number } {
   if (before === after) return { added: 0, removed: 0 };
