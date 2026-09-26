@@ -12,3 +12,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [6](DECISIONS.md#L133) | Cadena causal, tres estados y puntaje que emerge de la señal | vigente |
 | [7](DECISIONS.md#L153) | Marco anatómico y unidades de VExUS | vigente |
 | [8](DECISIONS.md#L178) | GLSL: gemelos a mano para lo portado; ts2glsl para la física propia | vigente |
+| [9](DECISIONS.md#L206) | Misión y objetivos medibles como criterio de prioridad | vigente |

@@ -18,6 +18,9 @@ medición → interpretación.
 El médico debe poder equivocarse de la misma manera en que se equivocaría con un paciente real. El
 simulador debe enseñar no solo a reconocer patrones, sino a obtenerlos correctamente.
 
+Los objetivos medibles que derivan de esta misión, y la regla para decidir qué hacer primero, están en
+`docs/MISSION.md` (decisión 9).
+
 ## 1. La especificación manda
 
 - `docs/KNOWLEDGE.md` es la fuente primaria de la física, la anatomía, la fisiopatología y la clínica.

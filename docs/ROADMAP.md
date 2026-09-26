@@ -3,9 +3,11 @@
 Fases verticales (guía §21): cada una termina con algo que funciona de punta a punta, una evaluación
 por revisores adversariales de contexto limpio (ingeniería, física de la imagen y clínica) con nota
 sobre 7, y una versión etiquetada. El orden puede cambiar con lo que muestre cada evaluación; los
-cambios quedan en `docs/DECISIONS.md`.
+cambios quedan en `docs/DECISIONS.md`. Cada fase dice qué objetivos de `docs/MISSION.md` mueve.
 
 ## Fase 0 — Cimientos (v0.1.0)
+
+Objetivos: O6, O7 (y la base de O1–O4).
 
 - Repositorio público con CI (`check` + e2e), protección de `main` y las herramientas de VExUS.
 - Documentos rectores: `docs/GUIDE.md` y `docs/KNOWLEDGE.md` con bibliografía verificada
@@ -16,6 +18,8 @@ cambios quedan en `docs/DECISIONS.md`.
 **Cierre**: `npm run check` y e2e en verde en CI; base de conocimiento revisada por Daniel.
 
 ## Fase 1 — Motor portado y primera imagen (v0.2.0)
+
+Objetivos: O1, O2, O3, O7.
 
 - Portar de VExUS, con procedencia, el motor de imagen necesario: haz y PSF, moteado anclado al
   tejido, transmisión, receptor y mapa de grises, geometría del sector, pared en capas, costillas, pleura
@@ -37,6 +41,8 @@ equivalencia TS ↔ GLSL en e2e.
 
 ## Fase 2 — Física pulmonar propia (v0.3.0)
 
+Objetivos: O1, O3.
+
 - Campo de aireación subpleural: líneas B que emergen de la física (y no de una textura), líneas Z,
   consolidación con patrón tisular y broncograma estático o dinámico, derrame con sus signos.
 - Modo M desde las mismas líneas del modo B y el mismo reloj: orilla de mar, código de barras,
@@ -52,12 +58,16 @@ equivalencia TS ↔ GLSL en e2e.
 
 ## Fase 3 — Tórax completo (v0.4.0)
 
+Objetivos: O2, O1, O5.
+
 - Las zonas de exploración de ambos hemitórax (anteriores, laterales y posteriores, con la escápula),
   bases con diafragma, hígado y bazo (signo de la cortina, imagen en espejo, signo de la columna).
 - Neumotórax con su geometría y el punto pulmonar; pulso pulmonar desde el reloj cardíaco.
 - Variantes de hábito corporal (delgado, obeso).
 
 ## Fase 4 — Clínica (v0.5.0)
+
+Objetivos: O4, O5.
 
 - Paciente virtual con estado pulmonar regional y casos de la base de conocimiento (normal, edema
   cardiogénico, SDRA, neumonía, neumotórax, derrame con atelectasia, intubación selectiva, perfil A en
@@ -67,6 +77,8 @@ equivalencia TS ↔ GLSL en e2e.
 - Revisión clínica experta en ciego.
 
 ## Fase 5 — Puentes (v1.0.0)
+
+Objetivos: O7, O4.
 
 - Ventilador: el estado mecánico (PEEP, volumen corriente, reclutamiento) mueve la aireación regional;
   puntaje de reaireación.
