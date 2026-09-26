@@ -126,7 +126,8 @@ export const DISPLAY_MARGIN_PX = 8;
 /**
  * Techo de la compensación nominal + TGC (dB): ganancia máxima del amplificador. Con
  * 3 dB/cm de ida y vuelta (hígado a 2,5 MHz) compensa por completo hasta ~17 cm; más allá la
- * imagen se oscurece y el ruido gana, como en un convexo real al límite de penetración.
+ * imagen se oscurece y el ruido gana, como en un convexo real al límite de penetración. lus-sim (decisión 12): con la
+ * compensación de la pared torácica (2,5 dB/cm a 2,5 MHz) el techo llega a 20 cm, más que la profundidad del preajuste.
  */
 const TGC_CAP_DB = 50;
 const FINE_DEPTH = 1024;
@@ -192,6 +193,8 @@ export interface GpuPointQuery {
   velocity: Float32Array;
   iface: Int32Array;
   ifd: Float32Array;
+  /** Distancia al borde del tejido (`c.bd`, la que funde los bordes en la pasada B); lus-sim (decisión 12). */
+  bd: Float32Array;
   normal?: Float32Array;
   gradNorm?: Float32Array;
 }
@@ -375,7 +378,9 @@ export class UltrasoundRenderer {
     if (!gl) throw new Error('WebGL2 no disponible');
     this.gl = gl;
     if (!gl.getExtension('EXT_color_buffer_float')) throw new Error('EXT_color_buffer_float no disponible');
-    gl.getExtension('OES_texture_float_linear');
+    // lus-sim (decisión 12): las texturas float32 de las pasadas se muestrean con filtro lineal; sin la extensión el
+    // muestreo devuelve 0 y la imagen sale negra sin ningún error de WebGL (lo halló la revisión): mejor decirlo
+    if (!gl.getExtension('OES_texture_float_linear')) throw new Error('OES_texture_float_linear no disponible');
     // compilación en hilos de fondo del navegador (opcional; sin ella, el mismo lote en serie): se pide antes
     // de compilar, y `linkAll` encarga todos los programas antes de comprobar ninguno (decisión 58)
     gl.getExtension('KHR_parallel_shader_compile');
@@ -1340,11 +1345,13 @@ export class UltrasoundRenderer {
     const velocity = new Float32Array(n * 3);
     const iface = new Int32Array(n);
     const ifd = new Float32Array(n);
+    const bd = new Float32Array(n);
     const normal = out2 ? new Float32Array(n * 3) : undefined;
     const gradNorm = out2 ? new Float32Array(n) : undefined;
     for (let i = 0; i < n; i++) {
       tissue[i] = Math.round(out0[i * 4]);
       vessel[i] = Math.round(out0[i * 4 + 1]);
+      bd[i] = out0[i * 4 + 2];
       ifd[i] = out0[i * 4 + 3];
       velocity.set([out1[i * 4], out1[i * 4 + 1], out1[i * 4 + 2]], i * 3);
       iface[i] = Math.round(out1[i * 4 + 3]);
@@ -1353,7 +1360,7 @@ export class UltrasoundRenderer {
         gradNorm[i] = out2[i * 4 + 3];
       }
     }
-    return normal ? { tissue, vessel, velocity, iface, ifd, normal, gradNorm } : { tissue, vessel, velocity, iface, ifd };
+    return normal ? { tissue, vessel, velocity, iface, ifd, bd, normal, gradNorm } : { tissue, vessel, velocity, iface, ifd, bd };
   }
 
   /**

@@ -116,6 +116,12 @@ export interface VolumeEquivalenceReport {
   interfaceDistanceMaxErr: number;
   /** Parejas de caras CPU → GPU con más desacuerdos. */
   interfaceWorst: string;
+  /**
+   * Máximo de |distancia al borde del tejido de la GPU − la de la CPU| con el mismo tejido, ambas saturadas en
+   * `BOUNDARY_RELEVANT_MM` (mm; lus-sim, decisión 12): la que funde los bordes en la pasada B (`c.bd`), y dónde.
+   */
+  boundaryDistanceMaxErr: number;
+  boundaryWorst: string;
   /** Puntos interiores por tejido (en la CPU), para ver que la prueba tiene dientes. */
   byTissue: Record<string, number>;
 }
@@ -153,6 +159,8 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
   const pairs = new Map<string, number>();
   const byTissue: Record<string, number> = {};
   const face = new FaceTally();
+  let bdMax = 0;
+  let bdWorst = '';
   for (let i = 0; i < n; i++) {
     const p: [number, number, number] = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
     const q = sim.anatomy.classifyWorld(p, sim.sample);
@@ -160,8 +168,14 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
     interior++;
     byTissue[Tissue[q.tissue]] = (byTissue[Tissue[q.tissue]] ?? 0) + 1;
     const cpuTissue: number = q.tissue;
-    if (cpuTissue === gpu.tissue[i]) same++;
-    else {
+    if (cpuTissue === gpu.tissue[i]) {
+      same++;
+      const e = Math.abs(Math.min(gpu.bd[i], BOUNDARY_RELEVANT_MM) - Math.min(q.boundaryDistance, BOUNDARY_RELEVANT_MM));
+      if (e > bdMax) {
+        bdMax = e;
+        bdWorst = `${Tissue[q.tissue]} en (${p.map((x) => x.toFixed(1)).join(', ')}): CPU ${q.boundaryDistance.toFixed(4)}, GPU ${gpu.bd[i].toFixed(4)} mm`;
+      }
+    } else {
       const k = `${Tissue[q.tissue]}→${Tissue[gpu.tissue[i]]}`;
       pairs.set(k, (pairs.get(k) ?? 0) + 1);
     }
@@ -176,9 +190,18 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
     interfaceAgreement: face.points ? face.same / face.points : 1,
     interfaceDistanceMaxErr: face.maxErr,
     interfaceWorst: [topPairs(face.pairs), face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`].filter(Boolean).join('; '),
+    boundaryDistanceMaxErr: bdMax,
+    boundaryWorst: bdWorst,
     byTissue,
   };
 }
+
+/**
+ * Hasta dónde importa la distancia al borde del tejido (mm): la pasada B solo pregunta si `c.bd > σe + 0,5` (la
+ * semianchura elevacional del haz, de pocos mm) para mezclar los tejidos de un borde. Más lejos, un error relativo
+ * de float32 (SwiftShader: 0,15 mm a 100 mm dentro del pulmón) no cambia nada de la imagen.
+ */
+export const BOUNDARY_RELEVANT_MM = 10;
 
 /** Desplazamiento (mm) con que se comprueba que la cara de un punto interior no está en un cambio de dueño. */
 export const FACE_STABLE_MM = 0.02;

@@ -13,7 +13,8 @@ import type { PhysiologySample } from '../../physiology/engine';
  *
  * lus-sim (decisión 12): los uniforms del tórax de la escena (tronco, pared, cúpulas, columna, costillas,
  * respiración, compresión de la sonda y cortina), en el orden de VExUS; sin los del hígado, la vesícula, la
- * aurícula, el gas intestinal, los riñones ni los tubos, que la escena no tiene.
+ * aurícula, el gas intestinal, los riñones ni los tubos, que la escena no tiene, ni la velocidad del diafragma
+ * (`uRespVel`: solo la leía el color, con la velocidad del tejido).
  */
 export const MAX_RIBS = 6;
 
@@ -95,7 +96,6 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     doc: 'descenso diafragmático (mm), dirección xyz',
     value: (_s, c) => [c.sample.resp.diaphragmCaudalMm, ...RespiratoryDeformation.direction],
   },
-  { name: 'uRespVel', type: 'float', doc: 'velocidad del diafragma (mm/s)', value: (_s, c) => [c.sample.resp.diaphragmVelocityMmS] },
   {
     name: 'uCompC',
     type: 'vec4',

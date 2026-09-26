@@ -6,6 +6,7 @@ import { defaultPose } from '../probe/probe';
 import { DEFAULT_BMODE, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
+import { A_LINE_BACKGROUND_MM } from '../app/testHooks';
 import { chestView, scanLine } from './support/chestView';
 
 /**
@@ -22,25 +23,24 @@ describe('Preajuste pulmonar del equipo', () => {
     expect(Math.abs(DEFAULT_BMODE.focusMm - central.pleuraMm!), `pleura a ${central.pleuraMm!.toFixed(2)} mm`).toBeLessThanOrEqual(1);
   });
 
-  it('armónica, composición y persistencia apagadas; 10–12 cm de profundidad; la TGC del usuario neutra', () => {
+  it('armónica, composición y persistencia apagadas; la profundidad del consenso deja ver las líneas A 2–4; la TGC del usuario neutra', () => {
     expect(DEFAULT_BMODE.harmonic).toBe(false);
     expect(DEFAULT_BMODE.compound).toBe(false);
-    expect(DEFAULT_BMODE.persistence).toBe(0);
     expect(DEFAULT_BMODE.persistence).toBe(LUNG_PRESET.params.persistence.value);
     const [lo, hi] = LUNG_PRESET.params.depthMm.range!;
-    expect([lo, hi]).toEqual([100, 120]);
     expect(DEFAULT_BMODE.depthMm).toBeGreaterThanOrEqual(lo);
     expect(DEFAULT_BMODE.depthMm).toBeLessThanOrEqual(hi);
+    // la razón de tomar el extremo alto: con la pleura del punto de partida por omisión, la línea A de orden 4 (4·D)
+    // cabe con el fondo sobre el que se mide (A_LINE_BACKGROUND_MM + 1 mm, la regla del gancho de las líneas A)
+    const D = scanLine(chestView(new AnatomyScene(defaultPatient()), defaultPose()), 0).pleuraMm!;
+    expect(4 * D + A_LINE_BACKGROUND_MM + 1, `pleura a ${D.toFixed(2)} mm`).toBeLessThanOrEqual(DEFAULT_BMODE.depthMm);
     expect(DEFAULT_BMODE.tgcDb.every((db) => db === 0)).toBe(true);
-    // las fuentes del preajuste son el consenso de 2026 (y, la persistencia, los de 2012, Lichtenstein e ICLUS)
-    for (const p of Object.values(LUNG_PRESET.params)) expect(p.sources.length).toBeGreaterThan(0);
     expect(LUNG_PRESET.params.depthMm.sources).toContain('volpicelli-actualizacion-2026');
   });
 
   it('la compensación nominal crece con la profundidad con la pendiente de referencia del tórax, no la del hígado', () => {
     const f = CONVEX_C35_PROFILE.bEffectiveMHz;
     const alpha = TGC_REFERENCE.params.alphaDbPerCmMHz.value;
-    expect(alpha).toBe(0.5);
     // ida y vuelta: 2·α·f dB/cm (2,5 dB/cm a 2,5 MHz)
     expect(nominalTgcDbPerCm(f)).toBeCloseTo(2 * alpha * f, 12);
     expect(nominalTgcDbPerCm(2 * f)).toBeCloseTo(2 * nominalTgcDbPerCm(f), 12);

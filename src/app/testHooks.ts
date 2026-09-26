@@ -146,6 +146,9 @@ export function frameMeasureOptions(opts: FrameCostOptions = {}): RenderMeasureO
  * línea pleural). Un pico cuenta si es un máximo local y sobresale `A_LINE_MIN_PROMINENCE_DB` sobre la mediana del
  * promedio en ±`A_LINE_BACKGROUND_MM` (la neblina). D es la de la CPU: la prueba ata la imagen de la GPU a la
  * geometría de TS. La separación entre órdenes consecutivos (r_k − r_{k−1} − D) es la invariante de la guía (§18).
+ * F-T01 se mide como la define la base, frente a la línea pleural MOSTRADA: r_k − k·r_1 en cada grupo donde se
+ * detectan la línea pleural y el orden k (lo añadió la revisión del paso B2a: frente a D la prueba era casi circular,
+ * porque el shader pone las réplicas en k·D con la misma D).
  */
 export interface ALineStats {
   /** Líneas medidas (con pleura, contacto y sin costilla) y grupos en que se promedian. */
@@ -155,7 +158,8 @@ export interface ALineStats {
   pleuraMm: number;
   /**
    * Por orden k (1 la línea pleural, 2, 3…): grupos donde cabe, grupos donde se detecta, error con signo mínimo y
-   * máximo de su posición (mm), error máximo de la separación con el orden anterior (mm, desde k = 2) y prominencia
+   * máximo de su posición frente a k·D (mm), error máximo de la separación con el orden anterior (mm, desde k = 2),
+   * error con signo mínimo y máximo frente a k veces la línea pleural mostrada (mm, desde k = 2: F-T01) y prominencia
    * mediana (dB).
    */
   orders: {
@@ -165,6 +169,8 @@ export interface ALineStats {
     minErrMm: number;
     maxErrMm: number;
     maxSpacingErrMm: number;
+    minShownErrMm: number;
+    maxShownErrMm: number;
     medianProminenceDb: number;
   }[];
   /** Tamaño de una muestra de la envolvente (mm) y de un píxel de la imagen mostrada (mm). */
@@ -532,12 +538,12 @@ export function aLineStats(sim: Simulator): ALineStats {
   };
   const w = Math.round(A_LINE_WINDOW_MM / dz);
   const half = Math.ceil(A_LINE_BACKGROUND_MM / dz);
-  const found = new Map<number, { groups: number; err: number[]; spacing: number[]; prom: number[] }>();
+  const found = new Map<number, { groups: number; err: number[]; spacing: number[]; shown: number[]; prom: number[] }>();
   for (const g of full) {
     const Dg = g.reduce((s, m) => s + m.D, 0) / g.length;
     const errOf = new Map<number, number>();
     for (let k = 1; k * Dg + A_LINE_BACKGROUND_MM + 1 <= depth; k++) {
-      const entry = found.get(k) ?? { groups: 0, err: [], spacing: [], prom: [] };
+      const entry = found.get(k) ?? { groups: 0, err: [], spacing: [], shown: [], prom: [] };
       found.set(k, entry);
       entry.groups++;
       // el promedio de las líneas del grupo, cada una alineada en su k·D: j muestras respecto a k·D
@@ -557,8 +563,11 @@ export function aLineStats(sim: Simulator): ALineStats {
       entry.err.push(err);
       entry.prom.push(prominence);
       errOf.set(k, err);
-      const e1 = errOf.get(k - 1);
-      if (e1 !== undefined) entry.spacing.push(err - e1);
+      const prev = errOf.get(k - 1);
+      if (prev !== undefined) entry.spacing.push(err - prev);
+      // F-T01 frente a la línea pleural mostrada de cada línea (D + e₁): r_k − k·r_1 = e_k − k·e₁
+      const e1 = errOf.get(1);
+      if (k >= 2 && e1 !== undefined) entry.shown.push(err - k * e1);
     }
   }
   const orders = [...found.entries()]
@@ -570,6 +579,8 @@ export function aLineStats(sim: Simulator): ALineStats {
       minErrMm: e.err.length ? Math.min(...e.err) : Number.NaN,
       maxErrMm: e.err.length ? Math.max(...e.err) : Number.NaN,
       maxSpacingErrMm: e.spacing.length ? Math.max(...e.spacing.map(Math.abs)) : Number.NaN,
+      minShownErrMm: e.shown.length ? Math.min(...e.shown) : Number.NaN,
+      maxShownErrMm: e.shown.length ? Math.max(...e.shown) : Number.NaN,
       medianProminenceDb: median(e.prom),
     }));
   return {

@@ -41,6 +41,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(vol.interfaceAgreement, vtag).toBe(1);
   // GPU real (M4): 2·10⁻⁵ mm; SwiftShader llegó a 0,014 mm en VExUS (la cara del diafragma): una décima del eco
   expect(vol.interfaceDistanceMaxErr, vtag).toBeLessThan(0.02);
+  // la distancia al borde del tejido, la que funde los bordes en la pasada B (hasta 10 mm, lo que puede importar;
+  // lo añadió la revisión): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
+  expect(vol.boundaryDistanceMaxErr, vtag).toBeLessThan(0.02);
   // Cáscara: los puntos a 0,01–0,6 mm de una cara donde se dibuja su eco, según la CPU o la GPU. En el tórax la cara
   // interna de la pared (Peritoneum en la tabla de VExUS) es la pleura parietal
   const shell = await page.evaluate(() => window.__lusTest!.interfaceShell());
@@ -67,7 +70,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     const ntag = `${startPoint}: ${JSON.stringify(n)}`;
     expect(n.points, ntag).toBeGreaterThan(300);
     expect(n.mismatched / (n.points + n.mismatched), ntag).toBeLessThan(0.01);
-    expect(n.p05, ntag).toBeGreaterThan(0.98);
+    // GPU real y SwiftShader: 1 − p05 ≈ 1·10⁻⁷ (VExUS pedía > 0,98, que deja pasar la normal del tronco en lugar de
+    // la de la cara: 0,994, lo halló la revisión)
+    expect(n.p05, ntag).toBeGreaterThan(0.9999);
     expect(n.normErrP95, ntag).toBeLessThan(0.01);
   }
   // La pasada A en cuatro etapas: la transmisión de un solo rayo es la del modelo de CPU (con costillas en el plano)
@@ -76,6 +81,29 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(t.lines, ttag).toBeGreaterThan(5);
   expect(t.samples, ttag).toBeGreaterThan(300);
   expect(t.maxDiffDb, ttag).toBeLessThan(0.01);
+  // Lo mismo en inspiración máxima: el diafragma 30 mm más abajo (la deformación respiratoria entra en los dos
+  // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar)
+  const caudal = await page.evaluate(() => {
+    const sim = window.__lusTest!.sim();
+    sim.patient.respiratoryPattern = 'apnea-inspiratory';
+    window.__lusTest!.advance(4);
+    return sim.sample.resp.diaphragmCaudalMm;
+  });
+  expect(caudal).toBeGreaterThan(25);
+  const insp = await page.evaluate(() => ({
+    vol: window.__lusTest!.volumeEquivalence(20_000),
+    sweep: window.__lusTest!.equivalenceSweep(),
+    shell: window.__lusTest!.interfaceShell(),
+  }));
+  const itag = JSON.stringify({ caudal, ...insp });
+  expect(insp.vol.interiorPoints, itag).toBeGreaterThan(15_000);
+  expect(insp.vol.tissueAgreement, itag).toBe(1);
+  expect(insp.vol.interfaceAgreement, itag).toBe(1);
+  expect(insp.vol.interfaceDistanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
+  for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.99);
+  expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
+  expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
   expect(errors).toEqual([]);
 });
 
@@ -85,7 +113,7 @@ test('el moteado del músculo de la pared tiene estadística de Rayleigh', async
   // de la banda (`src/validation/speckle.test.ts`). El tórax no tiene un tejido sin estructura tan grande como el
   // hígado: el músculo de la pared entre sus estrías y sus caras, en la zona paraesternal, donde es una sola capa de
   // ~7 mm (en la lateral, dos planos intermusculares cada ~2,5 mm no dejan sitio a un parche de 16 × 8). Se juntan los
-  // parches de cinco vistas (con GPU real: 51 parches, SNR 1,89–2,14 por vista).
+  // parches de cinco vistas (con GPU real y con SwiftShader: 51 parches, SNR 1,91–2,14 por vista, 2,07 de media).
   test.setTimeout(300_000);
   const errors = await openBench(page);
   const stats = await page.evaluate(() => {
@@ -109,12 +137,17 @@ test('el moteado del músculo de la pared tiene estadística de Rayleigh', async
   expect(errors).toEqual([]);
 });
 
-test('líneas A a múltiplos de la profundidad de la pleura en la envolvente de la GPU (meta F-T01)', async ({ page }) => {
-  // Meta F-T01 (`docs/knowledge/physics.md` §3.3): la línea A de orden k a k·z_pl ± 0,5 mm (o 1 píxel), medida a lo
-  // largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia. z_pl es la
-  // profundidad de la pleura del gemelo de A0 (TS), la que la GPU usa sin error. Con GPU real, en los tres puntos de
-  // partida y en apnea espiratoria: todos los órdenes 1–4 en todos los grupos, a −0,42…−0,25 mm de k·z_pl, y la
-  // separación entre órdenes a ≤ 0,084 mm de z_pl.
+test('líneas A en la envolvente de la GPU: separadas por la profundidad de la pleura; F-T01 aún no (pleura-echo-offset)', async ({
+  page,
+}) => {
+  // Meta F-T01 (`docs/knowledge/physics.md` §3.3): la línea A de orden k a k·z_pl MOSTRADO ± 0,5 mm (o 1 píxel), medida
+  // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia. Con
+  // GPU real y con SwiftShader, en los tres puntos de partida y en apnea espiratoria (medido el 26-09-2026):
+  //  - frente al cruce de la pleura D del gemelo de A0: todos los órdenes 1–4 en todos los grupos, a −0,42…−0,25 mm de
+  //    k·D, y la separación entre órdenes a ≤ 0,084 mm de D (la física de la serie: cada rebote, un viaje más);
+  //  - frente a la línea pleural mostrada (F-T01): el orden 2 a +0,27…+0,39 mm, el 3 a +0,56…+0,76 y el 4 a
+  //    +0,87…+1,13 (1 píxel = 0,257 mm). Toda la serie se dibuja 0,35 mm por encima de su cruce (la cara de un lado de
+  //    VExUS), así que r_k − k·r_1 = 0,35·(k − 1): los órdenes 3 y 4 no cumplen la meta.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
@@ -136,6 +169,16 @@ test('líneas A a múltiplos de la profundidad de la pleura en la envolvente de 
       expect(o.minErrMm, tag).toBeGreaterThan(-0.5);
       // la separación entre líneas A es la profundidad de la pleura (guía §18): un tercio de la FWHM axial del pulso
       if (o.k >= 2) expect(o.maxSpacingErrMm, tag).toBeLessThanOrEqual(0.2);
+    }
+    // F-T01 frente a la línea pleural mostrada: el fallo conocido, con su tamaño. Cuando se corrija la desviación, esta
+    // prueba fallará aquí: entonces se exige la meta en todos los órdenes y se borra `pleura-echo-offset`
+    const tol = Math.max(0.5, a.pixelMm);
+    for (const o of a.orders.filter((x) => x.k >= 2)) {
+      const expected = 0.35 * (o.k - 1);
+      expect(o.minShownErrMm, tag).toBeGreaterThan(expected - 0.25);
+      expect(o.maxShownErrMm, tag).toBeLessThan(expected + 0.25);
+      const worst = Math.max(Math.abs(o.minShownErrMm), Math.abs(o.maxShownErrMm));
+      expect(worst <= tol, `F-T01, orden ${o.k}: ${worst.toFixed(2)} mm frente a ${tol} mm (${tag})`).toBe(o.k === 2);
     }
   }
   expect(errors).toEqual([]);

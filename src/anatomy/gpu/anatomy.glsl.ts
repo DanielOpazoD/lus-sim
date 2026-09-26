@@ -112,10 +112,6 @@ vec3 toMaterial(vec3 p) {
   return m;
 }
 
-vec3 tissueVelocity(vec3 m) {
-  return uResp.yzw * (uRespVel * respWeight(m));
-}
-
 float domeLift(float x, float y, vec4 dome) {
   float u = (x - dome.x) / dome.z;
   float v = (y - dome.y) / dome.w;

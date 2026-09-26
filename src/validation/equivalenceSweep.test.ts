@@ -15,7 +15,7 @@ import { pleuraCrossingLine } from '../ultrasound/transmission';
 
 type P = [number, number, number];
 /** Lo que la «GPU» cambia respecto a la CPU en un punto: tejido, cara o distancia a la cara. */
-type Corruption = (p: P, q: WorldQuery) => { tissue?: number; iface?: number; ifd?: number };
+type Corruption = (p: P, q: WorldQuery) => { tissue?: number; iface?: number; ifd?: number; bd?: number };
 
 /** Las caras de la pared y de las costillas (decisión 62) que reparte `classify` en los planos de partida del tórax. */
 const WALL_FACES = ['SkinFat', 'Scarpa', 'DeepFascia', 'ObliquePlane', 'TransversusPlane', 'Transversalis', 'Peritoneum', 'RibCortex'];
@@ -40,6 +40,7 @@ function fakeSim(corrupt?: Corruption, pleuraShiftMm = 0): Simulator {
     const velocity = new Float32Array(n * 3);
     const iface = new Int32Array(n);
     const ifd = new Float32Array(n);
+    const bd = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       const p: P = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
       const q = anatomy.classifyWorld(p, sample);
@@ -47,8 +48,9 @@ function fakeSim(corrupt?: Corruption, pleuraShiftMm = 0): Simulator {
       tissue[i] = bad.tissue ?? q.tissue;
       iface[i] = bad.iface ?? q.interface;
       ifd[i] = bad.ifd ?? q.interfaceDistance;
+      bd[i] = bad.bd ?? q.boundaryDistance;
     }
-    return { tissue, vessel, velocity, iface, ifd };
+    return { tissue, vessel, velocity, iface, ifd, bd };
   };
   const sim = {
     scene,
@@ -136,6 +138,19 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     );
     expect(offset.interfaceAgreement).toBe(1);
     expect(offset.interfaceDistanceMaxErr).toBeGreaterThan(0.009);
+  });
+
+  it('la distancia al borde del tejido (la que funde los bordes en B): exacta con la misma «GPU»; un borde de la pared fuera de sitio no pasa', () => {
+    const ok = volumeEquivalence(fakeSim(), 3000);
+    expect(ok.boundaryDistanceMaxErr).toBeLessThan(1e-4);
+    // la mutación de la revisión: la pared sin borde (bd = 1000) cambia la imagen junto a sus caras
+    const wall = volumeEquivalence(
+      fakeSim((_p, q) => (q.tissue === Tissue.Fat || q.tissue === Tissue.Muscle ? { bd: 1e3 } : {})),
+      3000,
+    );
+    expect(wall.tissueAgreement).toBe(1);
+    expect(wall.boundaryDistanceMaxErr).toBeGreaterThan(2);
+    expect(wall.boundaryWorst).toMatch(/^(Fat|Muscle) en /);
   });
 
   it('la cáscara de las caras cubre las caras de la pared y de las costillas de los planos de partida', () => {

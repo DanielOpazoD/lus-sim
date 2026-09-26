@@ -78,12 +78,15 @@ conservan su identificador (decisiones 10 y 11).
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina; su nivel sale de K = 55 dB, que se calibra con la GPU.
-- **La línea pleural y las líneas A, 0,35 mm por encima de su profundidad** (`pleura-echo-offset`): la cara de
-  la pleura parietal es de un lado (`IF_PLEURA_WALL`, la dibuja la pared, decisión 61 de VExUS) y su perfil se
-  desplaza 2,5σh = 0,35 mm dentro de su dueña, y las líneas A son réplicas de ese perfil. Medido en la envolvente de
-  la GPU (decisión 12): −0,42…−0,25 mm de k·z_pl en los órdenes 1–4, con la separación entre órdenes exacta
-  (≤ 0,084 mm). Cumple la meta F-T01 (±0,5 mm) gastando el 70 % de su tolerancia; `e2e/imagen.spec.ts` fija la
-  desviación, de modo que corregirla obliga a cambiar la prueba y esta limitación a la vez.
+- **Las líneas A no están a múltiplos de la línea pleural mostrada** (`pleura-echo-offset`): la cara de la pleura
+  parietal es de un lado (`IF_PLEURA_WALL`, la dibuja la pared, decisión 61 de VExUS) y su perfil se desplaza
+  2,5σh = 0,35 mm dentro de su dueña; las líneas A son réplicas de ese perfil, así que toda la serie se dibuja 0,35 mm
+  por encima de k·D (D, el cruce de la pleura), con la separación entre órdenes exacta (≤ 0,084 mm). Frente a la línea
+  pleural mostrada el error crece con el orden, 0,35·(k − 1): medido en la envolvente de la GPU (decisión 12), el orden
+  2 a +0,27…+0,39 mm, el 3 a +0,56…+0,76 y el 4 a +0,87…+1,13. **No cumple la meta F-T01** (±0,5 mm o un píxel) en los
+  órdenes 3 y 4, y un alumno que mida la profundidad de la pleura y la de la línea A de orden 3 verá una diferencia de
+  0,7 mm. `e2e/imagen.spec.ts` exige el fallo con su tamaño: corregirlo obliga a cambiar la prueba y esta limitación a
+  la vez. Las opciones de la corrección están en la decisión 12; la fase 1 no cierra sin ella.
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.
@@ -94,7 +97,7 @@ conservan su identificador (decisiones 10 y 11).
   campo, no por la cara que la produce). En el tórax la pleura es la cara interna de la pared, así que sus réplicas
   caen a W y 2W bajo ella (W, el grosor de la pared, es casi la profundidad de la pleura), junto a las líneas A que la
   serie de reverberaciones ya forma: una doble cuenta. Medida en la GPU (decisión 12), la réplica de la línea pleural
-  queda dentro de la línea A de orden 2 en 440 de 576 líneas de los tres puntos de partida (27–31 dB por debajo: el
+  queda dentro de la línea A de orden 2 en unas 440 de 576 líneas de los tres puntos de partida (27–31 dB por debajo: el
   perfil cambia 0,02 dB) y, donde la compresión deja la pleura más alta que W (el centro del punto BLUE superior),
   1,5–2,8 mm por debajo de ella, 44 dB más débil, subiendo 3,2 dB el fondo oscuro que sigue a la línea A.
 - **Armónica tisular simplificada** (`harmonic-simplified`, heredada con `src/ultrasound/harmonic.ts`,

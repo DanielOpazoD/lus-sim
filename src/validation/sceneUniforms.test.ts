@@ -59,7 +59,7 @@ describe('Esquema de uniforms de la escena', () => {
       uploadSceneUniforms(sink, values);
       expect(calls).toContain('v4v:uRibs');
       expect(calls).toContain('v4:uCurtain');
-      expect(calls).toContain('f:uRespVel');
+      expect(calls).toContain('v4:uResp');
       expect(calls).toHaveLength(SCENE_UNIFORMS.length);
     }
   });
@@ -67,10 +67,15 @@ describe('Esquema de uniforms de la escena', () => {
   it('las costillas de la escena caben en el array del shader y el relleno queda lejos', () => {
     const scene = new AnatomyScene(defaultPatient());
     const ribs = SCENE_UNIFORMS.find((u) => u.name === 'uRibs')!;
-    const data = Array.from(ribs.value(scene, { sample: new PhysiologyEngine(defaultPatient()).sample, compression: null }));
+    const ctx = { sample: new PhysiologyEngine(defaultPatient()).sample, compression: null };
+    const data = Array.from(ribs.value(scene, ctx));
     expect(scene.ribs.length).toBeLessThanOrEqual(ribs.count!);
-    // cada costilla de la escena, con sus cuatro valores, y el relleno (si lo hay) a 9999 mm
+    // cada costilla de la escena, con sus cuatro valores
     scene.ribs.forEach((r, i) => expect(data.slice(i * 4, i * 4 + 4)).toEqual([r.zAnterior, r.tilt, r.halfWidth, r.halfThickness]));
-    for (let i = scene.ribs.length; i < ribs.count!; i++) expect(data[i * 4]).toBe(9999);
+    // la escena del tórax llena las 6 ranuras: el relleno (a 9999 mm, lejos de todo) se prueba con una escena de dos
+    // costillas (lus-sim: en VExUS el bucle del relleno sí corría)
+    const two = Array.from(ribs.value({ ...scene, ribs: scene.ribs.slice(0, 2) } as unknown as AnatomyScene, ctx));
+    expect(two).toHaveLength(ribs.count! * 4);
+    for (let i = 2; i < ribs.count!; i++) expect(two.slice(i * 4, i * 4 + 4)).toEqual([9999, 0, 1, 1]);
   });
 });

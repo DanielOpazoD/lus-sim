@@ -47,13 +47,14 @@ export const START_POINT_POSES = defineParameters('app.startPointPoses', {
     unit: 'mm',
     range: [12, 86],
     evidence: 'extrapolacion',
-    sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021'],
+    sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021', 'gray-anatomia-1918'],
     note:
-      'EIC4 en la axilar anterior («justo por encima del pezón», el pezón en el 4.º EIC) con la ley costal de la escena ' +
-      '(`sdRib`: zAnterior + ribTiltMm(n)·(0,5 − 0,5·sen φ), factor 0,309 en φ = 0,875π) y la 4.ª costilla extrapolada ' +
-      '20 mm sobre la 5.ª, como el paso A: la 4.ª a 60 + 54·0,309 = 76,7 mm y la 5.ª a 40 + 60·0,309 = 58,5; el EIC4, a ' +
-      '67,6. El rango va de una mano (≈ 85 mm) por debajo del punto superior, lo que da la regla de las manos, al EIC3 ' +
-      '(85,7). La escena heredada no tiene la 4.ª costilla (ribs-5-10-only)',
+      'EIC4 en la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, Gray) con la ' +
+      'ley costal de la escena (`sdRib`: zAnterior + ribTiltMm(n)·(0,5 − 0,5·sen φ), factor 0,309 en φ = 0,875π) y la ' +
+      '4.ª costilla extrapolada 20 mm sobre la 5.ª, como el paso A: la 4.ª a 60 + 54·0,309 = 76,7 mm y la 5.ª a ' +
+      '40 + 60·0,309 = 58,5; el EIC4, a 67,6. El rango va del EIC3 (85,7) a una mano por debajo del punto superior, lo ' +
+      'que da la regla de las manos, con una mano de ≈ 85 mm [SUPUESTO: la antropometría de la mano está NO ENCONTRADO ' +
+      'en `docs/knowledge/anatomy.md` §4]. La escena heredada no tiene la 4.ª costilla (ribs-5-10-only)',
   },
   plapsPhi: {
     value: 1.15 * Math.PI,

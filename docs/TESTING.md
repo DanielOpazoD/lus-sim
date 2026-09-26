@@ -9,7 +9,7 @@ la salida actual no protege nada.
 | Unitarias rápidas  | `src/validation/*.test.ts` sin marcador    | `npm test`, `check`, CI           | Núcleo (reloj, azar por semilla, unidades), evidencia de los parámetros, capas, documentación (rutas y scripts citados, enlaces a los documentos de tema) y bibliografía (citas que existen, entradas localizables y sin huérfanas), procedencia del código portado.  |
 | Lentas             | primera línea `// @tier slow`              | `npm run test:all`, `check`, CI   | Propiedades del motor con fast-check (`src/validation/properties.test.ts`) y los gemelos B → C → D de los ecos de interfaz y de la pleura (`src/validation/interfaceTwin.test.ts`, `src/validation/pleuraTwin.test.ts`); más adelante, la cadena completa del alumno. |
 | Cobertura          | `npm run test:coverage`                    | `check`, CI                       | Umbrales globales (≥ 90 % sentencias, ≥ 85 % ramas) que solo pueden subir; excluye lo que necesita DOM o WebGL.                                                                                                                                                       |
-| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde el paso B2a (`e2e/imagen.spec.ts`), equivalencia TS ↔ GLSL en el tórax, estadística de Rayleigh del moteado y las líneas A de la meta F-T01 en la envolvente de la GPU.                                                          |
+| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde el paso B2a (`e2e/imagen.spec.ts`), equivalencia TS ↔ GLSL en el tórax, estadística de Rayleigh del moteado y las líneas A en la envolvente de la GPU (su separación; F-T01, con el fallo conocido `pleura-echo-offset`).        |
 | Procedencia        | `src/validation/provenance.test.ts`        | `npm test` (verdad solo en local) | La tabla de `docs/PROVENANCE.md` dice la verdad frente a los repos de origen; en CI, formato y existencia.                                                                                                                                                            |
 | Banco de fidelidad | (fase 1–2) herramienta con GPU real        | a mano en cada PR de imagen       | Estadística de la imagen frente al banco de referencia real (fuera del repo, decisión 5): brillo de la pleura, decaimiento de las líneas A, ancho y contraste de las líneas B.                                                                                        |
 | Prueba ciega       | (fase 2) mosaicos real/simulado            | al cerrar cada fase de imagen     | Que un observador experto no distinga la imagen simulada por un rasgo concreto; se registra el rasgo que la delata.                                                                                                                                                   |
@@ -59,12 +59,17 @@ la salida actual no protege nada.
   caras de la pared, las costillas y la pleura, la pleura de A0 línea a línea (a lo sumo el paso final de su bisección),
   las normales de las caras y la transmisión de la pasada A. Los umbrales llevan en su comentario lo medido con GPU
   real y con SwiftShader.
-- **La física en la imagen de la GPU, no en un gemelo.** La meta F-T01 se mide sobre la envolvente leída de la GPU
+- **La física en la imagen de la GPU, no en un gemelo.** Las líneas A se miden sobre la envolvente leída de la GPU
   (`aLines`: grupos de 8 líneas promediados, alineados en la pleura de cada una) y la estadística de Rayleigh sobre
   parches del músculo de la pared (`speckle`); ninguna de las dos lee un valor que el shader escriba para la prueba.
+  Una meta se mide como la define la base: F-T01 frente a la línea pleural mostrada, no frente al cruce D con el que el
+  shader coloca las réplicas (medir frente a D era casi circular; lo halló la revisión del paso B2a).
+- **Metas que aún no se cumplen, también en la e2e.** Como las metas A (decisión 10), una meta F que la imagen aún no
+  cumple no se relaja ni se salta: la prueba exige el fallo con su tamaño medido (F-T01 en los órdenes 3 y 4,
+  `pleura-echo-offset`) y falla cuando alguien lo corrige, para que la prueba y la limitación cambien juntas.
 - **Mutaciones.** Cada guarda se comprobó rompiendo el shader o sus uniforms y viéndola fallar (decisión 12); el
   procedimiento es el de siempre: aplicar la mutación, `npx vite build`, correr la prueba y restaurar.
-- **Cobertura.** Con la GPU portada: 94,7 % de sentencias, 88,6 % de ramas, 94,6 % de funciones y 95,8 % de líneas
+- **Cobertura.** Con la GPU portada: 94,6 % de sentencias, 88,6 % de ramas, 94,6 % de funciones y 95,8 % de líneas
   (el renderizador, `gl.ts`, los shaders y los ganchos de la e2e no cuentan: los ejerce la e2e). Una trampa de la
   cobertura v8: el código que una prueba evalúa en memoria con la ruta de un módulo real (`vm.runInThisContext` con
   ese `filename`) se mezcla con el módulo y le quita cobertura; se le da un nombre que no sea ruta.
