@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { compressionSample, uncompress, warpAt } from '../anatomy/compression';
-import { Interface } from '../anatomy/interfaces';
+import { INTERFACE_COUNT, Interface, interfaceReflectivity } from '../anatomy/interfaces';
 import { torsoNormal } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { TISSUES, Tissue, impedanceMRayl, reflectionCoefficient } from '../anatomy/tissues';
@@ -11,9 +11,9 @@ import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, clampPose, defaultPose, lineAngle, pointOnLine, type ProbePose } from '../probe/probe';
 import { IFACE_SHIFT_MM, IFACE_SLOPE_REF, facetLobe, interfaceEchoField } from '../ultrasound/interfaceEcho';
-import { pleuraCoherence, pleuraTerms, slidingField } from '../ultrasound/pleura';
+import { PLEURA_RT_RANGE, aLineGain, pleuraCoherence, pleuraRoundTrip, pleuraTerms, slidingField } from '../ultrasound/pleura';
 import { scattererField } from '../ultrasound/speckleField';
-import { chestView, intercostalZ, longitudinalPose, scanLine } from './support/chestView';
+import { SCAN_DEPTH_MM, chestView, intercostalZ, longitudinalPose, scanLine, type ChestView } from './support/chestView';
 
 /**
  * Invariantes físicas de la guía (docs/GUIDE.md §18) sobre el motor portado, en TypeScript puro (lus-sim,
@@ -68,6 +68,69 @@ describe('líneas A: la serie de reverberaciones las pone a múltiplos exactos d
   });
 });
 
+/** Los tejidos de la pared del tórax en la clasificación: sus capas y las costillas que la cruzan. */
+const WALL_TISSUES: ReadonlySet<Tissue> = new Set([Tissue.Skin, Tissue.Fat, Tissue.Muscle, Tissue.Bone, Tissue.Cartilage]);
+
+/**
+ * El primer punto de la línea θ (mm desde la cara) que la clasificación no pone en la pared, y su tejido: marcha
+ * de 0,05 mm desde la cara y afinado de 0,002 mm en el último paso; null si la línea no sale de la pared.
+ */
+function firstBehindWall(v: ChestView, theta: number): { r: number; tissue: Tissue } | null {
+  const tissueAt = (r: number): Tissue => v.scene.classify(v.material(pointOnLine(v.contact.frame, v.tr, theta, r)), v.instant).tissue;
+  for (let r = 0; r < SCAN_DEPTH_MM; r += 0.05) {
+    const t = tissueAt(r);
+    if (WALL_TISSUES.has(t)) continue;
+    for (let f = Math.max(r - 0.05, 0); f < r; f += 0.002) {
+      const tf = tissueAt(f);
+      if (!WALL_TISSUES.has(tf)) return { r: f, tissue: tf };
+    }
+    return { r, tissue: t };
+  }
+  return null;
+}
+
+describe('la pleura de A0 es el cambio de tejido de la clasificación', () => {
+  it('A0 pone la pleura donde la clasificación sale de la pared (a ≤ 0,01 mm), y detrás hay pulmón justo donde A0 la ve sobre el borde', () => {
+    // A0 (`pleuraCrossingLine`) busca el cruce de la cara interna de la pared con una marcha y una bisección, sin
+    // la clasificación, y lo registra sobre el borde del pulmón (dz > 0) o hasta `CURTAIN_RECORD_MM` bajo él (la
+    // banda donde la cortina se desvanece). La clasificación pone tras la pared el pulmón sobre el borde y el
+    // abdomen bajo él. Línea a línea: la profundidad del primer tejido que no es pared con la de A0, y el tejido con
+    // el lado del borde. Vistas con las dos cosas: el punto BLUE, el EIC5 en la medioclavicular (su parte caudal
+    // cae en la banda) y en la axilar media, el EIC7 en la axilar posterior y en la medioclavicular. Umbral: la
+    // bisección (0,5 mm / 2⁷ ≈ 0,004 mm) más el paso fino del barrido (0,002 mm)
+    let lung = 0;
+    let band = 0;
+    const lmc = defaultPose().phi;
+    for (const pose of [
+      defaultPose(),
+      longitudinalPose(lmc, intercostalZ(scene, 5, lmc)),
+      longitudinalPose(Math.PI, intercostalZ(scene, 5, Math.PI)),
+      longitudinalPose(1.2 * Math.PI, intercostalZ(scene, 7, 1.2 * Math.PI)),
+      longitudinalPose(lmc, intercostalZ(scene, 7, lmc)),
+    ]) {
+      const v = chestView(scene, pose);
+      for (let i = 0; i < CONVEX_C35.lines; i += 8) {
+        const th = lineAngle(i, CONVEX_C35);
+        const D = scanLine(v, th).pleuraMm;
+        if (D === null) continue;
+        const behind = firstBehindWall(v, th);
+        const dz = scene.lungEdgeMm(v.material(pointOnLine(v.contact.frame, v.tr, th, D)), v.instant);
+        const where = `línea ${i}: A0 ${D.toFixed(3)} (dz ${dz?.toFixed(2) ?? '—'})`;
+        expect(behind, where).not.toBeNull();
+        if (behind === null || dz === null) continue;
+        expect(Math.abs(behind.r - D), `${where}, ${Tissue[behind.tissue]} desde ${behind.r.toFixed(3)}`).toBeLessThanOrEqual(0.01);
+        expect(behind.tissue === Tissue.Lung, `${where}: detrás hay ${Tissue[behind.tissue]}`).toBe(dz > 0);
+        if (dz > 0) lung++;
+        else band++;
+      }
+    }
+    // Que no pase vacía: el 26-09-2026 se compararon 82 líneas con pulmón detrás y 14 en la banda; los umbrales
+    // solo fallan si una de las vistas deja de registrar la pleura o de cruzar el borde
+    expect(lung).toBeGreaterThan(60);
+    expect(band).toBeGreaterThan(10);
+  });
+});
+
 describe('energía en una interfaz: la reflexión y la transmisión se reparten la incidente', () => {
   it('Fresnel en incidencia normal: R² + (Z₁/Z₂)(1 + R)² = 1 entre cualquier par de tejidos, |R| ≤ 1 y R(a, b) = −R(b, a)', () => {
     // intensidad reflejada R² y transmitida 4Z₁Z₂/(Z₁ + Z₂)² (la presión transmitida es 1 + R): su suma es la
@@ -88,6 +151,37 @@ describe('energía en una interfaz: la reflexión y la transmisión se reparten 
     // la pleura: músculo/gas refleja casi todo y transmite casi nada (la línea pleural y la sombra del aire)
     const rp = reflectionCoefficient(Tissue.Muscle, Tissue.Lung);
     expect(rp * rp).toBeGreaterThan(0.998);
+  });
+
+  it('ninguna cara refleja más de lo que le llega: 0 ≤ reflectividad efectiva ≤ 1 (el suelo de colágeno incluido)', () => {
+    for (let i = 0; i < INTERFACE_COUNT; i++) {
+      const id: Interface = i;
+      expect(interfaceReflectivity(id), Interface[id]).toBeGreaterThanOrEqual(0);
+      expect(interfaceReflectivity(id), Interface[id]).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('cada ida y vuelta pleura–sonda pierde energía (G < 1) y las líneas A decaen con su orden', () => {
+    // G = R_p·χ·R_t·T(D) (`pleuraRoundTrip`) con cualquier transmisión, cualquier incidencia y R_t en todo su rango
+    // calibrable; la réplica k lleva G^(k−1) (`aLineGain`): cada línea A es más débil que la anterior y la primera
+    // réplica es la línea pleural
+    const [rtMin, rtMax] = PLEURA_RT_RANGE;
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.double({ min: 0, max: 1, noNaN: true }),
+        fc.double({ min: rtMin, max: rtMax, noNaN: true }),
+        (tD, cosI, rt) => {
+          const G = pleuraRoundTrip(tD, pleuraCoherence(cosI, k0), rt);
+          expect(G).toBeGreaterThanOrEqual(0);
+          expect(G).toBeLessThan(1);
+          expect(aLineGain(G, 1)).toBe(1);
+          for (let k = 1; k < 8; k++) expect(aLineGain(G, k + 1)).toBeLessThanOrEqual(aLineGain(G, k));
+          if (G > 0) expect(aLineGain(G, 3)).toBeLessThan(aLineGain(G, 2));
+        },
+      ),
+      { ...FC, numRuns: 300 },
+    );
   });
 
   it('el lóbulo de Kirchhoff reparte la energía reflejada sin crearla: ∫ Λ²·cos⁴θ d²(tan θ) = 2π·s_ref² para cualquier pendiente', () => {
