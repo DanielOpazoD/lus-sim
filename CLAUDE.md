@@ -1,8 +1,8 @@
 # Guía para agentes y colaboradores
 
 Simulador de ecografía pulmonar: cadena causal paciente → anatomía y fisiología → interacción acústica →
-señal → imagen (modo B y M) → observables → puntaje. Lee primero `README.md`, `docs/GUIDE.md` (documento
-rector), `docs/ARCHITECTURE.md` y `docs/TESTING.md`; la física y la clínica están en `docs/KNOWLEDGE.md`.
+señal → imagen (modo B y M) → observables → puntaje. Lee primero `docs/MISSION.md` (misión, objetivos y prioridad),
+`README.md`, `docs/GUIDE.md` (documento rector), `docs/ARCHITECTURE.md` y `docs/TESTING.md`; la física y la clínica están en `docs/KNOWLEDGE.md`.
 
 ## Antes de terminar un cambio
 
@@ -38,6 +38,8 @@ alta, las pruebas con plazo pueden caer por tiempo: repetir solas antes de culpa
 los repos hermanos salvo para leer (el origen se lee con `git show <commit>:<ruta>`).
 
 ## Flujo de trabajo
+
+Cada PR declara qué objetivo de `docs/MISSION.md` mueve; lo que no mueve ninguno no se hace.
 
 Ramas `feat/…`, `fix/…`, `docs/…`, `test/…`, `chore/…`; Conventional Commits en español; PR con la
 plantilla; squash-merge con CI en verde (`check` + `e2e`). Revisión adversarial de contexto limpio antes

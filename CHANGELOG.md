@@ -24,6 +24,9 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - Guardas de documentación: scripts de npm citados que existen, documentos de tema enlazados desde
   `docs/KNOWLEDGE.md`, citas `[@clave]` que existen y bibliografía sin entradas huérfanas.
 
+- Misión y objetivos medibles (`docs/MISSION.md`) como criterio de prioridad; cada PR declara qué
+  objetivo mueve (9).
+
 ### Cambiado
 
 - CI: el check `check` que exige la protección de `main` agrega la verificación y la e2e.

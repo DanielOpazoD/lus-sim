@@ -202,3 +202,29 @@ EchoTwin y lo portado con VExUS.
 
 **Verificación.** Se implementa con la primera física escalar propia (fase 2): prueba de que el archivo
 generado está al día y de que cada identificador libre está declarado, y e2e de equivalencia.
+
+## 9. Misión y objetivos medibles como criterio de prioridad
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** Daniel dio libertad para modificar el proyecto y abrir e integrar PR «siguiendo la misión y
+objetivos del simulador», y pidió que esa misión y esos objetivos quedaran definidos en la documentación
+para guiarse por ellos. La guía (`docs/GUIDE.md` §0) tenía una misión, pero no objetivos con indicadores
+ni una regla para decidir qué hacer primero.
+
+**Opciones.** (a) Dejar la misión en la guía y priorizar caso a caso. (b) Un documento propio con
+objetivos medibles y una regla de prioridad, al que remitan la guía, la hoja de ruta, la plantilla de PR
+y la guía para agentes.
+
+**Decisión.** (b): `docs/MISSION.md` con la misión, siete objetivos (fidelidad física, anatómica,
+ecográfica y clínica, docencia, ingeniería y unión), su indicador y su meta para la versión 1.0, lo que
+el simulador no es y el orden de prioridad (que no mienta; lo que un clínico notaría primero; lo que
+desbloquea más objetivos; lo que abarata la unión). Cada PR declara qué objetivo mueve y cada fase
+termina con una evaluación adversarial por objetivo, con nota sobre 7.
+
+**Consecuencias.** La hoja de ruta indica qué objetivos mueve cada fase; el estado por objetivo se
+actualiza al cerrar cada fase.
+
+**Verificación.** `src/validation/docs.test.ts` exige que el README enlace `docs/MISSION.md` (la
+prueba falló antes de añadir el enlace) y que los documentos solo citen archivos que existen; la
+plantilla de PR pide el objetivo.

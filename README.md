@@ -35,6 +35,8 @@ Ya existe:
 
 ## Principios
 
+La misión y los objetivos que ordenan el trabajo están en `docs/MISSION.md`.
+
 1. **Cuatro fidelidades, cada una con su prueba**: anatómica, física, ecográfica y clínica
    (`docs/GUIDE.md` §2).
 2. **Tres estados separados**: el paciente (verdad latente), el estado físico y la señal adquirida.
@@ -63,6 +65,7 @@ npm run docs:index   # regenera docs/DECISIONS_INDEX.md
 
 | Documento                | Qué contiene                                                                              |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `docs/MISSION.md`        | Misión, objetivos medibles y cómo se prioriza: cada PR declara qué objetivo mueve.        |
 | `docs/GUIDE.md`          | Guía de desarrollo: misión, principios, reglas de física y de proceso. Documento rector.  |
 | `docs/KNOWLEDGE.md`      | Base de conocimiento: física, anatomía, fisiopatología y clínica con fuentes verificadas. |
 | `docs/REFERENCES.md`     | Bibliografía con claves (`[@clave]` en los documentos, `sources` en el código).           |

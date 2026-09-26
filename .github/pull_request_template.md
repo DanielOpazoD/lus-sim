@@ -2,6 +2,10 @@
 
 <!-- Una o dos frases. Si toca física, anatomía o clínica: qué observable cambia y por qué. -->
 
+## Objetivo
+
+<!-- Qué objetivo de docs/MISSION.md mueve (O1–O7) y cómo se nota en su indicador. -->
+
 ## Decisión de diseño
 
 <!-- Número de la entrada añadida o modificada en docs/DECISIONS.md, o «no aplica». -->
