@@ -53,7 +53,8 @@ Objetivos: O1, O3.
   consolidación con patrón tisular y broncograma estático o dinámico, derrame con sus signos.
 - Modo M desde las mismas líneas del modo B y el mismo reloj: orilla de mar, código de barras,
   sinusoide. Cada columna se forma en su instante (tiempo por columna en la GPU), no desde una caché
-  por fase cardíaca como en EchoTwin; coordinar con el modo M que VExUS tiene en curso.
+  por fase cardíaca como en EchoTwin; partir del modo M de VExUS (su decisión 80, ya en el origen fijado:
+  decisión 11).
 - ts2glsl para la física escalar propia (decisión 8); desviaciones declaradas con línea base frente al
   banco de referencia.
 - Sonda lineal de alta frecuencia; preajuste pulmonar (foco en la pleura, armónicos y composición

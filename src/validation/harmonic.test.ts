@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CONVEX_BEAM, lateralFwhmMm } from '../ultrasound/beamModel';
-import { HARMONIC, harmonicBeam, harmonicNearGain, harmonicNearUniform, noiseGain, transientGain } from '../ultrasound/harmonic';
+import {
+  HARMONIC,
+  HARMONIC_GLSL,
+  harmonicBeam,
+  harmonicNearGain,
+  harmonicNearUniform,
+  noiseGain,
+  transientGain,
+} from '../ultrasound/harmonic';
 import { ELEV_RAYLEIGH_MM, ELEV_SIGMA0_MM, elevSigmaMm } from '../ultrasound/pleura';
+import { RECEIVER_GLSL } from '../ultrasound/receiver';
 import { bmodeBeam, CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
 
 /**
@@ -10,8 +19,9 @@ import { bmodeBeam, CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
  * parásitos que bajan, en TS y en el GLSL, y su cableado en el renderizador real sobre un WebGL falso. La
  * imagen en GPU la mide la e2e (`harmonicContrast`).
  *
- * lus-sim (decisión 11): el haz y el modelo, idénticos; sin lo que comprueba los programas ensamblados, el
- * comando del equipo ni el renderizador sobre WebGL falso (vuelven con la GPU y la app en el paso B2). Que los
+ * lus-sim (decisión 11): el haz y el modelo, idénticos; del GLSL quedan las cadenas de los módulos portados (el
+ * receptor y la acumulación, que en VExUS solo comprueba la e2e); sin lo que comprueba los programas ensamblados,
+ * el comando del equipo ni el renderizador sobre WebGL falso (vuelven con la GPU y la app en el paso B2). Que los
  * ecos parásitos bajen con la armónica lo prueba `clutter.test.ts`.
  */
 const db = (x: number) => 20 * Math.log10(x);
@@ -90,5 +100,16 @@ describe('Armónica tisular (decisión 77): haz y modelo', () => {
     expect(noiseGain(false)).toBe(1);
     expect(db(transientGain(true))).toBeCloseTo(HARMONIC.fundamentalRejectionDb, 9);
     expect(db(noiseGain(true))).toBeCloseTo(HARMONIC.noiseDb, 9);
+  });
+
+  it('el GLSL de los módulos portados: el receptor declara la ganancia del transitorio y la acumulación es la de TS', () => {
+    const flat = (s: string) => s.replace(/\s+/g, ' ');
+    expect(RECEIVER_GLSL).toContain('uniform float uTransientGain;');
+    // lus-sim: la misma fórmula que `harmonicNearGain` (1 en fundamental y desde la referencia; si no, la
+    // acumulación normalizada en la referencia); los programas que la usan vuelven en el paso B2
+    expect(flat(HARMONIC_GLSL)).toContain('if (uHarmonicNear.x <= 0.0 || r >= uHarmonicNear.y) return 1.0;');
+    expect(flat(HARMONIC_GLSL)).toContain(
+      'return (1.0 - exp(-max(r, 0.0) / uHarmonicNear.x)) / (1.0 - exp(-uHarmonicNear.y / uHarmonicNear.x));',
+    );
   });
 });

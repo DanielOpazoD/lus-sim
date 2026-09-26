@@ -27,9 +27,9 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 ### Cambiado
 
 - Lo portado de VExUS, al día con `8e83d9a` (11): la PEEP sube la presión pleural también con respiración espontánea
-  (CPAP); el haz, la elevación y la composición admiten la armónica (en fundamental no cambian); el gemelo de los ecos
-  de interfaz lleva el pedestal de lóbulos laterales; el presupuesto del bundle deja fuera del total los chunks de solo
-  pruebas; `CONTRIBUTING.md` remite a la misión.
+  (CPAP) y el motor pasa a la respiración la del paciente en cada paso; el haz, la elevación y la composición admiten
+  la armónica (en fundamental no cambian); el gemelo de los ecos de interfaz lleva el pedestal de lóbulos laterales; el
+  presupuesto del bundle deja fuera del total los chunks de solo pruebas; `CONTRIBUTING.md` remite a la misión.
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

@@ -84,8 +84,9 @@ conservan su identificador (decisiones 10 y 11).
   fase fija (ISLR −24 dB con los 14 mm de grasa del paciente por omisión), no el diagrama real de la apertura; la
   reverberación de la pared es de primer y segundo orden y solo de los ecos fuertes (compuerta por el módulo del
   campo, no por la cara que la produce). En el tórax la pleura es la cara interna de la pared, así que sus réplicas
-  caen donde la serie de reverberaciones ya forma las líneas A: VExUS midió esa doble cuenta bajo su cortina en unos
-  −40 dB; en el tórax, con pleura en todo el campo, la medirá el paso B2 con la GPU.
+  caen a W y 2W bajo ella (W, el grosor de la pared, es casi la profundidad de la pleura), junto a las líneas A que la
+  serie de reverberaciones ya forma: VExUS estima esa doble cuenta bajo su cortina en unos −40 dB, sin medirla; en el
+  tórax, con pleura en todo el campo, la medirá el paso B2.
 - **Armónica tisular simplificada** (`harmonic-simplified`, heredada con `src/ultrasound/harmonic.ts`,
   decisión 11): la acumulación del armónico es una curva fija del campo cercano (1 − e^(−r/2 mm), compensada desde
   4 mm), no la integral del haz con su foco; las líneas A y la cola del gas no cambian con la armónica; el eje axial

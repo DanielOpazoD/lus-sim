@@ -10,7 +10,7 @@ import { contactCoupling, probeContact } from '../probe/contact';
 import { CONVEX_C35, lineDirection, pointOnLine, probeFrame, skinSoftness, type ProbePose } from '../probe/probe';
 
 /**
- * Anatomía implícita de la escena (adaptada de vexus-sim@52354d5:src/validation/anatomy.test.ts, decisión 10):
+ * Anatomía implícita de la escena (adaptada de `src/validation/anatomy.test.ts` de VExUS, decisión 10):
  * las pruebas de VExUS cuya intención sirve al tórax, con la escena del tórax (pared, costillas, columna,
  * diafragma, cortina y pulmón) en lugar de la abdominal. Lo del hígado, la vesícula, los riñones y los vasos
  * no se porta; bajo el diafragma queda el «resto» genérico (`abdomen-generic-tissue`).

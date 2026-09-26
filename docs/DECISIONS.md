@@ -315,9 +315,10 @@ Todas fallaron con la mutación y pasan sin ella.
 
 **Contexto.** El paso A (decisión 10) copió el motor de `vexus-sim@52354d5`, y el origen siguió avanzando: su main,
 `8e83d9a`, lleva once commits más. Son las decisiones 76 (ecos parásitos del modo fundamental: lóbulos laterales y
-reverberación de la pared), 77 (armónica tisular), 78 (tríadas portales del hígado), 79 (aurícula de lazo cerrado en la
-media, con bolo, diurético y PEEP) y 80 (cine y modo M en la GPU), más el renombrado de los identificadores del GLSL en
-el build, la licencia MIT y la misión de VExUS. `npm run provenance` marcaba 22 archivos portados con commits nuevos en
+reverberación de la pared), 77 (armónica tisular), 78 (tríadas portales del hígado, con su prueba de paridad en la
+e2e), 79 (aurícula de lazo cerrado en la media, con bolo, diurético y PEEP) y 80 (cine y modo M en la GPU), más el
+renombrado de los identificadores del GLSL en el build, la pestaña Docente en su propio chunk (que saca los ganchos de
+prueba del total del bundle), la tabla de brechas de su revisión anatómica, la licencia MIT y la misión de VExUS. `npm run provenance` marcaba 22 archivos portados con commits nuevos en
 el origen (8 idénticos y 14 adaptados), y dos ya importaban módulos que lus-sim no tenía: el perfil del transductor
 (`harmonic.ts`) y el gemelo de los ecos de interfaz (`clutter.ts`). Lo que más cambió es justo lo que porta el paso B:
 el renderizador (398 líneas añadidas y 74 quitadas) y las pasadas (168 y 42).
@@ -343,19 +344,23 @@ app desde el origen nuevo.
   sobre el modelo respiratorio; al presupuesto del bundle, que los chunks de solo pruebas (`testHooks`) no cuenten en el
   total (aún no hay ninguno: llegan con la app); a `CONTRIBUTING.md`, una sección de misión que remite a
   `docs/MISSION.md`. No se trae: el lazo cerrado y sus intervenciones en el motor y en el paciente (`circulation.ts` del
-  origen lee la red venosa y la aurícula derecha, que lus-sim no porta; la PEEP de la respiración es la del paciente y
-  el comentario del paciente lo dice), lo que comprueba los programas ensamblados de las pasadas en las pruebas del
-  receptor, del eco de interfaz y de la rama dirigida, la sección «Objetivo de la misión» de la plantilla de PR y el
-  párrafo inicial de la guía para agentes (lus-sim ya tiene las suyas, decisión 9) y el comentario del minificador de
-  GLSL en `vite.config.ts` (aún no hay shaders). Siete adaptados quedan como estaban (el motor, las propiedades, la rama
-  dirigida, el eco de interfaz, la plantilla de PR, la guía para agentes y la configuración de Vite): todo lo que el
-  origen cambió en ellos cae en lo que lus-sim había quitado o ya tenía.
+  origen lee la red venosa y la aurícula derecha, que lus-sim no porta), lo que comprueba los programas ensamblados de
+  las pasadas en las pruebas del receptor, del eco de interfaz y de la rama dirigida, la sección «Objetivo de la misión»
+  de la plantilla de PR y el párrafo inicial de la guía para agentes (lus-sim ya tiene las suyas, decisión 9) y el
+  comentario del minificador de GLSL en `vite.config.ts` (aún no hay shaders). Al quitar el lazo, el motor sí necesita
+  una línea propia: la respiración idéntica copia la PEEP al construirse y en VExUS se la vuelve a pasar el lazo en cada
+  paso (la del paciente, si no hay intervención); sin ella la PEEP quedaba fija desde la construcción aunque el paciente
+  cambiara (lo halló la revisión), así que el motor de lus-sim le pasa en cada paso la del paciente. Seis adaptados
+  quedan como estaban (las propiedades, la rama dirigida, el eco de interfaz, la plantilla de PR, la guía para agentes y
+  la configuración de Vite): todo lo que el origen cambió en ellos cae en lo que lus-sim había quitado o ya tenía.
 - **Módulos nuevos**, idénticos: `src/ultrasound/harmonic.ts` (decisión 77 del origen: haz armónico, acumulación del
   campo cercano, transitorio rechazado y ruido) y `src/ultrasound/clutter.ts` (decisión 76: pedestal de lóbulos laterales
   con su pantalla de fase antisimétrica y réplicas de reverberación de la pared). Sus pruebas se portan adaptadas
-  (`src/validation/harmonic.test.ts`, `src/validation/clutter.test.ts`): el arnés en TypeScript entero, sin los
-  programas ensamblados, el comando del equipo ni el renderizador sobre WebGL falso, que vuelven en B2. Sus cifras son
-  del haz y del modelo, no de la escena abdominal: no hay nada que medir en el tórax en su lugar.
+  (`src/validation/harmonic.test.ts`, `src/validation/clutter.test.ts`): el arnés en TypeScript y las cadenas GLSL de
+  los módulos portados (la tabla de la pantalla de fase, el uniform del transitorio y, propia de lus-sim, la fórmula de
+  la acumulación, que en VExUS solo comprueba la e2e), sin los programas ensamblados, el comando del equipo ni el
+  renderizador sobre WebGL falso, que vuelven en B2. Sus cifras son del haz y del modelo, no de la escena abdominal:
+  no hay nada que medir en el tórax en su lugar.
 - **No se porta**: las tríadas portales de 78 (`portalTriads.ts`, textura del hígado; ningún archivo portado lo
   importa); el lazo cerrado y las intervenciones de 79; el cine y el modo M de 80 (`cine.ts`, `mmode.ts` y su
   interfaz, que son GPU y app: B2 o fase 2); el renombrado de identificadores del GLSL (`glslMangle.ts`, segunda etapa
@@ -376,13 +381,23 @@ no ensancha el eco en profundidad), y el transitorio omitido del receptor sigue 
   fundamental (armónicos apagados, [@volpicelli-actualizacion-2026]), y la meta F-T24 (fase 2) pide que la armónica baje
   el contraste de las líneas B, algo que el modelo de 77 no hace (`harmonic-simplified`).
 - Las réplicas de reverberación de la pared toman como fuente las caras fuertes hasta 3 mm bajo la cara interna de la
-  pared, que en el tórax es la pleura: caen sobre las líneas A, que la serie de reverberaciones ya forma. VExUS midió
-  esa doble cuenta bajo su cortina en unos −40 dB; B2 la mide en el tórax, con pleura en todo el campo.
+  pared, que en el tórax es la pleura: sus réplicas caen a W y 2W bajo ella (W, el grosor de la pared, es casi la
+  profundidad de la pleura), junto a las líneas A que la serie de reverberaciones ya forma. VExUS estima esa doble
+  cuenta bajo su cortina en unos −40 dB, sin medirla; B2 la mide en el tórax, con pleura en todo el campo, empezando por
+  el gemelo de la pleura con `reverbGains`.
+- Los gemelos de la pleura y de la composición (idénticos) siguen con la pasada D gaussiana de ±14 líneas, sin el
+  pedestal que la pasada D lleva desde la decisión 76 del origen, y la cabecera del de la pleura dice que filtra como el
+  de los ecos de interfaz, que sí lo lleva. A la vez, la cabecera de este y la prueba del receptor siguen diciendo ±14,
+  y su núcleo llega ahora a ±40. Con el pedestal, el gemelo de la pleura cambia poco (medido: neblina 64,67 → 64,52 de
+  gris, línea A2 sobre la neblina +44,67 → +44,60 dB, deslizamiento −7,24 → −7,28 dB). Se ofrece al origen corregir esas
+  cabeceras y llevar el pedestal a los gemelos.
 - El modo M de la decisión 80 del origen es la base del modo M pulmonar (fase 2): en cada cuadro la GPU copia la línea
   M de la envolvente del modo B, formada en su instante con el reloj único, a una franja en anillo que no vuelve a la
-  CPU. Es lo que pide la hoja de ruta (cada columna en su instante, no desde una caché por fase). Su cadencia (una
-  columna por cuadro de imagen, `m-mode-frame-rate` en VExUS) se medirá en la fase 2 contra la orilla de mar y el
-  código de barras; hasta entonces no se porta.
+  CPU. Es lo que pide la hoja de ruta (cada columna en su instante, no desde una caché por fase), con una salvedad: la
+  columna sale de la envolvente compuesta, así que con la composición espacial es la media de los tres últimos
+  cuadros; el preajuste pulmonar la apaga (base de conocimiento, preajuste de 2026). Su cadencia (una columna por
+  cuadro de imagen, `m-mode-frame-rate` en VExUS) se medirá en la fase 2 contra la orilla de mar y el código de barras;
+  hasta entonces no se porta.
 - B2 parte de `8e83d9a`. Si el origen vuelve a avanzar sobre lo portado, se vuelve a fijar con este mismo procedimiento.
 
 **Verificación.** `npm run provenance -- --check` en verde, con «origen sin cambios» en las 89 filas de vexus-sim, y
@@ -392,4 +407,9 @@ del origen se comprobaron con una mutación en lus-sim, y todas fallaron con ell
 en la de la fisiología, el anillo que no reinicia con la armónica en la de la composición, el haz armónico sin el ÷√2
 de la fuente en la de la armónica y la pantalla de fase sin antisimetría en la de los ecos parásitos (esta rompe
 también el reflector continuo: 10,7 % en lugar de ≤ 0,5 %). A-T11 se midió antes y después con el gemelo: 0,70 mm a 15,
-20, 30, 40 y 60 mm en los dos.
+20, 30, 40 y 60 mm en los dos. Revisión adversarial de contexto limpio: halló que el motor dejaba fija la PEEP desde la
+construcción (ahora la toma del paciente en cada paso; la prueba nueva, que pasa por el motor, falla sin esa línea:
+−4,67 frente a −1,73 mmHg), que la prueba de la armónica había perdido la aserción del uniform del transitorio (vuelve,
+con la fórmula de la acumulación: borrar el uniform o cambiar la fórmula la hacen fallar), que la doble cuenta de
+−40 dB es una estimación de VExUS y no una medida, la salvedad de la composición en el modo M y las cabeceras de los
+gemelos; todo está corregido o anotado arriba.

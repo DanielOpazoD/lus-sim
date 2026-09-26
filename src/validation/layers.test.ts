@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, dirname, resolve } from 'node:path';
 
 /**
- * Prueba estructural de capas (adaptada de vexus-sim@52354d5, docs/PROVENANCE.md): la arquitectura
+ * Prueba estructural de capas (adaptada de vexus-sim; origen y commit en docs/PROVENANCE.md): la arquitectura
  * declarada en docs/ARCHITECTURE.md se comprueba sobre los imports reales, incluidos los dinámicos y
  * los de efecto lateral.
  *
