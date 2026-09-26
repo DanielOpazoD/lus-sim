@@ -21,6 +21,11 @@ Objetivos: O6, O7 (y la base de O1–O4).
 
 Objetivos: O1, O2, O3, O7.
 
+Se hace en tres pasos (decisión 10): **A**, la física en TypeScript (fisiología recortada, anatomía del
+tórax, sonda y formación de la imagen) con sus pruebas, invariantes y metas A medidas; **B**, la GPU
+(renderizador, pasadas y shaders), la app y el banco de fidelidad: la primera imagen; **C**, la anatomía del
+tórax con las dimensiones de la base, que hace cumplir las metas A (sus pruebas pasan a `it`).
+
 - Portar de VExUS, con procedencia, el motor de imagen necesario: haz y PSF, moteado anclado al
   tejido, transmisión, receptor y mapa de grises, geometría del sector, pared en capas, costillas, pleura
   con su serie de reverberaciones y el deslizamiento, contacto y compresión de la sonda, modelo

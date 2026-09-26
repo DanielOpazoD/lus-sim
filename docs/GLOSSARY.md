@@ -32,6 +32,7 @@ término nuevo entra en el código, entra aquí. Las definiciones operativas con
 | **Imagen en espejo**                      | Réplica del hígado o del bazo por encima del diafragma cuando el pulmón basal está aireado.                                                                           |
 | **Pulmón flotante** (_jellyfish_)         | Pulmón atelectásico que ondula dentro de un derrame grande.                                                                                                           |
 | **Signo del plancton**                    | Ecos internos en movimiento dentro de un derrame complejo.                                                                                                            |
+| **Punto BLUE superior**                   | Centro de la mano superior en la regla de las manos del protocolo BLUE; la pose por omisión de la sonda lo aproxima al EIC2 en la línea medioclavicular derecha.      |
 | **Protocolo BLUE**                        | Protocolo de urgencia para la insuficiencia respiratoria aguda, con puntos de exploración (BLUE superior, BLUE inferior, PLAPS) y perfiles.                           |
 | **Perfiles BLUE**                         | Combinaciones de patrón y deslizamiento en los puntos anteriores (A, A′, B, B′, A/B, C); definiciones en la base de conocimiento.                                     |
 | **PLAPS**                                 | Síndrome alveolar o pleural posterolateral (_posterolateral alveolar and/or pleural syndrome_).                                                                       |
@@ -44,25 +45,41 @@ término nuevo entra en el código, entra aquí. Las definiciones operativas con
 
 ## Física de la imagen
 
-| Término                  | Significado                                                                                                                        |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **PSF**                  | Función de dispersión del punto: la respuesta del sistema a un dispersor puntual; fija el grano del moteado.                       |
-| **Moteado anclado**      | Speckle generado por dispersores fijos al tejido: se mueve con él y no se regenera en cada cuadro.                                 |
-| **Reverberación**        | Ecos que rebotan varias veces entre dos reflectores fuertes (p. ej., la sonda y la pleura) y aparecen a múltiplos de la distancia. |
-| **Reflexión especular**  | Eco de una interfaz lisa que vuelve a la sonda solo cuando el haz la incide casi de frente.                                        |
-| **Composición espacial** | Promedio de varias miradas con ángulos distintos; reduce el moteado y puede atenuar los artefactos.                                |
-| **Armónicos (THI)**      | Imagen formada con la segunda armónica del eco; cambia la resolución y los artefactos.                                             |
-| **TGC**                  | Compensación de ganancia en profundidad.                                                                                           |
-| **Rango dinámico**       | Intervalo de amplitudes (en dB) que el mapa de grises reparte entre el negro y el blanco.                                          |
+| Término                      | Significado                                                                                                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PSF**                      | Función de dispersión del punto: la respuesta del sistema a un dispersor puntual; fija el grano del moteado.                                                                                                     |
+| **Moteado anclado**          | Speckle generado por dispersores fijos al tejido: se mueve con él y no se regenera en cada cuadro.                                                                                                               |
+| **Reverberación**            | Ecos que rebotan varias veces entre dos reflectores fuertes (p. ej., la sonda y la pleura) y aparecen a múltiplos de la distancia.                                                                               |
+| **Reflexión especular**      | Eco de una interfaz lisa que vuelve a la sonda solo cuando el haz la incide casi de frente.                                                                                                                      |
+| **Composición espacial**     | Promedio de varias miradas con ángulos distintos; reduce el moteado y puede atenuar los artefactos.                                                                                                              |
+| **Armónicos (THI)**          | Imagen formada con la segunda armónica del eco; cambia la resolución y los artefactos.                                                                                                                           |
+| **TGC**                      | Compensación de ganancia en profundidad.                                                                                                                                                                         |
+| **Rango dinámico**           | Intervalo de amplitudes (en dB) que el mapa de grises reparte entre el negro y el blanco.                                                                                                                        |
+| **Cara de interfaz**         | Superficie lisa de la tabla de caras (`src/anatomy/interfaces.ts`) cuyo eco especular es coherente: Fresnel, lóbulo de Kirchhoff y rugosidad de Ament. Cada muestra dice qué cara dibuja y a qué distancia está. |
+| **Lóbulo de Kirchhoff**      | Cómo cae el eco especular de una cara al apartarse de la normal, según la pendiente rms de sus facetas; normalizado para no crear energía.                                                                       |
+| **Coherencia de Ament**      | Fracción coherente de la reflexión de una cara rugosa, exp(−2(k·σz·cosθ)²): fija el nivel de la línea pleural y de cada rebote de la serie.                                                                      |
+| **Pleura parietal (A0)**     | El cruce exacto de la cara interna de la pared en cada línea, donde empieza el pulmón: su eco es la línea pleural y la serie de reverberaciones cuelga de él.                                                    |
+| **Serie de reverberaciones** | Lo que se ve bajo la pleura: copias de la pared (espejo y directa, por orden de rebote) y réplicas del eco pleural; las réplicas a k·D son las líneas A (`src/ultrasound/pleura.ts`).                            |
+| **Cortina pulmonar**         | Lámina de pulmón del receso costofrénico derecho que baja con la inspiración y tapa lo que hay debajo: el signo de la cortina (`src/anatomy/organs/lungCurtain.ts`).                                             |
+| **Espejo del diafragma**     | Reflexión del haz en el pulmón sobre la cúpula: lo que queda detrás del cruce se dibuja con el camino reflejado (imagen en espejo).                                                                              |
+| **Fracción de aire del haz** | Parte del haz que da en el pulmón en el borde blando de la cortina, con la anchura del haz en elevación y lateral.                                                                                               |
+| **Compresión de la sonda**   | Campo que aparta el tejido bajo la cara de la sonda para que apoye: solo empuja y nunca estira (`src/anatomy/compression.ts`, `src/probe/contact.ts`).                                                           |
+| **Moteado anclado (ancla)**  | El medio de dispersores se comprime en elevación sobre un eje fijado con la sonda (el ancla), que se renueva con un fundido al girarla más de unos grados.                                                       |
 
 ## Código y proceso
 
-| Término                  | Significado                                                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Reloj único**          | `SimulationClock`: la única fuente de tiempo del motor (`src/core/clock.ts`).                                             |
-| **Gemelos TS/GLSL**      | La misma fórmula escrita en TypeScript (pruebas, CPU) y en GLSL (GPU), con una prueba de equivalencia exacta.             |
-| **Evidencia**            | Tipo de respaldo de un parámetro: documentado, consenso, derivado, estimado o extrapolación (`src/core/evidence.ts`).     |
-| **Procedencia / deriva** | De dónde viene un archivo portado y cuánto se ha alejado de su origen (`docs/PROVENANCE.md`, `npm run provenance`).       |
-| **Banco de referencia**  | Ecografías reales con licencia, guardadas fuera del repo, contra las que se mide la imagen simulada (decisión 5).         |
-| **Prueba ciega**         | Mosaicos con imágenes reales y simuladas mezcladas; un observador experto señala las simuladas y el rasgo que las delata. |
-| **Revisión adversarial** | Revisión de un cambio por un agente o persona sin el contexto de quien lo hizo, que ejecuta y mide en lugar de solo leer. |
+| Término                  | Significado                                                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reloj único**          | `SimulationClock`: la única fuente de tiempo del motor (`src/core/clock.ts`).                                                                                    |
+| **Paso A, B y C**        | Los tres pasos de la fase 1 (decisión 10): física en TypeScript, GPU y app, y anatomía del tórax con las dimensiones de la base.                                 |
+| **Núcleo del paciente**  | La parte del `PatientState` de VExUS que leen el ritmo, la respiración y la escena del tórax (`src/physiology/patientState.ts`).                                 |
+| **Instante de escena**   | `SceneInstant`: lo que la fisiología impone a la anatomía en un instante del reloj (hoy, el descenso del diafragma).                                             |
+| **«Resto»**              | El tejido por defecto de la clasificación de VExUS (`Tissue.Bowel`): lo que queda bajo el diafragma en el tórax portado.                                         |
+| **Gemelo B → C → D**     | Réplica en CPU de las pasadas del renderizador (campo, pulso axial y PSF lateral) con las funciones de producción: mide la imagen sin GPU.                       |
+| **Meta A-T*n* / F-T*n*** | Meta de prueba de la base de conocimiento (anatomía, física…); si la escena aún no la cumple, la prueba exige que falle por su aserción y lleva el valor medido. |
+| **Gemelos TS/GLSL**      | La misma fórmula escrita en TypeScript (pruebas, CPU) y en GLSL (GPU), con una prueba de equivalencia exacta.                                                    |
+| **Evidencia**            | Tipo de respaldo de un parámetro: documentado, consenso, derivado, estimado o extrapolación (`src/core/evidence.ts`).                                            |
+| **Procedencia / deriva** | De dónde viene un archivo portado y cuánto se ha alejado de su origen (`docs/PROVENANCE.md`, `npm run provenance`).                                              |
+| **Banco de referencia**  | Ecografías reales con licencia, guardadas fuera del repo, contra las que se mide la imagen simulada (decisión 5).                                                |
+| **Prueba ciega**         | Mosaicos con imágenes reales y simuladas mezcladas; un observador experto señala las simuladas y el rasgo que las delata.                                        |
+| **Revisión adversarial** | Revisión de un cambio por un agente o persona sin el contexto de quien lo hizo, que ejecuta y mide en lugar de solo leer.                                        |

@@ -4,16 +4,16 @@ Qué protege cada capa de pruebas, cuándo corre y qué no cubre. Regla general:
 el comportamiento clínico o físico se rompe; una prueba que repite una constante o un umbral ajustado a
 la salida actual no protege nada.
 
-| Capa               | Dónde                                      | Cuándo corre                      | Qué protege                                                                                                                                                                                                                                                          |
-| ------------------ | ------------------------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unitarias rápidas  | `src/validation/*.test.ts` sin marcador    | `npm test`, `check`, CI           | Núcleo (reloj, azar por semilla, unidades), evidencia de los parámetros, capas, documentación (rutas y scripts citados, enlaces a los documentos de tema) y bibliografía (citas que existen, entradas localizables y sin huérfanas), procedencia del código portado. |
-| Lentas             | primera línea `// @tier slow`              | `npm run test:all`, `check`, CI   | (desde la fase 1) cadena completa del alumno, propiedades con fast-check, gemelos de la física.                                                                                                                                                                      |
-| Cobertura          | `npm run test:coverage`                    | `check`, CI                       | Umbrales globales (≥ 90 % sentencias, ≥ 85 % ramas) que solo pueden subir; excluye lo que necesita DOM o WebGL.                                                                                                                                                      |
-| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde la fase 1, equivalencia TS ↔ GLSL y estadística del moteado.                                                                                                                                                                    |
-| Procedencia        | `src/validation/provenance.test.ts`        | `npm test` (verdad solo en local) | La tabla de `docs/PROVENANCE.md` dice la verdad frente a los repos de origen; en CI, formato y existencia.                                                                                                                                                           |
-| Banco de fidelidad | (fase 1–2) herramienta con GPU real        | a mano en cada PR de imagen       | Estadística de la imagen frente al banco de referencia real (fuera del repo, decisión 5): brillo de la pleura, decaimiento de las líneas A, ancho y contraste de las líneas B.                                                                                       |
-| Prueba ciega       | (fase 2) mosaicos real/simulado            | al cerrar cada fase de imagen     | Que un observador experto no distinga la imagen simulada por un rasgo concreto; se registra el rasgo que la delata.                                                                                                                                                  |
-| Casos clínicos     | (fase 4) cadena del alumno por caso        | `test:all`                        | Que el puntaje y el perfil medidos sobre la señal, con técnica correcta, caigan en lo que la bibliografía espera para el caso.                                                                                                                                       |
+| Capa               | Dónde                                      | Cuándo corre                      | Qué protege                                                                                                                                                                                                                                                           |
+| ------------------ | ------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unitarias rápidas  | `src/validation/*.test.ts` sin marcador    | `npm test`, `check`, CI           | Núcleo (reloj, azar por semilla, unidades), evidencia de los parámetros, capas, documentación (rutas y scripts citados, enlaces a los documentos de tema) y bibliografía (citas que existen, entradas localizables y sin huérfanas), procedencia del código portado.  |
+| Lentas             | primera línea `// @tier slow`              | `npm run test:all`, `check`, CI   | Propiedades del motor con fast-check (`src/validation/properties.test.ts`) y los gemelos B → C → D de los ecos de interfaz y de la pleura (`src/validation/interfaceTwin.test.ts`, `src/validation/pleuraTwin.test.ts`); más adelante, la cadena completa del alumno. |
+| Cobertura          | `npm run test:coverage`                    | `check`, CI                       | Umbrales globales (≥ 90 % sentencias, ≥ 85 % ramas) que solo pueden subir; excluye lo que necesita DOM o WebGL.                                                                                                                                                       |
+| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde la fase 1, equivalencia TS ↔ GLSL y estadística del moteado.                                                                                                                                                                     |
+| Procedencia        | `src/validation/provenance.test.ts`        | `npm test` (verdad solo en local) | La tabla de `docs/PROVENANCE.md` dice la verdad frente a los repos de origen; en CI, formato y existencia.                                                                                                                                                            |
+| Banco de fidelidad | (fase 1–2) herramienta con GPU real        | a mano en cada PR de imagen       | Estadística de la imagen frente al banco de referencia real (fuera del repo, decisión 5): brillo de la pleura, decaimiento de las líneas A, ancho y contraste de las líneas B.                                                                                        |
+| Prueba ciega       | (fase 2) mosaicos real/simulado            | al cerrar cada fase de imagen     | Que un observador experto no distinga la imagen simulada por un rasgo concreto; se registra el rasgo que la delata.                                                                                                                                                   |
+| Casos clínicos     | (fase 4) cadena del alumno por caso        | `test:all`                        | Que el puntaje y el perfil medidos sobre la señal, con técnica correcta, caigan en lo que la bibliografía espera para el caso.                                                                                                                                        |
 
 ## Principios
 
@@ -31,6 +31,26 @@ la salida actual no protege nada.
 - **Datos con la forma real**: las pruebas de regresión usan escenas y casos con la forma clínica real
   (lección de otros proyectos: una prueba con datos «limpios» dejó pasar dos regresiones clínicas).
 
+## Fase 1, paso A: el motor en TypeScript (decisión 10)
+
+- **Arnés portado, no cifras.** Las pruebas de VExUS de los módulos portados se conservan con su intención; las
+  cifras que medían su escena abdominal se sustituyen por lo medido en vistas del tórax (con el margen explicado
+  en la prueba) o por leyes físicas, y lo que comprueba el shader ensamblado vuelve con la GPU en el paso B.
+  `docs/PROVENANCE.md` dice qué prueba es idéntica y qué cambió en cada una adaptada.
+- **Invariantes físicas** (`src/validation/physicsInvariants.test.ts`, guía §18): las líneas A a múltiplos
+  exactos de la profundidad de la pleura y cada vez más débiles (cada ida y vuelta pierde energía); la reflexión
+  y la transmisión en una interfaz conservan la energía y ninguna cara refleja más de lo que le llega; la pleura
+  de A0 está donde la clasificación sale de la pared, con pulmón detrás justo sobre el borde; la sonda solo
+  empuja; el deslizamiento se mueve con la fase respiratoria del reloj único; misma semilla, mismo resultado. Cada una se comprobó con la mutación del código que protege (descritas en la decisión 10).
+- **Metas A de la fase que aún no se cumplen** (`src/validation/anatomyTargets.test.ts`): se miden en la escena
+  heredada con el procedimiento de `src/validation/support/chestView.ts` (la sonda apoyada con su contacto, en
+  fin de espiración, y las costillas buscadas por su número) y llevan el valor medido en su comentario. No son
+  `it.fails`, que también «pasa» si la prueba lanza por un error propio: cada una exige que su cuerpo falle por
+  una aserción (`chai.AssertionError`). El paso C las pasa a `it`.
+- **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,5 % de ramas,
+  93,3 % de funciones y 94,2 % de líneas. Queda sobre los umbrales (90/85/90/90), que no cambian.
+
 ## Invariantes previstas
 
-Las de la guía (§18) entran como pruebas cuando llega su módulo; cada una con su mutación.
+Las de la guía (§18) que aún no tienen módulo (líneas B, modo M, puntaje, ganancia y mapa de grises frente al
+estado físico) entran como pruebas cuando llega su módulo; cada una con su mutación.

@@ -24,7 +24,10 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
    vive en archivos nuevos (módulos de órgano, física subpleural, `measure/`, `lus/`).
 4. **Contratos del paciente y del reloj**: el estado pulmonar se define como una parte separada del
    estado del paciente, con unidades del motor y sin referencias a la imagen, para que el paciente común
-   lo incorpore sin traducirlo. El reloj es el mismo `SimulationClock`.
+   lo incorpore sin traducirlo. El reloj es el mismo `SimulationClock`. Desde la fase 1 (decisión 10) hay
+   una propuesta en el código: el núcleo del paciente de VExUS (`src/physiology/patientState.ts`), la
+   muestra fisiológica núcleo (`PhysiologySample` en `src/physiology/engine.ts`) y el instante de la escena
+   (`SceneInstant` en `src/anatomy/scene.ts`), que VExUS amplía con su hemodinámica, sus vasos y sus calibres.
 5. **Evidencia y documentación con el mismo formato** (decisión 4): la bibliografía con claves y las
    decisiones numeradas se pueden fusionar con un prefijo por módulo.
 
