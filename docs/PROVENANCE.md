@@ -95,7 +95,9 @@ imagen. El renderizador, los shaders y la app llegan en el paso B.
 ### Pruebas y gemelos del motor (fase 1, paso A)
 
 Se porta el arnés, no las cifras de la escena abdominal (decisión 10): las pruebas adaptadas miden la escena del
-tórax o fijan invariantes.
+tórax o fijan invariantes. Las propias de lus-sim (sin fila: no vienen de VExUS) son
+`src/validation/physicsInvariants.test.ts`, `src/validation/anatomyTargets.test.ts`, `src/validation/probe.test.ts`
+y `src/validation/support/chestView.ts`.
 
 | Archivo                                   | Origen                                                      | Estado   | Cambios                                                                                                                                                                      |
 | ----------------------------------------- | ----------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
