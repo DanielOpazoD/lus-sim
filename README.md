@@ -20,9 +20,11 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 ## Estado (v0.1.0, fase 0 cerrada)
 
 Cimientos terminados: repositorio, integración continua, misión y objetivos, documentos rectores,
-base de conocimiento verificada y guardas automáticas. Todavía no hay imagen (`no-image-yet`); la primera llega en la fase 1 con el motor portado de VExUS
-(`docs/ROADMAP.md`), en tres pasos (decisión 10). El paso A, sin publicar, ya porta la física en TypeScript, y el
-B1 la pone al día con el main de VExUS (decisión 11).
+base de conocimiento verificada y guardas automáticas. Todavía no hay imagen a la vista (`no-image-yet`); la primera
+llega en la fase 1 con el motor portado de VExUS (`docs/ROADMAP.md`), en tres pasos (decisión 10). Sin publicar: el
+paso A porta la física en TypeScript, el B1 la pone al día con el main de VExUS (decisión 11) y el B2a forma la imagen
+del tórax en la GPU, igual a la de TypeScript y comprobada en la e2e (decisión 12); el B2b la mostrará con la
+interfaz.
 
 Ya existe:
 
@@ -35,6 +37,9 @@ Ya existe:
   su contacto (`src/probe/contact.ts`) y la física de la imagen, con la pleura y sus líneas A
   (`src/ultrasound/pleura.ts`), probados con invariantes físicas (`src/validation/physicsInvariants.test.ts`)
   y con las metas de anatomía medidas (`src/validation/anatomyTargets.test.ts`);
+- (fase 1, paso B2a) la formación de imagen en la GPU (`src/ultrasound/renderer.ts`) con la anatomía GLSL del tórax
+  (`src/anatomy/gpu/anatomy.glsl.ts`) y el preajuste pulmonar (`src/ultrasound/lungPreset.ts`), probada en la e2e
+  (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL, moteado de Rayleigh y líneas A a múltiplos de la pleura;
 - las guardas: capas (`src/validation/layers.test.ts`), documentación y bibliografía
   (`src/validation/docs.test.ts`), evidencia (`src/validation/evidence.test.ts`) y procedencia del código
   portado (`src/validation/provenance.test.ts`, `tools/provenance/drift.ts`).

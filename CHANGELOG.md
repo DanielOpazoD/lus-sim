@@ -23,6 +23,15 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   tisular (`src/ultrasound/harmonic.ts`) y los ecos parásitos del modo fundamental (`src/ultrasound/clutter.ts`:
   pedestal de lóbulos laterales y reverberación de la pared), con sus pruebas en TypeScript, y sus limitaciones con el
   id de VExUS (`no-sidelobes`, `harmonic-simplified`).
+- Fase 1, paso B2a: la formación de imagen en la GPU portada de VExUS con cortes para el tórax (12): el renderizador
+  WebGL2 con su grafo de pasadas, el cine y el modo M, la anatomía GLSL de la escena del tórax en el orden de
+  clasificación de VExUS, el minificador y el renombrado del GLSL en el build, el equipo en modo B con el preajuste
+  pulmonar del consenso de 2026 y la compensación nominal de la pared torácica, y los puntos de partida BLUE superior,
+  BLUE inferior y PLAPS derechos. Sin imagen a la vista todavía: la ve el banco de la e2e (`?e2e`).
+- e2e de la imagen (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL en el tórax (planos, volumen, caras, pleura de A0,
+  normales y transmisión), estadística de Rayleigh del moteado del músculo de la pared y líneas A a múltiplos de la
+  profundidad de la pleura en la envolvente de la GPU (meta F-T01), cada guarda comprobada con una mutación.
+- Limitación `pleura-echo-offset`: la línea pleural y las líneas A se dibujan 0,35 mm por encima de su cruce.
 
 ### Cambiado
 
@@ -30,6 +39,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   (CPAP) y el motor pasa a la respiración la del paciente en cada paso; el haz, la elevación y la composición admiten
   la armónica (en fundamental no cambian); el gemelo de los ecos de interfaz lleva el pedestal de lóbulos laterales; el
   presupuesto del bundle deja fuera del total los chunks de solo pruebas; `CONTRIBUTING.md` remite a la misión.
+- El presupuesto del chunk principal sube de 40 a 160 kB con la GPU portada (148,5 kB medidos) (12).
+- `no-sidelobes` lleva la doble cuenta de la reverberación de la pared medida en la GPU (12).
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

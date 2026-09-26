@@ -9,7 +9,7 @@ la salida actual no protege nada.
 | Unitarias rápidas  | `src/validation/*.test.ts` sin marcador    | `npm test`, `check`, CI           | Núcleo (reloj, azar por semilla, unidades), evidencia de los parámetros, capas, documentación (rutas y scripts citados, enlaces a los documentos de tema) y bibliografía (citas que existen, entradas localizables y sin huérfanas), procedencia del código portado.  |
 | Lentas             | primera línea `// @tier slow`              | `npm run test:all`, `check`, CI   | Propiedades del motor con fast-check (`src/validation/properties.test.ts`) y los gemelos B → C → D de los ecos de interfaz y de la pleura (`src/validation/interfaceTwin.test.ts`, `src/validation/pleuraTwin.test.ts`); más adelante, la cadena completa del alumno. |
 | Cobertura          | `npm run test:coverage`                    | `check`, CI                       | Umbrales globales (≥ 90 % sentencias, ≥ 85 % ramas) que solo pueden subir; excluye lo que necesita DOM o WebGL.                                                                                                                                                       |
-| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde la fase 1, equivalencia TS ↔ GLSL y estadística del moteado.                                                                                                                                                                     |
+| e2e                | `e2e/*.spec.ts` (Playwright + SwiftShader) | `npm run e2e`, CI                 | Arranque sin errores y WebGL2; desde el paso B2a (`e2e/imagen.spec.ts`), equivalencia TS ↔ GLSL en el tórax, estadística de Rayleigh del moteado y las líneas A de la meta F-T01 en la envolvente de la GPU.                                                          |
 | Procedencia        | `src/validation/provenance.test.ts`        | `npm test` (verdad solo en local) | La tabla de `docs/PROVENANCE.md` dice la verdad frente a los repos de origen; en CI, formato y existencia.                                                                                                                                                            |
 | Banco de fidelidad | (fase 1–2) herramienta con GPU real        | a mano en cada PR de imagen       | Estadística de la imagen frente al banco de referencia real (fuera del repo, decisión 5): brillo de la pleura, decaimiento de las líneas A, ancho y contraste de las líneas B.                                                                                        |
 | Prueba ciega       | (fase 2) mosaicos real/simulado            | al cerrar cada fase de imagen     | Que un observador experto no distinga la imagen simulada por un rasgo concreto; se registra el rasgo que la delata.                                                                                                                                                   |
@@ -50,6 +50,24 @@ la salida actual no protege nada.
 - **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,5 % de ramas,
   93,3 % de funciones y 94,2 % de líneas; tras el paso B1 (decisión 11), 92,9 %, 88,7 %, 93,6 % y 94,3 %. Queda sobre
   los umbrales (90/85/90/90), que no cambian.
+
+## Fase 1, paso B2a: la imagen en la GPU (decisión 12)
+
+- **Equivalencia TS ↔ GLSL en la e2e.** La anatomía existe dos veces: en TypeScript (pruebas, medidas) y en GLSL (la
+  imagen). `e2e/imagen.spec.ts` las compara con los ganchos del banco (`/?e2e=1`): los planos de los tres puntos de
+  partida, 50 000 puntos del volumen del tórax (exactos en tejido y cara a ≥ 1 mm de una interfaz), la cáscara de las
+  caras de la pared, las costillas y la pleura, la pleura de A0 línea a línea (a lo sumo el paso final de su bisección),
+  las normales de las caras y la transmisión de la pasada A. Los umbrales llevan en su comentario lo medido con GPU
+  real y con SwiftShader.
+- **La física en la imagen de la GPU, no en un gemelo.** La meta F-T01 se mide sobre la envolvente leída de la GPU
+  (`aLines`: grupos de 8 líneas promediados, alineados en la pleura de cada una) y la estadística de Rayleigh sobre
+  parches del músculo de la pared (`speckle`); ninguna de las dos lee un valor que el shader escriba para la prueba.
+- **Mutaciones.** Cada guarda se comprobó rompiendo el shader o sus uniforms y viéndola fallar (decisión 12); el
+  procedimiento es el de siempre: aplicar la mutación, `npx vite build`, correr la prueba y restaurar.
+- **Cobertura.** Con la GPU portada: 94,7 % de sentencias, 88,6 % de ramas, 94,6 % de funciones y 95,8 % de líneas
+  (el renderizador, `gl.ts`, los shaders y los ganchos de la e2e no cuentan: los ejerce la e2e). Una trampa de la
+  cobertura v8: el código que una prueba evalúa en memoria con la ruta de un módulo real (`vm.runInThisContext` con
+  ese `filename`) se mezcla con el módulo y le quita cobertura; se le da un nombre que no sea ruta.
 
 ## Invariantes previstas
 

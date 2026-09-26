@@ -24,7 +24,8 @@ Objetivos: O1, O2, O3, O7.
 Se hace en tres pasos (decisión 10): **A**, la física en TypeScript (fisiología recortada, anatomía del
 tórax, sonda y formación de la imagen) con sus pruebas, invariantes y metas A medidas; **B**, en dos: B1
 vuelve a fijar el origen en el main de VExUS y pone al día lo portado (decisión 11), y B2 porta la GPU
-(renderizador, pasadas y shaders), la app y el banco de fidelidad: la primera imagen; **C**, la anatomía del
+(renderizador, pasadas y shaders), la app y el banco de fidelidad: la primera imagen, en dos PR (B2a, la GPU con
+su equivalencia TS ↔ GLSL en la e2e, decisión 12; B2b, la app y la interfaz, decisión 13); **C**, la anatomía del
 tórax con las dimensiones de la base, que hace cumplir las metas A (sus pruebas pasan a `it`).
 
 - Portar de VExUS, con procedencia, el motor de imagen necesario: haz y PSF, moteado anclado al

@@ -15,3 +15,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [9](DECISIONS.md#L206) | Misión y objetivos medibles como criterio de prioridad | vigente |
 | [10](DECISIONS.md#L232) | Fase 1, paso A: motor de VExUS portado con cortes quirúrgicos | vigente |
 | [11](DECISIONS.md#L312) | Nuevo origen fijado: VExUS 8e83d9a | vigente |
+| [12](DECISIONS.md#L417) | Fase 1, paso B2a: la formación de imagen en la GPU y su equivalencia con TypeScript | vigente |

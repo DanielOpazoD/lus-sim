@@ -32,8 +32,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const vtag = JSON.stringify(vol);
   expect(vol.interiorPoints, vtag).toBeGreaterThan(40_000);
   expect(vol.tissueAgreement, vtag).toBe(1);
-  // el volumen tiene dientes: los tejidos del tórax de la escena (medido con GPU real: pulmón 5901, grasa 3431, «resto»
-  // 5230, músculo 1790 y columna 776 de 17 501 interiores con 20 000 puntos)
+  // el volumen tiene dientes: los tejidos del tórax de la escena (medido, igual con GPU real y con SwiftShader: pulmón
+  // 14 787, «resto» 13 069, grasa 8559, músculo 4519, columna 1900 y piel 719 de 43 797 interiores; las costillas, 106,
+  // las cubre la cáscara)
   for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(200);
   expect(vol.interfacePoints, vtag).toBeGreaterThan(3000);
@@ -50,14 +51,16 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
   expect(shell.distanceMaxErr, stag).toBeLessThan(0.02);
   // La pleura parietal de A0 frente a su gemelo, línea a línea: la registran las dos en las mismas líneas y en el mismo
-  // sitio (GPU real: 0 mm; la bisección cae en múltiplos exactos del paso)
+  // sitio. GPU real: 0 mm (la bisección cae en múltiplos exactos de su paso final). SwiftShader: una decisión de la
+  // bisección en una línea de 576 cambia con el redondeo y mueve D un paso final (0,0117 mm a 12 cm, 1/60 del eco de
+  // 0,7 mm), y dz 0,032 mm: con σ del borde blando ≥ σ_taper = 4 mm, la fracción de aire cambia < 0,5 %
   const pleura = await page.evaluate(() => window.__lusTest!.pleuraEquivalence());
   const ptag = JSON.stringify(pleura);
   expect(pleura.lines, ptag).toBe(3 * 192);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.95 * pleura.lines);
   expect(pleura.registrationMismatch, ptag).toBe(0);
-  expect(pleura.depthMaxErrMm, ptag).toBeLessThan(0.01);
-  expect(pleura.edgeMaxErrMm, ptag).toBeLessThan(0.01);
+  expect(pleura.depthMaxErrMm, ptag).toBeLessThanOrEqual(pleura.quantumMm + 1e-5);
+  expect(pleura.edgeMaxErrMm, ptag).toBeLessThan(0.05);
   // Las caras de la pared y de las costillas: la misma cara, normal y norma del gradiente en la GPU que en TS
   for (const startPoint of ['blueUpper', 'plaps'] as const) {
     const n = await page.evaluate((id) => window.__lusTest!.wallNormals({ startPoint: id }), startPoint);

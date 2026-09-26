@@ -105,9 +105,9 @@ export const DEFAULT_BMODE: BModeSettings = {
 /**
  * Nivel de referencia de la presentación (dB): el de VExUS (su decisión 53), que con 0 dB de ganancia y 70 dB de
  * rango deja un dispersor de retrodispersión 1 a media escala (su hígado, mediana ≈ 100 de gris). lus-sim (decisión
- * 12): el tejido de referencia del mapa de grises es el músculo de la pared torácica (retrodispersión 0,35 de la
- * tabla de tejidos, −9 dB), que con el preajuste pulmonar queda hipoecoico, como en las imágenes de referencia; lo
- * medido con la GPU está en la decisión 12.
+ * 12): el mismo nivel; el tejido de referencia del tórax es el músculo de la pared (retrodispersión 0,35 de la tabla
+ * de tejidos, −9 dB), que con el preajuste pulmonar queda algo por debajo de media escala (GPU real: mediana 90–97
+ * de gris en los tres puntos de partida, la grasa 65–68 y la línea pleural saturada; decisión 12).
  */
 export const DISPLAY_REF_DB = -33;
 

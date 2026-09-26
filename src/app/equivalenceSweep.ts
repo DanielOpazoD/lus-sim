@@ -5,7 +5,7 @@ import { Tissue } from '../anatomy/tissues';
 import type { ProbeCompression } from '../anatomy/compression';
 import { probeContact } from '../probe/contact';
 import { pointOnLine, type ProbeFrame, type ProbePose } from '../probe/probe';
-import { pleuraCrossingLine } from '../ultrasound/transmission';
+import { MIRROR_BISECTION_STEPS, pleuraCrossingLine } from '../ultrasound/transmission';
 import { COARSE_DEPTH } from '../ultrasound/renderer';
 import { compareTissueGrids } from './equivalenceCheck';
 
@@ -334,6 +334,11 @@ export interface PleuraEquivalenceReport {
   /** Máximo de |D_GPU − D_CPU| y de |dz_GPU − dz_CPU| en las líneas registradas por las dos (mm). */
   depthMaxErrMm: number;
   edgeMaxErrMm: number;
+  /**
+   * Paso final de la bisección del cruce (mm): el paso grueso de la marcha entre 2^MIRROR_BISECTION_STEPS. Una
+   * decisión de la bisección que cambia con el redondeo de float32 mueve D exactamente eso.
+   */
+  quantumMm: number;
   /** D de la línea central de cada punto de partida en la CPU (mm), para el mensaje. */
   centralDepthMm: Record<string, number>;
   worst: string;
@@ -397,5 +402,15 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
     sim.setPose(pose0);
     sim.advance(0.05);
   }
-  return { lines, cpuPleura, registrationMismatch: mismatch, depthMaxErrMm: depthMax, edgeMaxErrMm: edgeMax, centralDepthMm, worst };
+  const quantumMm = depth / COARSE_DEPTH / 2 ** MIRROR_BISECTION_STEPS;
+  return {
+    lines,
+    cpuPleura,
+    registrationMismatch: mismatch,
+    depthMaxErrMm: depthMax,
+    edgeMaxErrMm: edgeMax,
+    quantumMm,
+    centralDepthMm,
+    worst,
+  };
 }

@@ -183,8 +183,11 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(ok.depthMaxErrMm).toBeLessThan(1e-4);
     expect(ok.edgeMaxErrMm).toBeLessThan(1e-4);
     for (const id of START_POINTS.map((s) => s.id)) expect(ok.centralDepthMm[id]).toBeGreaterThan(15);
+    // el paso final de la bisección con la profundidad del preajuste: 120 mm / 160 / 2⁶ (la cota de la e2e)
+    expect(ok.quantumMm).toBeCloseTo(120 / 160 / 64, 12);
     const shifted = pleuraEquivalence(fakeSim(undefined, 0.05));
     expect(shifted.depthMaxErrMm).toBeCloseTo(0.05, 5);
+    expect(shifted.depthMaxErrMm).toBeGreaterThan(shifted.quantumMm);
     expect(shifted.worst).toMatch(/D CPU/);
   });
 });
