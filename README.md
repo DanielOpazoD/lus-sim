@@ -21,7 +21,7 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 
 Cimientos terminados: repositorio, integración continua, misión y objetivos, documentos rectores,
 base de conocimiento verificada y guardas automáticas. Todavía no hay imagen (`no-image-yet`); la primera llega en la fase 1 con el motor portado de VExUS
-(`docs/ROADMAP.md`).
+(`docs/ROADMAP.md`), en tres pasos (decisión 10). El paso A, sin publicar, ya porta la física en TypeScript.
 
 Ya existe:
 
@@ -29,6 +29,11 @@ Ya existe:
   (`src/core/random.ts`), unidades y vectores;
 - el registro de evidencia de los parámetros (`src/core/evidence.ts`): cada número del modelo declara
   su valor, rango, tipo de evidencia y fuentes;
+- (fase 1, paso A) el motor de VExUS en TypeScript con cortes para el tórax: el núcleo del paciente y el
+  motor fisiológico (`src/physiology/engine.ts`), la escena del tórax (`src/anatomy/scene.ts`), la sonda con
+  su contacto (`src/probe/contact.ts`) y la física de la imagen, con la pleura y sus líneas A
+  (`src/ultrasound/pleura.ts`), probados con invariantes físicas (`src/validation/physicsInvariants.test.ts`)
+  y con las metas de anatomía medidas (`src/validation/anatomyTargets.test.ts`);
 - las guardas: capas (`src/validation/layers.test.ts`), documentación y bibliografía
   (`src/validation/docs.test.ts`), evidencia (`src/validation/evidence.test.ts`) y procedencia del código
   portado (`src/validation/provenance.test.ts`, `tools/provenance/drift.ts`).

@@ -13,3 +13,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [7](DECISIONS.md#L153) | Marco anatómico y unidades de VExUS | vigente |
 | [8](DECISIONS.md#L178) | GLSL: gemelos a mano para lo portado; ts2glsl para la física propia | vigente |
 | [9](DECISIONS.md#L206) | Misión y objetivos medibles como criterio de prioridad | vigente |
+| [10](DECISIONS.md#L232) | Fase 1, paso A: motor de VExUS portado con cortes quirúrgicos | vigente |
