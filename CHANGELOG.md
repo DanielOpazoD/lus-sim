@@ -29,8 +29,9 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   pulmonar del consenso de 2026 y la compensación nominal de la pared torácica, y los puntos de partida BLUE superior,
   BLUE inferior y PLAPS derechos. Sin imagen a la vista todavía: la ve el banco de la e2e (`?e2e`).
 - e2e de la imagen (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL en el tórax (planos, volumen, caras, pleura de A0,
-  normales y transmisión), estadística de Rayleigh del moteado del músculo de la pared y líneas A a múltiplos de la
-  profundidad de la pleura en la envolvente de la GPU (meta F-T01), cada guarda comprobada con una mutación.
+  normales y transmisión, en reposo y en inspiración), estadística de Rayleigh del moteado del músculo de la pared y
+  líneas A en la envolvente de la GPU (su separación, y F-T01 frente a la línea pleural mostrada, con el fallo conocido
+  de los órdenes 3 y 4), cada guarda comprobada con una mutación.
 - Limitación `pleura-echo-offset`: la serie de la pleura se dibuja 0,35 mm por encima de su cruce y las líneas A de
   orden 3 y 4 no cumplen F-T01 frente a la línea pleural mostrada (+0,56…+1,13 mm); la prueba exige el fallo.
 

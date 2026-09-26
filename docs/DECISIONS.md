@@ -466,7 +466,8 @@ de VExUS; (ii) el pulmonar del consenso de 2026. Para la compensación nominal: 
   (`e2e/imagen.spec.ts`, Chromium con SwiftShader): la equivalencia TS ↔ GLSL (los tres planos de partida; 50 000
   puntos del tórax, exactos en tejido y cara lejos de las interfaces; la cáscara de las caras de la pared, las
   costillas y la pleura; la pleura de A0 línea a línea; las normales; la transmisión de la pasada A), la
-  estadística de Rayleigh del moteado del músculo de la pared y la meta F-T01 sobre la envolvente de la GPU.
+  estadística de Rayleigh del moteado del músculo de la pared y las líneas A sobre la envolvente de la GPU (su
+  separación y F-T01 frente a la línea pleural mostrada).
 
 **Consecuencias.**
 
