@@ -3,12 +3,18 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseDecisions, renderIndex } from '../../tools/docs/decisions-index';
 import { citedKeys, isLocatable, parseReferences } from './support/references';
+import { PARAMETER_SETS } from './parameterSets';
 
 const ROOT = resolve(__dirname, '../..');
 const read = (p: string) => readFileSync(resolve(ROOT, p), 'utf8');
 const DOCS = readdirSync(resolve(ROOT, 'docs'))
   .filter((f) => f.endsWith('.md'))
   .map((f) => `docs/${f}`);
+/** Documentos de tema de la base de conocimiento (`docs/KNOWLEDGE.md` los enlaza). */
+const KNOWLEDGE_DOCS = readdirSync(resolve(ROOT, 'docs/knowledge'))
+  .filter((f) => f.endsWith('.md'))
+  .map((f) => `docs/knowledge/${f}`);
+const ALL_DOCS = ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', ...DOCS, ...KNOWLEDGE_DOCS];
 
 /**
  * Consistencia de la documentación (práctica de EchoTwin y VExUS): los documentos son de carga; si se
@@ -35,7 +41,7 @@ describe('Documentación', () => {
 
   it('los documentos solo nombran archivos del repo que existen', () => {
     const missing: string[] = [];
-    for (const doc of ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', ...DOCS]) {
+    for (const doc of ALL_DOCS) {
       for (const m of read(doc).matchAll(/`((?:src|tools|docs|e2e|\.github)\/[A-Za-z0-9_./-]+\.(?:ts|js|md|mjs|yml))`/g)) {
         if (!existsSync(resolve(ROOT, m[1]))) missing.push(`${doc} → ${m[1]}`);
       }
@@ -60,10 +66,16 @@ describe('Documentación', () => {
     }
   });
 
+  it('KNOWLEDGE.md enlaza cada documento de tema de docs/knowledge/', () => {
+    const knowledge = read('docs/KNOWLEDGE.md');
+    expect(KNOWLEDGE_DOCS.length).toBeGreaterThan(0);
+    for (const doc of KNOWLEDGE_DOCS) expect(knowledge.includes(doc), `KNOWLEDGE.md no enlaza ${doc}`).toBe(true);
+  });
+
   it('los documentos solo citan scripts de npm que existen (práctica de EchoTwin)', () => {
     const { scripts } = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
     const missing: string[] = [];
-    for (const doc of ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', ...DOCS])
+    for (const doc of ALL_DOCS)
       for (const m of read(doc).matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) if (!(m[1] in scripts)) missing.push(`${doc} → npm run ${m[1]}`);
     expect(missing).toEqual([]);
   });
@@ -92,8 +104,16 @@ describe('Bibliografía (docs/REFERENCES.md)', () => {
   it('cada cita [@clave] de los documentos existe en la bibliografía', () => {
     const keys = new Set(entries.map((e) => e.key));
     const missing: string[] = [];
-    for (const doc of ['README.md', ...DOCS]) for (const k of citedKeys(read(doc))) if (!keys.has(k)) missing.push(`${doc} → @${k}`);
+    for (const doc of ALL_DOCS) for (const k of citedKeys(read(doc))) if (!keys.has(k)) missing.push(`${doc} → @${k}`);
     expect(missing).toEqual([]);
+  });
+
+  it('ninguna entrada queda huérfana: cada clave se cita en un documento o en un parámetro del código', () => {
+    const cited = new Set([
+      ...ALL_DOCS.flatMap((doc) => citedKeys(read(doc))),
+      ...PARAMETER_SETS.flatMap((s) => Object.values(s.params).flatMap((p) => [...p.sources])),
+    ]);
+    expect(entries.map((e) => e.key).filter((k) => !cited.has(k))).toEqual([]);
   });
 
   it('parseReferences lee solo las líneas de entrada (sintética)', () => {
