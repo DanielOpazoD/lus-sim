@@ -16,6 +16,7 @@ import {
   type LookSlot,
 } from '../ultrasound/compound';
 import { CURTAIN_AIR_GLSL, CURTAIN_MIN_AIR, curtainSteerWeight } from '../ultrasound/pleura';
+import { FRAG_COMPOUND, FRAG_RAWFIELD } from '../ultrasound/shaders/passes.glsl';
 import { JUMP_DEG, JUMP_MM } from '../ultrasound/speckleField';
 import { steerBeta } from '../ultrasound/steering';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
@@ -24,10 +25,6 @@ import { rng } from './syntheticSpeckle';
 /**
  * Composición espacial (decisión 58, T6): la regla de actividad, el anillo de miradas intercaladas con
  * sus reinicios y el gemelo de la pasada K (media lineal ponderada por cobertura, paso directo exacto).
- *
- * lus-sim (decisión 10): idéntica salvo lo que comprueba los programas K y B ensamblados (paso B); queda la
- * cadena GLSL de la cortina (`CURTAIN_AIR_GLSL`), que es de `pleura.ts`. Bajo la pleura del pulmón la imagen
- * es la de una mirada, como en los preajustes pulmonares (`compound-off-under-curtain` en VExUS).
  */
 const deg = Math.PI / 180;
 const rot = (v: Vec3, a: number): Vec3 => [v[0] * Math.cos(a) - v[2] * Math.sin(a), v[1], v[0] * Math.sin(a) + v[2] * Math.cos(a)];
@@ -270,10 +267,20 @@ describe('gemelo de la pasada K', () => {
     expect(curtainSteerWeight(D + 1, -1, 1)).toBe(1);
   });
 
-  it('la GLSL de la cortina lleva el mismo peso de las dirigidas que el gemelo', () => {
+  it('la GLSL de K pesa las dirigidas con la cortina de la mirada 0 (A0 h2 y la fracción de aire de B)', () => {
+    for (const line of [
+      'vec4 h2 = texelFetch(uHits2, ivec2(c.x, 0), 0);',
+      'float fAir = h2.x > 0.0 ? curtainAirFraction(h2.y, h2.x, lineDir(alpha)) : 0.0;',
+      'float steerKeep = curtainSteerWeight(rho - uCurvR, h2.x, fAir);',
+      'if (uLookSteer[i] != 0.0) w *= steerKeep;',
+    ])
+      expect(FRAG_COMPOUND, line).toContain(line);
+    expect(FRAG_COMPOUND).toContain(CURTAIN_AIR_GLSL);
     expect(CURTAIN_AIR_GLSL).toContain(
       'float curtainSteerWeight(float r, float D, float fAir) { return D > 0.0 && fAir >= CURTAIN_MIN_AIR && r > D ? 1.0 - fAir : 1.0; }',
     );
-    expect(CURTAIN_AIR_GLSL).toContain(`const float CURTAIN_MIN_AIR = ${CURTAIN_MIN_AIR};`);
+    // la misma fracción de aire que B
+    expect(FRAG_RAWFIELD).toContain(CURTAIN_AIR_GLSL);
+    expect(FRAG_RAWFIELD).toContain('float fAir = D > 0.0 ? curtainAirFraction(h2.y, D, dir0) : 0.0;');
   });
 });

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
+import { FRAG_QUERY } from '../ultrasound/shaders/passes.glsl';
 import { INTERFACES, Interface, LAST_TUBE_INTERFACE } from '../anatomy/interfaces';
 import { diaphragmHeight, tubeFaceGradient, tubeQuery, type Tube } from '../anatomy/primitives';
 import { AnatomyQuery } from '../anatomy/query';
@@ -27,7 +29,7 @@ import {
  *
  * lus-sim (decisión 10): los tubos sintéticos se conservan (prueban `primitives.ts` e `interfaceEcho.ts`,
  * portados idénticos); en la escena, las caras del tórax (pared, costillas, pericondrio y cúpula) en lugar de
- * las del hígado, la vesícula, el riñón y la cava. Lo que comprueba el shader ensamblado vuelve en el paso B.
+ * las del hígado, la vesícula, el riñón y la cava. Lo que comprueba el shader ensamblado volvió con la GPU (paso B2).
  */
 type V = Vec3;
 const dr = 180 / 1024;
@@ -296,7 +298,20 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
     });
   });
 
-  it('GLSL: la cota de la salida barata, la jacobiana de la compresión y δ con |∇|', () => {
+  it('GLSL: la norma de las diferencias centrales, la cota de la salida barata, la jacobiana de la compresión y δ con |∇|', () => {
+    // lus-sim (decisión 12): el shader ensamblado del tórax — la cúpula, las capas de la pared y las costillas por
+    // diferencias centrales; sin las ramas de los tubos, la cápsula, el riñón ni la vesícula de VExUS
+    const glsl = ANATOMY_GLSL.replace(/\s+/g, ' ');
+    expect(glsl).toContain('vec4 faceGradient(Cls c, vec3 m)');
+    expect(glsl).toContain('if (c.tissue == T_DIAPHRAGM) { g = vec3(domeSd(m + h.xyy) - domeSd(m - h.xyy),');
+    expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
+    expect(glsl).toContain('} else if (c.iface == IF_RIB || c.iface == IF_PERICHONDRIUM) {');
+    expect(glsl).toContain('if (lg > 0.0) return vec4(g / lg, lg / (2.0 * FACE_GRAD_EPS));');
+    expect(glsl).toContain('return l > 0.0 ? vec4(c.n / l, l) : vec4(0.0, 1.0, 0.0, 1.0);');
+    expect(ANATOMY_GLSL.replace(/\/\/.*$/gm, '')).not.toMatch(
+      /liverInner|kidneyOuterGradient|perirenalOuterGradient|gallbladderSdf|tubeQuery/,
+    );
+    expect(FRAG_QUERY).toContain('o2 = faceGradient(c, m);');
     const echo = INTERFACE_ECHO_GLSL.replace(/\s+/g, ' ');
     expect(echo).toContain(`#define IFACE_GRAD_MAX ${IFACE_GRADIENT_MAX.toFixed(4)}`);
     // con la compresión de la sonda (decisión 63) la cota se multiplica por la de la jacobiana (warpBound) y el

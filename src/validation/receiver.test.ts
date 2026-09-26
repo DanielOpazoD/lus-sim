@@ -10,6 +10,7 @@ import {
   transientScale,
 } from '../ultrasound/receiver';
 import { AXIAL_SIGMA_MM } from '../ultrasound/beamModel';
+import { FRAG_AXIAL, FRAG_LATERAL, FRAG_RAWFIELD } from '../ultrasound/shaders/passes.glsl';
 import { scattererField } from '../ultrasound/speckleField';
 import { FINE, LINES, latSigmaMm, linePitch } from './support/interfaceTwin';
 
@@ -93,9 +94,6 @@ function omittedVsNoise(depthMm: number, seed: number): { summed: number; axial:
  * vale la décima parte de la del ruido del receptor en el punto en que se suman, antes de la PSF. Tras C y
  * D, que dan ganancia coherente al transitorio (correlacionado) y no al ruido (blanco), lo omitido llega a
  * ≈ ruido/7 a la profundidad mínima: un escalón de ≈ 0,1 dB en el suelo de ruido.
- *
- * lus-sim (decisión 10): idéntica salvo lo que comprueba los programas de las pasadas B, C y D (el gemelo
- * filtra como ellas; que el shader lo haga igual vuelve con la GPU en el paso B).
  */
 describe('Transitorio del campo cercano bajo el ruido del receptor', () => {
   it('el corte está donde la escala del transitorio vale ruido/10: D·ln(A·10/ruido) = 38,2 mm', () => {
@@ -125,6 +123,11 @@ describe('Transitorio del campo cercano bajo el ruido del receptor', () => {
   });
 
   it('tras la PSF (C y D) lo omitido llega a ≈ ruido/7 a 60 mm y ruido/8 a 90 mm: el suelo sube ≤ 0,1 dB', () => {
+    // el gemelo filtra como las pasadas C y D (topes del núcleo y σ mínimas)
+    expect(FRAG_AXIAL).toContain('for (int k = -12; k <= 12; k++)');
+    expect(FRAG_AXIAL).toContain('oField = (acc + uReverb.y * tW * acc1 + uReverb.z * tW * tW * acc2) / sqrt(wsum);');
+    expect(FRAG_LATERAL).toContain(`for (int k = -${CLUTTER.lateralMaxLines}; k <= ${CLUTTER.lateralMaxLines}; k++)`);
+    expect(FRAG_LATERAL).toContain('max(0.35, sigmaMm / lineSpacing)');
     // la profundidad mínima del equipo (60 mm) es el peor caso: más muestras por celda axial del transitorio
     for (const [depth, bound] of [
       [60, 1 / 6],
@@ -147,7 +150,11 @@ describe('Transitorio del campo cercano bajo el ruido del receptor', () => {
     }
   });
 
-  it('la GLSL de la pasada B toma las constantes de TS', () => {
+  it('la pasada B toma las constantes de TS y, antes del corte, suma el mismo transitorio que antes', () => {
+    expect(FRAG_RAWFIELD).toContain(RECEIVER_GLSL);
+    expect(FRAG_RAWFIELD.replace(/\s+/g, ' ')).toContain(
+      'if (r < TRANSIENT_SKIP_MM) out2 += scattererField(vec3(vUv.x * 190.0, r * 3.0, 1.0), 0.8, uSeed + 7.0) * TRANSIENT_AMPLITUDE * uTransientGain * exp(-r / TRANSIENT_DECAY_MM) * coupling;',
+    );
     const consts = glslConsts(RECEIVER_GLSL);
     // el float32 del shader es el de TS
     for (const [name, value] of [

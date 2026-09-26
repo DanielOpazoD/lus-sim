@@ -23,7 +23,7 @@ import {
  * al gel: negro) y las líneas A eran tres gaussianas de 1,2 mm.
  *
  * lus-sim (decisión 10): idéntica salvo la anisotropía de la neblina, que mide con `envelopeTexture` de
- * `app/fidelity.ts` (el banco de fidelidad, que se porta con la app en el paso B).
+ * `app/fidelity.ts` (el banco de fidelidad, que llega en la fase 2: decisión 12).
  */
 const deg = Math.PI / 180;
 const central = [...Array(LINES).keys()].filter((u) => Math.abs(thetaOf(u)) <= 15 * deg);

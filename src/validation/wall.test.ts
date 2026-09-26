@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
+import { SCENE_UNIFORMS } from '../anatomy/gpu/sceneUniforms';
 import {
   FIRST_WALL_INTERFACE,
   INTERFACES,
@@ -50,6 +52,7 @@ import {
   faceLitFromProbe,
   interfaceEchoField,
 } from '../ultrasound/interfaceEcho';
+import { FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED } from '../ultrasound/shaders/passes.glsl';
 import {
   WALL_FACE_ECHO_GLSL,
   WALL_TEXTURE,
@@ -67,10 +70,9 @@ import {
  * GLSL en `organs/wall.ts`), la tabla de caras nuevas y la textura de la pasada B (`wallTexture.ts`). Antes la
  * pared eran tres bandas uniformes sin ninguna cara: estas pruebas fallan en `main` (no existe nada de esto).
  *
- * lus-sim (decisión 10): la misma pared y las mismas costillas que VExUS, con la escena del tórax. Lo que
- * comprueba el shader ensamblado (`ANATOMY_GLSL`, los programas de la pasada B y los uniforms) vuelve con la
- * GPU en el paso B; aquí quedan las cadenas GLSL de los módulos portados. La vista del flanco de VExUS pasa a
- * un corte longitudinal del EIC5 en la línea axilar media, con costillas a los dos lados de la línea central.
+ * lus-sim (decisiones 10 y 12): la misma pared y las mismas costillas que VExUS, con la escena del tórax y el paciente
+ * por omisión; la vista del flanco de VExUS pasa a un corte longitudinal del EIC5 en la línea axilar media, con
+ * costillas a los dos lados de la línea central. Lo que comprueba el shader ensamblado volvió con la GPU (paso B2).
  */
 const scene = new AnatomyScene(defaultPatient());
 const t = scene.torso;
@@ -99,6 +101,15 @@ describe('capas de la pared (decisión 62)', () => {
     expect(preperitonealMm(40)).toBe(4);
     expect(t.preperitonealMm).toBeCloseTo(2.1, 9);
     expect(scene.wallThickness()).toBe(t.skinMm + t.fatMm + t.muscleMm);
+    // el esquema único sube la grasa preperitoneal en uWall.w
+    const uWall = SCENE_UNIFORMS.find((u) => u.name === 'uWall')!;
+    expect(uWall.type).toBe('vec4');
+    expect(Array.from(uWall.value(scene, { sample: null as never, compression: null }))).toEqual([
+      t.skinMm,
+      t.fatMm,
+      t.muscleMm,
+      t.preperitonealMm,
+    ]);
   });
 
   it('u es la longitud de arco de la piel: el cuarto de perímetro de Ramanujan y |du/ds| = 1 a ±0,5 %', () => {
@@ -258,11 +269,14 @@ describe('capas de la pared (decisión 62)', () => {
     ];
     expect(sdRib(qEnd, r10, t, scene.spine).d).toBeLessThan(0);
     expect(sdRib(qEnd, r10, t, scene.spine).cartilage).toBe(true);
-    // el extremo anterior sigue la regla de RIB_ANTERIOR_END (la del gemelo GLSL, que vuelve en el paso B)
-    expect(ribAnteriorEndX(r10)).toBeCloseTo(
-      Math.min(RIB_ANTERIOR_END.xMm, RIB_ANTERIOR_END.xMm + RIB_ANTERIOR_END.marginSlope * r10.zAnterior),
-      12,
+    // gemelo GLSL: la misma regla del cartílago y el mismo extremo anterior
+    expect(ANATOMY_GLSL).toContain(
+      `float endX = min(${RIB_ANTERIOR_END.xMm.toFixed(4)}, ${RIB_ANTERIOR_END.xMm.toFixed(4)} + ${RIB_ANTERIOR_END.marginSlope.toFixed(4)} * rib.x);`,
     );
+    expect(ANATOMY_GLSL).toContain(
+      `cartilage = abs(phi - 1.5707963) < 1.5707963 - uRibParams.y || (p.y > 0.0 && p.x > endX - ${RIB_ANTERIOR_END.cartilageTailMm.toFixed(4)});`,
+    );
+    expect(ANATOMY_GLSL).toContain('if (p.x > endX) return 1e3;');
     expect(ribs.every((r) => r.cartilageFromPhi === Math.PI / 4)).toBe(true);
   });
 
@@ -316,7 +330,7 @@ describe('caras nuevas en la tabla de la decisión 57', () => {
       const p = INTERFACES[f];
       expect(p.source.length, Interface[f]).toBeGreaterThan(20);
       expect(interfaceReflectivity(f), Interface[f]).toBeGreaterThan(0.02);
-      expect(INTERFACE_GLSL_NAME[f], Interface[f]).toMatch(/^IF_[A-Z_]+$/);
+      expect(ANATOMY_GLSL, Interface[f]).toContain(`#define ${INTERFACE_GLSL_NAME[f]} ${f}`);
     }
     for (const f of WALL_FACES) expect(isWallLayerInterface(f)).toBe(true);
     expect(FIRST_WALL_INTERFACE).toBe(Interface.SkinFat);
@@ -342,8 +356,8 @@ describe('cortical costal: solo la cara que mira a la sonda (decisión 62)', () 
   // la alcanza a través del hueso; la transmisión con apertura (penumbra, decisión 54) y los caminos dirigidos (58)
   // la iluminaban a medias en los bordes de la costilla, y el eco (con |cosθ|) la dibujaba como a la anterior. Con
   // SwiftShader, el flanco con y sin la regla: sin ella, los anillos inferiores; con ella, solo el arco anterior.
-  // lus-sim: el corte longitudinal del EIC5 en la línea axilar media (costillas 5.ª a 8.ª en el plano)
   it('la cara posterior no da eco (en la mirada 0 ni en las dirigidas); sin la regla, casi tanto como la anterior', () => {
+    // lus-sim: el corte longitudinal del EIC5 en la línea axilar media (costillas 5.ª a 8.ª en el plano)
     const z5 = 0.5 * (scene.ribs[0].zAnterior + scene.ribs[0].tilt * 0.5 + scene.ribs[1].zAnterior + scene.ribs[1].tilt * 0.5);
     const fr = probeFrame({ phi: Math.PI, z: z5, lift: 0, yaw: 0, rock: 0, tilt: 0 }, t, CONVEX_C35);
     const k0 = (2 * Math.PI) / (1540 / (CONVEX_C35_PROFILE.bEffectiveMHz * 1000));
@@ -381,6 +395,7 @@ describe('cortical costal: solo la cara que mira a la sonda (decisión 62)', () 
     expect(backLit).toBe(0);
     // gemelo GLSL de la regla, en el eco de interfaz de los dos programas de B
     expect(INTERFACE_ECHO_GLSL).toContain('if (c.iface == IF_RIB && dot(fg.xyz, dir) > 0.0) return 0.0;');
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) expect(src).toContain(INTERFACE_ECHO_GLSL);
     // el cartílago transmite: su cara profunda sí se ve
     expect(faceLitFromProbe(Interface.Perichondrium, [0, 0, 1], [0, 0, 1])).toBe(true);
     expect(faceLitFromProbe(Interface.RibCortex, [0, 0, 1], [0, 0, 1])).toBe(false);
@@ -456,26 +471,60 @@ describe('eco de cara plana de las copias de la pared (serie de la pleura, decis
     );
     expect(WALL_FACE_ECHO_GLSL).toContain('return interfaceProfileEcho(c.iface, cosI, wallFaceGain(m, c.iface), c.ifd / (gl * cosI));');
     expect(WALL_FACE_ECHO_GLSL.replace(/\/\/.*$/gm, '')).not.toContain('faceGradient');
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
+      expect(src).toContain(WALL_FACE_ECHO_GLSL);
+      expect(src.indexOf(WALL_FACE_ECHO_GLSL)).toBeGreaterThan(src.indexOf(INTERFACE_ECHO_GLSL));
+      expect(src).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
+    }
   });
 });
 
 describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
-  it('el registro incluye el módulo de la pared, con las constantes interpoladas', () => {
+  it('la anatomía incluye el módulo de la pared, con las constantes interpoladas', () => {
     expect(ORGAN_MODULES.map((o) => o.id)).toContain('wall');
-    expect(ORGAN_MODULES.find((o) => o.id === 'wall')!.glsl).toBe(WALL_GLSL);
+    expect(ANATOMY_GLSL).toContain(WALL_GLSL);
     expect(WALL_GLSL).toContain(`#define WALL_SCARPA_FRACTION ${WALL.scarpaFraction.toFixed(4)}`);
     expect(WALL_GLSL).toContain(`#define WALL_RIB_PRIORITY_MM ${WALL.ribFacePriorityMm.toFixed(4)}`);
-    // faceGradient de las capas: la distancia de la capa (wallFaceSd) y la costilla más cercana (nearestRib)
-    const glsl = WALL_GLSL.replace(/\s+/g, ' ');
-    expect(glsl).toContain('float wallFaceSd(vec3 m, int face) {');
-    expect(glsl).toContain('int nearestRib(vec3 m) {');
+    const glsl = ANATOMY_GLSL.replace(/\s+/g, ' ');
+    // classify: capas onduladas, la cortical de la costilla ósea más cercana y el pericondrio del cartílago
+    expect(glsl).toContain('vec4 wd = wallDepths(u, m.z);');
+    expect(glsl).toContain('if (!cart && rd < ribD) { ribD = rd; ribI = i; }');
+    expect(glsl).toContain('if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -rd;');
+    expect(glsl).toContain('c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);');
+    // en classifyWall (el prefijo de la pared de classify, decisión 61): las costillas antes de la grasa
+    // subcutánea donde una puede llegar (la grasa no las corta), y las coordenadas de la pared solo dentro de
+    // ella (no en cada punto del tronco); con la muestra fuera de la pared, classifyWith sigue
+    const cls = glsl.slice(glsl.indexOf('bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn) {'));
+    expect(glsl.indexOf('Cls classifyWith(vec3 m, bool withCurtain) {')).toBeGreaterThan(glsl.indexOf('bool classifyWall('));
+    expect(cls).toContain('return true; } return false; }');
+    const ribs = cls.indexOf('if (d >= ribSearchDepth()) {');
+    const inWall = cls.indexOf('if (d < wall) { // coordenadas de la pared solo dentro de ella');
+    expect(ribs).toBeGreaterThan(0);
+    expect(inWall).toBeGreaterThan(ribs);
+    expect(cls.indexOf('float u = wallArc(m);')).toBeGreaterThan(inWall);
+    expect(cls.indexOf('vec4 wd = wallDepths(u, m.z);')).toBeGreaterThan(inWall);
+    // faceGradient: la distancia de la capa y la de la costilla más cercana
+    expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
+    expect(glsl).toContain('int k = nearestRib(m);');
   });
 
-  it('el eco de las caras de pared y costilla: la textura de la pared y la curvatura de la sección de la costilla', () => {
+  it('la pasada B aplica la textura solo a la grasa y al músculo, y el eco de las caras de pared y costilla', () => {
+    expect(FRAG_RAWFIELD).toContain(WALL_TEXTURE_GLSL);
+    // la dirección del haz de la mirada 0 es la radial desde el centro de curvatura en el punto del MUNDO (con la
+    // compresión de la sonda, decisión 63, m ya no es p en la pared) y la lámina va al mundo por la jacobiana
+    expect(FRAG_RAWFIELD).toContain('if (tissue == T_FAT || tissue == T_MUSCLE) het *= wallTexture(m, tissue, dir, w);');
+    expect(FRAG_RAWFIELD).toContain('vec2 f0 = fieldFor(m, se, c.tissue, normalize(p - uCurvC), w);');
+    expect(FRAG_RAWFIELD_STEERED).toContain(
+      'if (tissue == T_FAT || tissue == T_MUSCLE) het *= wallTexture(m, tissue, normalize(b0 + g / uSteer.w), w);',
+    );
+    expect(FRAG_RAWFIELD_STEERED).toContain('vec2 f0 = fieldForPh(m, se, c.tissue, ph0, g, normalize(p - uCurvC), w);');
+    // la textura va antes del eco de interfaz (que usa wallFaceGain) en los dos programas
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED])
+      expect(src.indexOf('float wallFaceGain(')).toBeLessThan(src.indexOf('float interfaceEcho('));
     const echo = INTERFACE_ECHO_GLSL.replace(/\s+/g, ' ');
     expect(echo).toContain('c.iface <= IF_LAST_TUBE || c.iface == IF_RIB || c.iface == IF_PERICHONDRIUM ? tubeCurvature(');
     expect(echo).toContain('if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) curv *= wallFaceGain(m, c.iface);');
-    expect(INTERFACE_ECHO_GLSL).toContain(`uIface[${INTERFACE_COUNT}]`);
+    expect(FRAG_RAWFIELD).toContain(`uIface[${INTERFACE_COUNT}]`);
     // tablas del GLSL con el tamaño interpolado
     expect(WALL_TEXTURE_GLSL).toContain(`const float WT_FACE_VAR[${WALL_TEXTURE.faceVariation.length}]`);
     expect(WALL_TEXTURE.faceVariation.length).toBe(LAST_WALL_INTERFACE - FIRST_WALL_INTERFACE + 1);

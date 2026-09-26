@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
 import { ORGAN_MODULES } from '../anatomy/organs';
 import { LUNG_CURTAIN, inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from '../anatomy/organs/lungCurtain';
 
 /**
  * Módulos de órgano (decisión 46): gemelos TS/GLSL juntos y con el mismo nombre.
  *
- * lus-sim (decisión 10): los módulos del tórax (pared y cortina pulmonar). Que el shader incluya cada
- * gemelo (`ANATOMY_GLSL`) se comprueba en el paso B, con la GPU.
+ * lus-sim (decisiones 10 y 12): los módulos del tórax (pared y cortina pulmonar); el shader ensamblado
+ * (`ANATOMY_GLSL`, paso B2) incluye cada gemelo.
  */
 describe('Módulos de órgano', () => {
   it('el registro tiene solo los módulos del tórax, en su orden de dependencia GLSL', () => {
@@ -14,7 +15,7 @@ describe('Módulos de órgano', () => {
   });
 
   for (const o of ORGAN_MODULES) {
-    it(`${o.id}: cada función GLSL tiene su gemela TS exportada`, () => {
+    it(`${o.id}: cada función GLSL tiene su gemela TS exportada y el shader la incluye`, () => {
       const fns = [...o.glsl.matchAll(/^\s*(?:float|vec[234]|bool|int)\s+(\w+)\s*\(/gm)].map((m) => m[1]);
       expect(fns.length).toBeGreaterThan(0);
       const gpuOnly = Object.keys(o.gpuOnly ?? {});
@@ -25,6 +26,7 @@ describe('Módulos de órgano', () => {
         expect(fns, `${o.id}: gpuOnly nombra ${f}, que no está en el GLSL`).toContain(f);
         expect(o.exports[f], `${o.id}: ${f} ya tiene gemela TS; sácala de gpuOnly`).toBeUndefined();
       }
+      expect(ANATOMY_GLSL).toContain(o.glsl);
     });
   }
 

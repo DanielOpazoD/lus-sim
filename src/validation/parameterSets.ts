@@ -1,5 +1,7 @@
 import type { ParameterSet } from '../core/evidence';
+import { START_POINT_POSES } from '../app/startPoints';
 import { BLUE_UPPER_POSE } from '../probe/probe';
+import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 
 /**
  * Todos los conjuntos de parámetros del modelo (decisión 4). `evidence.test.ts` comprueba sobre esta
@@ -7,4 +9,4 @@ import { BLUE_UPPER_POSE } from '../probe/probe';
  * docs/APPROXIMATIONS.md; también que ningún `defineParameters(…)` del código quede fuera de ella.
  * Un conjunto nuevo se añade aquí en el mismo cambio que lo crea.
  */
-export const PARAMETER_SETS: readonly ParameterSet[] = [BLUE_UPPER_POSE];
+export const PARAMETER_SETS: readonly ParameterSet[] = [BLUE_UPPER_POSE, START_POINT_POSES, LUNG_PRESET, TGC_REFERENCE];

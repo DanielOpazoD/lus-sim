@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ANATOMY_GLSL, COMPRESSION_BASE, SCENE_TEX_H, SCENE_TEX_W } from '../anatomy/gpu/anatomy.glsl';
+import { SCENE_UNIFORMS } from '../anatomy/gpu/sceneUniforms';
 import {
   COMPRESSION_GLSL,
   PROBE_COMPRESSION,
@@ -372,7 +374,7 @@ describe('gemelo del campo y de su jacobiana (TS = GLSL)', () => {
       }
   });
 
-  it('la GLSL lleva las mismas constantes y funciones', () => {
+  it('la GLSL lleva las mismas constantes y funciones, y toMaterial deshace la compresión antes que la respiración', () => {
     const c = PROBE_COMPRESSION;
     expect(COMPRESSION_GLSL).toContain(`#define COMP_NODES ${c.nodes}`);
     expect(COMPRESSION_GLSL).toContain(`#define COMP_DECAY_MM ${c.decayMm.toFixed(4)}`);
@@ -381,10 +383,26 @@ describe('gemelo del campo y de su jacobiana (TS = GLSL)', () => {
     expect(COMPRESSION_GLSL).toContain(`#define COMP_ELEV_TAPER ${c.elevationTaperMm.toFixed(4)}`);
     for (const fn of ['compressionSample', 'uncompress', 'warpAt', 'warpNormal', 'warpBound'])
       expect(COMPRESSION_GLSL, fn).toMatch(new RegExp(`\\b${fn}\\(`));
+    expect(ANATOMY_GLSL).toContain(COMPRESSION_GLSL);
+    expect(ANATOMY_GLSL).toMatch(
+      /vec3 toMaterial\(vec3 p\) \{\n\s+vec3 q = uncompress\(p\);\n\s+vec3 m = q;\n\s+for \(int i = 0; i < 2; i\+\+\) m = q - respDisplacement\(m\);/,
+    );
     // sin atan (el arranque con SwiftShader) y sin indexado dinámico de uniforms: la tabla va en la textura de escena
-    // (la textura, los uniforms y toMaterial del shader ensamblado vuelven en el paso B)
     expect(COMPRESSION_GLSL.replace(/\/\/.*$/gm, '')).not.toMatch(/\batan\s*\(/);
     expect(COMPRESSION_GLSL).toContain('sceneTexel(COMP_BASE + i)');
+    // lus-sim (decisión 12): sin tubos, la tabla es lo único de la textura de escena y empieza en su primer téxel
+    expect(ANATOMY_GLSL).toContain(`#define COMP_BASE ${COMPRESSION_BASE}`);
+    expect(COMPRESSION_BASE).toBe(0);
+    expect(SCENE_TEX_W * SCENE_TEX_H).toBeGreaterThanOrEqual(COMPRESSION_BASE + c.nodes);
+    // el esquema único sube el marco (tres vec4) con R + alcance en uCompC.w; sin compresión, uCompC.w = 0 (la
+    // GLSL no desplaza nada). El radio viaja en la tabla (su .w)
+    const names = SCENE_UNIFORMS.map((u) => u.name);
+    expect(names).toEqual(expect.arrayContaining(['uCompC', 'uCompAx', 'uCompLat']));
+    const ctx = { sample: null as never, compression: null };
+    expect(Array.from(SCENE_UNIFORMS.find((u) => u.name === 'uCompC')!.value(scene, ctx))[3]).toBe(0);
+    const withK = { ...ctx, compression: k };
+    expect(Array.from(SCENE_UNIFORMS.find((u) => u.name === 'uCompC')!.value(scene, withK))[3]).toBeCloseTo(k.radiusMm + k.reachMm, 4);
+    expect(Array.from(SCENE_UNIFORMS.find((u) => u.name === 'uCompAx')!.value(scene, withK))[3]).toBeCloseTo(Math.sin(k.halfAngle), 12);
     expect(COMPRESSION_GLSL).toContain('float g = compressionProfile(rho - v.w, v.xyz, gd, gp);');
     // el alcance: el máximo de D + S en la tabla, y s = 0 a partir de él
     expect(k.reachMm).toBe(Math.max(...k.nodes.map((n) => n[2] + compressionSpanMm(n[1]))));

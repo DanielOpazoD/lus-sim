@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { glslMinify } from './tools/build/glslMinify';
 
 /**
  * Niveles de prueba (práctica de EchoTwin y VExUS): un archivo cuya PRIMERA línea es
@@ -37,6 +38,8 @@ function gitCommit(): string {
 const tier = process.env['VITEST_TIER'] ?? 'fast';
 
 export default defineConfig({
+  // el texto de los shaders sin comentarios, sangría ni nombres largos en el build (tools/build/glslMinify.ts)
+  plugins: [glslMinify()],
   define: {
     __APP_VERSION__: JSON.stringify(PKG.version),
     __GIT_COMMIT__: JSON.stringify(process.env['GITHUB_SHA']?.slice(0, 7) ?? gitCommit()),
@@ -57,9 +60,20 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      // Solo se excluye lo que necesita DOM o WebGL (lo cubre la e2e). Las herramientas de tools/ se prueban
-      // desde src/validation, pero no cuentan para la cobertura (como en VExUS)
-      exclude: ['src/**/*.test.ts', 'src/main.ts', 'src/ui/**', 'src/**/*.d.ts'],
+      // Solo se excluye lo que necesita DOM o WebGL (lo cubre la e2e), como en VExUS; los módulos puros de
+      // ultrasound/ (haz, sector, transmisión, pasadas como datos) sí cuentan. Las herramientas de tools/ se prueban
+      // desde src/validation, pero no cuentan para la cobertura
+      exclude: [
+        'src/**/*.test.ts',
+        'src/main.ts',
+        'src/ui/**',
+        'src/**/*.d.ts',
+        'src/ultrasound/renderer.ts',
+        'src/ultrasound/gl.ts',
+        'src/ultrasound/shaders/**',
+        'src/app/devtools.ts',
+        'src/app/testHooks.ts', // ganchos de la e2e (la ejecuta Playwright)
+      ],
       reporter: ['text-summary', 'html', 'json-summary'],
       // Umbrales: solo pueden subir. Medidos con todos los niveles.
       thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },

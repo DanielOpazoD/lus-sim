@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { reduceEquipment } from '../app/equipment';
+import { Simulator, defaultEquipment } from '../app/simulator';
+import { C_RECONSTRUCTION_MM_S } from '../core/units';
+import { clonePatient, defaultPatient } from '../physiology/patientState';
 import { CONVEX_BEAM, lateralFwhmMm } from '../ultrasound/beamModel';
+import { CLUTTER } from '../ultrasound/clutter';
 import {
   HARMONIC,
   HARMONIC_GLSL,
@@ -10,19 +15,28 @@ import {
   transientGain,
 } from '../ultrasound/harmonic';
 import { ELEV_RAYLEIGH_MM, ELEV_SIGMA0_MM, elevSigmaMm } from '../ultrasound/pleura';
-import { RECEIVER_GLSL } from '../ultrasound/receiver';
+import { RECEIVER_GLSL, RECEIVER_NOISE } from '../ultrasound/receiver';
+import {
+  FRAG_AXIAL,
+  FRAG_COMPOUND,
+  FRAG_LATERAL,
+  FRAG_RAWFIELD,
+  FRAG_RAWFIELD_STEERED,
+  LATERAL_PSF_GLSL,
+} from '../ultrasound/shaders/passes.glsl';
 import { bmodeBeam, CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
+import { recordingGl } from './support/recordingGl';
 
 /**
  * Armónica tisular (decisión 77): el haz armónico (emisión a f1 ÷√2, recepción a 2·f1), la σ elevacional
  * equivalente, la acumulación del campo cercano, el transitorio rechazado, el ruido que sube y los ecos
  * parásitos que bajan, en TS y en el GLSL, y su cableado en el renderizador real sobre un WebGL falso. La
- * imagen en GPU la mide la e2e (`harmonicContrast`).
+ * imagen en GPU la mide la e2e de VExUS (`harmonicContrast`, sobre el hígado).
  *
- * lus-sim (decisión 11): el haz y el modelo, idénticos; del GLSL quedan las cadenas de los módulos portados (el
- * receptor y la acumulación, que en VExUS solo comprueba la e2e); sin lo que comprueba los programas ensamblados,
- * el comando del equipo ni el renderizador sobre WebGL falso (vuelven con la GPU y la app en el paso B2). Que los
- * ecos parásitos bajen con la armónica lo prueba `clutter.test.ts`.
+ * lus-sim (decisiones 11 y 12): sin el color (no lee el haz armónico porque no existe) y con el paciente por omisión;
+ * la e2e de la armónica sobre el pulmón llega con la meta F-T24 (fase 2);
+ * se añade la fórmula de la acumulación en `HARMONIC_GLSL`, que en VExUS solo comprueba la e2e. El preajuste pulmonar
+ * arranca en fundamental (`lungPreset.ts`).
  */
 const db = (x: number) => 20 * Math.log10(x);
 
@@ -102,14 +116,99 @@ describe('Armónica tisular (decisión 77): haz y modelo', () => {
     expect(db(noiseGain(true))).toBeCloseTo(HARMONIC.noiseDb, 9);
   });
 
-  it('el GLSL de los módulos portados: el receptor declara la ganancia del transitorio y la acumulación es la de TS', () => {
+  it('el GLSL lleva las mismas fórmulas', () => {
     const flat = (s: string) => s.replace(/\s+/g, ' ');
+    expect(flat(LATERAL_PSF_GLSL)).toContain('float tx = uBeamTx.y * length(vec2(uBeamTx.x * F / uBeam.y, uBeam.y * abs(rr - F) / F));');
+    for (const frag of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED, FRAG_COMPOUND]) {
+      expect(flat(frag)).toContain('if (uElevHarmonic < 0.5) return s;');
+      // sin pow de base negativa (indefinido en GLSL ES 3.00): (r − F)/(2zR) al cuadrado es 0,25·x²
+      expect(flat(frag)).toContain('float sT = 1.41421356 * uElevSigma0 * sqrt(1.0 + 0.25 * x * x);');
+      expect(flat(frag)).toContain('return 1.41421356 * s * sT * inversesqrt(s * s + sT * sT);');
+      expect(frag).not.toMatch(/pow\(\(r - uElevFocus\)/);
+    }
     expect(RECEIVER_GLSL).toContain('uniform float uTransientGain;');
     // lus-sim: la misma fórmula que `harmonicNearGain` (1 en fundamental y desde la referencia; si no, la
-    // acumulación normalizada en la referencia); los programas que la usan vuelven en el paso B2
+    // acumulación normalizada en la referencia)
     expect(flat(HARMONIC_GLSL)).toContain('if (uHarmonicNear.x <= 0.0 || r >= uHarmonicNear.y) return 1.0;');
     expect(flat(HARMONIC_GLSL)).toContain(
       'return (1.0 - exp(-max(r, 0.0) / uHarmonicNear.x)) / (1.0 - exp(-uHarmonicNear.y / uHarmonicNear.x));',
     );
+    for (const frag of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
+      expect(frag).toContain(RECEIVER_GLSL);
+      expect(frag).toContain('TRANSIENT_AMPLITUDE * uTransientGain * exp(');
+      expect(frag).not.toMatch(/TRANSIENT_AMPLITUDE \* exp\(/);
+    }
+    // la acumulación va en la pasada B, al eco del tejido y antes del transitorio y del ruido (no en D)
+    for (const [frag, v] of [
+      [FRAG_RAWFIELD, 'r'],
+      [FRAG_RAWFIELD_STEERED, 's'],
+    ] as const) {
+      expect(frag).toContain(HARMONIC_GLSL);
+      const at = frag.lastIndexOf(`out2 *= harmonicNearGain(${v});`);
+      expect(at).toBeGreaterThan(0);
+      expect(frag.indexOf('TRANSIENT_AMPLITUDE * uTransientGain', at)).toBeGreaterThan(at);
+      expect(frag.indexOf('uNoise * rad', at)).toBeGreaterThan(at);
+    }
+    expect(FRAG_LATERAL).not.toMatch(/harmonicNearGain|uHarmonicNear/);
+  });
+
+  it('el comando del equipo la enciende y la apaga, y la normalización la conserva', () => {
+    const ctx = { halfSectorRad: 0.5, cMmS: C_RECONSTRUCTION_MM_S };
+    const e0 = defaultEquipment();
+    expect(e0.bmode.harmonic).toBe(false);
+    const on = reduceEquipment(e0, { type: 'harmonic', enabled: true }, ctx);
+    expect(on.bmode.harmonic).toBe(true);
+    expect(reduceEquipment(on, { type: 'stepDepth', deltaMm: 10 }, ctx).bmode.harmonic).toBe(true);
+    expect(reduceEquipment(on, { type: 'harmonic', enabled: false }, ctx).bmode.harmonic).toBe(false);
+  });
+});
+
+describe('Armónica tisular en el renderizador (WebGL falso)', () => {
+  function frameWith(harmonic: boolean) {
+    const rec = recordingGl({ width: 320, height: 240 });
+    const sim = new Simulator(clonePatient(defaultPatient()), rec.canvas);
+    sim.equipment = { ...sim.equipment, bmode: { ...sim.equipment.bmode, compound: false, harmonic } };
+    rec.draws.length = 0;
+    sim.render();
+    const by = (frag: string) => {
+      const d = rec.draws.filter((x) => x.frag === frag);
+      expect(d.length, 'un dibujo por pasada').toBe(1);
+      return d[0].uniforms;
+    };
+    expect(rec.misuse).toEqual([]);
+    return { raw: by(FRAG_RAWFIELD), axial: by(FRAG_AXIAL), lateral: by(FRAG_LATERAL), k: by(FRAG_COMPOUND) };
+  }
+
+  it('fundamental: los uniforms de siempre; armónica: haz, elevación, transitorio, ruido, acumulación y ecos parásitos', () => {
+    const f = frameWith(false);
+    const h = frameWith(true);
+    const b = CONVEX_BEAM;
+    // fundamental: la emisión es la recepción, sin acumulación, transitorio entero y el ruido de siempre
+    for (const u of [f.raw, f.lateral, f.k]) {
+      expect(u.uBeamTx).toEqual([b.k * b.lambdaMm, 1]);
+      expect(u.uBeam[0]).toBe(b.k * b.lambdaMm);
+    }
+    expect(f.raw.uElevHarmonic).toEqual([0]);
+    expect(f.k.uElevHarmonic).toEqual([0]);
+    expect(f.raw.uTransientGain).toEqual([1]);
+    expect(f.raw.uNoise).toEqual([RECEIVER_NOISE]);
+    expect(f.raw.uHarmonicNear).toEqual([0, 0]);
+    expect(f.lateral.uHarmonicNear).toBeUndefined();
+    // armónica
+    const hb = harmonicBeam(b);
+    for (const u of [h.raw, h.lateral, h.k]) {
+      expect(u.uBeamTx[0]).toBeCloseTo(hb.k * hb.lambdaTxMm, 12);
+      expect(u.uBeamTx[1]).toBe(Math.SQRT1_2);
+      expect(u.uBeam[0]).toBeCloseTo(hb.k * hb.lambdaMm, 12);
+    }
+    expect(h.raw.uElevHarmonic).toEqual([1]);
+    expect(h.k.uElevHarmonic).toEqual([1]);
+    expect(db(h.raw.uTransientGain[0])).toBeCloseTo(HARMONIC.fundamentalRejectionDb, 9);
+    expect(db(h.raw.uNoise[0] / RECEIVER_NOISE)).toBeCloseTo(HARMONIC.noiseDb, 9);
+    expect(h.raw.uHarmonicNear).toEqual([HARMONIC.buildUpMm, HARMONIC.buildUpRefMm]);
+    // ecos parásitos (decisión 76): pedestal y réplicas bajan lo mismo; el desplazamiento no cambia
+    expect(10 * Math.log10(f.lateral.uSidelobe[0] / h.lateral.uSidelobe[0])).toBeCloseTo(CLUTTER.harmonicReductionDb, 9);
+    expect(db(f.axial.uReverb[1] / h.axial.uReverb[1])).toBeCloseTo(CLUTTER.harmonicReductionDb, 9);
+    expect(h.axial.uReverb[0]).toBe(f.axial.uReverb[0]);
   });
 });
