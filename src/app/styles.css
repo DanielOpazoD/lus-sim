@@ -48,15 +48,16 @@ body {
   height: 100%;
   transition: grid-template-columns 0.25s ease;
 }
+/* el carril solo lleva los puntos de partida: más estrecho que el de VExUS en cada ancho */
 @media (max-width: 1200px) {
   .app {
-    --rail-w: 248px;
+    --rail-w: 200px;
     --panel-w: 256px;
   }
 }
 @media (max-width: 800px) {
   .app {
-    --rail-w: 200px;
+    --rail-w: 168px;
     --panel-w: 232px;
   }
 }
