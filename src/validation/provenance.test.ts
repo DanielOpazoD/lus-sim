@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { driftOf, lineDelta, originDir, parseProvenance } from '../../tools/provenance/drift';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { honestyOf, lineDelta, originContents, originDir, parseProvenance } from '../../tools/provenance/drift';
 
 const ROOT = resolve(__dirname, '../..');
 const rows = parseProvenance(readFileSync(resolve(ROOT, 'docs/PROVENANCE.md'), 'utf8'));
@@ -60,11 +62,30 @@ describe('docs/PROVENANCE.md', () => {
     expect(originDir('vexus-sim', ROOT, { VEXUS_DIR: '/no/existe' })).toBeNull();
   });
 
+  it('originContents lee varios objetos en un solo proceso, incluidos los que no existen', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lus-origin-'));
+    try {
+      const git = (...args: string[]) =>
+        spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8' });
+      git('init', '-q');
+      writeFileSync(join(dir, 'a.ts'), 'línea 1\nlínea 2\n');
+      writeFileSync(join(dir, 'b.ts'), '');
+      git('add', '.');
+      git('commit', '-q', '-m', 'x');
+      const got = originContents(dir, ['HEAD:a.ts', 'HEAD:no-existe.ts', 'HEAD:b.ts', 'HEAD:a.ts']);
+      expect(got.get('HEAD:a.ts')).toBe('línea 1\nlínea 2\n');
+      expect(got.get('HEAD:no-existe.ts')).toBeNull();
+      expect(got.get('HEAD:b.ts')).toBe('');
+      expect(originContents(dir, [])).toEqual(new Map());
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   // Solo donde viven los repos de origen (la máquina de desarrollo); en CI no están y se informa aparte
   const available = rows.some((r) => originDir(r.repo, ROOT) !== null);
   it.skipIf(!available)('la tabla dice la verdad: lo «idéntico» es idéntico y lo «adaptado» difiere de su origen', () => {
-    const lies = rows
-      .map((r) => driftOf(r, ROOT))
+    const lies = honestyOf(rows, ROOT)
       .filter((d) => !d.honest)
       .map((d) => `${d.row.file}: la tabla dice «${d.row.declared}», el código está ${d.actual}`);
     expect(lies).toEqual([]);
