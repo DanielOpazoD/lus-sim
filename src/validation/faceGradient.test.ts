@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { FACE_GRADIENT_EPS_MM, INTERFACES, Interface, LAST_TUBE_INTERFACE } from '../anatomy/interfaces';
-import { tubeFaceGradient, tubeQuery, type Tube } from '../anatomy/primitives';
+import { INTERFACES, Interface, LAST_TUBE_INTERFACE } from '../anatomy/interfaces';
+import { diaphragmHeight, tubeFaceGradient, tubeQuery, type Tube } from '../anatomy/primitives';
 import { AnatomyQuery } from '../anatomy/query';
-import { AnatomyScene, faceGeometryOf } from '../anatomy/scene';
+import { AnatomyScene } from '../anatomy/scene';
+import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
@@ -166,11 +167,23 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
     const instant = anatomy.instantFor(engine.sample);
 
     it('instantFor: el descenso del diafragma de la muestra, memorizado por identidad de la muestra', () => {
-      expect(instant.diaphragmCaudalMm).toBe(0); // apnea espiratoria
+      expect(instant.diaphragmCaudalMm).toBe(0); // apnea espiratoria: el instante del resto del bloque
       expect(anatomy.instantFor(engine.sample)).toBe(instant);
-      const next = engine.step();
-      expect(anatomy.instantFor(next)).not.toBe(instant);
-      expect(anatomy.instantFor(next)).toEqual({ diaphragmCaudalMm: next.resp.diaphragmCaudalMm });
+      // Con respiración, no en apnea: en apnea todo instante vale 0 y uno viejo con otro objeto pasaría. A 1 s de
+      // la inspiración del adulto por omisión el diafragma baja 6,29 mm y 0,035 mm más en el paso siguiente
+      // (medido el 26-09-2026). La prueba del camino real de anatomy.test.ts (la cortina con el reloj) lo cubre
+      // además de punta a punta
+      const breathing = new PhysiologyEngine(defaultPatient(), { historySeconds: 4 });
+      const query = new AnatomyQuery(scene);
+      for (let i = 0; i < Math.round(1 / breathing.clock.dt); i++) breathing.step();
+      const a = query.instantFor(breathing.sample);
+      expect(a.diaphragmCaudalMm).toBeGreaterThan(5);
+      expect(query.instantFor(breathing.sample)).toBe(a);
+      const next = breathing.step();
+      const b = query.instantFor(next);
+      expect(b).not.toBe(a);
+      expect(b.diaphragmCaudalMm).toBe(next.resp.diaphragmCaudalMm);
+      expect(b.diaphragmCaudalMm).toBeGreaterThan(a.diaphragmCaudalMm);
     });
 
     it('la salida barata de la pasada B no descarta ninguna muestra al alcance de su cara', () => {
@@ -232,32 +245,51 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
       }
     });
 
-    it('faceGradient da el gradiente numérico de faceSdf en la cúpula', () => {
-      // los puntos de la banda del eco (0,02–0,5 mm) de la cara en una rejilla del tronco: el mismo cálculo
-      let worst = 0;
+    it('faceGradient en la cúpula: la normal de la superficie z = H(x, y) y pendiente 1 sobre ella', () => {
+      // Contraste con la geometría, no con el mismo cálculo: sobre la cúpula (z = H, con H de `diaphragmHeight`)
+      // la normal de la superficie es (H_x, H_y, −1)/√(1 + |∇H|²), con ∇H por diferencias de 0,01 mm, y la
+      // distancia con signo tiene pendiente 1. Donde la altura se pliega (el máximo de las dos cúpulas y del
+      // borde, el centro del tronco) la normal no está definida a la escala de la pendiente de `sdDiaphragm`
+      // (diferencias de 0,5 mm): se toman los puntos de la rejilla donde esa pendiente y la local coinciden a
+      // 10⁻⁴. Umbrales: el del ángulo cubre el O(h²) de las diferencias centrales del gradiente
+      // (`FACE_GRADIENT_EPS_MM`, 0,02 mm); el de la norma, ||∇| − 1| ≤ |ĝ − g|·|g|/(1 + |g|²) < 10⁻⁴ con esa
+      // coincidencia. Medido el 26-09-2026: 4070 puntos, ángulo ≤ 1,7·10⁻⁷ rad y ||∇| − 1| ≤ 6,8·10⁻⁵
+      const H = (x: number, y: number): number => diaphragmHeight(x, y, scene.diaphragm, scene.torso);
+      const slope = (x: number, y: number, h: number): [number, number] => [
+        (H(x + h, y) - H(x - h, y)) / (2 * h),
+        (H(x, y + h) - H(x, y - h)) / (2 * h),
+      ];
+      let worstAngle = 0;
+      let worstNorm = 0;
       let count = 0;
-      const h = FACE_GRADIENT_EPS_MM;
+      for (let x = -120; x <= 110; x += 2.3)
+        for (let y = -80; y <= 80; y += 2.3) {
+          const m: V = [x, y, H(x, y)];
+          if (scene.classify(m, instant).tissue !== Tissue.Diaphragm) continue;
+          const [gx, gy] = slope(x, y, 0.01);
+          const [sx, sy] = slope(x, y, 0.5);
+          if (Math.max(Math.abs(sx - gx), Math.abs(sy - gy)) > 1e-4) continue;
+          const l = Math.hypot(gx, gy, 1);
+          const g = scene.faceGradient(m, instant, 'dome')!;
+          const cos = (g.normal[0] * gx + g.normal[1] * gy - g.normal[2]) / l;
+          worstAngle = Math.max(worstAngle, Math.acos(Math.min(1, cos)));
+          worstNorm = Math.max(worstNorm, Math.abs(g.norm - 1));
+          count++;
+        }
+      expect(count).toBeGreaterThan(3000);
+      expect(worstAngle).toBeLessThan(1e-5);
+      expect(worstNorm).toBeLessThan(1e-4);
+      // la clasificación lleva la cara hepática del diafragma a la cúpula: sin forzarla, el mismo gradiente
+      let band = 0;
       for (let x = -120; x <= 110; x += 2.3)
         for (let y = -80; y <= 80; y += 2.3)
           for (let z = -150; z <= 90; z += 7.9) {
             const m: V = [x, y, z];
-            const c = scene.classify(m, instant);
-            const face = faceGeometryOf(c.interface);
-            if (!face || c.interfaceDistance < 0.02 || c.interfaceDistance > 0.5) continue;
-            const num = [0, 1, 2].map((a) => {
-              const pp: V = [...m];
-              const pm: V = [...m];
-              pp[a] += h;
-              pm[a] -= h;
-              return (scene.faceSdf(pp, instant, face)! - scene.faceSdf(pm, instant, face)!) / (2 * h);
-            }) as V;
-            const g = scene.faceGradient(m, instant)!;
-            worst = Math.max(worst, Math.abs(g.norm / Math.hypot(...num) - 1));
-            count++;
+            if (scene.classify(m, instant).interface !== Interface.DiaphragmLiver) continue;
+            expect(scene.faceGradient(m, instant)).toEqual(scene.faceGradient(m, instant, 'dome'));
+            band++;
           }
-      // medido: 273 puntos de la banda en la rejilla (la cúpula es la única cara con geometría de faceSdf)
-      expect(count).toBeGreaterThan(200);
-      expect(worst).toBeLessThan(1e-12);
+      expect(band).toBeGreaterThan(200);
       // fuera de toda cara, null; forzando la cúpula, su gradiente
       expect(scene.faceGradient([-55, -5, 70], instant)).toBeNull();
       expect(scene.faceGradient([-55, -5, 70], instant, 'dome')!.norm).toBeCloseTo(1, 3);
