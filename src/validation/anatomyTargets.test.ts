@@ -87,7 +87,7 @@ function batSign(v: ChestView) {
 const deepInspiration = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'apnea-inspiratory' }).sample(0);
 
 describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anatomy.md §3)', () => {
-  // Medido (25-09-2026 de la escena heredada): EIC2-LMC 25,2 mm; EIC5-LAA 27,2; EIC5-LAM 28,0; EIC4-LAM 28,0.
+  // Medido (26-09-2026, en la escena heredada): EIC2-LMC 25,2 mm; EIC5-LAA 27,2; EIC5-LAM 28,0; EIC4-LAM 28,0.
   // La pared es la del abdomen de VExUS, 2 + 14 + 12 = 28 mm en la métrica radial y la misma en todo el
   // tronco (`thorax-wall-abdominal-habitus`): delante sale 25 mm porque la normal de la piel no es radial.
 
@@ -152,10 +152,10 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
 describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda intercostales', () => {
   // Corte longitudinal centrado en el EIC5 de la línea axilar media (entre la 5.ª y la 6.ª costillas de la
   // escena): el primero en que hay costillas a los dos lados de la línea central. En el punto BLUE superior
-  // (EIC2) la escena no tiene costillas (`ribs-5-10-only`). Medido (25-09-2026): pleura 28,0 mm; línea
+  // (EIC2) la escena no tiene costillas (`ribs-5-10-only`). Medido (26-09-2026): pleura 28,0 mm; línea
   // pleural 7,0 mm bajo la línea costal; sombras de 14,8 y 14,8 mm; EIC visible de 6,6 mm; periodo 21,3 mm;
   // banda de músculo entre la línea costal y la pleura de 5,0 mm (anterior, EIC5-LMC: 7,2; posterior,
-  // EIC7 a 1,2π: 8,3), la misma en inspiración profunda.
+  // EIC7 a 1,2π: 6,1), la misma en inspiración profunda.
   const lateral = batSign(chestView(scene, icsPose(5, LAM)!))!;
 
   it.fails('A-T7: la línea pleural está 4–6 mm bajo la línea costal (hoy 7,0)', () => {
@@ -190,7 +190,7 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
     expect(width(2)).toBeGreaterThanOrEqual(width(3) + 3);
   });
 
-  it.fails('A-T10: la banda intercostal mide 1,5–3,5 mm delante, 2,5–4,5 al lado y 3,5–5,5 detrás (hoy 7,2 / 5,0 / 8,3)', () => {
+  it.fails('A-T10: la banda intercostal mide 1,5–3,5 mm delante, 2,5–4,5 al lado y 3,5–5,5 detrás (hoy 7,2 / 5,0 / 6,1)', () => {
     // la banda: el músculo que la clasificación pone entre la línea costal y la pleura en el centro del
     // espacio. La pared heredada no tiene intercostales (`wall-generic-layers`): es el músculo de la pared
     // abdominal de VExUS que cae a esa altura

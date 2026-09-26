@@ -292,8 +292,10 @@ la fase no se cumplen y quedan medidas; A-T6 (líneas A) sí. Los archivos idén
 adaptados, con la diferencia de su fila. El núcleo del paciente, la muestra fisiológica y el instante de la
 escena son la propuesta de contrato común para la unión (`docs/UNIFICATION.md`). La cobertura queda en
 92,8 % de sentencias, 88,4 % de ramas, 93,3 % de funciones y 94,2 % de líneas: por encima de los umbrales,
-que no cambian. El origen ya avanzó después del commit fijado (sus decisiones 76–78 tocan la pleura, el
-receptor, el haz, la composición y el perfil): se revisará al fijar el paso B.
+que no cambian. El origen ya avanzó después del commit fijado: sus decisiones 76 (ecos parásitos), 77
+(armónica tisular: la pleura, el receptor, el haz, la composición y el perfil) y 79 (la respiración con PEEP y
+la aurícula de lazo cerrado: el paciente, la respiración y el motor) tocan archivos portados; se revisará al
+fijar el paso B.
 
 **Verificación.** `src/validation/provenance.test.ts` y `npm run provenance -- --check` (la tabla dice lo que
 es cada archivo); `src/validation/layers.test.ts` (las capas de VExUS, sin cambios en la matriz); las

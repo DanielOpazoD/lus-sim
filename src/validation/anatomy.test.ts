@@ -125,6 +125,37 @@ describe('Anatomía implícita (base B)', () => {
     expect(Math.hypot(...q.classifyWorld([0, 100, 60], engine.sample).tissueVelocity)).toBe(0);
   });
 
+  it('por el camino real (motor → consulta → escena) la cortina baja con la inspiración del reloj', () => {
+    // un punto 1,5 mm bajo la pared del receso lateral derecho, a z −5: el «resto» en espiración y pulmón cuando el
+    // diafragma del instante ha bajado más de 23 mm (el borde de la cortina, a 18 − descenso, pasa por debajo de
+    // −5). A 1,5 mm de la pared el peso respiratorio es smoothstep(0, 25, 1,5) ≈ 0,01: el punto material sube unos
+    // 0,3 mm con los 30 mm de descenso, así que se deja ±1 mm de descenso alrededor de 23 sin juzgar
+    const wall = scene.wallThickness();
+    const phi = Math.PI * 0.95;
+    const p: [number, number, number] = [
+      (scene.torso.a - wall - 1.5) * Math.cos(phi) * 0.999,
+      (scene.torso.b - wall - 1.5) * Math.sin(phi) * 0.999,
+      -5,
+    ];
+    const q = new AnatomyQuery(scene);
+    const engine = new PhysiologyEngine({ ...NORMAL_ADULT, respiratoryPattern: 'deep' });
+    const seen = new Set<Tissue>();
+    let maxCaudal = 0;
+    for (let i = 0; i < Math.round(60 / NORMAL_ADULT.respiratoryRateMin / engine.clock.dt); i++) {
+      const s = engine.step();
+      const instant = q.instantFor(s);
+      expect(instant.diaphragmCaudalMm).toBe(s.resp.diaphragmCaudalMm);
+      maxCaudal = Math.max(maxCaudal, instant.diaphragmCaudalMm);
+      const t = q.classifyWorld(p, s).tissue;
+      seen.add(t);
+      if (s.resp.diaphragmCaudalMm < 22) expect(t).toBe(Tissue.Bowel);
+      if (s.resp.diaphragmCaudalMm > 24) expect(t).toBe(Tissue.Lung);
+    }
+    // la inspiración profunda baja el diafragma 30 mm y el punto pasa de un tejido al otro dentro del ciclo
+    expect(maxCaudal).toBeCloseTo(30, 1);
+    expect([...seen].sort()).toEqual([Tissue.Lung, Tissue.Bowel].sort());
+  });
+
   it('la deformación es invertible y desplaza lo que hay bajo el diafragma en sentido caudal', () => {
     const engine = new PhysiologyEngine({ ...NORMAL_ADULT, respiratoryPattern: 'deep' });
     while (engine.sample.resp.volume < 0.9) engine.step();
