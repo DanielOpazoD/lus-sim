@@ -47,8 +47,9 @@ export interface PatientState {
   intraAbdominalPressureMmHg: number;
   ventilation: VentilationMode;
   /**
-   * PEEP (cmH₂O): solo desplaza la presión pleural (40 %, `respiratory.ts`). En lus-sim todavía no mueve
-   * la aireación (puente con el ventilador, fase 5); en VExUS tampoco tiene efecto hemodinámico.
+   * PEEP (cmH₂O): sube la presión pleural un 40 % en los dos modos (con respiración espontánea es una CPAP;
+   * `respiratory.ts`). En lus-sim todavía no mueve la aireación (puente con el ventilador, fase 5) ni la
+   * hemodinámica: el lazo cerrado de VExUS que la lleva a la PAD y al gasto (su decisión 79) no se porta.
    */
   peepCmH2O: number;
   respiratoryRateMin: number;

@@ -77,6 +77,9 @@ export class PhysiologyEngine {
   step(): PhysiologySample {
     this.clock.advance();
     const t = this.clock.t;
+    // la PEEP vigente es la del paciente en cada paso, como la lee el lazo cerrado de VExUS sin intervenciones
+    // (decisión 11: el lazo no se porta; el modelo respiratorio la copia al construirse)
+    this.respiratory.peepCmH2O = this.patient.peepCmH2O;
     const next = this.sampleFrom(t, this.respiratory.sample(t));
     // Guardia NaN: un estado no finito se detiene aquí, con los campos culpables, en vez
     // de viajar en silencio a la GPU, al espectro y a la medición.

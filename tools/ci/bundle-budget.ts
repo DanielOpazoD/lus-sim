@@ -1,9 +1,12 @@
-// Presupuesto de tamaño del bundle (práctica de EchoTwin y VExUS; adaptado de vexus-sim@52354d5 con
+// Presupuesto de tamaño del bundle (práctica de EchoTwin y VExUS; adaptado de vexus-sim, docs/PROVENANCE.md, con
 // presupuestos propios). Regla: un presupuesto solo se sube a propósito, en el mismo cambio que explica
 // el crecimiento, y el motivo queda anotado aquí con la medida. Se ejecuta tras `vite build` y falla si
 // algún activo lo supera.
 // 2026-09-26: fase 0 (sin motor): index ≈ 2 kB. Presupuestos de partida ajustados a la fase 0; el motor
 // portado de VExUS en la fase 1 los subirá con su medida (en vexus-sim el index ronda 284 kB, main 007204e).
+// 2026-09-26 (origen 8e83d9a, decisión 11): como en VExUS, los chunks que un usuario nunca descarga (los ganchos
+// de prueba, `testHooks`, solo con `?e2e` o en desarrollo) salen del JS total y conservan su límite por chunk.
+// Aún no hay ninguno: llegan con la app en el paso B2. Los límites no cambian.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -15,6 +18,8 @@ const BUDGETS: Array<[RegExp, number]> = [
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
 const TOTAL_JS_BUDGET = 200 * KB;
+/** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
+const TEST_ONLY = /^testHooks-.*\.js$/;
 
 const dir = join(process.cwd(), 'dist', 'assets');
 let files: string[];
@@ -30,12 +35,17 @@ const rows: string[][] = [];
 for (const f of files) {
   if (f.endsWith('.map')) continue;
   const size = statSync(join(dir, f)).size;
-  if (f.endsWith('.js')) totalJs += size;
+  if (f.endsWith('.js') && !TEST_ONLY.test(f)) totalJs += size;
   const budget = BUDGETS.find(([re]) => re.test(f));
   const max = budget ? budget[1] : Infinity;
   const ok = size <= max;
   if (!ok) over = true;
-  rows.push([f, `${(size / KB).toFixed(1)} kB`, Number.isFinite(max) ? `${(max / KB).toFixed(0)} kB` : '—', ok ? 'ok' : 'OVER']);
+  rows.push([
+    TEST_ONLY.test(f) ? `${f} (solo pruebas)` : f,
+    `${(size / KB).toFixed(1)} kB`,
+    Number.isFinite(max) ? `${(max / KB).toFixed(0)} kB` : '—',
+    ok ? 'ok' : 'OVER',
+  ]);
 }
 const w = rows.reduce((m, r) => Math.max(m, r[0].length), 10);
 for (const r of rows) console.log(`${r[0].padEnd(w)}  ${r[1].padStart(10)}  ${r[2].padStart(8)}  ${r[3]}`);

@@ -172,14 +172,34 @@ describe('Respiración', () => {
       expect(i.diaphragmCaudalMm).toBe(30);
       expect(i.diaphragmVelocityMmS).toBe(0);
     }
-    // PEEP: solo cuenta en ventilación con presión positiva (40 % transmitido)
+    // PEEP: 40 % a la pleura en los dos modos; con respiración espontánea es una CPAP (decisión 79 de VExUS;
+    // antes la respiración espontánea la ignoraba)
     const pp = new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), ventilation: 'positive-pressure', peepCmH2O: 10 });
     expect(pp.pleuralAtEndExpiration() - m.pleuralAtEndExpiration()).toBeCloseTo(10 * 0.73556 * 0.4, 6);
-    const spontPeep = new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), peepCmH2O: 10 });
-    expect(spontPeep.pleuralAtEndExpiration()).toBe(m.pleuralAtEndExpiration());
+    const cpap = new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), peepCmH2O: 10 });
+    expect(cpap.pleuralAtEndExpiration() - m.pleuralAtEndExpiration()).toBeCloseTo(10 * 0.73556 * 0.4, 6);
+    // la inspiración espontánea sigue bajando la pleural (la oscilación no cambia con la CPAP)
+    for (const t of [0.3 * T, 0.5 * T, 0.8 * T]) {
+      expect(cpap.sample(t).pleuralMmHg - m.sample(t).pleuralMmHg).toBeCloseTo(10 * 0.73556 * 0.4, 9);
+    }
+    // la PEEP vigente del modelo puede cambiar en marcha (en VExUS la cambia la intervención de su motor; el de
+    // lus-sim aún no interviene): la pleural la sigue
+    cpap.peepCmH2O = 0;
+    expect(cpap.pleuralAtEndExpiration()).toBe(m.pleuralAtEndExpiration());
     // la presión abdominal parte de la intraabdominal del paciente (5 mmHg por omisión) y sube al inspirar
     expect(m.sample(0).abdominalMmHg).toBe(NORMAL_ADULT.intraAbdominalPressureMmHg);
     expect(m.sample(0.4 * T).abdominalMmHg).toBeGreaterThan(NORMAL_ADULT.intraAbdominalPressureMmHg);
+  });
+
+  it('el motor lleva a la pleura la PEEP del paciente en cada paso, también si cambia en marcha (lus-sim, decisión 11)', async () => {
+    // en VExUS lo hace su lazo cerrado, que no se porta: sin esta lectura la PEEP quedaba fija desde la construcción
+    const { PhysiologyEngine } = await import('../physiology/engine');
+    const live = new PhysiologyEngine(clonePatient(NORMAL_ADULT));
+    const peep10 = new PhysiologyEngine({ ...clonePatient(NORMAL_ADULT), peepCmH2O: 10 });
+    const shift = 10 * 0.73556 * 0.4; // 40 % de 10 cmH₂O en mmHg (`respiratory.ts`)
+    for (let i = 0; i < 200; i++) expect(peep10.step().resp.pleuralMmHg - live.step().resp.pleuralMmHg).toBeCloseTo(shift, 9);
+    live.patient.peepCmH2O = 10;
+    for (let i = 0; i < 1000; i++) expect(live.step().resp.pleuralMmHg).toBe(peep10.step().resp.pleuralMmHg);
   });
 });
 

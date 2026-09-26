@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CLUTTER, applyComplexKernel, clutterParams, lateralKernel } from '../ultrasound/clutter';
 import {
   RECEIVER_GLSL,
   RECEIVER_NOISE,
@@ -65,7 +66,8 @@ function omittedVsNoise(depthMm: number, seed: number): { summed: number; axial:
       }
       return [re, im] as const;
     });
-    const wL = unitKernel(Math.max(0.35, latSigmaMm(r, focus) / linePitch(r)), 14);
+    // D con el pedestal de lóbulos laterales del paciente de referencia (decisión 76)
+    const wL = lateralKernel(Math.max(0.35, latSigmaMm(r, focus) / linePitch(r)), clutterParams(28, CLUTTER.fatRefMm));
     const RL = (wL.length - 1) / 2;
     let p0 = 0;
     let p1 = 0;
@@ -75,12 +77,7 @@ function omittedVsNoise(depthMm: number, seed: number): { summed: number; axial:
       const [a, b] = raw[v * LINES + u];
       p0 += a * a + b * b;
       p1 += ax[u][0] ** 2 + ax[u][1] ** 2;
-      let re = 0;
-      let im = 0;
-      for (let k = -RL; k <= RL; k++) {
-        re += wL[k + RL] * ax[u + k][0];
-        im += wL[k + RL] * ax[u + k][1];
-      }
+      const [re, im] = applyComplexKernel(wL, (k) => [ax[u + k][0], ax[u + k][1]]);
       p2 += re * re + im * im;
       n++;
     }

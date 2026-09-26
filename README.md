@@ -21,7 +21,8 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 
 Cimientos terminados: repositorio, integración continua, misión y objetivos, documentos rectores,
 base de conocimiento verificada y guardas automáticas. Todavía no hay imagen (`no-image-yet`); la primera llega en la fase 1 con el motor portado de VExUS
-(`docs/ROADMAP.md`), en tres pasos (decisión 10). El paso A, sin publicar, ya porta la física en TypeScript.
+(`docs/ROADMAP.md`), en tres pasos (decisión 10). El paso A, sin publicar, ya porta la física en TypeScript, y el
+B1 la pone al día con el main de VExUS (decisión 11).
 
 Ya existe:
 

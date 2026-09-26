@@ -3,14 +3,15 @@
 Este documento existe para que nadie use el simulador más allá de lo que hace. Cada punto lleva el
 identificador que lo declara en `src/validation/limitations.ts` (la suite exige que ambos coincidan).
 Cuando una limitación se resuelve, se borra de los dos sitios en el mismo cambio. Las heredadas de VExUS
-conservan su identificador (decisión 10).
+conservan su identificador (decisiones 10 y 11).
 
 ## Estado del proyecto
 
 - **Todavía no hay imagen** (`no-image-yet`): la fase 1 porta el motor de VExUS en tres pasos
   (decisión 10). El paso A deja la física en TypeScript (fisiología, anatomía del tórax, sonda y formación
-  de la imagen, con sus pruebas); la imagen en la GPU llega en el paso B y la anatomía del tórax con las
-  dimensiones de la base, en el paso C (`docs/ROADMAP.md`).
+  de la imagen, con sus pruebas); la imagen en la GPU llega en el paso B (B1 vuelve a fijar el origen,
+  decisión 11; B2 trae la GPU y la app) y la anatomía del tórax con las dimensiones de la base, en el paso C
+  (`docs/ROADMAP.md`).
 
 ## Anatomía y fisiología
 
@@ -63,7 +64,7 @@ conservan su identificador (decisión 10).
   donde la pared no queda paralela a la cara con la presión máxima, la línea no acopla (los bordes de un
   corte transversal de la pared lateral, más allá de ±20,5°).
 
-## Imagen (física en TypeScript; la GPU llega en el paso B)
+## Imagen (física en TypeScript; la GPU llega en el paso B2)
 
 - **Sin líneas B ni colas de cometa** (`no-lung-comet-tails`): el pulmón bajo la pleura es la serie de
   reverberaciones de la pared y el deslizamiento incoherente; no hay líneas Z ni B, ni pulmón patológico. La
@@ -78,3 +79,17 @@ conservan su identificador (decisión 10).
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.
+- **Lóbulos laterales simplificados, sin lóbulos de rejilla ni en elevación** (`no-sidelobes`, heredada con
+  `src/ultrasound/clutter.ts`, decisión 11): el núcleo lateral lleva un pedestal gaussiano con una pantalla de
+  fase fija (ISLR −24 dB con los 14 mm de grasa del paciente por omisión), no el diagrama real de la apertura; la
+  reverberación de la pared es de primer y segundo orden y solo de los ecos fuertes (compuerta por el módulo del
+  campo, no por la cara que la produce). En el tórax la pleura es la cara interna de la pared, así que sus réplicas
+  caen a W y 2W bajo ella (W, el grosor de la pared, es casi la profundidad de la pleura), junto a las líneas A que la
+  serie de reverberaciones ya forma: VExUS estima esa doble cuenta bajo su cortina en unos −40 dB, sin medirla; en el
+  tórax, con pleura en todo el campo, la medirá el paso B2.
+- **Armónica tisular simplificada** (`harmonic-simplified`, heredada con `src/ultrasound/harmonic.ts`,
+  decisión 11): la acumulación del armónico es una curva fija del campo cercano (1 − e^(−r/2 mm), compensada desde
+  4 mm), no la integral del haz con su foco; las líneas A y la cola del gas no cambian con la armónica; el eje axial
+  conserva la banda del fundamental; la pérdida de conversión es +3 dB de ruido del receptor, y no hay penumbra
+  armónica. En el pulmón pesa más que en el abdomen: la base pide que la armónica baje el contraste de las líneas B
+  (meta F-T24 de `docs/knowledge/physics.md`) y el preajuste pulmonar la apaga [@volpicelli-actualizacion-2026].

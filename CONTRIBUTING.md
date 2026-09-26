@@ -41,6 +41,12 @@ Ejecuta formato, lint, tipos, **todas** las pruebas (rápidas y lentas) con umbr
 y presupuesto de bundle. No se acepta `npm run check | grep …`: el código de salida es lo que cuenta.
 Si el cambio toca la imagen, además `npm run e2e`.
 
+## Misión
+
+`docs/MISSION.md` fija la misión, los objetivos medibles (O1–O7) y el orden de prioridad cuando chocan (que no
+mienta; lo que un clínico notaría primero; lo que desbloquea más objetivos; lo que abarata la unión). Cada PR dice
+qué objetivo mueve; lo que no mueve ninguno no se hace.
+
 ## Reglas del proyecto (resumen de `docs/DECISIONS.md`)
 
 1. **Nada asigna un patrón ni un puntaje**: emergen de la señal adquirida. Un PR que «pinte» un

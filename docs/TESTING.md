@@ -48,7 +48,8 @@ la salida actual no protege nada.
   `it.fails`, que también «pasa» si la prueba lanza por un error propio: cada una exige que su cuerpo falle por
   una aserción (`chai.AssertionError`). El paso C las pasa a `it`.
 - **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,5 % de ramas,
-  93,3 % de funciones y 94,2 % de líneas. Queda sobre los umbrales (90/85/90/90), que no cambian.
+  93,3 % de funciones y 94,2 % de líneas; tras el paso B1 (decisión 11), 92,9 %, 88,7 %, 93,6 % y 94,3 %. Queda sobre
+  los umbrales (90/85/90/90), que no cambian.
 
 ## Invariantes previstas
 
