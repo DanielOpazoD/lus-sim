@@ -300,9 +300,9 @@ export interface PleuraTerm {
 
 /**
  * Los términos del pulmón a la distancia s del camino (gemelo de la rama de la cortina de la pasada B): la
- * réplica del eco pleural más cercana (siempre; k = 1 es la línea pleural, que también dibuja el músculo
- * por encima de D) y, bajo la pleura, las dos copias de la pared con su orden, salvo si la serie ya cae
- * bajo la décima del ruido (`fieldBound`: cota de |f|·acoplamiento). `chi`: la coherencia de la pleura con la
+ * réplica del eco pleural más cercana (siempre; k = 1 es la línea pleural, que esta rama dibuja también por encima
+ * de D: `pleuraSeriesEcho`, centrado en el cruce) y, bajo la pleura, las dos copias de la pared con su orden, salvo si
+ * la serie ya cae bajo la décima del ruido (`fieldBound`: cota de |f|·acoplamiento). `chi`: la coherencia de la pleura con la
  * incidencia de la línea (`pleuraCoherence`); `tAt(d)`: T(d) sin acoplamiento, con la fila de la pleura por
  * tope (`pleuraCapMm`).
  */

@@ -679,8 +679,9 @@ profundidad de la pleura).
 
 **Opciones.** Las tres de la decisión 12. (a) Dibujar la serie centrada en k·D en la rama del pulmón de la pasada B, que
 ya dibuja los dos lados del eco: el desplazamiento de una cara de un lado solo sirve a quien ve un solo lado de ella. (b)
-Hacer de dos lados la cara en la tabla: cambia su fila de `uIface` para todo lo que la lea y contradice que la pared sea
-su dueña. (c) Desplazar las réplicas a k·(D − 0,35): casa la imagen con la meta pero no con la geometría (la línea pleural
+Hacer de dos lados la cara en la tabla: daría la misma imagen (la clasificación nunca devuelve `IF_PLEURA_WALL`: solo la
+lee el eco de la serie), pero cambia una fila de la tabla compartida con VExUS, cuya pared sí es la dueña de la cara, y
+esconde en un dato lo que es una regla de dibujo. (c) Desplazar las réplicas a k·(D − 0,35): casa la imagen con la meta pero no con la geometría (la línea pleural
 seguiría 0,35 mm por encima del cruce de la pleura y las líneas A a múltiplos de una profundidad que no es la suya).
 
 **Decisión.** (a). `pleuraSeriesEcho(cosI, δ, k0)` en `src/ultrasound/pleura.ts`, con su gemelo GLSL en `PLEURA_GLSL`: el
@@ -694,20 +695,38 @@ su desplazamiento. No hay números nuevos. `pleura.ts` y el gemelo pasan a «ada
 
 **Consecuencias.**
 
-- F-T01 se cumple en los tres puntos de partida (medido igual que arriba, SwiftShader y Apple M4): la serie a
-  −0,11…+0,07 mm de k·D, la separación entre órdenes a ≤ 0,08 mm de D y, frente a la línea pleural mostrada, los órdenes 2–4
-  a −0,19…+0,05 mm. La línea pleural baja 0,35 mm: ahora está en el cruce de la pleura que registra A0.
+- F-T01 se cumple en los tres puntos de partida (medido igual que arriba, SwiftShader y Apple M4, extremos de varias
+  pasadas): la serie a −0,11…+0,07 mm de k·D, la separación entre órdenes a ≤ 0,08 mm de D y, frente a la línea pleural
+  mostrada, los órdenes 2–4 a −0,20…+0,05 mm. La línea pleural baja 0,35 mm: ahora está en el cruce de la pleura que
+  registra A0.
+- También con la composición espacial (apagada en el preajuste pulmonar, pero la consola la enciende): las miradas de
+  ±7° dejan la línea pleural a −0,02…+0,05 mm de D y la envolvente compuesta, a −0,07…+0,07 mm de k·D con F-T01 a
+  −0,28…0,00 mm. En K el peso de las miradas dirigidas cambia en D (`curtainSteerWeight`: 1 encima, 1 − fAir debajo) y
+  ese escalón cae ahora sobre el pico de la línea pleural (antes, 0,35 mm por debajo): la meta se cumple, con menos margen
+  que en la mirada 0.
+- Las caras de un lado que dibuja un solo dueño conservan su desplazamiento, y dos lo notan. La cortical costal
+  (`RibCortex`) la dibuja el tejido blando de fuera, 0,35 mm por encima del hueso: la distancia entre la línea costal y la
+  pleural en la imagen es 0,35 mm mayor que la geométrica (antes las dos se desplazaban igual y se cancelaba). La cara
+  interna de la pared (`Peritoneum`, la de VExUS, que en el tórax cae sobre la pleura) sigue en D − 0,35, ahora separada
+  de la línea pleural, pero a −40 dB de ella a 3,5 MHz (−33 dB a 2,5 MHz): no se ve.
 - La prominencia mediana de las líneas A sobre la neblina baja 0,4–1,9 dB (sigue en 16–40 dB); la de la línea pleural
   no cambia (48–50 dB).
 - La e2e de las líneas A exige la meta en los órdenes 1–4 y, además, la serie en k·D a ≤ 0,2 mm (un tercio de la FWHM
-  axial del pulso, como la separación). La invariante en TypeScript (`src/validation/physicsInvariants.test.ts`) pasa a
+  axial del pulso, 0,61 mm, como la separación), en la mirada 0 y en la envolvente compuesta. Las dos guardas se
+  complementan: un desplazamiento residual de la serie desde unos 0,13 mm hace fallar una de ellas (con 0,15 mm, la de
+  k·D; con la línea pleural dibujada solo del lado del pulmón, F-T01). La invariante en TypeScript (`src/validation/physicsInvariants.test.ts`) pasa a
   exigir los picos de la serie en k·D a 0,002 mm y F-T01 en el gemelo; A-T6 se mide con el perfil que se dibuja.
-- Con GPU real el orden 4 del PLAPS (16 dB de prominencia) se detecta en 5 de sus 6 grupos en unas pasadas y en 6 en otras,
-  antes y después del cambio; la e2e, con SwiftShader, los ve todos. Si CI llega a verlo, hay que mirar esa detección,
-  no relajar F-T01.
+- El orden 4 del PLAPS (16 dB de prominencia) se detecta en 5 de sus 6 grupos en unas pasadas y en 6 en otras, con GPU
+  real y con SwiftShader, antes y después del cambio: la e2e pedía el 90 % redondeado hacia arriba (los 6) y ahora hacia
+  abajo (5). F-T01 no se relaja.
 - Se borra `pleura-echo-offset`. La huella del main de la pasada B cambia (`shaderLimits.test.ts`).
 
 **Verificación.** `npm run check` y `npm run e2e` en verde. Mutaciones: con el desplazamiento de vuelta en la GLSL de
 `pleuraSeriesEcho`, la e2e falla por la serie fuera de k·D (0,37 mm frente a 0,2) y, sin esa guarda, por F-T01 («orden 3:
 0,76 mm frente a 0,5 mm»); con el desplazamiento de vuelta en la de TypeScript fallan la invariante (los picos en k·D) y la
-prueba del perfil centrado de `pleura.test.ts`.
+prueba del perfil centrado de `pleura.test.ts`. Revisión adversarial de contexto limpio (midió en su propio árbol, con
+SwiftShader y mutaciones propias): confirmó la física (las dos ramas dibujan el eco en toda línea con cortina, con el mismo
+peso a ambos lados de D) y las cifras a ≤ 0,02 mm; halló que la composición no se medía (ahora la e2e la mide), el efecto
+sobre la distancia costilla–pleura de la imagen y la cara interna de la pared, la sensibilidad de las guardas, un motivo
+inexacto para descartar (b), comentarios y una entrada del CHANGELOG desfasados, y la detección del orden 4 del PLAPS, que
+fallaba con GPU real; todo está corregido o anotado arriba.

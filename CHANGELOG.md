@@ -30,8 +30,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   BLUE inferior y PLAPS derechos.
 - e2e de la imagen (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL en el tórax (planos, volumen, caras, pleura de A0,
   normales y transmisión, en reposo y en inspiración), estadística de Rayleigh del moteado del músculo de la pared y
-  líneas A en la envolvente de la GPU (su separación, y F-T01 frente a la línea pleural mostrada, con el fallo conocido
-  de los órdenes 3 y 4), cada guarda comprobada con una mutación.
+  líneas A en la envolvente de la GPU (su separación, y F-T01 frente a la línea pleural mostrada: el fallo conocido de los
+  órdenes 3 y 4 hasta la decisión 15, que la cumple), cada guarda comprobada con una mutación.
 - Limitación `pleura-echo-offset`: la serie de la pleura se dibuja 0,35 mm por encima de su cruce y las líneas A de
   orden 3 y 4 no cumplen F-T01 frente a la línea pleural mostrada (+0,56…+1,13 mm); la prueba exige el fallo.
 - Fase 1, paso B2b: la aplicación con una interfaz mínima del modo B (13): la imagen del tórax a la vista con la

@@ -246,7 +246,9 @@ describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {
    * gemelo B → C → D de los ecos de interfaz (`support/interfaceTwin.ts`): una pleura plana a D mm bajo la cara
    * (la cara `Interface.PleuraWall`, que dibuja el músculo de encima) sin moteado, el pulso axial de la pasada C
    * y la PSF lateral de la D. El modelo no tiene grosor pleural anatómico: la línea sale de la PSF
-   * (recomendación 2 de anatomy.md §3, que la segunda mitad de la meta pide).
+   * (recomendación 2 de anatomy.md §3, que la segunda mitad de la meta pide). La imagen dibuja la línea pleural
+   * centrada en el cruce (`pleuraSeriesEcho`, decisión 15) y aquí la dibuja el músculo con el perfil de un lado,
+   * 0,35 mm por encima: la anchura, que es lo que se mide, es la misma.
    */
   function plt(D: number): number {
     const plane: Scene = {

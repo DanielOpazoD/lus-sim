@@ -51,9 +51,10 @@ export interface TestHooks {
   speckle: (opts: SpeckleOptions & { startPoint?: StartPoint['id']; pose?: ProbePose; compound: boolean }) => SpeckleStats;
   /**
    * Líneas A en la envolvente de la GPU (meta F-T01, `docs/knowledge/physics.md` §3.3): en `startPoint` con la
-   * respiración `respiration`, una mirada; ver `ALineStats`.
+   * respiración `respiration`; con `compound` (lus-sim, decisión 15), en la envolvente compuesta de la pasada K con el
+   * anillo de miradas lleno, y si no, en la mirada 0. Ver `ALineStats`.
    */
-  aLines: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern }) => ALineStats;
+  aLines: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern; compound?: boolean }) => ALineStats;
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -216,8 +217,13 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       const pattern = sim.patient.respiratoryPattern;
       try {
         sim.patient.respiratoryPattern = opts.respiration;
-        return withCompound(sim, dispatch, false, () => {
+        const compound = opts.compound ?? false;
+        return withCompound(sim, dispatch, compound, () => {
           goTo(sim, opts.startPoint);
+          if (compound) {
+            fillRing(sim);
+            return aLineStats(sim, 'compound');
+          }
           sim.render();
           return aLineStats(sim);
         });
@@ -484,10 +490,10 @@ function median(v: number[]): number {
 }
 
 /** Estadística de las líneas A del último cuadro (ver `ALineStats`). */
-export function aLineStats(sim: Simulator): ALineStats {
+export function aLineStats(sim: Simulator, source: 'look0' | 'compound' = 'look0'): ALineStats {
   const tr = sim.transducer;
   const depth = sim.bmode.depthMm;
-  const env = sim.renderer.readEnvelope();
+  const env = sim.renderer.readEnvelope({ source });
   const h2 = sim.renderer.readPleuraHits();
   const dz = depth / env.samples;
   const scene = sim.scene;
