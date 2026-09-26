@@ -54,10 +54,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   kB), la tabla de tejidos lleva los tres del retroperitoneo de VExUS al final (sin uso en el tórax) y la pared que copia
   la serie de la pleura usa la base del campo de dispersores. La imagen no cambia; el retroperitoneo y los casos trampa
   del origen no se portan.
+- Las líneas A caen a múltiplos exactos de la línea pleural mostrada (meta F-T01) (15): la línea pleural y sus réplicas se
+  dibujan centradas en su cruce, no 0,35 mm por encima. Medido en la envolvente de la GPU, el orden 4 pasa de
+  +0,87…+1,13 mm a −0,19…+0,05 mm de 4 veces la línea pleural; la e2e exige la meta en los órdenes 1–4.
 
 ### Quitado
 
 - La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
+- La limitación `pleura-echo-offset`: las líneas A cumplen F-T01 (15).
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

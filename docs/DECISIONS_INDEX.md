@@ -18,3 +18,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [12](DECISIONS.md#L417) | Fase 1, paso B2a: la formación de imagen en la GPU y su equivalencia con TypeScript | vigente |
 | [13](DECISIONS.md#L532) | Fase 1, paso B2b: la aplicación y una interfaz mínima del modo B | vigente |
 | [14](DECISIONS.md#L603) | Nuevo origen fijado: VExUS c6c81ad | vigente |
+| [15](DECISIONS.md#L665) | Líneas A a múltiplos exactos de la línea pleural mostrada (F-T01) | vigente |
