@@ -5,8 +5,7 @@ import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
-import { interfaceEchoField } from '../ultrasound/interfaceEcho';
-import { pleuraCoherence, pleuraTerms } from '../ultrasound/pleura';
+import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import {
   arcMm,
   chestView,
@@ -155,7 +154,7 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
     const tD = 0.5;
     const amp = (s: number): number => {
       const p = pleuraTerms(s, D, tD, chi, () => tD).find((t) => t.family === 'pleura')!;
-      return p.gain * interfaceEchoField(Interface.PleuraWall, 1, 1, p.depth, k0);
+      return p.gain * pleuraSeriesEcho(1, p.depth, k0);
     };
     const peak = (lo: number, hi: number): number => {
       let best = lo;

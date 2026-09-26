@@ -55,6 +55,7 @@ import {
   pleuraCoherence,
   pleuraRoundTrip,
   pleuraSeriesDepths,
+  pleuraSeriesEcho,
   pleuraTerms,
   slidingAmplitude,
   slidingField,
@@ -149,6 +150,17 @@ describe('la cara de la pleura parietal (decisión 61)', () => {
     const at = (delta: number) => interfaceEchoField(Interface.PleuraWall, 1, 1, delta, K0);
     expect(at(IFACE_SHIFT_MM)).toBeGreaterThan(at(0));
     expect(at(IFACE_SHIFT_MM)).toBeGreaterThan(at(2 * IFACE_SHIFT_MM));
+    // lus-sim (decisión 15): la línea pleural y sus réplicas, que la rama del pulmón dibuja a los dos lados de k·D, con
+    // el mismo perfil centrado en el cruce (`pleuraSeriesEcho`): pico en δ = 0, simétrico y con la misma altura
+    expect(p.twoSided).toBe(false);
+    for (const cosI of [1, Math.cos(15 * deg)]) {
+      const series = (delta: number) => pleuraSeriesEcho(cosI, delta, K0);
+      expect(series(0)).toBeCloseTo(interfaceEchoField(Interface.PleuraWall, cosI, 1, IFACE_SHIFT_MM, K0), 12);
+      for (const d of [0.05, 0.14, 0.3]) {
+        expect(series(d)).toBeLessThan(series(0));
+        expect(series(d)).toBeCloseTo(series(-d), 12);
+      }
+    }
   });
 });
 
@@ -240,11 +252,11 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       const G = pleuraRoundTrip(tD, chi);
       expect(G).toBeCloseTo(PLEURA_RP * chi * PLEURA_RT * tD, 12);
       for (let k = 1; k <= 6; k++) {
-        const s = k * D - IFACE_SHIFT_MM; // el pico del perfil de un lado de la réplica k
+        const s = k * D; // el pico del perfil de la réplica k (centrado en su cruce, decisión 15 de lus-sim)
         const [p] = pleuraTerms(s, D, tD, chi, wallT(tD, D));
         expect(p.family).toBe('pleura');
         expect(p.order).toBe(k);
-        expect(p.depth).toBeCloseTo(IFACE_SHIFT_MM, 9);
+        expect(p.depth).toBeCloseTo(0, 9);
         expect(p.gain).toBeCloseTo(tD * G ** (k - 1), 12);
         // la réplica k es un camino de F_{k−2} con d = D (salvo el eco pleural directo, k = 1): la pleura no es un
         // dispersor aparte, así que las k posiciones de la «dispersión» son el mismo camino y cuenta una vez
@@ -268,8 +280,8 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       let unit = 0;
       for (let s = k * D - 2; s <= k * D + 2; s += dr / 16) {
         for (const x of pleuraTerms(s, D, tD, chi, T, Infinity))
-          if (x.family === 'pleura') sum += x.gain * interfaceEchoField(Interface.PleuraWall, 1, 1, x.depth, K0) * (dr / 16);
-        unit += interfaceEchoField(Interface.PleuraWall, 1, 1, k * D - s, K0) * (dr / 16);
+          if (x.family === 'pleura') sum += x.gain * pleuraSeriesEcho(1, x.depth, K0) * (dr / 16);
+        unit += pleuraSeriesEcho(1, k * D - s, K0) * (dr / 16);
       }
       expect(sum / (unit * tD * G ** (k - 1))).toBeCloseTo(1, 6);
     }
@@ -283,10 +295,16 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     // lo dibuja
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
       const code = src.replace(/\/\/.*$/gm, '');
-      // el #define, la coherencia de su reflexión especular (su fila de uIface) y el eco de la réplica
-      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(3);
-      expect(code.match(/interfaceProfileEcho\(IF_PLEURA_WALL, cosI, 1\.0, k \* (D|sD) - (r|s)\)/g)?.length).toBe(1);
+      // el #define, la coherencia de su reflexión especular (su fila de uIface) y el eco de la réplica, centrado en su
+      // cruce (pleuraSeriesEcho: la cara y si es de un lado, decisión 15 de lus-sim)
+      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(4);
+      expect(code.match(/interfaceProfileEcho\(IF_PLEURA_WALL,/g)?.length).toBe(1);
+      expect(code.match(/pleuraSeriesEcho\(cosI, k \* (D|sD) - (r|s)\)/g)?.length).toBe(1);
     }
+    // el gemelo GLSL de pleuraSeriesEcho: el desplazamiento de la cara de un lado, deshecho
+    expect(PLEURA_GLSL).toContain(
+      'return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));',
+    );
     const wall = PLEURA_GLSL.slice(PLEURA_GLSL.indexOf('vec2 wallField('));
     expect(wall).not.toMatch(/IF_PLEURA_WALL|pleuraEcho/);
   });
@@ -948,7 +966,7 @@ describe('la rama de la cortina de la pasada B (mirada 0)', () => {
       'float tFree = min(t0.x, texture(uTrans2, vUv).x) * gain;',
       'float T = (curtain ? (under ? min(tFree, tD) : texture(uTrans0, vec2(vUv.x, min(r, rCap) / uDepth)).x) : t0.x) * coupling;',
       'float k = aLineOrder(r, D);',
-      'air += vec2(seriesPow(G, k - 1.0) * tD * interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, k * D - r), 0.0);',
+      'air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
       'vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);',
       'bool series = under && gn * tD * PLEURA_WALL_FIELD_BOUND * coupling > PLEURA_SERIES_FLOOR;',
       'int nWall = series ? 2 : 0;',

@@ -642,7 +642,7 @@ vec2 steeredField() {
   if (curtain) {
     // el pulmón con la incidencia de esta mirada; el deslizamiento con su sal (cada mirada, otro disparo)
     float k = aLineOrder(s, sD);
-    air += vec2(seriesPow(G, k - 1.0) * tD * interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, k * sD - s), 0.0);
+    air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * sD - s), 0.0);
     if (under && slidingAmplitude(s - sD) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, s - sD, uLookSalt) * tD;
     out2 += air * (fAir * coupling);
   }
@@ -863,7 +863,7 @@ void main() {
   if (curtain) {
     // El pulmón, con peso fAir: línea pleural y réplicas (líneas A), la serie (arriba) y el deslizamiento
     float k = aLineOrder(r, D);
-    air += vec2(seriesPow(G, k - 1.0) * tD * interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, k * D - r), 0.0);
+    air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);
     if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;
     out2 += air * (fAir * coupling);
   }

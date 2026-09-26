@@ -1,7 +1,7 @@
 import { INTERFACES, Interface, interfaceReflectivity } from '../anatomy/interfaces';
 import { LUNG_CURTAIN } from '../anatomy/organs/lungCurtain';
 import { cross, normalize, type Vec3 } from '../core/vec3';
-import { roughnessCoherence } from './interfaceEcho';
+import { IFACE_SHIFT_MM, interfaceEchoField, roughnessCoherence } from './interfaceEcho';
 import { RECEIVER_NOISE, glslFloat } from './receiver';
 import { scattererField } from './speckleField';
 
@@ -19,7 +19,7 @@ import { scattererField } from './speckleField';
  * d (f, el campo de la pasada B: moteado anclado, grumos y ecos de interfaz de la pared):
  *
  *  - línea pleural: eco especular de la cara `Interface.PleuraWall` (Fresnel músculo/gas, lóbulo de
- *    Kirchhoff, rugosidad de Ament, perfil de integral unidad del lado del músculo) por T(D);
+ *    Kirchhoff, rugosidad de Ament, perfil de integral unidad centrado en el cruce, `pleuraSeriesEcho`) por T(D);
  *  - cada reflexión especular en la pleura dentro de la serie vale R_p·χ, su reflexión COHERENTE: el
  *    Fresnel por la misma coherencia de Ament que da el nivel de la línea pleural, χ = exp(−2(k0·σz·cosθ)²)
  *    (la parte difusa de la superficie rugosa se va en otras direcciones). Con R_p ≈ 1 a secas, como el
@@ -33,7 +33,7 @@ import { scattererField } from './speckleField';
  *    de la copia espejo tiene n + 1 y el de la directa n + 2; espejo y directa se alternan y se solapan en
  *    cada intervalo [nD, (n+1)D], así que cada muestra necesita a lo sumo dos muestras de la pared, en
  *    las distancias d_M = (n+2)D − s y d_F = s − (n+1)D con n = ⌊s/D⌋ − 1;
- *  - líneas A: las réplicas del eco pleural (la copia directa con d = D): orden k a kD, G^(k−1) por la
+ *  - líneas A: las réplicas del eco pleural (la copia directa con d = D): orden k centrado en kD, G^(k−1) por la
  *    línea pleural. La copia espejo NO lleva el eco pleural (en d = D su camino es el del eco directo, y
  *    en cualquier orden coincide con una réplica de la directa): sin doble cuenta;
  *  - deslizamiento: un componente incoherente anclado a las coordenadas materiales del pulmón, que baja
@@ -272,6 +272,21 @@ export function aLineGain(G: number, k: number): number {
 }
 
 /**
+ * Perfil de la línea pleural y de sus réplicas a δ = k·D − s de la réplica k (lus-sim, decisión 15): el eco de la cara
+ * `PleuraWall` con la incidencia de la línea, CENTRADO en su cruce. La cara es de un lado (la pared es su dueña,
+ * decisión 61 de VExUS) y `interfaceEchoField` desplaza su perfil `IFACE_SHIFT_MM` (2,5σh) dentro de la pared, lo que
+ * sirve a quien solo ve un lado de la cara; la rama del pulmón de la pasada B, que dibuja la línea pleural y sus
+ * réplicas, ve los dos (evalúa la réplica a ambos lados de k·D), así que no lo necesita: sin él la serie cae a k·D
+ * exactos (meta F-T01). Con el desplazamiento toda la serie se dibujaba 0,35 mm por encima de su cruce y la línea A de
+ * orden k quedaba a 0,35·(k − 1) mm de k veces la línea pleural mostrada (decisión 12). Gemelo de `pleuraSeriesEcho`
+ * (GLSL).
+ */
+export function pleuraSeriesEcho(cosI: number, delta: number, k0: number): number {
+  const shift = INTERFACES[Interface.PleuraWall].twoSided ? 0 : IFACE_SHIFT_MM;
+  return interfaceEchoField(Interface.PleuraWall, cosI, 1, delta + shift, k0);
+}
+
+/**
  * Un término de lo que la pasada B suma bajo la pleura a la distancia s del camino, sobre el campo de la
  * pared f en `depth` (espejo y directa) o sobre el perfil de la pleura en δ = `depth` (líneas A): la
  * amplitud es `gain`·f(depth) o `gain`·eco pleural(δ), sin el acoplamiento ni la fracción de aire.
@@ -371,8 +386,8 @@ float curtainSteerWeight(float r, float D, float fAir) { return D > 0.0 && fAir 
 
 /**
  * La misma física en GLSL, común a los dos programas de la pasada B (va detrás de `sampleSide`: usa
- * `elevSigma`, `lateralSigmaMm`, `fieldFor`, `anchoredClump`, `interfaceEcho`, `wallFaceEchoFlat`,
- * `scattererField`, `uSeed`, `uElev` y `uCurtain`). Lleva `CURTAIN_AIR_GLSL` (y con él `uHits2`).
+ * `elevSigma`, `lateralSigmaMm`, `fieldFor`, `anchoredClump`, `interfaceEcho`, `interfaceProfileEcho` con `IFACE_SHIFT`,
+ * `wallFaceEchoFlat`, `scattererField`, `uSeed`, `uElev` y `uCurtain`). Lleva `CURTAIN_AIR_GLSL` (y con él `uHits2`).
  */
 export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
@@ -398,6 +413,11 @@ vec3 pleuraSeriesDepths(float s, float D) {
   return vec3(n, (n + 2.0) * D - s, s - (n + 1.0) * D);
 }
 float aLineOrder(float s, float D) { return max(1.0, floor(s / D + 0.5)); }
+// Línea pleural y réplicas a δ de k·D, centradas en el cruce (lus-sim, decisión 15): la cara es de un lado e
+// interfaceProfileEcho la desplaza IFACE_SHIFT dentro de la pared; esta rama dibuja los dos lados del eco
+float pleuraSeriesEcho(float cosI, float delta) {
+  return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));
+}
 float slidingAmplitude(float h) { return SLIDING_AMP * exp(-h / SLIDING_EFOLD_MM); }
 // Deslizamiento anclado al pulmón (bajado CURTAIN_Z0 − uCurtain.x), grano alargado a lo largo de la pleura
 vec2 slidingField(vec3 pD, float h, float salt) {

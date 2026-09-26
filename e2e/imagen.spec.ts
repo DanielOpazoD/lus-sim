@@ -137,17 +137,19 @@ test('el moteado del músculo de la pared tiene estadística de Rayleigh', async
   expect(errors).toEqual([]);
 });
 
-test('líneas A en la envolvente de la GPU: separadas por la profundidad de la pleura; F-T01 aún no (pleura-echo-offset)', async ({
+test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada (F-T01) y separadas por la profundidad de la pleura', async ({
   page,
 }) => {
   // Meta F-T01 (`docs/knowledge/physics.md` §3.3): la línea A de orden k a k·z_pl MOSTRADO ± 0,5 mm (o 1 píxel), medida
-  // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia. Con
-  // GPU real y con SwiftShader, en los tres puntos de partida y en apnea espiratoria (medido el 26-09-2026):
-  //  - frente al cruce de la pleura D del gemelo de A0: todos los órdenes 1–4 en todos los grupos, a −0,42…−0,25 mm de
-  //    k·D, y la separación entre órdenes a ≤ 0,084 mm de D (la física de la serie: cada rebote, un viaje más);
-  //  - frente a la línea pleural mostrada (F-T01): el orden 2 a +0,27…+0,39 mm, el 3 a +0,56…+0,76 y el 4 a
-  //    +0,87…+1,13 (1 píxel = 0,257 mm). Toda la serie se dibuja 0,35 mm por encima de su cruce (la cara de un lado de
-  //    VExUS), así que r_k − k·r_1 = 0,35·(k − 1): los órdenes 3 y 4 no cumplen la meta.
+  // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia.
+  // Desde la decisión 15 la rama del pulmón de la pasada B dibuja la línea pleural y sus réplicas centradas en su cruce
+  // (`pleuraSeriesEcho`). Con SwiftShader y con GPU real (Apple M4), en los tres puntos de partida y en apnea
+  // espiratoria (26-09-2026):
+  //  - frente al cruce de la pleura D del gemelo de A0: los órdenes 1–4 en todos los grupos (GPU real: el 4 del PLAPS en
+  //    5 de 6), a −0,11…+0,07 mm de k·D (antes, con el perfil de la cara de un lado, −0,43…−0,26: toda la serie 0,35 mm
+  //    por encima de su cruce), y la separación entre órdenes a ≤ 0,08 mm de D;
+  //  - frente a la línea pleural mostrada (F-T01): los órdenes 2–4 a −0,19…+0,05 mm (antes el 2 a +0,27…+0,39, el 3 a
+  //    +0,56…+0,76 y el 4 a +0,87…+1,13: 0,35·(k − 1), fuera de la meta en los órdenes 3 y 4). 1 píxel = 0,268 mm.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
@@ -162,23 +164,17 @@ test('líneas A en la envolvente de la GPU: separadas por la profundidad de la p
     for (const o of a.orders) {
       // cada orden se ve en casi todos los grupos (la línea A de orden 4, a ~10 cm, es la más débil)
       expect(o.peaks, tag).toBeGreaterThanOrEqual(Math.ceil(0.9 * o.groups));
-      expect(Math.max(Math.abs(o.minErrMm), Math.abs(o.maxErrMm)), tag).toBeLessThanOrEqual(0.5);
-      // la desviación declarada (`pleura-echo-offset`): toda la serie, la línea pleural incluida, se dibuja 0,35 mm
-      // (IFACE_SHIFT_MM, la cara de un lado de VExUS) por encima de su cruce
-      expect(o.maxErrMm, tag).toBeLessThan(-0.2);
-      expect(o.minErrMm, tag).toBeGreaterThan(-0.5);
+      // la serie, la línea pleural incluida, en k·D: un tercio de la FWHM axial del pulso (el perfil de la cara de un
+      // lado la dejaba 0,35 mm por encima y fallaba aquí)
+      expect(Math.max(Math.abs(o.minErrMm), Math.abs(o.maxErrMm)), tag).toBeLessThanOrEqual(0.2);
       // la separación entre líneas A es la profundidad de la pleura (guía §18): un tercio de la FWHM axial del pulso
       if (o.k >= 2) expect(o.maxSpacingErrMm, tag).toBeLessThanOrEqual(0.2);
     }
-    // F-T01 frente a la línea pleural mostrada: el fallo conocido, con su tamaño. Cuando se corrija la desviación, esta
-    // prueba fallará aquí: entonces se exige la meta en todos los órdenes y se borra `pleura-echo-offset`
+    // F-T01 frente a la línea pleural mostrada, en los órdenes 1–4 (el 1 es la línea pleural: r_1 − 1·r_1 = 0)
     const tol = Math.max(0.5, a.pixelMm);
     for (const o of a.orders.filter((x) => x.k >= 2)) {
-      const expected = 0.35 * (o.k - 1);
-      expect(o.minShownErrMm, tag).toBeGreaterThan(expected - 0.25);
-      expect(o.maxShownErrMm, tag).toBeLessThan(expected + 0.25);
       const worst = Math.max(Math.abs(o.minShownErrMm), Math.abs(o.maxShownErrMm));
-      expect(worst <= tol, `F-T01, orden ${o.k}: ${worst.toFixed(2)} mm frente a ${tol} mm (${tag})`).toBe(o.k === 2);
+      expect(worst, `F-T01, orden ${o.k}: ${worst.toFixed(2)} mm frente a ${tol} mm (${tag})`).toBeLessThanOrEqual(tol);
     }
   }
   expect(errors).toEqual([]);
