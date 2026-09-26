@@ -8,11 +8,12 @@ type StartPointId = StartPoint['id'];
  * La línea de cada tarjeta con lo que muestra su ventana. El nombre es el `label` del punto de partida; la
  * explicación completa (`hint`) queda en el tooltip.
  *
- * lus-sim (decisión 13): los puntos del protocolo BLUE derecho; sin el color del anillo del navegador 3D de VExUS.
+ * lus-sim (decisión 13): los puntos del protocolo BLUE derecho, con su lugar y no con un hallazgo (el hallazgo sale
+ * del paciente, guía §5); sin el color del anillo del navegador 3D de VExUS.
  */
 const CARD_SUB: Record<StartPointId, string> = {
-  blueUpper: 'Línea pleural, líneas A y deslizamiento',
-  blueLower: 'Costillas con su sombra: signo del murciélago',
+  blueUpper: 'Medioclavicular, 2.º espacio intercostal',
+  blueLower: 'Axilar anterior, 4.º espacio intercostal',
   plaps: 'Posterolateral, en supino',
 };
 
@@ -54,6 +55,8 @@ export interface StartPointCardsDeps {
   getTorso: () => Pick<Torso, 'a' | 'b'>;
   /** La sonda se está deslizando hacia la ventana elegida. */
   animating: () => boolean;
+  /** lus-sim (decisión 13): con la imagen congelada la sonda no se mueve y las tarjetas se deshabilitan. */
+  locked?: () => boolean;
 }
 
 /**
@@ -93,7 +96,9 @@ export class StartPointCards {
 
   sync(): void {
     const current = this.target && this.deps.animating() ? this.target : currentStartPoint(this.deps.getPose(), this.deps.getTorso());
+    const locked = this.deps.locked?.() ?? false;
     for (const [id, card] of this.cards) {
+      card.disabled = locked;
       card.classList.toggle('current', id === current);
       if (id === current) card.setAttribute('aria-current', 'true');
       else card.removeAttribute('aria-current');

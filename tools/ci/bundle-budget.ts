@@ -13,8 +13,8 @@
 // index de ≈ 2 a 148,5 kB (vite build sobre main a647cb1; VExUS, con el color, el Doppler, el hígado y el riñón,
 // ronda 300 kB). index sube a 160 kB; el paso B2b (la interfaz) lo vuelve a medir. `testHooks` mide 18,1 kB.
 // 2026-09-26 (paso B2b, decisión 13): la aplicación y su interfaz mínima (raíz de composición, sesión, consola,
-// entrada de la sonda, HUD, atajos, tarjetas, cine y diagnóstico) llevan index de 148,5 a 171,7 kB (vite build); la hoja de
-// estilos va en su propio archivo (9,0 kB) y `testHooks` baja a 15,6 kB (comparte ahora módulos con index). index
+// entrada de la sonda, HUD, atajos, tarjetas, cine y diagnóstico) llevan index de 148,4 a 172,5 kB (vite build); la hoja de
+// estilos va en su propio archivo (9,4 kB) y `testHooks` baja a 15,6 kB (comparte ahora módulos con index). index
 // sube a 180 kB.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';

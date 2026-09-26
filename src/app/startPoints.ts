@@ -77,8 +77,8 @@ export const START_POINTS: readonly StartPoint[] = [
     z: BLUE_UPPER_POSE.params.z.value,
     yaw: 0,
     hint:
-      'Punto BLUE superior derecho aproximado (línea medioclavicular, 2.º espacio intercostal), marcador craneal: la ' +
-      'línea pleural bajo la pared, las líneas A a múltiplos de su profundidad y el deslizamiento con la respiración.',
+      'Punto BLUE superior derecho aproximado (línea medioclavicular, 2.º espacio intercostal), marcador craneal: corte ' +
+      'longitudinal de la pared y de la pleura bajo ella.',
   },
   {
     id: 'blueLower',
@@ -87,8 +87,8 @@ export const START_POINTS: readonly StartPoint[] = [
     z: START_POINT_POSES.params.blueLowerZ.value,
     yaw: 0,
     hint:
-      'Punto BLUE inferior derecho aproximado (línea axilar anterior, justo por encima del pezón), marcador craneal: las ' +
-      'costillas y su sombra a los lados y la línea pleural entre ellas (signo del murciélago).',
+      'Punto BLUE inferior derecho aproximado (línea axilar anterior, justo por encima del pezón), marcador craneal: corte ' +
+      'longitudinal que cruza las costillas y el espacio intercostal entre ellas.',
   },
   {
     id: 'plaps',
@@ -98,6 +98,6 @@ export const START_POINTS: readonly StartPoint[] = [
     yaw: 0,
     hint:
       'Punto PLAPS derecho aproximado: la continuación horizontal del punto BLUE inferior, tan posterior como se pueda por ' +
-      'detrás de la línea axilar posterior en supino; allí se ven las consolidaciones y los derrames posteriores.',
+      'detrás de la línea axilar posterior en supino; es donde se buscan las consolidaciones y los derrames posteriores.',
   },
 ];

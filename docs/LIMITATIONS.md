@@ -8,9 +8,11 @@ conservan su identificador (decisiones 10 y 11).
 ## Estado del proyecto
 
 - **La interfaz es mínima** (`ui-minimal`, decisión 13): solo el modo B con un paciente sintético (el adulto sano
-  por omisión), sin casos, modo M, medición, modo docente ni navegador 3D; la sonda se mueve sin
-  ver el tórax (los puntos de partida la llevan cerca de cada ventana). La anatomía del tórax con las dimensiones de
-  la base llega en el paso C (`docs/ROADMAP.md`).
+  por omisión), sin casos, modo M, medición, modo docente ni navegador 3D; la sonda se mueve sin ver el tórax (los
+  puntos de partida la llevan cerca de cada ventana). Con la imagen congelada, la FC y la respiración del HUD son las
+  del instante congelado, no las del cuadro del cine que se esté viendo. En un teléfono las columnas se apilan y la
+  imagen queda pequeña, con el HUD sobre el borde del sector. La anatomía del tórax con las dimensiones de la base
+  llega en el paso C (`docs/ROADMAP.md`).
 
 ## Anatomía y fisiología
 

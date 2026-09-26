@@ -39,7 +39,7 @@ describe('HUD', () => {
     const b = hudText(base);
     expect(b.topLeft).toEqual(['Paciente sintético']);
     expect(b.topRight).toEqual(['FC 70 lpm · Sinusal', '12 cm · 3,5 MHz · G 0 dB · RD 70']);
-    expect(b.bottomRight).toEqual(['resp 0.42']);
+    expect(b.bottomRight).toEqual(['resp 0,42']);
     const f = hudText({ ...base, frozen: true, atrialFibrillation: true, depthMm: 100, gainDb: -4 });
     expect(f.topLeft[0]).toBe('Paciente sintético · congelada');
     expect(f.topRight).toEqual(['FC 70 lpm · FA', '10 cm · 3,5 MHz · G -4 dB · RD 70']);

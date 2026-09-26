@@ -24,8 +24,8 @@ base de conocimiento verificada y guardas automáticas. La fase 1 porta el motor
 `docs/ROADMAP.md`). Sin publicar: el paso A porta la física en TypeScript, el B1 la pone al día con el main de VExUS
 (decisión 11), el B2a forma la imagen del tórax en la GPU, igual a la de TypeScript y comprobada en la e2e
 (decisión 12), y el B2b la muestra con una interfaz mínima del modo B (decisión 13): la primera imagen, con la
-línea pleural, las líneas A, la sombra costal y el deslizamiento. La interfaz es mínima (`ui-minimal`) y la
-anatomía todavía es la del abdomen de VExUS (paso C).
+línea pleural, las líneas A, la sombra costal y el deslizamiento. La interfaz es mínima (`ui-minimal`) y el
+tórax conserva la pared y las dimensiones heredadas de VExUS hasta el paso C.
 
 Ya existe:
 

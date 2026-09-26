@@ -1,6 +1,6 @@
 /**
- * Almacén de estado de la aplicación (solo UI): congelación y modo docente. El núcleo de simulación no depende
- * de él; la UI se suscribe y reacciona. Observable tipado sin dependencias.
+ * Almacén de estado de la aplicación (solo UI). El núcleo de simulación no depende de él; la UI se suscribe y
+ * reacciona. Observable tipado sin dependencias.
  *
  * lus-sim (decisión 13): solo el modo B, sin pestañas, casos, herramientas de medida, audio ni navegador 3D de
  * VExUS; el estado que queda es la congelación.

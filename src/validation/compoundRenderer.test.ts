@@ -273,13 +273,16 @@ describe('dos programas por pasada con miradas (WebGL falso)', () => {
     }
   });
 
-  it('la pérdida de contexto: la reconstrucción libera los seis programas y el renderizador nuevo usa los suyos', () => {
+  // lus-sim (decisión 13): la reconstrucción tras perder el contexto no borra los objetos del renderizador viejo. Murieron
+  // con el contexto perdido, y borrarlos en el restaurado daba ~90 avisos «delete: object does not belong to this
+  // context» (lo halló la revisión del paso B2b); VExUS comprobaba aquí que se borraban
+  it('la pérdida de contexto: la reconstrucción no toca los programas del contexto perdido y el renderizador nuevo usa los suyos', () => {
     const { sim, frame, deleted, canvas } = rig(true);
     const before = [frame(), frame()];
     const old = new Set(before.flatMap((f) => PAIR_IDS.map((id) => f[id].program)));
     expect(old.size).toBe(6);
     sim.rebuildRenderer(canvas);
-    for (const p of old) expect(deleted.has(p!)).toBe(true);
+    for (const p of old) expect(deleted.has(p!)).toBe(false);
     // el anillo empieza de nuevo: la mirada 0 y luego +θ, con programas nuevos y vivos
     const after = [frame(), frame()];
     after.forEach((f, look) => {

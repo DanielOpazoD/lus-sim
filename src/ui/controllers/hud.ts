@@ -37,7 +37,7 @@ export function hudText(v: HudInput): HudText {
       `${(v.depthMm / 10).toFixed(0)} cm · ${v.harmonic ? 'THI ' : ''}${mhz(v.transducerMHz)} MHz · G ${v.gainDb} dB · RD ${v.dynamicRangeDb}` +
         (v.compound ? ' · CX' : ''),
     ],
-    bottomRight: [`resp ${v.respVolume.toFixed(2)}`],
+    bottomRight: [`resp ${v.respVolume.toFixed(2).replace('.', ',')}`],
   };
 }
 

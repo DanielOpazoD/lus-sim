@@ -46,8 +46,13 @@ const sectorWrap = $<HTMLElement>('sector-wrap');
 $<HTMLElement>('build-info').textContent = buildLabel(__APP_VERSION__, __GIT_COMMIT__);
 
 // Ningún fallo es silencioso: excepciones no capturadas, promesas rechazadas y oyentes del store que lanzan
-// terminan en el registro de errores
+// terminan en el registro de errores. lus-sim (decisión 13): sin la pestaña Docente que lo mostraba en VExUS, cada
+// entrada va también a la consola con su origen (la primera vez y luego a 2, 4, 8… repeticiones: un error por cuadro
+// no la inunda), y la e2e la vigila
 errorLog.installGlobalHandlers(window);
+errorLog.subscribe((e) => {
+  if ((e.count & (e.count - 1)) === 0) console.error(`[${e.source}] ${e.message}${e.count > 1 ? ` (×${e.count})` : ''}`);
+});
 const store = new Store({ frozen: false }, (e) => errorLog.report('ui', e));
 
 function fatal(message: string): never {
@@ -72,29 +77,41 @@ const dispatch = session.equipment.dispatch.bind(session.equipment);
 const banner = new Banner(sectorWrap);
 
 // --- Vistas ------------------------------------------------------------------
-const panel = new ControlPanel($('panel'), sim, store, dispatch, () => {
-  const error = session.resetPatient();
-  if (error) banner.show(`No se pudo reiniciar el paciente: ${errorMessage(error)}`, 6000);
-});
-session.equipment.subscribe(() => panel.sync());
 const probeAnimator = new ProbeAnimator(
   () => sim().pose,
   (p) => sim().setPose(p),
 );
+/**
+ * Todo gesto de la sonda pasa por aquí: cancela la animación hacia un punto de partida y, con la imagen congelada,
+ * no mueve nada (lus-sim, decisión 13: en VExUS los deslizadores de la sonda y las tarjetas la movían bajo una imagen
+ * congelada, lo halló la revisión).
+ */
 function setPoseManual(p: Parameters<Simulator['setPose']>[0]): void {
+  if (store.get().frozen) return;
   probeAnimator.cancel(); // cualquier gesto manual cancela la animación
   sim().setPose(p);
 }
+const panel = new ControlPanel($('panel'), sim, store, dispatch, {
+  setPose: setPoseManual,
+  onResetPatient: () => {
+    const error = session.resetPatient();
+    if (error) banner.show(`No se pudo reiniciar el paciente: ${errorMessage(error)}`, 6000);
+  },
+});
+session.equipment.subscribe(() => panel.sync());
 // Carril izquierdo: los puntos de partida (la sonda se desliza hasta ellos) y la ayuda de la sonda
 const windows = new StartPointCards($('start-points'), {
-  onPick: (sp) => probeAnimator.goTo(sp),
+  onPick: (sp) => {
+    if (!store.get().frozen) probeAnimator.goTo(sp);
+  },
   getPose: () => sim().pose,
   getTorso: () => sim().scene.torso,
   animating: () => probeAnimator.active,
+  locked: () => store.get().frozen,
 });
 bindPopover($<HTMLButtonElement>('nav-help'), $('nav-help-pop'));
 let lastFps = 0;
-$<HTMLButtonElement>('diagnostics').addEventListener('click', () => {
+$<HTMLButtonElement>('tech-report').addEventListener('click', () => {
   const s = sim();
   const d = buildDiagnostics({
     version: __APP_VERSION__,
@@ -124,17 +141,27 @@ const input = new ProbeInput(
   () => !store.get().frozen,
 );
 registerDevtools(sim, dispatch);
-session.onSimulatorChanged(() => {
-  panel.sync();
+/**
+ * El cine y la imagen congelada eran del simulador o del renderizador anterior: tras reiniciar el paciente o recuperar
+ * la GPU, una imagen congelada ya no existe (se vería negra, con la regla y el HUD de otro cuadro). Se vuelve a la
+ * imagen en vivo y se dice (lo halló la revisión).
+ */
+function afterReplaced(what: string): void {
+  if (store.get().frozen) {
+    store.set({ frozen: false });
+    banner.show(`${what}: la imagen congelada se perdió y vuelve la imagen en vivo`, 5000);
+  }
   cine.sync();
-});
+  panel.sync();
+}
+session.onSimulatorChanged(() => afterReplaced('Paciente reiniciado'));
 
 // --- Controles de la barra ----------------------------------------------------
 const freezeBtn = $<HTMLButtonElement>('freeze');
 freezeBtn.addEventListener('click', () => store.set({ frozen: !store.get().frozen }));
 bindKeyboardShortcuts(store, dispatch);
 // el cine era del renderizador viejo (decisión 80 de VExUS)
-const gpu = bindGpuLifecycle(glCanvas, sim, banner, () => cine.sync());
+const gpu = bindGpuLifecycle(glCanvas, sim, banner, () => afterReplaced('GPU recuperada'));
 const cine = bindCine({
   bar: $('cine-bar'),
   slider: $<HTMLInputElement>('cine'),
@@ -153,6 +180,7 @@ store.subscribe((st, prev) => {
     setPressed(freezeBtn, st.frozen);
     liveChip.textContent = st.frozen ? 'FREEZE' : 'LIVE';
     liveChip.className = `chip ${st.frozen ? 'freeze' : 'live'}`;
+    windows.sync();
   }
 });
 
@@ -183,7 +211,7 @@ function frame(now: number, dt: number): void {
   const s = sim();
   fitCanvases();
   input.tick(dt);
-  probeAnimator.tick(dt);
+  if (!store.get().frozen) probeAnimator.tick(dt);
   s.advance(dt);
   if (!gpu.lost) {
     s.render();
@@ -213,7 +241,8 @@ function frame(now: number, dt: number): void {
   if (now - lastStatus > 250) {
     lastStatus = now;
     lastFps = frames / Math.max(1e-3, frameTime);
-    status.textContent = `${lastFps.toFixed(0)} fps · t ${t.toFixed(1)} s`;
+    // con la imagen congelada no se forman cuadros: el bucle sigue (HUD, cine), pero sus fps no son los de la imagen
+    status.textContent = `${s.frozen ? 'congelada' : `${lastFps.toFixed(0)} fps`} · t ${t.toFixed(1)} s`;
     frames = 0;
     frameTime = 0;
     panel.sync(); // la pose y el acoplamiento cambian con el ratón; el equipo avisa por su cuenta

@@ -61,6 +61,35 @@ body {
     --panel-w: 232px;
   }
 }
+/* lus-sim (decisión 13): en un teléfono (la entrada táctil está portada) las columnas se apilan: los puntos de
+   partida en una fila, la imagen con la mayor parte de la pantalla, la consola debajo y la página se desplaza */
+@media (max-width: 700px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 40px auto minmax(62vh, 1fr) auto 48px;
+    height: auto;
+    min-height: 100%;
+  }
+  /* más específico que las reglas de cada columna, que van después */
+  .app > .left,
+  .app > .center,
+  .app > .right {
+    grid-column: 1;
+  }
+  .app > .right {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .windows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .disclaimer {
+    max-width: calc(100% - 16px);
+  }
+  .build-info {
+    display: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .app {
     transition: none;

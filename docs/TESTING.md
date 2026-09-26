@@ -76,9 +76,12 @@ la salida actual no protege nada.
 
 ## Fase 1, paso B2b: la aplicación (decisión 13)
 
-- **Humo de la aplicación** (`e2e/smoke.spec.ts`): el arranque con la línea pleural en el lienzo y el aviso, los mandos
-  del equipo con el HUD, congelar (el reloj se detiene), la sonda por arrastre y por una tarjeta y la recuperación de la
-  pérdida del contexto WebGL. Cada prueba se comprobó con una mutación (decisión 13).
+- **Humo de la aplicación** (`e2e/smoke.spec.ts`): la imagen se mira en la pantalla (una captura del lienzo, no un búfer
+  de la GPU, que puede estar bien con la pantalla negra). El arranque con la línea pleural y el aviso, los mandos del
+  equipo con el HUD, congelar con el cine (el HUD dice los ajustes del cuadro que se ve, comprobado dos cuadros después
+  del cambio: antes pasaba sin repintar), la sonda por arrastre y por una tarjeta, «Reiniciar paciente», el informe
+  técnico y la pérdida del contexto WebGL. El registro de errores va a la consola y la prueba la vigila. Cada prueba se
+  comprobó con una mutación (decisión 13).
 - **La interfaz sin DOM** (`src/validation/uiInput.test.ts`): el entorno de vitest es `node`; los oyentes se registran en
   un `window` y un elemento falsos y los gestos se entregan a mano. Así se prueba qué hace cada gesto con la pose y el
   equipo; que el navegador entregue los eventos lo prueba la e2e. `src/ui/**` y la sesión no cuentan para la cobertura

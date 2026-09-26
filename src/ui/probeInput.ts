@@ -32,6 +32,8 @@ export class ProbeInput {
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
       if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || (e.target as HTMLElement | null)?.tagName === 'SELECT') return;
+      // lus-sim (decisión 13): ⌘A, Ctrl+D… son del navegador, no de la sonda (mantener ⌘A la deslizaba)
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       this.keys.add(e.key.toLowerCase());
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) e.preventDefault();
     });

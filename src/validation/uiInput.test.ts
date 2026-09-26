@@ -115,7 +115,13 @@ describe('Atajos de teclado', () => {
     ]);
     win.fire('keydown', key(']', { tagName: 'INPUT', type: 'text' }));
     win.fire('keydown', key(']', { tagName: 'SELECT' }));
+    win.fire('keydown', key(']', { tagName: 'TEXTAREA' }));
     expect(cmds).toHaveLength(5);
+    // con ⌘, Ctrl o ⌥ la tecla es del navegador (⌘[ vuelve atrás, Ctrl − aleja); Espacio sobre un botón lo pulsa
+    for (const mod of ['metaKey', 'ctrlKey', 'altKey']) win.fire('keydown', { ...key('['), [mod]: true });
+    expect(cmds).toHaveLength(5);
+    win.fire('keydown', key(' ', { tagName: 'BUTTON' }));
+    expect(store.get().frozen).toBe(false);
     off();
     win.fire('keydown', key(' '));
     expect(store.get().frozen).toBe(false);
@@ -186,6 +192,22 @@ describe('Entrada de la sonda: ratón, trackpad, teclado y táctil dan la misma 
     win.fire('pointermove', ptr(20, -10, { pointerType: 'touch', pointerId: 7 }));
     expect(pose().rock).toBeCloseTo(p2.rock + 10 * 0.004, 12);
     expect(pose().tilt).toBeCloseTo(p2.tilt + 10 * 0.004, 12);
+  });
+
+  it('un arrastre empezado antes de congelar no mueve la sonda congelada; ⌘ + tecla no la mueve', () => {
+    let live = true;
+    const { el, input, pose } = setup(() => live);
+    el.fire('pointerdown', ptr(0, 0));
+    win.fire('pointermove', ptr(10, 0));
+    const p1 = pose();
+    live = false;
+    win.fire('pointermove', ptr(40, 30));
+    expect(pose()).toBe(p1);
+    live = true;
+    win.fire('pointerup', ptr(40, 30));
+    win.fire('keydown', { ...key('a'), metaKey: true });
+    input.tick(0.5);
+    expect(pose()).toBe(p1);
   });
 
   it('las teclas mantenidas integran con el tiempo; con la imagen congelada nada mueve la sonda', () => {

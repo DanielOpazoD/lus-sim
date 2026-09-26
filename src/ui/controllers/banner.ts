@@ -11,6 +11,8 @@ export class Banner {
     if (!this.el) {
       this.el = document.createElement('div');
       this.el.className = 'banner';
+      // lus-sim (decisión 13): el aviso se anuncia a los lectores de pantalla
+      this.el.setAttribute('role', 'alert');
       this.host.appendChild(this.el);
     }
     this.el.textContent = text;

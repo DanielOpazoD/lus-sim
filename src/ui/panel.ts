@@ -2,7 +2,7 @@ import type { Simulator } from '../app/simulator';
 import type { Store } from '../app/store';
 import { controlId, type Syncable } from './controls';
 import { bindCollapsible } from './disclosure';
-import { buildAcquireTab } from './panel/acquireTab';
+import { buildAcquireTab, type AcquireActions } from './panel/acquireTab';
 import type { EquipmentCommand } from '../app/equipment';
 import type { PanelContext, SectionOptions } from './panel/context';
 
@@ -11,7 +11,8 @@ import type { PanelContext, SectionOptions } from './panel/context';
  * básico arriba y abierto, lo avanzado plegado, y las explicaciones largas detrás del ⓘ de la sección.
  *
  * lus-sim (decisión 13): una sola pestaña, Adquirir (la imagen, la sonda y la respiración), sin la barra de pestañas
- * ni las de Doppler, Medir y Docente de VExUS; «Reiniciar paciente» llega como `onResetPatient`.
+ * ni las de Doppler, Medir y Docente de VExUS; la raíz le pasa cómo mover la sonda y reiniciar el paciente
+ * (`AcquireActions`).
  */
 export class ControlPanel implements PanelContext {
   private syncables: Syncable[] = [];
@@ -21,7 +22,7 @@ export class ControlPanel implements PanelContext {
     readonly sim: () => Simulator,
     readonly store: Store,
     readonly dispatch: (cmd: EquipmentCommand) => void,
-    onResetPatient: () => void,
+    actions: AcquireActions,
   ) {
     root.replaceChildren();
     const scroll = document.createElement('div');
@@ -47,7 +48,7 @@ export class ControlPanel implements PanelContext {
       if (shown.length) e.stopPropagation();
     });
 
-    buildAcquireTab(this, p, onResetPatient);
+    buildAcquireTab(this, p, actions);
     this.sync();
   }
 
