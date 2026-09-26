@@ -308,3 +308,88 @@ normalización, la reflectividad ×1,1 y la ida y vuelta con R_t invertido; la p
 sonda con la piel que tira y con un perfil que estira bajo la pared; el deslizamiento con el pulmón sin
 descender y con una respiración de reloj propio; la semilla con el ritmo y el moteado de azar sin semilla.
 Todas fallaron con la mutación y pasan sin ella.
+
+## 11. Nuevo origen fijado: VExUS 8e83d9a
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** El paso A (decisión 10) copió el motor de `vexus-sim@52354d5`, y el origen siguió avanzando: su main,
+`8e83d9a`, lleva once commits más. Son las decisiones 76 (ecos parásitos del modo fundamental: lóbulos laterales y
+reverberación de la pared), 77 (armónica tisular), 78 (tríadas portales del hígado), 79 (aurícula de lazo cerrado en la
+media, con bolo, diurético y PEEP) y 80 (cine y modo M en la GPU), más el renombrado de los identificadores del GLSL en
+el build, la licencia MIT y la misión de VExUS. `npm run provenance` marcaba 22 archivos portados con commits nuevos en
+el origen (8 idénticos y 14 adaptados), y dos ya importaban módulos que lus-sim no tenía: el perfil del transductor
+(`harmonic.ts`) y el gemelo de los ecos de interfaz (`clutter.ts`). Lo que más cambió es justo lo que porta el paso B:
+el renderizador (398 líneas añadidas y 74 quitadas) y las pasadas (168 y 42).
+
+**Opciones.** (a) Portar la GPU desde `52354d5` y volver a fijar después: el renderizador y las pasadas se fusionarían
+dos veces, la segunda con las adaptaciones al tórax ya hechas. (b) Seguir la cabeza del origen en cada PR: no queda un
+commit fijado que revisar y la tabla de procedencia deja de decir de dónde se copió cada archivo. (c) Partir el paso B
+en dos: B1, una PR propia y acotada que vuelve a fijar el origen y pone al día lo ya portado, sin GPU; B2, la GPU y la
+app desde el origen nuevo.
+
+**Decisión.** (c). En B1:
+
+- **Idénticos que cambiaron en el origen** (8): se copian de `8e83d9a`. La respiración (la PEEP sube la pleural un 40 %
+  también con respiración espontánea, como una CPAP, y la PEEP vigente es un campo del modelo que puede cambiar en
+  marcha), el receptor (el uniform de la ganancia del transitorio), el haz (λ y escala de emisión), la pleura (σ
+  elevacional en armónica), la composición (la armónica reinicia el anillo de miradas), el perfil del transductor
+  (`bmodeBeam`) y el gemelo de los ecos de interfaz con su prueba (el núcleo lateral lleva el pedestal de lóbulos
+  laterales; el umbral de M3 de la porta baja de 1,40 a 1,39 en el origen). En fundamental, el haz y la elevación son
+  los de antes bit a bit.
+- **Adaptados que cambiaron en el origen** (14): fusión a tres bandas con `git merge-file` (base `52354d5`, lus-sim,
+  origen `8e83d9a`), conservando lo propio de lus-sim. Se trae: a la prueba del receptor, el núcleo lateral con pedestal;
+  a la de la composición, el reinicio por la armónica; a la de la fisiología, la CPAP y la PEEP que cambia en marcha
+  sobre el modelo respiratorio; al presupuesto del bundle, que los chunks de solo pruebas (`testHooks`) no cuenten en el
+  total (aún no hay ninguno: llegan con la app); a `CONTRIBUTING.md`, una sección de misión que remite a
+  `docs/MISSION.md`. No se trae: el lazo cerrado y sus intervenciones en el motor y en el paciente (`circulation.ts` del
+  origen lee la red venosa y la aurícula derecha, que lus-sim no porta; la PEEP de la respiración es la del paciente y
+  el comentario del paciente lo dice), lo que comprueba los programas ensamblados de las pasadas en las pruebas del
+  receptor, del eco de interfaz y de la rama dirigida, la sección «Objetivo de la misión» de la plantilla de PR y el
+  párrafo inicial de la guía para agentes (lus-sim ya tiene las suyas, decisión 9) y el comentario del minificador de
+  GLSL en `vite.config.ts` (aún no hay shaders). Siete adaptados quedan como estaban (el motor, las propiedades, la rama
+  dirigida, el eco de interfaz, la plantilla de PR, la guía para agentes y la configuración de Vite): todo lo que el
+  origen cambió en ellos cae en lo que lus-sim había quitado o ya tenía.
+- **Módulos nuevos**, idénticos: `src/ultrasound/harmonic.ts` (decisión 77 del origen: haz armónico, acumulación del
+  campo cercano, transitorio rechazado y ruido) y `src/ultrasound/clutter.ts` (decisión 76: pedestal de lóbulos laterales
+  con su pantalla de fase antisimétrica y réplicas de reverberación de la pared). Sus pruebas se portan adaptadas
+  (`src/validation/harmonic.test.ts`, `src/validation/clutter.test.ts`): el arnés en TypeScript entero, sin los
+  programas ensamblados, el comando del equipo ni el renderizador sobre WebGL falso, que vuelven en B2. Sus cifras son
+  del haz y del modelo, no de la escena abdominal: no hay nada que medir en el tórax en su lugar.
+- **No se porta**: las tríadas portales de 78 (`portalTriads.ts`, textura del hígado; ningún archivo portado lo
+  importa); el lazo cerrado y las intervenciones de 79; el cine y el modo M de 80 (`cine.ts`, `mmode.ts` y su
+  interfaz, que son GPU y app: B2 o fase 2); el renombrado de identificadores del GLSL (`glslMangle.ts`, segunda etapa
+  del minificador: entra con los shaders en B2, y el presupuesto del bundle se fija entonces con su medida); la licencia
+  y la misión de VExUS (lus-sim tiene las suyas).
+- **Limitaciones**: se heredan con su id `no-sidelobes` (desde 76, lóbulos laterales simplificados, sin lóbulos de
+  rejilla ni en elevación) y `harmonic-simplified` (77). No entran las de 78, 79 y 80 (`portal-triads-diffuse`,
+  `mean-closed-loop`, `no-autonomic-reflexes`, `m-mode-frame-rate`, `m-mode-lumen-blooming`), cuyo código no se porta,
+  y no hay nada que quitar: `peep-no-hemodynamic-effect`, que el origen retira, nunca estuvo en lus-sim.
+
+**Consecuencias.** Todas las filas de vexus-sim quedan en `8e83d9a` y `npm run provenance` dice «origen sin cambios» en
+cada una. Sigue sin haber imagen. En la física en TypeScript solo cambian la PEEP con respiración espontánea (el
+paciente por omisión tiene PEEP 0: ninguna cifra de lus-sim se mueve) y el gemelo de los ecos de interfaz, que ahora
+lleva el pedestal: la línea pleural de A-T11, medida con él, sigue en 0,70 mm de 15 a 60 mm (el pedestal es lateral y
+no ensancha el eco en profundidad), y el transitorio omitido del receptor sigue dentro de sus cotas. Para B2:
+
+- VExUS arranca en armónica, como un preajuste abdominal moderno. El preajuste pulmonar de lus-sim debe arrancar en
+  fundamental (armónicos apagados, [@volpicelli-actualizacion-2026]), y la meta F-T24 (fase 2) pide que la armónica baje
+  el contraste de las líneas B, algo que el modelo de 77 no hace (`harmonic-simplified`).
+- Las réplicas de reverberación de la pared toman como fuente las caras fuertes hasta 3 mm bajo la cara interna de la
+  pared, que en el tórax es la pleura: caen sobre las líneas A, que la serie de reverberaciones ya forma. VExUS midió
+  esa doble cuenta bajo su cortina en unos −40 dB; B2 la mide en el tórax, con pleura en todo el campo.
+- El modo M de la decisión 80 del origen es la base del modo M pulmonar (fase 2): en cada cuadro la GPU copia la línea
+  M de la envolvente del modo B, formada en su instante con el reloj único, a una franja en anillo que no vuelve a la
+  CPU. Es lo que pide la hoja de ruta (cada columna en su instante, no desde una caché por fase). Su cadencia (una
+  columna por cuadro de imagen, `m-mode-frame-rate` en VExUS) se medirá en la fase 2 contra la orilla de mar y el
+  código de barras; hasta entonces no se porta.
+- B2 parte de `8e83d9a`. Si el origen vuelve a avanzar sobre lo portado, se vuelve a fijar con este mismo procedimiento.
+
+**Verificación.** `npm run provenance -- --check` en verde, con «origen sin cambios» en las 89 filas de vexus-sim, y
+`src/validation/provenance.test.ts` (la tabla dice la verdad frente al origen). La guarda de limitaciones falló
+(«LIMITATIONS.md no cita `no-sidelobes`») hasta añadir las dos heredadas a `docs/LIMITATIONS.md`. Las pruebas traídas
+del origen se comprobaron con una mutación en lus-sim, y todas fallaron con ella: la respiración de `52354d5` (sin CPAP)
+en la de la fisiología, el anillo que no reinicia con la armónica en la de la composición, el haz armónico sin el ÷√2
+de la fuente en la de la armónica y la pantalla de fase sin antisimetría en la de los ecos parásitos (esta rompe
+también el reflector continuo: 10,7 % en lugar de ≤ 0,5 %). A-T11 se midió antes y después con el gemelo: 0,70 mm a 15,
+20, 30, 40 y 60 mm en los dos.

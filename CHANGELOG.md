@@ -19,6 +19,17 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   fallar por su aserción).
 - Limitaciones heredadas y nuevas con identificador (costillas solo derechas y solo 5.ª–10.ª, pared del
   abdomen, cortina solo derecha, abdomen genérico, pulmón sin líneas B, sonda convexa, entre otras).
+- Fase 1, paso B1: el origen de VExUS vuelve a fijarse en su main `8e83d9a` (11). Se portan la armónica
+  tisular (`src/ultrasound/harmonic.ts`) y los ecos parásitos del modo fundamental (`src/ultrasound/clutter.ts`:
+  pedestal de lóbulos laterales y reverberación de la pared), con sus pruebas en TypeScript, y sus limitaciones con el
+  id de VExUS (`no-sidelobes`, `harmonic-simplified`).
+
+### Cambiado
+
+- Lo portado de VExUS, al día con `8e83d9a` (11): la PEEP sube la presión pleural también con respiración espontánea
+  (CPAP); el haz, la elevación y la composición admiten la armónica (en fundamental no cambian); el gemelo de los ecos
+  de interfaz lleva el pedestal de lóbulos laterales; el presupuesto del bundle deja fuera del total los chunks de solo
+  pruebas; `CONTRIBUTING.md` remite a la misión.
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 
