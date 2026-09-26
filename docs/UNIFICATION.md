@@ -32,9 +32,14 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
 
 - **Dónde vive el resultado**: un monorepo nuevo con paquetes (motor, módulos cardíaco, venoso y
   pulmonar) o uno de los tres repos que absorbe a los otros.
+- **Marco y unidades**: lus-sim y VExUS comparten mm y un marco levógiro con origen en el xifoides
+  (decisión 7); EchoTwin usa cm, un marco dextrógiro y origen en la piel sobre el esternón. Hará falta
+  una conversión con su prueba.
+- **Hilos**: EchoTwin corre el núcleo en un Web Worker con `OffscreenCanvas`; VExUS y lus-sim, en el
+  hilo principal.
 - **La pila de la interfaz**: EchoTwin usa React; VExUS y lus-sim, DOM sin framework.
-- **La generación de GLSL**: EchoTwin genera el GLSL desde TypeScript (ts2glsl); VExUS y lus-sim
-  escriben gemelos a mano con pruebas de equivalencia.
+- **La generación de GLSL**: EchoTwin genera el GLSL escalar desde TypeScript (ts2glsl); VExUS escribe
+  gemelos a mano; lus-sim usa ambos (decisión 8).
 - **El modelo del paciente común**: qué contrato fisiológico une presión auricular izquierda,
   presión auricular derecha, agua pulmonar extravascular y mecánica respiratoria.
 - **La numeración de decisiones y limitaciones**: prefijo por módulo o numeración nueva.

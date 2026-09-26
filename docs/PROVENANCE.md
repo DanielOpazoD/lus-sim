@@ -57,4 +57,18 @@ Commit fijado `52354d5` (main de vexus-sim, 26-09-2026, v0.5.0 + tren de fidelid
 
 ## Portado de EchoTwin
 
-Aún nada. Candidatos (se deciden al portarlos): la tira del modo M y la geometría costal del tórax.
+Aún nada. Candidatos, con la fase en que se portarían (EchoTwin es público; rutas del origen):
+
+| Pieza                                                             | Origen                                                                                    | Fase | Motivo                                                                                        |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------- |
+| Generador ts2glsl y su prueba                                     | `echotwin-tte:tools/glsl/ts2glsl.ts`, `glslGenerated.test.ts`                             | 2    | Física escalar propia escrita una vez (decisión 8), con prototipos, `**` y constantes de Math |
+| Guarda de niveles de prueba                                       | `echotwin-tte:src/tests/testTiers.test.ts`                                                | 1    | Un módulo pesado obliga a declarar `// @tier`                                                 |
+| Espera de carga antes de la e2e                                   | `echotwin-tte:e2e/globalSetup.ts`                                                         | 1    | Esta máquina corre varias sesiones; con carga alta las e2e no se pueden interpretar           |
+| Tablas de física verificadas                                      | `echotwin-tte:src/tests/physicsDocs.test.ts`                                              | 1–2  | Los números de los documentos de física se contrastan con el código                           |
+| Desviaciones declaradas con línea base                            | `echotwin-tte:tools/docs/known-sets.ts`, `limitationsConsistency.test.ts`                 | 2    | Lo que difiere de la referencia real se declara y falla si mejora o empeora sin declararlo    |
+| Estadística de imagen sin etiquetas, discriminador y prueba ciega | `echotwin-tte:src/clinical/sectorStats.ts`, `tools/clinical/{discriminate,blind-test}.ts` | 2    | Patrón de CAMUS generalizado a sonda lineal y convexa y a métricas pulmonares                 |
+| Método de fidelidad                                               | `echotwin-tte:.claude/skills/fidelity-method/SKILL.md`                                    | 1    | 20 reglas nacidas de errores reales, adaptadas al pulmón                                      |
+
+No se portan: el tórax como mapa de alturas anterior (sin caras lateral ni posterior), las costillas de
+sección circular con oblicuidad lineal, la pleura temporizada desde la primera muestra de pulmón ni la
+tira del modo M por fase cardíaca (el modo M pulmonar depende del tiempo respiratorio).

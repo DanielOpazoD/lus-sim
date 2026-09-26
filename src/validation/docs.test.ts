@@ -60,6 +60,14 @@ describe('Documentación', () => {
     }
   });
 
+  it('los documentos solo citan scripts de npm que existen (práctica de EchoTwin)', () => {
+    const { scripts } = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
+    const missing: string[] = [];
+    for (const doc of ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', ...DOCS])
+      for (const m of read(doc).matchAll(/npm run ([a-z][a-z0-9:-]*)/g)) if (!(m[1] in scripts)) missing.push(`${doc} → npm run ${m[1]}`);
+    expect(missing).toEqual([]);
+  });
+
   it('README cita la versión actual del paquete en su «Estado»', () => {
     const { version } = JSON.parse(read('package.json')) as { version: string };
     expect(read('README.md')).toContain(`## Estado (v${version}`);

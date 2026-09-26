@@ -23,6 +23,10 @@ cambios quedan en `docs/DECISIONS.md`.
   respiratorio y el grafo de pasadas WebGL2, con sus gemelos TS/GLSL y sus pruebas.
 - Anatomía mínima: hemitórax anterior derecho con costillas, cartílagos, pared en capas, pleura y
   pulmón aireado, con las dimensiones de la base de conocimiento declaradas con `defineParameters`.
+  Tórax a partir del tronco elíptico de VExUS, con costillas bilaterales y cartílago por costilla (no
+  el mapa de alturas anterior de EchoTwin); marco y unidades de VExUS (decisión 7).
+- De EchoTwin: guarda de niveles de prueba, espera de carga antes de la e2e y método de fidelidad
+  adaptado (`docs/PROVENANCE.md`).
 - Sonda libre (convexa) que encuentra el espacio intercostal moviéndose; signo del murciélago en
   longitudinal.
 - Invariantes: las líneas A a múltiplos exactos de la profundidad de la pleura; el deslizamiento se
@@ -36,7 +40,10 @@ equivalencia TS ↔ GLSL en e2e.
 - Campo de aireación subpleural: líneas B que emergen de la física (y no de una textura), líneas Z,
   consolidación con patrón tisular y broncograma estático o dinámico, derrame con sus signos.
 - Modo M desde las mismas líneas del modo B y el mismo reloj: orilla de mar, código de barras,
-  sinusoide.
+  sinusoide. Cada columna se forma en su instante (tiempo por columna en la GPU), no desde una caché
+  por fase cardíaca como en EchoTwin; coordinar con el modo M que VExUS tiene en curso.
+- ts2glsl para la física escalar propia (decisión 8); desviaciones declaradas con línea base frente al
+  banco de referencia.
 - Sonda lineal de alta frecuencia; preajuste pulmonar (foco en la pleura, armónicos y composición
   apagables) con su efecto físico en los artefactos.
 - Banco de fidelidad y primera prueba ciega contra el banco de referencia (decisión 5).
