@@ -25,7 +25,7 @@ por Daniel antes de cerrar la fase 0.
 
 | Documento                            | Contenido                                                                                                                                                                                              |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/knowledge/physics.md`          | Propiedades acústicas por tejido, línea pleural, líneas A y B y su mecanismo, deslizamiento, pulso y punto pulmonar, consolidación, derrame, sombra costal, espejo; modelos publicados; metas T01–T35. |
+| `docs/knowledge/physics.md`          | Propiedades acústicas por tejido, línea pleural, líneas A y B y su mecanismo, deslizamiento, pulso y punto pulmonar, consolidación, derrame, sombra costal, espejo; modelos publicados; metas T01–T39. |
 | `docs/knowledge/anatomy.md`          | Pared torácica por región y por capa, costillas y espacios intercostales, pleura, límites del pulmón y recesos, diafragma, escápula, microanatomía subpleural; avatar de referencia; metas T1–T22.     |
 | `docs/knowledge/pathophysiology.md`  | Relaciones cuantitativas entre agua pulmonar, presiones, PEEP, aireación y hallazgos; 14 variables latentes del paciente con sus ecuaciones de acoplamiento; metas T1–T26.                             |
 | `docs/knowledge/clinical.md`         | Definiciones de consenso, exactitud diagnóstica, esquemas de zonas, puntajes, protocolos BLUE y FALLS, ecografía diafragmática, 15 casos docentes, trampas y cálculo del puntaje sobre la señal.       |
@@ -79,9 +79,19 @@ anatomía, **P** fisiopatología y **C** clínica (así, F-T01 es la meta T01 de
 
 **Clínica**
 
-11. Las definiciones operativas son las del consenso de 2012 [@volpicelli-consenso-2012], leído
-    completo, y de las guías técnicas de 2023 [@demi-guias-2023]. Existe una actualización focalizada
-    publicada en 2026 [@volpicelli-actualizacion-2026] cuyo texto completo no se pudo leer (§6).
+11. Las definiciones operativas son las de la actualización focalizada de 2026
+    [@volpicelli-actualizacion-2026], leída completa el 26-09-2026 (PDF aportado por Daniel). Tiene 113
+    enunciados: 83 votados con ≥80 % de acuerdo, 1 escindido y 29 heredados; ninguno trae gradación.
+    Donde 2026 difiere del consenso de 2012 [@volpicelli-consenso-2012], leído completo, **manda 2026**.
+    Lo heredado conserva la gradación de 2012. Donde 2026 no dice nada, valen las guías técnicas de 2023
+    [@demi-guias-2023] y las demás fuentes (`clinical.md` §1.0 bis). Cambios que afectan al simulador:
+    - la zona positiva se define por cuadro y el síndrome intersticial es difuso o focal;
+    - las líneas A pueden coexistir con las B;
+    - la pleura alterada se describe como irregular o fragmentada, no por su grosor;
+    - aparecen el hidropunto y la rama de estabilidad del neumotórax;
+    - se acepta cualquier sonda, incluida la de matriz de fase;
+    - el preajuste es un foco en la pleura, armónicos y compuesto apagados y 10–12 cm;
+    - el puntaje de 12 zonas usa el peor cuadro y tiene una variante del 50 %, y no diagnostica.
 12. El puntaje se calcula sobre la señal: rasgos por espacio intercostal (pleura, deslizamiento, pulso,
     líneas A y B, fracción de pleura afectada, consolidación, derrame), grado por región igual al peor
     espacio, y agregados por esquema (12 regiones, 8 zonas, 28 sitios, 14 áreas, reaireación, perfil
@@ -102,13 +112,13 @@ entregarán EchoTwin, VExUS y el simulador del R860.
 
 ## 4. Metas de prueba por fase
 
-| Fase (`docs/ROADMAP.md`)   | Metas                                                                                                                                                                                               |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 — motor y primera imagen | A-T1–T3, A-T6–T11 (profundidades, líneas A, murciélago, espacios intercostales, grosor de la línea pleural); F-T01–T09, F-T35 (espaciado y decaimiento de líneas A, incidencia, sombra, cartílago). |
-| 2 — física pulmonar        | F-T10–T34 (modo M, deslizamiento, líneas B y su selectividad, foco, armónicos, composición, líneas Z y E, consolidación, derrame, espejo); A-T20–T21 (líneas B septales, broncograma).              |
-| 3 — tórax completo         | A-T12–T19 (líquido fisiológico, cortina, diafragma, ventana cardiaca, escápula, oblicuidad costal); P-T23–T26 (neumotórax, derrame, deslizamiento, diafragma).                                      |
-| 4 — clínica                | C §6 (rasgos, puntajes y agregados sobre la señal; modo examen; cohortes virtuales frente a la exactitud publicada); P-T1–T12 y P-T18–T22 (agua y conteos, presiones, distribución, cinética).      |
-| 5 — puentes                | P-T13–T17 (PEEP, reaireación, hiperinsuflación invisible, densidad, mecánica).                                                                                                                      |
+| Fase (`docs/ROADMAP.md`)   | Metas                                                                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1 — motor y primera imagen | A-T1–T3, A-T6–T11 (profundidades, líneas A, murciélago, espacios intercostales, grosor de la línea pleural); F-T01–T09, F-T35 (espaciado y decaimiento de líneas A, incidencia, sombra, cartílago).                                                                            |
+| 2 — física pulmonar        | F-T10–T34 y F-T37–T39 (modo M, deslizamiento, líneas B y su selectividad, foco, armónicos, composición, líneas Z y E, consolidación con sus artefactos de margen, reclutamiento corriente y broncograma líquido, derrame, espejo); A-T20–T21 (líneas B septales, broncograma). |
+| 3 — tórax completo         | A-T12–T19 (líquido fisiológico, cortina, diafragma, ventana cardiaca, escápula, oblicuidad costal); P-T23–T26 (neumotórax, derrame, deslizamiento, diafragma); F-T36 (hidropunto).                                                                                             |
+| 4 — clínica                | C §6 (rasgos, puntajes y agregados sobre la señal; modo examen; cohortes virtuales frente a la exactitud publicada); P-T1–T12 y P-T18–T22 (agua y conteos, presiones, distribución, cinética).                                                                                 |
+| 5 — puentes                | P-T13–T17 (PEEP, reaireación, hiperinsuflación invisible, densidad, mecánica).                                                                                                                                                                                                 |
 
 Cada meta entra como prueba en la fase de su módulo, con su mutación (`docs/TESTING.md`). Las
 tolerancias marcadas [DERIVADO] en los documentos de tema son propuestas razonables, no valores
@@ -124,16 +134,24 @@ publicados, y se declaran como tales en la prueba.
   [@lichtenstein-paop-2009; @volpicelli-paop-2014]: el modelo usa agua acumulada con retardo.
 - **PEEP**: la reaireación sigue al reclutamiento por curvas P-V (rho 0,88) pero no al de la TAC
   (R = 0,01) [@bouhemad-peep-2011; @chiumello-tac-2018]: se calculan ambas métricas.
-- **Volumen de derrame**: 20 × separación [@balik-derrame-2006] validó mal fuera de su cohorte
-  (ICC 0,34) [@hassan-ecuaciones-2017]: error de medición realista.
+- **Volumen de derrame**: 20 × separación [@balik-derrame-2006] es la fórmula que respalda 2026, en
+  supino y en corte transversal lateral sobre el ángulo costofrénico [@volpicelli-actualizacion-2026]
+  (D6_11). Pero validó mal fuera de su cohorte (ICC 0,34) [@hassan-ecuaciones-2017]: error de medición
+  realista.
 - **Espesor de la pared lateral frente a la anterior** y **borde posterior del pulmón** (T10 frente a
   T12): discrepancias anatómicas documentadas en `anatomy.md` §0.
 - **Grosor del diafragma en la zona de aposición**: 1,4–1,9 mm en la mayoría de las series frente a
   2,7–3,8 mm en una grande.
 - **Umbral de disfunción diafragmática**: < 10 mm [@kim-disfuncion-2011] frente a < 2 cm
   [@haaksma-exodus-2022].
-- **Puntaje de una consolidación subpleural pequeña**: 3 en el clásico, 1–2 en el modificado
-  [@mongodi-lusmod-2017].
+- **Puntaje de una consolidación subpleural pequeña**: 3 en el clásico y en la variante 2026 del 50 %
+  [@volpicelli-actualizacion-2026] (D6_7.4), 1–2 en el modificado [@mongodi-lusmod-2017].
+- **Puntuación de una zona con derrame**: la leyenda de la Fig. 4A de 2026 le da 3, pero el enunciado
+  D6_7.4 solo nombra la consolidación. Por omisión se puntúa el pulmón visible y el derrame se informa
+  aparte, con la opción «derrame = 3» conmutable (`clinical.md` §1.0 bis y §6.3). El documento tiene
+  otras siete inconsistencias internas menores, listadas allí mismo.
+- **Artefactos verticales sin deslizamiento**: pueden verse, pero 2026 no les da el valor de una línea B
+  (D1_1.1). Se clasifican aparte y no entran en el grado mientras no haya consenso.
 
 ## 6. Vacíos de conocimiento
 
@@ -145,15 +163,31 @@ puntos BLUE con los espacios intercostales (`anatomy.md` §4); líneas B que des
 ultrafiltración, coeficiente de filtración y umbral de edema en humanos, relación punto pulmonar–volumen
 en humanos y volumen de derrame que produce atelectasia visible (`pathophysiology.md` §1.13).
 
-Pendiente de acceso: el texto completo de la actualización 2026 del consenso internacional
-[@volpicelli-actualizacion-2026] y del consenso ESICM–ESPNIC de 2025 [@mongodi-esicm-espnic-2025]. Antes
-de fijar las definiciones clínicas del simulador (fase 4) conviene leerlos; si Daniel tiene acceso
-institucional, se contrastan con las definiciones de 2012 usadas aquí.
+La actualización 2026 del consenso internacional [@volpicelli-actualizacion-2026] ya está leída completa
+(26-09-2026) y aplicada en `clinical.md` y `physics.md`. Quedan pendientes tres cosas:
+
+- sus porcentajes de acuerdo por enunciado y qué enunciados tuvieron abstención alta, que solo están en
+  el material suplementario ESM 4, no incluido en el PDF;
+- el texto completo del consenso ESICM–ESPNIC de 2025 [@mongodi-esicm-espnic-2025], que 2026 cita como
+  respaldo del esquema de 12 zonas sin detallarlo;
+- los vacíos que 2026 declara: umbrales de pronóstico del puntaje, subtipos del SDRA, predicción del
+  destete, cuantificación del neumotórax y del derrame, y cuantificación del deslizamiento.
 
 ## 7. Preguntas para la revisión clínica
 
-- ¿Puntaje por omisión clásico o modificado (umbral del 50 % de la pleura)? El simulador puede calcular
-  ambos; la pregunta es cuál se muestra y evalúa primero.
-- ¿Qué esquema de zonas usa el modo examen por omisión: 12 regiones (UCI), 8 zonas (urgencias) o
-  28 sitios (cardiología)?
+- ~~¿Puntaje por omisión clásico o modificado?~~ **Respondida por 2026** (D6_7.4 y D6_7.5).
+  - Por omisión va el clásico de 12 zonas: grados 0–3 con «<3 líneas B con deslizamiento» como 0,
+    el peor cuadro de cada zona y un total de 0–36.
+  - Como alternativa oficial solo se admite separar el 1 del 2 por la fracción de pleura ocupada por
+    líneas B (≤50 % o >50 %); cualquier consolidación sigue valiendo 3.
+  - El modificado de Mongodi e ITACO no figura en 2026, que además considera no esencial complicar el
+    puntaje. Queda como tercera opción rotulada «fuera del consenso».
+  - Falta que Daniel confirme la prioridad docente.
+- ~~¿Qué esquema de zonas usa el modo examen por omisión?~~ **Respondida por 2026**: depende de la
+  pregunta clínica (`clinical.md` §3.8).
+  - Síndrome intersticial: 8 zonas (D3_1.2), o 4 en el crítico con insuficiencia respiratoria aguda.
+  - Aireación y SDRA en la UCI: 12 zonas (D6_7.4).
+  - Congestión en cardiología o diálisis: 28 u 8 zonas (D6_2.4).
+  - EPI y consolidaciones: todo el tórax, con las zonas posteriores (D3_1.2, D4_1.5).
+  - El modo examen elige el esquema según el caso.
 - ¿Qué casos docentes del hospital (`clinical.md` §4) conviene priorizar para la fase 4?

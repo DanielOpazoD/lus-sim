@@ -216,9 +216,13 @@ Formato de cada fila: variable fisiológica → observable LUS → relación (co
    - **NO ENCONTRADO** un coeficiente utilizable.
 5. **Volumen de derrame a partir del cual la atelectasia compresiva se ve en la LUS:** umbral cuantitativo **NO ENCONTRADO**.
 6. **Pendiente punto pulmonar–volumen (mL) en humanos:** **NO ENCONTRADO**; solo hay categorías (Volpicelli 2014) y pendientes porcinas (Oveland 2013).
-7. **Enunciados literales de las recomendaciones internacionales.**
-   - Volpicelli 2012 (PMID 22392031) y su actualización "2025 focused update" (ICM 2026; PMID 42257880; 83 enunciados) son de pago; no leí el texto completo y no uso sus enunciados.
-   - Recomiendo revisar la actualización de 2026 antes de fijar las definiciones del simulador.
+7. **Enunciados de las recomendaciones internacionales.**
+   - Volpicelli 2012 (PMID 22392031): este documento no usa sus enunciados. Están en `docs/knowledge/clinical.md`.
+   - La actualización «2025 focused update» (ICM 2026; PMID 42257880) se leyó completa el 26-09-2026 (PDF aportado por Daniel): 113 enunciados, de los que 83 se votaron. Sus definiciones se aplican en `docs/knowledge/clinical.md` (§1.0 bis y siguientes). Para la fisiopatología aporta cuatro cosas, todas cualitativas y sin cifras nuevas [@volpicelli-actualizacion-2026]:
+     - con PEEP, menos líneas B puede reflejar un cociente agua/gas menor y no menos agua (D6_7.6);
+     - en la EPI, la distribución de las líneas B no cambia con la postura, al contrario que en el edema (D6_9.4 frente a D6_2.4);
+     - un punto pulmonar anterior a la línea axilar media equivale a un ~15 % de colapso, solo como categoría (D6_10.1). La pendiente del punto 6 sigue NO ENCONTRADA;
+     - la atelectasia compresiva exige un derrame proporcional a la consolidación (D4_5), sin umbral numérico. El umbral del punto 5 sigue NO ENCONTRADO.
 8. **Textos completos de pago:**
    - Chiumello 2018: usé el resumen + suplemento.
    - Bouhemad 2010 y 2011: resumen; la tabla de puntos, en su reproducción de Ammar 2022.
