@@ -1,0 +1,77 @@
+# Integración continua: lo mismo que `npm run check` en local (formato, lint, tipos, todas las pruebas
+# con umbrales de cobertura, build y presupuesto de bundle), más la auditoría de dependencias de
+# producción, el índice de decisiones y la e2e. Ningún paso se salta en CI; si algo es lento aquí, es
+# lento también en local. El trabajo `check` es el que exige la protección de `main`.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Pruebas (todos los niveles) con umbrales de cobertura
+        run: npm run test:coverage
+      - run: npm run build
+      - name: Auditoría de dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+      - name: Índice de decisiones al día
+        run: npx tsx tools/docs/decisions-index.ts --check
+
+  # En paralelo con `check`: el tiempo total de CI es el del más lento
+  e2e:
+    name: extremo a extremo (Chromium + SwiftShader)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Versión de Playwright (clave de la caché de navegadores)
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Caché de navegadores de Playwright
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - run: npx vite build
+      - run: npm run e2e
+      - name: Guardar el informe si falla
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7

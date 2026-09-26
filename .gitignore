@@ -1,0 +1,30 @@
+# dependencias y salidas de build
+# «node_modules» SIN barra final: también ignora un enlace simbólico (worktrees con node_modules enlazado)
+node_modules
+dist/
+coverage/
+*.tsbuildinfo
+
+# registros y temporales
+*.log
+npm-debug.log*
+.vite/
+.cache/
+
+# sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# entorno local (nunca se versionan secretos)
+.env
+.env.*
+test-results/
+playwright-report/
+
+# datos de referencia reales: viven FUERA del repo (decisión 5); por si alguien los copia dentro
+referencia/
+*.dcm

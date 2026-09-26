@@ -1,0 +1,45 @@
+{
+  "name": "lus-sim",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Simulador de ecografía pulmonar en navegador: paciente virtual → anatomía y fisiología → interacción acústica → imagen (modo B y M) → observables → puntaje LUS.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && tsx tools/ci/bundle-budget.ts",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:slow": "VITEST_TIER=slow vitest run --testTimeout=180000",
+    "test:all": "VITEST_TIER=all vitest run --testTimeout=180000",
+    "test:watch": "vitest",
+    "test:coverage": "VITEST_TIER=all vitest run --coverage --testTimeout=180000",
+    "docs:index": "tsx tools/docs/decisions-index.ts",
+    "provenance": "tsx tools/provenance/drift.ts",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && vite build && tsx tools/ci/bundle-budget.ts",
+    "e2e": "playwright test",
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.2",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "10.11.0",
+    "fast-check": "4.10.2",
+    "globals": "17.12.0",
+    "prettier": "^3.9.8",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1",
+    "vite": "8.3.0",
+    "vitest": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

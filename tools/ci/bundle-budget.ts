@@ -1,0 +1,48 @@
+// Presupuesto de tamaño del bundle (práctica de EchoTwin y VExUS; adaptado de vexus-sim@52354d5 con
+// presupuestos propios). Regla: un presupuesto solo se sube a propósito, en el mismo cambio que explica
+// el crecimiento, y el motivo queda anotado aquí con la medida. Se ejecuta tras `vite build` y falla si
+// algún activo lo supera.
+// 2026-09-26: fase 0 (sin motor): index ≈ 2 kB. Presupuestos de partida ajustados a la fase 0; el motor
+// portado de VExUS en la fase 1 los subirá con su medida (en vexus-sim el index ronda 284 kB, main 007204e).
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+const KB = 1024;
+const BUDGETS: Array<[RegExp, number]> = [
+  [/three.*\.js$/, 700 * KB],
+  [/index-.*\.js$/, 40 * KB],
+  [/\.css$/, 20 * KB],
+  [/\.js$/, 120 * KB], // cualquier otro chunk
+];
+const TOTAL_JS_BUDGET = 200 * KB;
+
+const dir = join(process.cwd(), 'dist', 'assets');
+let files: string[];
+try {
+  files = readdirSync(dir);
+} catch {
+  console.error('bundle-budget: no existe dist/assets — ejecuta `vite build` antes');
+  process.exit(1);
+}
+let over = false;
+let totalJs = 0;
+const rows: string[][] = [];
+for (const f of files) {
+  if (f.endsWith('.map')) continue;
+  const size = statSync(join(dir, f)).size;
+  if (f.endsWith('.js')) totalJs += size;
+  const budget = BUDGETS.find(([re]) => re.test(f));
+  const max = budget ? budget[1] : Infinity;
+  const ok = size <= max;
+  if (!ok) over = true;
+  rows.push([f, `${(size / KB).toFixed(1)} kB`, Number.isFinite(max) ? `${(max / KB).toFixed(0)} kB` : '—', ok ? 'ok' : 'OVER']);
+}
+const w = rows.reduce((m, r) => Math.max(m, r[0].length), 10);
+for (const r of rows) console.log(`${r[0].padEnd(w)}  ${r[1].padStart(10)}  ${r[2].padStart(8)}  ${r[3]}`);
+console.log(
+  `${'total js'.padEnd(w)}  ${(totalJs / KB).toFixed(1).padStart(7)} kB  ${(TOTAL_JS_BUDGET / KB).toFixed(0).padStart(5)} kB  ${totalJs <= TOTAL_JS_BUDGET ? 'ok' : 'OVER'}`,
+);
+if (over || totalJs > TOTAL_JS_BUDGET) {
+  console.error('bundle-budget: presupuesto superado');
+  process.exit(1);
+}

@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+docs/DECISIONS_INDEX.md
+package-lock.json
+test-results
+playwright-report

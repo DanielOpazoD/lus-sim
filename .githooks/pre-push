@@ -1,0 +1,4 @@
+#!/bin/sh
+# Antes de empujar: tipos y pruebas rápidas. El check completo lo hace CI.
+# Saltar en una emergencia: git push --no-verify
+npm run typecheck --silent && npm test --silent
