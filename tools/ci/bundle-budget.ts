@@ -16,6 +16,9 @@
 // entrada de la sonda, HUD, atajos, tarjetas, cine y diagnóstico) llevan index de 148,4 a 172,5 kB (vite build); la hoja de
 // estilos va en su propio archivo (9,4 kB) y `testHooks` baja a 15,6 kB (comparte ahora módulos con index). index
 // sube a 180 kB.
+// 2026-09-26 (origen c6c81ad, decisión 14): el build quita además los espacios y los saltos de línea que no separan
+// nada del texto GLSL (`tools/build/glslCompact.ts`, tercera etapa de `glslMinify.ts`, #100 de VExUS): index baja de
+// 172,5 a 163,5 kB (176 622 → 167 443 B, vite build sobre main 8ed8a6d). Los límites no cambian.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 

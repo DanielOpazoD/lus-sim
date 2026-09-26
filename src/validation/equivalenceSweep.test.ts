@@ -112,6 +112,8 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(v.interfacePoints).toBeGreaterThan(20);
     expect(v.interfaceAgreement).toBe(1);
     expect(v.interfaceDistanceMaxErr).toBeLessThan(1e-4); // float32
+    // los puntos interiores por tejido suman los interiores (del origen, decisión 81 de VExUS)
+    expect(Object.values(v.byTissue).reduce((a, b) => a + b, 0)).toBe(v.interiorPoints);
     // el volumen tiene dientes: pulmón, pared, columna y el «resto» bajo el diafragma
     for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra']) expect(v.byTissue[t] ?? 0, t).toBeGreaterThan(20);
   });

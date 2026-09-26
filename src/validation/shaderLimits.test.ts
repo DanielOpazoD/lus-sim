@@ -206,8 +206,9 @@ describe('Límites del shader con margen para crecer', () => {
     expect(FRAGMENT_SHADERS.map(([name]) => name)).toEqual(expect.arrayContaining(LOOK_PAIRS.map((p) => `${p.name}_STEERED`)));
     // la pasada B cuenta sus arrays de tejidos, de caras y de escena: 114 medidas y 116 en su programa
     // dirigido (con las caras de la pared, decisión 62), con sitio para la THI (~+14) sin pasar de 130. lus-sim
-    // (decisión 12): 84 y 86, sin los 30 de los uniforms del hígado, la vesícula, la aurícula, el gas y los riñones; si
-    // el recuento dejara de ver los arrays (42 ranuras de tejidos, caras y costillas) daría menos de 50
+    // (decisiones 12 y 14): 85 y 87, sin los 30 de los uniforms del hígado, la vesícula, la aurícula, el gas y los riñones
+    // (83 y 85 hasta que la tabla de tejidos, idéntica a la de VExUS, sumó los tres del retroperitoneo: TISSUE_VEC4 de 7
+    // a 8); si el recuento dejara de ver los arrays (44 ranuras de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
