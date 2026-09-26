@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
+import { AnatomyScene, BASELINE_INSTANT, ribTiltMm } from '../anatomy/scene';
 import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
@@ -14,7 +14,7 @@ import {
   skinSoftness,
   type ProbePose,
 } from '../probe/probe';
-import { chestView, scanLine } from './support/chestView';
+import { chestView, hasRib, intercostalZ, ribOf, scanLine } from './support/chestView';
 
 /**
  * Lo que lus-sim cambia de la sonda de VExUS (decisión 10): la pose por omisión en el punto BLUE superior
@@ -43,6 +43,21 @@ describe('pose por omisión: el punto BLUE superior derecho aproximado', () => {
     expect(scene.classify(v.material(pointOnLine(v.contact.frame, CONVEX_C35, 0, D + 5)), BASELINE_INSTANT).tissue).toBe(Tissue.Lung);
     expect(scene.classify(v.material(pointOnLine(v.contact.frame, CONVEX_C35, 0, D - 5)), BASELINE_INSTANT).tissue).toBe(Tissue.Muscle);
     expect(skinSoftness(p)).toBeCloseTo(0.15, 12);
+  });
+
+  it('la altura de la pose es el EIC2 de la línea medioclavicular con la ley costal de la escena (a ≤ 0,5 mm)', () => {
+    // Con las costillas 2.ª y 3.ª en la escena (paso C), su espacio real; hoy, el extrapolado con la ley de sdRib
+    // (extremo anterior + ribTiltMm·(0,5 − 0,5·sen φ)) y los extremos anteriores 20 mm por costilla hacia arriba,
+    // el paso de la 5.ª a la 6.ª. Con la ley sin el término de la subida (z = 90) la sonda caía sobre la 3.ª
+    const phi = defaultPose().phi;
+    let eic2: number;
+    if (hasRib(scene, 2) && hasRib(scene, 3)) eic2 = intercostalZ(scene, 2, phi);
+    else {
+      const step = ribOf(scene, 5).zAnterior - ribOf(scene, 6).zAnterior;
+      const z = (n: number) => ribOf(scene, 5).zAnterior + step * (5 - n) + ribTiltMm(n) * (0.5 - 0.5 * Math.sin(phi));
+      eic2 = 0.5 * (z(2) + z(3));
+    }
+    expect(Math.abs(defaultPose().z - eic2)).toBeLessThanOrEqual(0.5);
   });
 
   it('el contacto por omisión apoya toda la cara (ninguna línea sin acoplar en el punto BLUE)', () => {

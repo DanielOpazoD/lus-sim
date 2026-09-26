@@ -176,8 +176,8 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
 describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda intercostales', () => {
   // Corte longitudinal centrado en el EIC5 de la línea axilar media (entre la 5.ª y la 6.ª costillas de la
   // escena): el primero en que hay costillas a los dos lados de la línea central. En el punto BLUE superior
-  // (EIC2) solo asoma, en el borde caudal del sector, la sombra de la 5.ª costilla (de −34° a −26,5°, cresta
-  // a 18,4 mm): no hay signo del murciélago (`ribs-5-10-only`). Medido (26-09-2026): pleura 28,0 mm; línea
+  // (EIC2) solo asoma, en el borde caudal del sector, la sombra de la 5.ª costilla (de −34° a −31,2°, cresta
+  // a 18,9 mm): no hay signo del murciélago (`ribs-5-10-only`). Medido (26-09-2026): pleura 28,0 mm; línea
   // pleural 7,0 mm bajo la línea costal; sombras de 14,8 y 14,8 mm; EIC visible de 6,6 mm; periodo 21,3 mm;
   // banda de músculo entre la línea costal y la pleura de 5,0 mm (anterior, EIC5-LMC: 7,2; posterior,
   // EIC7 a 1,2π: 6,1), la misma en inspiración profunda.

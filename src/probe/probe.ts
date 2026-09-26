@@ -190,16 +190,17 @@ export const BLUE_UPPER_POSE = defineParameters('probe.blueUpperPose', {
       '(cartilageFromPhi = π/4, decisión 62 de VExUS), φ = π/2 + π/4. Calibrar con la regla de las manos y la antropometría de la mano',
   },
   z: {
-    value: 90,
+    value: 97,
     unit: 'mm',
-    range: [70, 110],
+    range: [77, 116],
     evidence: 'extrapolacion',
     sources: ['lichtenstein-bluepoints-2011'],
     note:
-      'EIC2: extrapolación de las costillas de VExUS (5.ª, 6.ª y 7.ª a 40, 20 y 0 mm del xifoides en su extremo ' +
-      'anterior, 20 mm por costilla): la 2.ª y la 3.ª quedarían a 100 y 80 mm y el EIC2 entre ellas, a 90; el ' +
-      'rango va del EIC3 (70) al EIC1 (110). La escena heredada no tiene costillas por encima de la 5.ª ' +
-      '(ribs-5-10-only). Calibrar en el paso C con las costillas 2–4',
+      'EIC2 en la línea medioclavicular con la ley costal de la escena (la de sdRib): z = zAnterior + ' +
+      'ribTiltMm(n)·(0,5 − 0,5·sen φ), con φ = 3π/4 (factor 0,146) y los extremos anteriores de VExUS extrapolados ' +
+      '20 mm por costilla hacia arriba (5.ª a 7.ª a 40, 20 y 0 mm). La 2.ª queda a 100 + 42·0,146 = 106,1 mm y la ' +
+      '3.ª a 80 + 48·0,146 = 87,0: el EIC2, a 96,6. El rango va del EIC3 (77,5) al EIC1 (115,7). La escena heredada ' +
+      'no tiene costillas por encima de la 5.ª (ribs-5-10-only): calibrar en el paso C con las costillas 2–4',
   },
 });
 
