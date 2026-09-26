@@ -55,6 +55,28 @@ Commit fijado `52354d5` (main de vexus-sim, 26-09-2026, v0.5.0 + tren de fidelid
 | `CONTRIBUTING.md`                     | `vexus-sim@52354d5:CONTRIBUTING.md`                     | adaptado | Reglas y ámbitos de lus-sim                                                                       |
 | `CLAUDE.md`                           | `vexus-sim@52354d5:CLAUDE.md`                           | adaptado | Reglas de lus-sim: nada pintado, procedencia, datos, máquina compartida                           |
 
+### Motor de imagen en TypeScript (fase 1, paso A, decisión 10)
+
+Lo que forma la imagen del tórax sin la GPU: fisiología recortada, anatomía del tórax, sonda y física de la
+imagen. El renderizador, los shaders y la app llegan en el paso B.
+
+| Archivo                          | Origen                                             | Estado   | Cambios                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/physiology/patientState.ts` | `vexus-sim@52354d5:src/physiology/patientState.ts` | adaptado | Núcleo del paciente (id, semilla, ritmo, respiración, PEEP, hábito; `atrialFunction` porque la lee el ritmo, `intraAbdominalPressureMmHg` porque la lee la respiración) sin hemodinámica derecha ni hígado; `defaultPatient()` con el núcleo de `NORMAL_ADULT` de VExUS (5 mmHg intraabdominales); validación de los campos que quedan |
+| `src/physiology/respiratory.ts`  | `vexus-sim@52354d5:src/physiology/respiratory.ts`  | idéntico | —                                                                                                                                                                                                                                                                                                                                      |
+| `src/physiology/rhythm.ts`       | `vexus-sim@52354d5:src/physiology/rhythm.ts`       | idéntico | —                                                                                                                                                                                                                                                                                                                                      |
+| `src/physiology/engine.ts`       | `vexus-sim@52354d5:src/physiology/engine.ts`       | adaptado | Reloj → respiración → muestra → guarda NaN → historial, sin red venosa, aurícula derecha ni velocidades por vaso: `PhysiologySample` es el núcleo (t, ECG, latido, respiración) y el constructor ya no recibe las áreas de los vasos                                                                                                   |
+
+### Pruebas y gemelos del motor (fase 1, paso A)
+
+Se porta el arnés, no las cifras de la escena abdominal (decisión 10): las pruebas adaptadas miden la escena del
+tórax o fijan invariantes.
+
+| Archivo                                  | Origen                                                     | Estado   | Cambios                                                                                                                                                                      |
+| ---------------------------------------- | ---------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/validation/physiologyUnits.test.ts` | `vexus-sim@52354d5:src/validation/physiologyUnits.test.ts` | adaptado | Ritmo y respiración con `defaultPatient`; sin red venosa ni ventanas del Doppler; guarda NaN envenenando la respiración; paciente núcleo, `advanceRealTime` y `beatsBetween` |
+| `src/validation/properties.test.ts`      | `vexus-sim@52354d5:src/validation/properties.test.ts`      | adaptado | Propiedades del motor recortado sobre el dominio del paciente núcleo (cotas de la respiración y del ritmo) y determinismo por semilla                                        |
+
 ## Portado de EchoTwin
 
 Aún nada. Candidatos, con la fase en que se portarían (EchoTwin es público; rutas del origen):
