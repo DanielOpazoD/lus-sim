@@ -109,9 +109,12 @@ export class Simulator {
     this.pose = clampPose(p);
   }
 
-  /** Reconstruye el renderizador tras una pérdida de contexto GPU; el estado del paciente se conserva. */
+  /**
+   * Reconstruye el renderizador tras una pérdida de contexto GPU; el estado del paciente se conserva. lus-sim (decisión
+   * 13): sin `dispose()` del viejo: sus objetos murieron con el contexto perdido, y borrarlos en el restaurado daba ~90
+   * avisos «delete: object does not belong to this context» (lo halló la revisión).
+   */
   rebuildRenderer(canvas: HTMLCanvasElement): void {
-    this.renderer.dispose();
     this.renderer = new UltrasoundRenderer(canvas, this.scene, this.profile);
   }
 

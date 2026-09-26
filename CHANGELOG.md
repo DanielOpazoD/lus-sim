@@ -27,13 +27,18 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   WebGL2 con su grafo de pasadas, el cine y el modo M, la anatomía GLSL de la escena del tórax en el orden de
   clasificación de VExUS, el minificador y el renombrado del GLSL en el build, el equipo en modo B con el preajuste
   pulmonar del consenso de 2026 y la compensación nominal de la pared torácica, y los puntos de partida BLUE superior,
-  BLUE inferior y PLAPS derechos. Sin imagen a la vista todavía: la ve el banco de la e2e (`?e2e`).
+  BLUE inferior y PLAPS derechos.
 - e2e de la imagen (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL en el tórax (planos, volumen, caras, pleura de A0,
   normales y transmisión, en reposo y en inspiración), estadística de Rayleigh del moteado del músculo de la pared y
   líneas A en la envolvente de la GPU (su separación, y F-T01 frente a la línea pleural mostrada, con el fallo conocido
   de los órdenes 3 y 4), cada guarda comprobada con una mutación.
 - Limitación `pleura-echo-offset`: la serie de la pleura se dibuja 0,35 mm por encima de su cruce y las líneas A de
   orden 3 y 4 no cumplen F-T01 frente a la línea pleural mostrada (+0,56…+1,13 mm); la prueba exige el fallo.
+- Fase 1, paso B2b: la aplicación con una interfaz mínima del modo B (13): la imagen del tórax a la vista con la
+  sonda libre (ratón, trackpad, teclado y táctil), los puntos de partida BLUE superior, BLUE inferior y PLAPS, la
+  consola (imagen, sonda, respiración y avanzado), el HUD, los atajos, congelar con el cine, el informe técnico exportable, la
+  recuperación de la pérdida del contexto WebGL y el aviso de que no es un dispositivo médico.
+- e2e de humo de la aplicación (`e2e/smoke.spec.ts`) y pruebas de la interfaz sin DOM, cada guarda con su mutación.
 
 ### Cambiado
 
@@ -43,6 +48,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   presupuesto del bundle deja fuera del total los chunks de solo pruebas; `CONTRIBUTING.md` remite a la misión.
 - El presupuesto del chunk principal sube de 40 a 160 kB con la GPU portada (148,5 kB medidos) (12).
 - `no-sidelobes` lleva la doble cuenta de la reverberación de la pared medida en la GPU (12).
+- El presupuesto del chunk principal sube a 180 kB con la interfaz (172,5 kB medidos) (13).
+
+### Quitado
+
+- La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

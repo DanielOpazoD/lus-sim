@@ -528,3 +528,74 @@ distancia al borde del tejido no se comparaba y que la equivalencia solo se prob
 muerto (`uRespVel`, fuera), una guarda de las normales demasiado floja (0,98 → 0,9999), cifras de grises no
 reproducibles (ahora con su método y su rango), omisiones de procedencia y citas incompletas del punto BLUE inferior;
 todo está corregido o anotado arriba.
+
+## 13. Fase 1, paso B2b: la aplicación y una interfaz mínima del modo B
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** El paso B2a (decisión 12) deja la imagen del tórax formada en la GPU e igual a la de TypeScript, pero solo
+la ve el banco de la e2e. La interfaz de VExUS (`vexus-sim@8e83d9a`) es la de un simulador abdominal con Doppler:
+casos y modo alumno ciego, modos 2D, M, color, PW y tríplex, pestañas Doppler, Medir y Docente, audio, cine, franja M,
+un navegador 3D con three.js (≈ 560 kB, con las mallas del hígado, los vasos y el riñón) y un corte calculado en un
+Worker. La hoja de ruta cierra la fase 1 con una imagen que un clínico reconozca (línea pleural, líneas A, sombra
+costal y deslizamiento) y la sonda libre.
+
+**Opciones.** (a) Portar la interfaz entera y esconder lo abdominal: código muerto y un navegador 3D sin mallas del
+tórax. (b) Portar lo mínimo para explorar en modo B: el lienzo, la entrada de la sonda (ratón, trackpad, teclado y
+táctil), los mandos del equipo, el HUD, los atajos, la pérdida del contexto WebGL, el aviso y la raíz de composición;
+lo demás, cuando llegue lo que lo necesita. (c) Una interfaz nueva: pierde la unión barata (decisión 1).
+
+**Decisión.** (b) (`docs/PROVENANCE.md`, sección del paso B2b). Idénticos: la animación hacia un punto de partida, el
+presupuesto de errores del bucle, la entrada de la sonda, las fábricas de controles, los plegables, el aviso, la
+pérdida de GPU y el cine al congelar (decisión 80 de VExUS: el deslizador, ← → y la rueda recorren los cuadros
+guardados, y el HUD dice los ajustes del cuadro que se ve). Adaptados: la raíz de composición (`src/main.ts`), `index.html` y la hoja de estilos sin la marca ni
+lo abdominal; la sesión sin casos (el paciente por omisión y «Reiniciar paciente»); el estado de la UI (la
+congelación); el informe técnico exportable (`lus-diagnostico/1`); el HUD, los atajos (Espacio, [ ], − +), la
+superposición (regla de profundidad, marcador y foco), la consola de una pestaña (imagen, sonda, respiración y
+avanzado, con la TGC de 8 bandas) y las tarjetas de los puntos de partida BLUE. La aplicación arranca en el punto BLUE
+superior con el preajuste pulmonar; con `?e2e` expone los ganchos sobre su simulador vivo, y el banco oculto del
+paso B2a desaparece. Con la imagen congelada nada mueve la sonda (ni el ratón ni sus deslizadores, las tarjetas o la
+animación hacia un punto de partida), y si se reinicia el paciente o se recupera la GPU la imagen congelada, que era
+del simulador o del renderizador anterior, deja paso a la imagen en vivo con un aviso. Sin la pestaña Docente de
+VExUS, el registro de errores va también a la consola, donde la e2e lo vigila. En un teléfono las columnas se apilan.
+No se portan: los casos, el Doppler, el audio, el modo M (la franja sigue en el renderizador:
+el modo M pulmonar es de la fase 2), la medición, el modo docente, el navegador 3D y el corte. Nueva
+limitación `ui-minimal`; `no-image-yet` se borra en este cambio.
+
+**Consecuencias.**
+
+- Primera imagen a la vista (capturas con GPU real en la descripción de la PR, fuera del repo): en el punto BLUE superior,
+  la pared en capas, la línea pleural a 2,5 cm y las líneas A a 5, 7,5 y 10 cm, sin costillas (`ribs-5-10-only`); en el
+  BLUE inferior y el PLAPS, las corticales costales con su sombra y la línea pleural entre ellas (el signo del
+  murciélago). El deslizamiento se ve en un modo M hecho con la columna central de la imagen cuadro a cuadro: bajo la
+  pleura el patrón cambia con cada ciclo respiratorio y en apnea queda en líneas horizontales, como la pared.
+- 60 cuadros/s con GPU real (Apple M4) a 1280 × 800. El chunk principal sube de 148,4 a 172,5 kB (la interfaz, ≈ 23 kB)
+  y su presupuesto, de 160 a 180 kB; la hoja de estilos va aparte (9,4 kB).
+- El alumno mueve la sonda sin ver el tórax: los puntos de partida la dejan cerca de cada ventana (guía §7) y el HUD y
+  la consola dicen la pose, la profundidad y el acoplamiento; las tarjetas dicen el lugar, no el hallazgo, que sale del
+  paciente (guía §5). El navegador 3D necesita las mallas del tórax (paso C o fase 3); el modo M y la medición, sus
+  observables (fase 2).
+- Mejoras que se ofrecen al origen: el HUD con los ajustes del cuadro mostrado, la congelación que bloquea todos los
+  caminos de la sonda, la recuperación de la GPU sin los ~90 avisos de WebGL, las teclas con modificador y Espacio
+  sobre un botón fuera de los atajos, y `role=alert` en el aviso.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde. El humo (`e2e/smoke.spec.ts`) mira la imagen en la pantalla
+(una captura del lienzo, no un búfer de la GPU) y comprueba el arranque con la línea pleural y el aviso, los mandos por
+teclado y consola con el HUD, congelar (el reloj se detiene; el cine dibuja cuadros anteriores; el HUD dice los del
+cuadro que se ve, también dos cuadros después de cambiar la profundidad; cambiar el tamaño de la ventana no deja el
+lienzo negro; la sonda no se mueve ni arrastrando ni con sus mandos ni con una tarjeta), la sonda por arrastre y por
+una tarjeta, «Reiniciar paciente» y el informe técnico, y la pérdida del contexto WebGL con la imagen congelada; un
+error del registro o un aviso de WebGL inválido en la consola la hacen fallar. Cada prueba se comprobó con una
+mutación que la hace fallar: la GPU que no se reconstruye tras la pérdida, la presentación que no llega al lienzo
+(máximo 183 de gris: el HUD), la presentación 57 dB más oscura, el atajo ] sin efecto, la congelación que no llega al
+simulador, el cine que no dibuja, el HUD con los ajustes del equipo, la sonda sin sus dos guardas de la congelación,
+las tarjetas sin bloquear, la tarjeta que no anima la sonda, un error en el bucle y la recuperación que deja la imagen
+congelada. Las unitarias (`src/validation/controllers.test.ts`, `src/validation/startPointCards.test.ts`,
+`src/validation/uiInput.test.ts`) prueban el HUD, el informe, las tarjetas, el estado de la UI, la animación, los
+atajos (con modificadores, Espacio sobre un botón y un campo de texto) y la entrada de la sonda sin DOM (también un
+arrastre empezado antes de congelar). Revisión adversarial de contexto limpio: halló que el humo miraba un búfer de la
+GPU y no la pantalla, que la prueba del cine pasaba sin que el cine dibujara y la del HUD antes de que se repintara,
+que con la imagen congelada los deslizadores, las tarjetas y la animación movían la sonda, que perder la GPU o
+reiniciar el paciente con la imagen congelada dejaba el lienzo negro, que los errores del bucle no se veían, los
+avisos de WebGL al recuperar la GPU, los atajos con modificadores, el diseño de teléfono, los rótulos que prometían
+hallazgos y omisiones de procedencia; todo está corregido o anotado arriba.
