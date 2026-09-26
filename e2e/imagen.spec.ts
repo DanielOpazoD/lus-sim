@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: el banco de la e2e
- * (`/?e2e=1`) monta el simulador sin mostrarlo y expone los ganchos (`window.__lusTest`). La anatomía existe dos veces,
+ * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: con `/?e2e=1` la
+ * aplicación expone los ganchos de prueba (`window.__lusTest`) sobre su simulador vivo. La anatomía existe dos veces,
  * en TypeScript (pruebas, medidas) y en GLSL (la imagen): aquí se exige que coincidan en el tórax y que la imagen de la
  * GPU tenga el moteado y las líneas A que dice la física.
  */

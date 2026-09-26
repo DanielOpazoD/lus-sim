@@ -73,6 +73,7 @@ export default defineConfig({
         'src/ultrasound/shaders/**',
         'src/app/devtools.ts',
         'src/app/testHooks.ts', // ganchos de la e2e (la ejecuta Playwright)
+        'src/app/session.ts', // construye el Simulator sobre un canvas WebGL: lo cubre la e2e (como en VExUS)
       ],
       reporter: ['text-summary', 'html', 'json-summary'],
       // Umbrales: solo pueden subir. Medidos con todos los niveles.

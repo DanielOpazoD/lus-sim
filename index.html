@@ -5,9 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Simulador de ecografía pulmonar en navegador. Uso educativo; no es un dispositivo médico." />
     <title>lus-sim · Simulador de ecografía pulmonar</title>
+    <link rel="stylesheet" href="/src/app/styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app" class="app">
+      <header class="topbar">
+        <h1 class="title">lus-sim</h1>
+        <span id="live-chip" class="chip live">LIVE</span>
+        <span class="spacer"></span>
+        <span id="build-info" class="build-info" title="Versión y commit" data-testid="build"></span>
+      </header>
+
+      <aside class="left" aria-label="Puntos de partida y ayuda">
+        <section class="rail-block windows-block" aria-labelledby="windows-title">
+          <div class="rail-head">
+            <h2 class="rail-title" id="windows-title">Puntos de partida</h2>
+            <button id="nav-help" class="icon-btn" title="Cómo mover la sonda" aria-label="Cómo mover la sonda">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 17h.01" />
+              </svg>
+            </button>
+          </div>
+          <div id="nav-help-pop" class="menu popover" role="region" aria-label="Cómo mover la sonda" hidden>
+            <h3>En la imagen</h3>
+            <dl>
+              <dt>Arrastrar</dt>
+              <dd>deslizar</dd>
+              <dt>Botón derecho o <kbd>⌥</kbd></dt>
+              <dd>bascular/inclinar</dd>
+              <dt>Rueda · <kbd>⇧</kbd> + rueda</dt>
+              <dd>rotar · presión</dd>
+              <dt>Un dedo · dos dedos</dt>
+              <dd>deslizar · bascular/inclinar</dd>
+            </dl>
+            <h3>Teclado</h3>
+            <ul class="keys">
+              <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> deslizar</li>
+              <li><kbd>Q</kbd><kbd>E</kbd> rotar</li>
+              <li><kbd>←</kbd><kbd>→</kbd> bascular</li>
+              <li><kbd>↑</kbd><kbd>↓</kbd> inclinar</li>
+              <li><kbd>R</kbd><kbd>F</kbd> presión</li>
+              <li><kbd>⇧</kbd> fino</li>
+              <li><kbd>[</kbd><kbd>]</kbd> profundidad</li>
+              <li><kbd>−</kbd><kbd>+</kbd> ganancia</li>
+              <li><kbd>Espacio</kbd> congelar</li>
+            </ul>
+          </div>
+          <div id="start-points" class="windows" role="group" aria-labelledby="windows-title"></div>
+        </section>
+      </aside>
+
+      <main class="center">
+        <div class="display-wrap" id="sector-wrap">
+          <canvas id="gl" role="img" aria-label="Imagen ecográfica en modo B"></canvas>
+          <canvas id="overlay"></canvas>
+          <div class="img-hud">
+            <div class="hud-tl" id="hud-tl"></div>
+            <div class="hud-tr" id="hud-tr"></div>
+            <div class="hud-br" id="hud-br"></div>
+          </div>
+          <div class="disclaimer">
+            Simulador educativo con un paciente sintético. No es un dispositivo médico: no utilizar para diagnóstico ni para decisiones
+            clínicas.
+          </div>
+        </div>
+      </main>
+
+      <aside class="right" id="panel" aria-label="Consola"></aside>
+
+      <footer class="modebar" role="toolbar" aria-label="Equipo">
+        <span class="spacer"></span>
+        <button id="diagnostics" class="secondary" title="Descargar el diagnóstico técnico (sin datos del usuario)">Diagnóstico</button>
+        <button id="freeze" class="secondary" title="Congelar la imagen (Espacio)" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" />
+            <path d="m9.5 4.5 2.5 2 2.5-2M9.5 19.5l2.5-2 2.5 2" />
+          </svg>
+          Congelar
+        </button>
+        <span id="status" class="modebar-status" aria-live="off"></span>
+      </footer>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

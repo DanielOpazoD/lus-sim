@@ -1,0 +1,112 @@
+import type { RespiratoryPattern } from '../../physiology/patientState';
+import { button, note, row, slider } from '../controls';
+import type { PanelContext } from './context';
+import { buildImageAdvanced, buildImageBasics, IMAGE_ADVANCED_INFO } from './imageControls';
+
+/**
+ * Pestaña Adquirir: lo que se toca mientras se busca y se sostiene la ventana — la imagen (profundidad,
+ * ganancia, foco), la sonda (ángulos y presión) y la respiración —, con los mandos avanzados de la imagen
+ * plegados. Las ventanas (puntos de partida) están en el carril izquierdo.
+ *
+ * lus-sim (decisión 13): sin la sección del modo M ni el rótulo del caso (aún no hay casos: el paciente sintético por
+ * omisión); «Reiniciar paciente» está en la sección de la respiración (en VExUS, en la pestaña Docente).
+ */
+export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, onResetPatient: () => void): void {
+  const s = ctx.sim;
+  buildImageBasics(ctx, ctx.section(p, 'Imagen', { info: 'También con el teclado: [ ] profundidad · − + ganancia.' }));
+
+  const probe = ctx.section(p, 'Sonda', {
+    info: 'Arrastra sobre la imagen para mover la sonda; los deslizadores la afinan. Teclado: W A S D deslizar · Q E rotar · ← → bascular · ↑ ↓ inclinar · R F presión · ⇧ fino.',
+  });
+  const deg = (v: number) => `${v.toFixed(0)}°`;
+  ctx.track(
+    slider(
+      probe,
+      {
+        label: 'Rotación',
+        min: -180,
+        max: 180,
+        step: 1,
+        get: () => (s().pose.yaw * 180) / Math.PI,
+        set: (v) => s().setPose({ ...s().pose, yaw: (v * Math.PI) / 180 }),
+        format: deg,
+      },
+      () => undefined,
+    ),
+  );
+  ctx.track(
+    slider(
+      probe,
+      {
+        label: 'Inclinación',
+        min: -40,
+        max: 40,
+        step: 1,
+        get: () => (s().pose.tilt * 180) / Math.PI,
+        set: (v) => s().setPose({ ...s().pose, tilt: (v * Math.PI) / 180 }),
+        format: deg,
+      },
+      () => undefined,
+    ),
+  );
+  ctx.track(
+    slider(
+      probe,
+      {
+        label: 'Basculación',
+        min: -40,
+        max: 40,
+        step: 1,
+        get: () => (s().pose.rock * 180) / Math.PI,
+        set: (v) => s().setPose({ ...s().pose, rock: (v * Math.PI) / 180 }),
+        format: deg,
+      },
+      () => undefined,
+    ),
+  );
+  ctx.track(
+    slider(
+      probe,
+      {
+        label: 'Presión',
+        min: -6,
+        max: 12,
+        step: 0.5,
+        get: () => -s().pose.lift,
+        set: (v) => s().setPose({ ...s().pose, lift: -v }),
+        format: (v) => `${v.toFixed(1)} mm`,
+      },
+      () => undefined,
+    ),
+  );
+  const pos = note(probe);
+  ctx.track({
+    sync: () =>
+      (pos.textContent = `φ ${((s().pose.phi * 180) / Math.PI).toFixed(0)}° · z ${(s().pose.z / 10).toFixed(1)} cm · acoplamiento ${(s().renderer.meanCoupling() * 100).toFixed(0)} %`),
+  });
+  ctx.track(button(row(probe), 'Reiniciar sonda', () => s().setPose({ ...s().pose, yaw: 0, rock: 0, tilt: 0, lift: 0 })));
+
+  const resp = ctx.section(p, 'Respiración', {
+    info: 'La maniobra cambia presiones y movimiento; no reinicia el ciclo cardíaco. En apnea no hay deslizamiento.',
+  });
+  const info = note(resp);
+  ctx.track({
+    sync: () => (info.textContent = `Paciente sintético · FC ${s().patient.heartRateBpm} lpm · resp ${s().patient.respiratoryRateMin}/min`),
+  });
+  ctx
+    .segmented<RespiratoryPattern>(
+      resp,
+      [
+        ['quiet', 'Tranquila'],
+        ['deep', 'Profunda'],
+        ['apnea-expiratory', 'Apnea espiratoria'],
+        ['apnea-inspiratory', 'Apnea inspiratoria'],
+      ],
+      () => s().patient.respiratoryPattern,
+      (v) => (s().patient.respiratoryPattern = v),
+    )
+    .classList.add('grid2');
+  ctx.track(button(row(resp), 'Reiniciar paciente', onResetPatient));
+
+  buildImageAdvanced(ctx, ctx.section(p, 'Avanzado', { collapsed: true, info: IMAGE_ADVANCED_INFO }));
+}

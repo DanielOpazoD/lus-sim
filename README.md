@@ -20,11 +20,12 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 ## Estado (v0.1.0, fase 0 cerrada)
 
 Cimientos terminados: repositorio, integración continua, misión y objetivos, documentos rectores,
-base de conocimiento verificada y guardas automáticas. Todavía no hay imagen a la vista (`no-image-yet`); la primera
-llega en la fase 1 con el motor portado de VExUS (`docs/ROADMAP.md`), en tres pasos (decisión 10). Sin publicar: el
-paso A porta la física en TypeScript, el B1 la pone al día con el main de VExUS (decisión 11) y el B2a forma la imagen
-del tórax en la GPU, igual a la de TypeScript y comprobada en la e2e (decisión 12); el B2b la mostrará con la
-interfaz.
+base de conocimiento verificada y guardas automáticas. La fase 1 porta el motor de VExUS en tres pasos (decisión 10;
+`docs/ROADMAP.md`). Sin publicar: el paso A porta la física en TypeScript, el B1 la pone al día con el main de VExUS
+(decisión 11), el B2a forma la imagen del tórax en la GPU, igual a la de TypeScript y comprobada en la e2e
+(decisión 12), y el B2b la muestra con una interfaz mínima del modo B (decisión 13): la primera imagen, con la
+línea pleural, las líneas A, la sombra costal y el deslizamiento. La interfaz es mínima (`ui-minimal`) y la
+anatomía todavía es la del abdomen de VExUS (paso C).
 
 Ya existe:
 
@@ -40,6 +41,8 @@ Ya existe:
 - (fase 1, paso B2a) la formación de imagen en la GPU (`src/ultrasound/renderer.ts`) con la anatomía GLSL del tórax
   (`src/anatomy/gpu/anatomy.glsl.ts`) y el preajuste pulmonar (`src/ultrasound/lungPreset.ts`), probada en la e2e
   (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL, moteado de Rayleigh y líneas A a múltiplos de la pleura;
+- (fase 1, paso B2b) la aplicación (`src/main.ts`): la imagen a la vista con la sonda libre, los puntos de partida
+  BLUE, la consola del equipo, el HUD y la recuperación de la pérdida del contexto WebGL (`e2e/smoke.spec.ts`);
 - las guardas: capas (`src/validation/layers.test.ts`), documentación y bibliografía
   (`src/validation/docs.test.ts`), evidencia (`src/validation/evidence.test.ts`) y procedencia del código
   portado (`src/validation/provenance.test.ts`, `tools/provenance/drift.ts`).

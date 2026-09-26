@@ -7,11 +7,10 @@ conservan su identificador (decisiones 10 y 11).
 
 ## Estado del proyecto
 
-- **Todavía no hay imagen a la vista** (`no-image-yet`): la fase 1 porta el motor de VExUS en tres pasos
-  (decisión 10). El paso A deja la física en TypeScript; el B2a (decisión 12), la formación de imagen en la GPU,
-  que hoy solo ve el banco de la e2e (`?e2e`): la página no muestra imagen hasta que el paso B2b traiga la
-  interfaz (decisión 13). La anatomía del tórax con las dimensiones de la base llega en el paso C
-  (`docs/ROADMAP.md`).
+- **La interfaz es mínima** (`ui-minimal`, decisión 13): solo el modo B con un paciente sintético (el adulto sano
+  por omisión), sin casos, modo M, cine a la vista, medición, modo docente ni navegador 3D; la sonda se mueve sin
+  ver el tórax (los puntos de partida la llevan cerca de cada ventana). La anatomía del tórax con las dimensiones de
+  la base llega en el paso C (`docs/ROADMAP.md`).
 
 ## Anatomía y fisiología
 
