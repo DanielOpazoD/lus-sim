@@ -9,6 +9,7 @@ import {
 } from '../anatomy/interfaces';
 import { LUNG_CURTAIN, lungCurtainEdgeMm } from '../anatomy/organs/lungCurtain';
 import { AnatomyScene, type SceneInstant } from '../anatomy/scene';
+import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
 import { torsoNormal } from '../anatomy/primitives';
 import { TISSUES, Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { cross, normalize, type Vec3 } from '../core/vec3';
@@ -59,6 +60,7 @@ import {
   slidingField,
   slidingLattice,
 } from '../ultrasound/pleura';
+import { FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED, FRAG_TRANS_HITS, FRAG_TRANS_SEGMENTS } from '../ultrasound/shaders/passes.glsl';
 import { WALL_TEXTURE } from '../ultrasound/wallTexture';
 import {
   GAS_DB_PER_CM,
@@ -87,8 +89,8 @@ import { emptyGrid } from './support/segmentGrid';
  * lus-sim (decisión 10): el núcleo del pulmón de la imagen, portado idéntico (`pleura.ts`, `transmission.ts`),
  * con la escena del tórax. Las vistas de VExUS que se usan aquí son del tórax bajo (el 8.º espacio en la axilar
  * media, el flanco y la subcostal con el haz hacia la cúpula) y se conservan como poses de prueba (`LOWER_VIEWS`):
- * son las que tienen cortina y espejo del diafragma. Se quitan lo que comprueba los programas ensamblados de las
- * pasadas A y B (vuelve con la GPU en el paso B) y el banco de la cortina de `app/fidelity.ts`, que aún no se porta.
+ * son las que tienen cortina y espejo del diafragma. Lo que comprueba los programas ensamblados de las pasadas A y B
+ * volvió con la GPU (paso B2, decisión 12); el banco de la cortina de `app/fidelity.ts` aún no se porta (fase 2).
  */
 /**
  * Vistas del tórax bajo (las poses de los puntos de partida de VExUS vexus-sim@52354d5:src/app/startPoints.ts,
@@ -277,8 +279,14 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       expect(m.depth).toBeGreaterThanOrEqual(0);
       expect(m.depth).toBeLessThanOrEqual(D);
     }
-    // la GLSL: la pared remuestreada no dibuja el eco de la pleura parietal (el de la réplica, en los programas de
-    // la pasada B, vuelve con la GPU)
+    // la GLSL: el eco de la pleura parietal solo en la réplica (además de su #define); la pared remuestreada no
+    // lo dibuja
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
+      const code = src.replace(/\/\/.*$/gm, '');
+      // el #define, la coherencia de su reflexión especular (su fila de uIface) y el eco de la réplica
+      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(3);
+      expect(code.match(/interfaceProfileEcho\(IF_PLEURA_WALL, cosI, 1\.0, k \* (D|sD) - (r|s)\)/g)?.length).toBe(1);
+    }
     const wall = PLEURA_GLSL.slice(PLEURA_GLSL.indexOf('vec2 wallField('));
     expect(wall).not.toMatch(/IF_PLEURA_WALL|pleuraEcho/);
   });
@@ -329,6 +337,13 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       'float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }',
     );
     expect(PLEURA_GLSL).toContain('float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * PLEURA_RT * tD; }');
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
+      expect(src).toContain('float chi = pleuraCoherence(cosI);');
+      expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');
+      expect(src).toContain(
+        'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      );
+    }
   });
 
   it('la transmisión hasta la pleura se lee en la última fila de A sin gas (sin mezclar la pérdida del pulmón)', () => {
@@ -409,6 +424,9 @@ describe('borde blando de la cortina: fracción de aire del haz', () => {
     // si la cúpula toca la pared por debajo del borde de la cortina, el borde del pulmón es su inserción
     expect(lungCurtainEdgeMm(m, 0, 12)).toBeCloseTo(5 - 12, 9);
     expect(lungCurtainEdgeMm(m, 30, 12)).toBeCloseTo(5 - (LUNG_CURTAIN.z0 - 30), 9);
+    expect(ANATOMY_GLSL).toContain(
+      'return m.x <= uCurtain.z && m.y <= uCurtain.w ? m.z - min(uCurtain.x, domeHeight(m.x, m.y)) : m.z - domeHeight(m.x, m.y);',
+    );
     // fuera de la lámina, el borde es la inserción del diafragma
     expect(lungCurtainEdgeMm([-60, 90, 20], 30, 7)).toBeCloseTo(13, 9);
   });
@@ -418,6 +436,11 @@ describe('borde blando de la cortina: fracción de aire del haz', () => {
       'return normalCdf(dz / curtainEdgeSigmaMm(elevSigma(dRow) * 0.70710678, lateralSigmaMm(dRow), uElev.z, lat.z));',
     );
     expect(PLEURA_GLSL).toContain('return sqrt(se2 * se2 * ez * ez + sl * sl * lz * lz + CURTAIN_TAPER_MM * CURTAIN_TAPER_MM);');
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
+      expect(src).toContain('float wTissue = under ? 1.0 - fAir : 1.0;');
+      expect(src).toContain('out2 += air * (fAir * coupling);');
+      expect(src).toContain('out2 = tissue * wTissue;');
+    }
   });
 });
 
@@ -460,15 +483,26 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
     expect(other).toBeGreaterThan(5000);
   });
 
-  it('la GLSL de la pleura: el tejido a través del borde usa la variante sin la cortina y la pared copiada, la de classifyWall', () => {
+  it('la GLSL: classify es classifyWith(m, true) y la cortina solo se mira con withCurtain', () => {
+    expect(ANATOMY_GLSL).toContain('Cls classify(vec3 m) { return classifyWith(m, true); }');
+    expect(ANATOMY_GLSL).toMatch(/if \(withCurtain\) \{\n\s+float dCurtain = lungCurtainDistance\(m, -depth - wall\);/);
+    expect(ANATOMY_GLSL).toContain('float insideWallMm(vec3 m) { return -torsoDepth(m) - (uWall.x + uWall.y + uWall.z); }');
     // el tejido que se ve a través del borde y sus planos laterales usan la variante bajo la pleura (la muestra de
     // la imagen); la pared que copia la serie, el prefijo de la pared de classify (classifyWall: piel, costillas y
     // las capas de la decisión 62, sin órganos ni tubos), con el eco de cara plana de sus capas (wallFaceEchoFlat,
-    // sin faceGradient) y, pasada la cara interna, la capa más honda. El shader ensamblado vuelve en el paso B
+    // sin faceGradient) y, pasada la cara interna, la capa más honda
     expect(PLEURA_GLSL).toContain('Cls c = classifyWith(m, withCurtain);');
     expect(PLEURA_GLSL).toContain('vec2 f1 = sampleSide(p + uElev * se, se, c, withCurtain, w);');
+    expect(FRAG_RAWFIELD).toContain('vec2 tissue = wTissue >= CURTAIN_MIN_AIR ? mediumField(p, dir, r, elevSigma(r), !under) : vec2(0.0);');
+    expect(FRAG_RAWFIELD_STEERED).toContain('vec2 f1 = sampleSidePh(p + uElev * se, se, c, ph0, g, withCurtain, w);');
+    expect(FRAG_RAWFIELD_STEERED).toContain('tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w)');
+    expect(ANATOMY_GLSL).toContain('if (classifyWall(m, c, depth, tn)) return c;');
     expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn)) { c.tissue = T_FAT; c.n = tn; }');
     expect(PLEURA_GLSL).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
+    expect(FRAG_RAWFIELD).toContain('vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);');
+    expect(FRAG_RAWFIELD_STEERED).toContain(
+      'vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w)',
+    );
   });
 });
 
@@ -789,6 +823,10 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
       }
     }
     expect(grazingLines).toBeGreaterThanOrEqual(20);
+    // la misma regla en la GPU (A0)
+    expect(FRAG_TRANS_HITS).toContain(
+      `(curtainRun || (pleuraD >= 0.0 && float(s) * step <= pleuraD + ${CURTAIN_CONTIGUOUS_SEGMENTS.toFixed(1)} * step && inLungRecess(m, insideWallMm(m))));`,
+    );
   });
 
   // A0 en la GPU clasifica lo de detrás de la lámina solo en la lámina (una vuelta más del bucle con
@@ -855,6 +893,8 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
   });
 
   it('A1 marca el pulmón de la cortina con 3 y los gemelos de A2 no lo toman por un impacto de gas', () => {
+    expect(FRAG_TRANS_SEGMENTS).toContain('float curtainLast = floor(h2.w / 4.0) - 1.0;');
+    expect(FRAG_TRANS_SEGMENTS).toContain(`float lung = !reflected && float(s) <= curtainLast ? ${CURTAIN_GAS_KIND.toFixed(1)} : 1.0;`);
     expect(STEERED_PREFIX_GLSL).toContain('if (g.w > 0.5 && g.w < 2.5 && sGas < 0.0) { sGas = crossing ? sMirror : sRow; gasKind = g.w; }');
     // una línea con 3 segmentos de cortina bajo la pared y gas intestinal más hondo
     const grid = emptyGrid();
@@ -873,14 +913,52 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
     expect(pre.db).toBeCloseTo(3 * 6.75, 9);
   });
 
-  it('la pérdida de un segmento de A1: 60 dB/cm en el gas y 2·α(f)·paso en el tejido', () => {
+  it('la GLSL de A0 lleva la misma marcha que el gemelo', () => {
+    for (const line of [
+      'layout(location = 2) out vec4 h2;',
+      'float inside = insideWallMm(m);',
+      'if (inside >= 0.0 && prevInside < 0.0) {',
+      'if (insideWallMm(toMaterial(origin + dir0 * mid)) >= 0.0) hi = mid; else lo = mid;',
+      'float dz = lungCurtainEdgeMm(toMaterial(origin + dir0 * rp));',
+      `if (dz > -${CURTAIN_RECORD_MM.toFixed(1)}) { pleuraD = rp; pleuraDz = dz; }`,
+      'if (mirrorSeg < 0.0 && !crossed) {',
+      // una sola clasificación por vuelta: la de la cortina y, en la vuelta siguiente, la de detrás de la lámina
+      'Cls c = classifyWith(m, !behind);',
+      'curtainDb += lungDb - segmentDb(c.tissue, step);',
+      'lungDb = segmentDb(c.tissue, step);',
+      'if (!behind) s++;',
+      'behind = lungCurtainDistance(m, insideWallMm(m)) >= 0.0;',
+      'curtainLast = float(s);',
+      `curtainRun = c.tissue == T_LUNG && mirrorSeg < 0.0 && (curtainRun || (pleuraD >= 0.0 && float(s) * step <= pleuraD + ${CURTAIN_CONTIGUOUS_SEGMENTS.toFixed(1)} * step && inLungRecess(m, insideWallMm(m))));`,
+      `h2 = pleuraD >= 0.0 ? vec4(pleuraD, pleuraDz, curtainDb, ${CURTAIN_GAS_KIND.toFixed(1)} + 4.0 * (curtainLast + 1.0)) : vec4(-1.0, 0.0, 0.0, 0.0);`,
+    ])
+      expect(FRAG_TRANS_HITS, line).toContain(line);
     expect(dbOf(Tissue.Lung, 1.125)).toBeCloseTo(GAS_DB_PER_CM * 0.1125, 12);
     expect(dbOf(Tissue.Liver, 1.125)).toBeCloseTo(2 * attenuationDbPerCm(Tissue.Liver, fB) * 0.1125, 12);
   });
 });
 
 describe('la rama de la cortina de la pasada B (mirada 0)', () => {
-  it('las funciones compartidas son las del gemelo (los programas de B vuelven con la GPU en el paso B)', () => {
+  it('lleva las expresiones del gemelo: tope de la transmisión, réplicas, serie, deslizamiento y transmisión de detrás', () => {
+    for (const line of [
+      'vec4 h2 = texelFetch(uHits2, ivec2(tc.x, 0), 0);',
+      'float fAir = D > 0.0 ? curtainAirFraction(h2.y, D, dir0) : 0.0;',
+      'float rCap = pleuraCapMm(max(D, 0.0), uDepth / float(ts.y));',
+      'float tD = curtain ? texture(uTrans0, vec2(vUv.x, rCap / uDepth)).x : 0.0;',
+      'float tFree = min(t0.x, texture(uTrans2, vUv).x) * gain;',
+      'float T = (curtain ? (under ? min(tFree, tD) : texture(uTrans0, vec2(vUv.x, min(r, rCap) / uDepth)).x) : t0.x) * coupling;',
+      'float k = aLineOrder(r, D);',
+      'air += vec2(seriesPow(G, k - 1.0) * tD * interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, k * D - r), 0.0);',
+      'vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);',
+      'bool series = under && gn * tD * PLEURA_WALL_FIELD_BOUND * coupling > PLEURA_SERIES_FLOOR;',
+      'int nWall = series ? 2 : 0;',
+      'float d = j == 1 ? ser.y : ser.z;',
+      'float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;',
+      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;',
+    ])
+      expect(FRAG_RAWFIELD, line).toContain(line);
+    // y las funciones compartidas son las del gemelo
     for (const line of [
       'float pleuraCapMm(float D, float step) { return (max(ceil(D / step - 0.5) - 1.0, 0.0) + 0.5) * step; }',
       'return vec3(n, (n + 2.0) * D - s, s - (n + 1.0) * D);',

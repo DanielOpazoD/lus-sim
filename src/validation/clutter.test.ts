@@ -9,14 +9,12 @@ import {
   reverbGains,
   reverbGateWeight,
 } from '../ultrasound/clutter';
+import { FRAG_AXIAL, FRAG_LATERAL } from '../ultrasound/shaders/passes.glsl';
 
 /**
  * Ecos parásitos del modo fundamental (decisión 76): pedestal de lóbulos laterales con una pantalla de fase fija y
  * antisimétrica, y réplicas de reverberación de la pared que pagan su viaje extra por ella, iguales en TS (gemelos)
  * y en las pasadas C y D.
- *
- * lus-sim (decisión 11): idéntica salvo lo que comprueba los programas ensamblados de las pasadas C y D (vuelve con
- * la GPU en el paso B2); queda la tabla GLSL de la pantalla de fase, que es de `clutter.ts`, frente a la de TS.
  */
 type K = Array<[number, number]>;
 const energy = (w: K): number => w.reduce((a, [re, im]) => a + re * re + im * im, 0);
@@ -125,7 +123,17 @@ describe('Ecos parásitos del modo fundamental (decisión 76)', () => {
     expect(reverbGateWeight((CLUTTER.reverbGate[0] + CLUTTER.reverbGate[1]) / 2)).toBeCloseTo(0.5, 12);
   });
 
-  it('la tabla GLSL de la pantalla de fase es la de TS y el gemelo aplica el núcleo como producto complejo', () => {
+  it('las pasadas C y D llevan las mismas fórmulas, constantes y pantalla de fase', () => {
+    expect(FRAG_LATERAL).toContain(SIDELOBE_PHASE_GLSL);
+    expect(FRAG_LATERAL).toContain(`for (int k = -${R}; k <= ${R}; k++)`);
+    expect(FRAG_LATERAL).toContain('float amp = pedOn ? coupling * sqrt(uSidelobe.x * sm / sp) : 0.0;');
+    expect(FRAG_LATERAL).toContain('vec2 f = (accM + amp * accP) * inversesqrt(sm + amp * amp * sp + 2.0 * amp * cx);');
+    expect(FRAG_AXIAL).toContain(`smoothstep(${CLUTTER.reverbGate[0].toFixed(3)}, ${CLUTTER.reverbGate[1].toFixed(3)}, length(f1))`);
+    expect(FRAG_AXIAL).toContain('float tW = rep1 || rep2 ? texture(uTrans, vec2(vUv.x, uReverb.x * uTexel.y)).x : 0.0;');
+    // solo reverbera la pared: la fuente no pasa de su cara interna (uReverb.w = W + reverbSourceMarginMm)
+    expect(FRAG_AXIAL).toContain('row >= uReverb.x && row - uReverb.x <= uReverb.w');
+    expect(FRAG_AXIAL).toContain('row >= 2.0 * uReverb.x && row - 2.0 * uReverb.x <= uReverb.w');
+    expect(FRAG_AXIAL).toContain('oField = (acc + uReverb.y * tW * acc1 + uReverb.z * tW * tW * acc2) / sqrt(wsum);');
     // la tabla GLSL es la de TS con 7 decimales (la antisimetría sobrevive al redondeo)
     const nums = [...SIDELOBE_PHASE_GLSL.matchAll(/vec2\((-?[\d.]+), (-?[\d.]+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
     expect(nums).toHaveLength(2 * R + 1);

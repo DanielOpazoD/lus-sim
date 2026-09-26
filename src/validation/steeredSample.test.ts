@@ -3,9 +3,10 @@ import { add, cross, dot, length, normalize, scale, sub, type Vec3 } from '../co
 import { CONVEX_C35 } from '../probe/probe';
 import { CONVEX_BEAM, lateralSigmaMm } from '../ultrasound/beamModel';
 import { COMPOUND } from '../ultrasound/compound';
+import { FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED, FRAG_TRANSMISSION_STEERED, STEERED_FIELD_GLSL } from '../ultrasound/shaders/passes.glsl';
 import { lookCoverage, steeredSample, type SteeredSampleCell, type SteeredSampleImage } from '../ultrasound/steering';
+import { COARSE_DEPTH } from '../ultrasound/renderer';
 import { PLEURA_STEER_GUESS_MM, aLineOrder, pleuraCapMm, pleuraSeriesDepths } from '../ultrasound/pleura';
-import { GRID_GEOMETRY } from './support/segmentGrid';
 import { rng } from './syntheticSpeckle';
 
 /**
@@ -15,12 +16,7 @@ import { rng } from './syntheticSpeckle';
  * `STEERED_FIELD_GLSL`, el main del programa dirigido de B (`FRAG_RAWFIELD_STEERED`; la última prueba fija
  * las líneas del GLSL); aquí se comprueba contra la geometría del camino dirigido y, con θ = 0, contra las
  * fórmulas del programa de la mirada 0 (`FRAG_RAWFIELD`).
- *
- * lus-sim (decisión 10): el gemelo y su geometría, idénticos; las filas de la pasada A son las de la rejilla de
- * los gemelos (`GRID_GEOMETRY.rows`, el `COARSE_DEPTH` del renderizador de VExUS). Las pruebas que fijan las
- * líneas del GLSL de la pasada B (`STEERED_FIELD_GLSL` y los programas) vuelven con la GPU en el paso B.
  */
-const COARSE_DEPTH = GRID_GEOMETRY.rows;
 const deg = Math.PI / 180;
 const TH = COMPOUND.steerDeg * deg;
 const DEPTH = 180;
@@ -245,6 +241,57 @@ describe('rama dirigida de la pasada B: geometría (decisión 58)', () => {
     expect(cut).toBeGreaterThan(1000);
     expect(keptOutside).toBeGreaterThan(100);
   });
+
+  it('el GLSL lleva las mismas expresiones que el gemelo', () => {
+    for (const line of [
+      'float phiK = steeredElement(alpha, rho, uSteer.x, a);',
+      'float lineSpacing = rho * (2.0 * uHalfSector / (uLinesF - 1.0));',
+      'float reach = ceil(2.5 * max(0.35, lateralSigmaMm(r) / lineSpacing));',
+      'if ((abs(phiK) - uHalfSector) / (2.0 * uHalfSector / uLinesF) > 0.5 + reach) return vec2(0.0);',
+      'float s = alongLineMm(rho, a, uSteer.z);',
+      'float uK = (phiK + uHalfSector) / (2.0 * uHalfSector);',
+      'vec3 dirK = lineDir(alpha + steerBeta(rho, a));',
+      'float code = floor(t3.z / 4.0);',
+      'float gasKind = t3.z - 4.0 * code;',
+      'int ml = clamp(int(code) - 1, 0, ts.x - 1);',
+      'dRefl = normalize(texelFetch(uTrans1, ivec2(ml, ts.y - 1), 0).xyz);',
+      'dMirror = lineDir(lineTheta((float(ml) + 0.5) / uLinesF));',
+      'if (sMirror >= 0.0 && s > sMirror) {',
+      'p = uCurvC + uCurvR * lineDir(phiK) + dirK * sMirror + dir * (s - sMirror);',
+      'p = pointOnLine(lineDir(alpha), r);',
+      'tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w), gr.x * uLateral + gr.y * uAxial);',
+      'float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);',
+      'vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);',
+      'return field + vec2(interfaceEcho(c, m, dir, r, se, w), 0.0);',
+      'vec3 dn = dRefl - dMirror;',
+      'tissue += vec2(pleuraEcho(s - sMirror, dirK, ln > 1e-6 ? reflect(dirK, dn / ln) : dirK), 0.0);',
+      'if (sGas > 0.0 && s > sGas) {',
+      'float sg = max(sGas - dr, 0.0);',
+      'float rhoG = sqrt(uCurvR * uCurvR + sg * sg + 2.0 * sg * uSteer.z);',
+      'float alphaG = phiK + uSteer.x - steerBeta(rhoG, a);',
+      'float Tg = texture(uTrans3, vec2((alphaG + uHalfSector) / (2.0 * uHalfSector), (rhoG - uCurvR) / uDepth)).x * coupling;',
+      'float z = (s - float(k) * sGas) / 1.2;',
+      'scattererField(vec3(uK * 190.0, s * 0.9, 0.0), 0.6, uSeed + 3.0 + uLookSalt) * 0.3 * Tg * exp(-(s - sGas) / 40.0)',
+      'if (s < TRANSIENT_SKIP_MM)',
+      'scattererField(vec3(uK * 190.0, s * 3.0, 1.0), 0.8, uSeed + 7.0 + uLookSalt) * TRANSIENT_AMPLITUDE * uTransientGain * exp(-s / TRANSIENT_DECAY_MM) * coupling',
+      'float coupling = texture(uCoupling, vec2(uK, 0.5)).r;',
+    ])
+      expect(STEERED_FIELD_GLSL, line).toContain(line);
+    // la rama es el main del programa dirigido de B, y el de la mirada 0 no la lleva
+    expect(FRAG_RAWFIELD_STEERED).toContain(STEERED_FIELD_GLSL);
+    expect(FRAG_RAWFIELD_STEERED).toContain('void main() {\n  oField = steeredField();\n}');
+    expect(FRAG_RAWFIELD).not.toContain('steeredField');
+    // A empaqueta (en su programa dirigido) lo que B separa, y la mirada 0 conserva sus fórmulas
+    expect(FRAG_TRANSMISSION_STEERED).toContain('o3 = vec4(Tk, ps.y, px.x + 4.0 * (px.y + 1.0), ps.w);');
+    expect(FRAG_RAWFIELD).toContain('p = hp + dir * (r - mirrorHit);');
+    expect(FRAG_RAWFIELD).toContain('vec2 uvG = vec2(vUv.x, max(gasHit - dr, 0.0) / uDepth);');
+    expect(FRAG_RAWFIELD).toContain('float tg = texture(uTrans0, uvG).x;');
+    expect(FRAG_RAWFIELD).toContain(
+      'float Tg = (curtain && gasHit > D ? min(min(tg, texture(uTrans2, uvG).x) * gain, tD) : tg) * coupling;',
+    );
+    expect(FRAG_RAWFIELD).toContain('scattererField(vec3(vUv.x * 190.0, r * 0.9, 0.0), 0.6, uSeed + 3.0)');
+    expect(FRAG_RAWFIELD).toContain('scattererField(vec3(vUv.x * 190.0, r * 3.0, 1.0), 0.8, uSeed + 7.0)');
+  });
 });
 
 /**
@@ -364,5 +411,30 @@ describe('rama dirigida de la pasada B: pleura parietal y cortina (decisión 61)
       }
     }
     expect(found).toBeGreaterThan(10);
+  });
+
+  it('el GLSL lleva la misma pleura del camino que el gemelo', () => {
+    for (const line of [
+      'vec4 h = texelFetch(uHits2, ivec2(line0, 0), 0);',
+      'float dg = h.x >= 0.0 ? h.x : PLEURA_STEER_GUESS_MM;',
+      'float al = phiK + uSteer.x - steerBeta(uCurvR + dg, a);',
+      'int l = clamp(int(floor((al + uHalfSector) / (2.0 * uHalfSector) * uLinesF)), 0, int(uLinesF) - 1);',
+      'sD = h.x >= 0.0 ? alongLineMm(uCurvR + h.x, a, uSteer.z) : -1.0;',
+      'vec4 h2 = steeredPleura(phiK, a, tc.x, sD);',
+      'float fAir = sD > 0.0 ? curtainAirFraction(h2.y, h2.x, dirK) : 0.0;',
+      'float sCap = alongLineMm(uCurvR + pleuraCapMm(max(h2.x, 0.0), uDepth / float(ts.y)), a, uSteer.z);',
+      'float rho = sqrt(uCurvR * uCurvR + x * x + 2.0 * x * uSteer.z);',
+      'return texture(uTrans3, vec2((al + uHalfSector) / (2.0 * uHalfSector), (rho - uCurvR) / uDepth)).x;',
+      'vec3 pD = elem + dirK * max(sD, 0.0);',
+      'float k = aLineOrder(s, sD);',
+      'vec3 ser = under ? pleuraSeriesDepths(s, sD) : vec3(0.0);',
+      'float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);',
+      'float alJ = phiK + uSteer.x - steerBeta(rhoJ, a);',
+      'float td = steeredT(phiK, a, min(d, sCap));',
+      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      'float tFree = min(texture(uTrans3, vUv).x, texture(uTrans2, vUv).y) * gain;',
+      'air += slidingField(pD, s - sD, uLookSalt) * tD;',
+    ])
+      expect(STEERED_FIELD_GLSL, line).toContain(line);
   });
 });

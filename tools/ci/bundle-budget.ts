@@ -7,13 +7,18 @@
 // 2026-09-26 (origen 8e83d9a, decisión 11): como en VExUS, los chunks que un usuario nunca descarga (los ganchos
 // de prueba, `testHooks`, solo con `?e2e` o en desarrollo) salen del JS total y conservan su límite por chunk.
 // Aún no hay ninguno: llegan con la app en el paso B2. Los límites no cambian.
+// 2026-09-26 (paso B2a, decisión 12): la formación de imagen en la GPU portada de VExUS (renderizador, grafo de
+// pasadas, cine y modo M, el GLSL de las pasadas y de la anatomía del tórax, que viaja como texto en el chunk
+// principal tras quitarle comentarios y renombrarlo, y los módulos gemelos que usa en tiempo de ejecución) lleva
+// index de ≈ 2 a 148,5 kB (vite build sobre main a647cb1; VExUS, con el color, el Doppler, el hígado y el riñón,
+// ronda 300 kB). index sube a 160 kB; el paso B2b (la interfaz) lo vuelve a medir. `testHooks` mide 18,1 kB.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 40 * KB],
+  [/index-.*\.js$/, 160 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CLUTTER } from '../ultrasound/clutter';
 import {
   INTERFACES,
   INTERFACE_COUNT,
@@ -27,6 +28,7 @@ import {
   reflectionCosine,
   roughnessCoherence,
 } from '../ultrasound/interfaceEcho';
+import { FRAG_AXIAL, FRAG_LATERAL, FRAG_RAWFIELD, LATERAL_PSF_GLSL } from '../ultrasound/shaders/passes.glsl';
 import { scattererField } from '../ultrasound/speckleField';
 
 /**
@@ -34,8 +36,8 @@ import { scattererField } from '../ultrasound/speckleField';
  * una línea 1D con el moteado del repositorio y el pulso de la pasada C. El gemelo B→C→D completo, con
  * las escenas y las métricas del banco, está en `interfaceTwin.test.ts` (lento).
  *
- * lus-sim (decisión 10): sin la cara de la luz de cada vaso (el tórax portado no tiene vasos) ni lo que
- * comprueba los programas ensamblados de las pasadas B, C y D (vuelve con la GPU en el paso B).
+ * lus-sim (decisiones 10 y 12): sin la cara de la luz de cada vaso (el tórax portado no tiene vasos); lo que comprueba
+ * los programas ensamblados de las pasadas B, C y D volvió con la GPU (paso B2).
  */
 const K0 = (2 * Math.PI) / CONVEX_BEAM.lambdaMm;
 const db = (x: number) => 20 * Math.log10(x);
@@ -286,7 +288,17 @@ describe('Uniforms y GLSL del eco de interfaz', () => {
     expect(INTERFACE_ECHO_GLSL).toContain(`#define IFACE_REACH ${IFACE_REACH_MM.toFixed(4)}`);
     // ningún identificador TS suelto en la GLSL
     expect(INTERFACE_ECHO_GLSL.replace(/\/\/.*$/gm, '')).not.toMatch(/\bINTERFACE_COUNT\b|\bIFACE_[A-Z_]+_MM\b/);
-    // sin el término especular de antes
-    expect(INTERFACE_ECHO_GLSL).not.toMatch(/uSpecGain|pow\(cosI, 4\.0\)/);
+    expect(FRAG_RAWFIELD).toContain(INTERFACE_ECHO_GLSL);
+    expect(FRAG_RAWFIELD).toContain(LATERAL_PSF_GLSL);
+    expect(FRAG_LATERAL).toContain(LATERAL_PSF_GLSL);
+    // la muestra de la imagen (decisión 61: `mediumField`, una vez y fuera de bucles)
+    expect(FRAG_RAWFIELD).toContain('return field + vec2(interfaceEcho(c, m, dir, r, se, w), 0.0);');
+    expect(FRAG_RAWFIELD).not.toMatch(/uSpecGain|pow\(cosI, 4\.0\)/);
+    // β se midió con estas pasadas C y D: si cambian, hay que re-derivarlo (interfaceTwin.test.ts). El pedestal de
+    // lóbulos laterales de la decisión 76 lleva una fase antisimétrica: sobre un reflector continuo sus pares ±k se
+    // cancelan y β no cambia (≤ 0,5 %, `clutter.test.ts`; la ganancia coherente del gemelo, `lateralCoherentGain`, lo incluye)
+    expect(FRAG_AXIAL).toContain('k <= 12');
+    expect(FRAG_LATERAL).toContain('max(0.35,');
+    expect(FRAG_LATERAL).toContain(`k <= ${CLUTTER.lateralMaxLines}`);
   });
 });

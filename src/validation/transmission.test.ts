@@ -5,6 +5,8 @@ import { defaultPatient } from '../physiology/patientState';
 import { CONVEX_C35, defaultPose, pointOnLine, pointOnSteeredLine, probeFrame } from '../probe/probe';
 import { COMPOUND, lookTheta } from '../ultrasound/compound';
 import { IFACE_REACH_MM } from '../ultrasound/interfaceEcho';
+import { COARSE_DEPTH } from '../ultrasound/renderer';
+import { FRAG_RAWFIELD, FRAG_TRANS_HITS, FRAG_TRANS_PREFIX } from '../ultrasound/shaders/passes.glsl';
 import { alongLineMm, lookCoverage, steerBeta } from '../ultrasound/steering';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
 import {
@@ -21,13 +23,6 @@ import {
   steeredPrefixDb,
 } from '../ultrasound/transmission';
 import { GRID_GEOMETRY, emptyGrid, gridLineAngle, segmentGridFromScene, setMirror } from './support/segmentGrid';
-
-/**
- * lus-sim (decisión 10): las filas de la pasada A son las de la rejilla de los gemelos
- * (`GRID_GEOMETRY.rows`, las 160 de `COARSE_DEPTH` del renderizador de VExUS, que llega en el paso B); el marco
- * de la sonda, el del punto BLUE superior. Lo que comprueba el GLSL de las pasadas A0, A2 y B vuelve con la GPU.
- */
-const COARSE_DEPTH = GRID_GEOMETRY.rows;
 
 /** Regla de atenuación compartida por la puerta PW y la pasada A (GLSL). */
 describe('Atenuación a lo largo del rayo', () => {
@@ -77,6 +72,16 @@ describe('Espejo en el cruce exacto con el pulmón', () => {
     }
     // 6 pasos: ≤ 0,009 mm a 18 cm, bajo la puerta de 0,05 mm del banco
     expect(180 / COARSE_DEPTH / 2 ** (MIRROR_BISECTION_STEPS + 1)).toBeLessThan(0.01);
+  });
+
+  it('A0 hace la bisección con el número de pasos de TS y A2 publica el espejo exacto desde su alcance', () => {
+    expect(FRAG_TRANS_HITS).toContain(`for (int it = 0; it < ${MIRROR_BISECTION_STEPS}; it++)`);
+    expect(FRAG_TRANS_HITS).toContain('mirrorSeg = float(s); hitR = 0.5 * (lo + hi);');
+    // la pasada B necesita el espejo desde r_m − alcance del eco pleural, y lo refleja solo tras r_m
+    expect(FRAG_TRANS_PREFIX).toContain(`h1.w < (kf + 1.0) * step + ${IFACE_REACH_MM.toFixed(4)} ? h1.w : -1.0`);
+    expect(FRAG_TRANS_PREFIX).toContain('(h0.y == h0.x ? h1.w : (h0.y + 0.5) * step)');
+    expect(FRAG_RAWFIELD).toContain('if (mirrorHit >= 0.0 && r > mirrorHit)');
+    expect(FRAG_RAWFIELD).toContain('pleuraEcho(r - mirrorHit, dir0, normalize(t1.xyz))');
   });
 });
 
@@ -131,6 +136,7 @@ describe('Prefijo dirigido de A2 (decisión 58)', () => {
 
   it('en hígado homogéneo es la atenuación del rayo de la CPU sobre el camino dirigido (≤ 0,05 dB)', () => {
     const g = segmentGridFromScene(() => Tissue.Liver, F);
+    // lus-sim (decisión 10): el marco de la sonda en el punto BLUE superior, no en la subxifoidea de VExUS
     const fr = probeFrame(defaultPose(), new AnatomyScene(defaultPatient()).torso, CONVEX_C35);
     const c = fr.curvatureCenter;
     const dist = (p: readonly number[], q: readonly number[]) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);

@@ -413,3 +413,118 @@ construcción (ahora la toma del paciente en cada paso; la prueba nueva, que pas
 con la fórmula de la acumulación: borrar el uniform o cambiar la fórmula la hacen fallar), que la doble cuenta de
 −40 dB es una estimación de VExUS y no una medida, la salvedad de la composición en el modo M y las cabeceras de los
 gemelos; todo está corregido o anotado arriba.
+
+## 12. Fase 1, paso B2a: la formación de imagen en la GPU y su equivalencia con TypeScript
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** El paso B2 (decisiones 10 y 11) trae de `vexus-sim@8e83d9a` la GPU y la app: la primera imagen. Es la
+parte del origen que más depende de su escena: la clasificación GLSL recorre tubos, aurícula, vesícula, riñones, hígado,
+ligamentos y gas antes de su «resto» (`anatomy.glsl.ts`, 643 líneas); el renderizador (1858) y las pasadas (1380) llevan
+el color, los tubos y los calibres; el equipo arranca en un preajuste abdominal (18 cm, foco a 90 mm, persistencia 0,35,
+composición y armónica encendidas) y la compensación nominal de la atenuación es la del hígado. Los ganchos de prueba
+(1465 líneas) miden el hígado, el color y el PW. Con la interfaz y la raíz de composición, una sola PR pasaría de
+100 archivos, y lo que hay que revisar con más cuidado —que la anatomía GLSL sea la de TypeScript y que la imagen
+tenga la física que dicen las pruebas en TS— quedaría mezclado con botones.
+
+**Opciones.** (a) Una PR con todo B2. (b) Dos PR encadenadas: B2a, la GPU con su equivalencia TS ↔ GLSL y un banco
+de la e2e sin interfaz; B2b, la app, la interfaz y la imagen a la vista. (c) Reescribir el GLSL con ts2glsl: la
+decisión 8 lo reserva para la física propia; lo portado conserva sus gemelos a mano. Para el equipo: (i) el preajuste
+de VExUS; (ii) el pulmonar del consenso de 2026. Para la compensación nominal: (i) la del hígado de VExUS
+(0,601 dB/cm/MHz); (ii) una de referencia del tórax.
+
+**Decisión.** (b), con (ii) y (ii). En B2a (`docs/PROVENANCE.md`, sección del paso B2a):
+
+- **GPU.** Idénticos: `gl.ts`, `gpuTimer.ts`, el cine y el modo M (`cine.ts`, `mmode.ts`, decisión 80 del origen), el
+  minificador y el renombrado del GLSL en el build (`tools/build/glslMinify.ts`, `tools/build/glslMangle.ts`).
+  Adaptados: el grafo de pasadas sin la de color (F); las pasadas sin el color, la textura del «resto» ni las tríadas
+  portales, y lo demás idéntico (A0–A, B de las dos miradas, C, D, K, G, persistencia, presentación, cine y franja M);
+  el renderizador sin color, tubos ni calibres (la textura de escena lleva solo la tabla de la compresión); la
+  anatomía GLSL con la escena del paso A **en el mismo orden de clasificación que VExUS** (pared → costillas → columna
+  → cortina → cúpula → «resto»), y los uniforms del tórax en el orden de su esquema.
+- **App que la e2e necesita.** El equipo solo en modo B, el simulador sin el PW, el audio ni la cadencia del color,
+  los puntos de partida del protocolo BLUE derecho (el superior es la pose del paso A; el inferior y el PLAPS, estimados
+  con `defineParameters` y su fila en `docs/APPROXIMATIONS.md`), el barrido de equivalencia con la pleura de A0 frente
+  a su gemelo (`pleuraEquivalence`, propia), el moteado sobre el músculo de la pared y un subconjunto de los ganchos
+  (`window.__lusTest`). `src/main.ts` monta el simulador fuera de la vista solo con `?e2e`; la página sigue siendo la
+  de la fase 0 hasta B2b (decisión 13).
+- **Preajuste pulmonar** (`src/ultrasound/lungPreset.ts`), el del consenso de 2026 «si el equipo lo permite»
+  [@volpicelli-actualizacion-2026]: un solo foco a la altura de la línea pleural (25 mm, derivado: la pleura del punto
+  BLUE superior, que `lungPreset.test.ts` vuelve a medir), armónica y composición apagadas, profundidad 12 cm (el extremo
+  alto de ≤ 10–12 cm con la convexa: caben las líneas A de orden 2 a 4) y ganancia creciente hacia el campo lejano; la
+  persistencia en 0 (los filtros de promediado ocultan un deslizamiento sutil [@volpicelli-consenso-2012]
+  [@lichtenstein-luci-2014]; ICLUS pide imagen sin filtros cosméticos [@soldati-covid-2020]). El rango dinámico es el
+  de VExUS (70 dB): el consenso no lo fija.
+- **Compensación nominal** (`TGC_REFERENCE`): 2·α·f con α = 0,5 dB/cm/MHz, la pendiente de TGC de referencia de la
+  simulación validada de Ostras y cols. sobre la pared del Visible Human [@ostras-histopatologia-2023], entre la grasa
+  y el músculo de la tabla de tejidos. El nivel de referencia de la presentación (`DISPLAY_REF_DB`, −33 dB) es el de
+  VExUS; su tejido de referencia en el tórax es el músculo de la pared.
+- **Pruebas.** Unitarias portadas con el arnés y las cifras del tórax (esquema de uniforms, límites de los
+  shaders, grafo de pasadas, renderizador sobre WebGL falso con la composición, coste del cuadro, minificador y
+  renombrado, equipo, registro de errores, barrido y comprobación de la equivalencia, moteado, paridad de la rama
+  dirigida, cine y modo M, puntos de partida) y el preajuste (`lungPreset.test.ts`). En la e2e
+  (`e2e/imagen.spec.ts`, Chromium con SwiftShader): la equivalencia TS ↔ GLSL (los tres planos de partida; 50 000
+  puntos del tórax, exactos en tejido y cara lejos de las interfaces; la cáscara de las caras de la pared, las
+  costillas y la pleura; la pleura de A0 línea a línea; las normales; la transmisión de la pasada A), la
+  estadística de Rayleigh del moteado del músculo de la pared y las líneas A sobre la envolvente de la GPU (su
+  separación y F-T01 frente a la línea pleural mostrada).
+
+**Consecuencias.**
+
+- La GPU forma la imagen del tórax, pero solo el banco de la e2e la ve: `no-image-yet` sigue hasta B2b. Con GPU real
+  (Apple M4) y con SwiftShader, las dos anatomías coinciden en el 100 % de los 43 797 puntos interiores y de los 13 870
+  junto a una cara, a 2·10⁻⁵ mm (GPU) y 0,014 mm (SwiftShader) en la distancia a la cara; la pleura de A0 cae en el
+  mismo sitio en las 576 líneas de los tres puntos (SwiftShader: una decisión de la bisección en una línea la mueve su
+  paso final, 0,0117 mm); la transmisión de la pasada A, a 3·10⁻⁵ dB; la distancia al borde del tejido, la que funde
+  los bordes en la pasada B, a 1·10⁻⁴ mm (GPU) y 0,014 mm (SwiftShader) hasta 10 mm, lo que puede importar. Lo mismo
+  en inspiración máxima (el diafragma 30 mm más abajo).
+- **El foco del preajuste y el paso C.** `EQUIPMENT_LIMITS.focusMm.min` (20 mm, de VExUS) recortará el foco en la
+  pleura cuando el paso C la lleve a los 12–20 mm de la base: el paso C debe bajar ese límite con su medida.
+- **Líneas A: la separación sí, F-T01 todavía no.** Promediando cada grupo de 8 líneas alineadas en su pleura (la
+  métrica A1 del banco de referencia), los órdenes 1–4 están en todos los grupos de los tres puntos, a −0,42…−0,25 mm
+  de k·D (D, el cruce de la pleura del gemelo de A0), y la separación entre órdenes a ≤ 0,084 mm de D (igual en GPU y
+  SwiftShader): cada rebote añade un viaje. Pero toda la serie, la línea pleural incluida, se dibuja 0,35 mm por encima
+  de su cruce: la cara de la pleura parietal es de un lado (`IF_PLEURA_WALL`, decisión 61 del origen) y su perfil se
+  desplaza 2,5σh dentro de su dueña, la pared. F-T01 se mide frente a la línea pleural **mostrada** (r_k = k·r_pl), y
+  ahí el error crece con el orden, 0,35·(k − 1): el orden 2 a +0,27…+0,39 mm (cumple), el 3 a +0,56…+0,76 y el 4 a
+  +0,87…+1,13 (no cumplen: la tolerancia es 0,5 mm y un píxel mide 0,257 mm). La revisión lo halló: la primera versión
+  de la prueba medía frente a D, con la que el shader coloca las réplicas, y era casi circular. Queda declarado
+  (`pleura-echo-offset`) y la prueba exige el fallo con su tamaño, como las metas A que aún no se cumplen: cuando se
+  corrija, fallará y habrá que exigir la meta y borrar la limitación. Es una invariante del cierre de la fase 1
+  (`docs/ROADMAP.md`): la fase no cierra sin esto. Opciones para una decisión propia (con su revisión, y ofrecida al
+  origen): (a) dibujar la serie centrada en k·D en la rama del pulmón de la pasada B, que ya dibuja los dos lados del
+  eco (el desplazamiento solo sirve cuando un lado no conoce la cara), con sus gemelos; (b) hacer de dos lados la cara
+  de la pleura, que cambia también el lado de la pared; (c) desplazar las réplicas a k·(D − 0,35), que casa la imagen
+  con la meta pero no con la geometría.
+- **Moteado.** En el músculo paraesternal (una sola capa de ~7 mm; en la lateral, los planos intermusculares cada
+  ~2,5 mm no dejan sitio a un parche de 16 × 8), 51 parches de cinco vistas dan SNR 1,91–2,14 por vista y 2,07 de media
+  ponderada (Rayleigh: 1,91; la banda de la prueba, 1,6–2,25).
+- **Grises con el preajuste** (GPU real, medianas de los píxeles de la imagen mostrada clasificados por su tejido en los
+  tres puntos; la cifra depende de cuánto se aparte de las interfaces, así que se da el rango de los dos métodos que se
+  probaron, todos los píxeles o solo los que están a ≥ 1 mm de un cambio de tejido): músculo de la pared 83–101, grasa
+  63–74, la línea pleural saturada (255) en todas las líneas fuera de las sombras costales, la neblina entre la pleura y
+  la primera línea A 27–70 según la línea, y el «resto» bajo la cúpula 0–8.
+- **Doble cuenta de la reverberación de la pared** (lo que la decisión 11 dejó para aquí), medida anulando las
+  ganancias de `uReverb` con la misma semilla: la réplica de la línea pleural cae a W = 28 mm bajo ella y la línea A de
+  orden 2 a D = 25–29 mm. En las 440 de 576 líneas donde |W − D| ≤ 1,5 mm queda dentro de la línea A, 27–31 dB por
+  debajo, y el perfil promedio cambia 0,02 dB; en las centrales del punto superior (D ≈ 25,2–26,5 mm) queda 1,5–2,8 mm
+  por debajo, 44 dB bajo la línea A y 9 dB bajo la neblina media: sube 3,2 dB el fondo oscuro que sigue a la línea A.
+  Se anota en `no-sidelobes`.
+- La cobertura queda en 94,6 % de sentencias, 88,6 % de ramas, 94,6 % de funciones y 95,8 % de líneas. Hubo que
+  arreglar una prueba portada: `glslMangle.test.ts` evalúa en memoria el fuente transformado con la ruta real como nombre
+  y la cobertura v8 de vitest lo mezclaba con el módulo (steering.ts caía al 63 %); ahora lleva un nombre que no es ruta
+  (mejora para el origen). El chunk principal sube a 148,5 kB y su presupuesto, a 160 kB.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde. Cada guarda de la e2e se comprobó con una mutación que la
+hace fallar: la serie a k·D·1,01 y con 0,3 mm más por orden (líneas A), la serie en su cruce sin la desviación declarada
+(la prueba fija la desviación), la cúpula clasificada antes que la columna en el GLSL (planos: «Vertebra→Lung ×108»),
+las costillas 0,3 mm más anchas solo en la GPU (caras), la pared sin distancia al borde (`c.bd = 1000`: 9 mm de
+error), la normal de las caras de la pared cambiada por la del tronco con la misma norma (p05 = 0,994), el descenso del
+diafragma con el signo cambiado (en inspiración, acuerdo de tejido 0,90 y de los planos 0,70–0,77) y la envolvente
+detectada en intensidad (moteado: SNR 1,13). Revisión adversarial de contexto limpio: halló que la prueba de F-T01
+medía frente a D y no frente a la línea mostrada (ahora exige el fallo conocido con su tamaño), que sin
+`OES_texture_float_linear` la imagen salía negra sin ningún error (ahora el renderizador lo exige y lo dice), que la
+distancia al borde del tejido no se comparaba y que la equivalencia solo se probaba en reposo (ahora ambas), un uniform
+muerto (`uRespVel`, fuera), una guarda de las normales demasiado floja (0,98 → 0,9999), cifras de grises no
+reproducibles (ahora con su método y su rango), omisiones de procedencia y citas incompletas del punto BLUE inferior;
+todo está corregido o anotado arriba.
