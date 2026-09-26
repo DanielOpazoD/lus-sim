@@ -11,6 +11,13 @@ conserva sus propias etiquetas en comentario y su tabla de aproximaciones en el 
 | Parámetro | Valor y rango | Por qué | Cómo calibrar |
 | --------- | ------------- | ------- | ------------- |
 
+## Sonda y exploración
+
+| Parámetro                 | Valor y rango         | Por qué                                                                                                                                                                                                                                            | Cómo calibrar                                                                                                                                                                                 |
+| ------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `probe.blueUpperPose.phi` | 0,75π rad (0,7π–0,8π) | Punto BLUE superior derecho aproximado (pose por omisión, decisión 10): la línea medioclavicular de la escena de VExUS, donde su cartílago costal pasa a hueso (45° de la línea media anterior). Ninguna fuente mapea los puntos BLUE a una línea. | Regla de las manos [@lichtenstein-bluepoints-2011] con la antropometría de la mano (ANSUR II, laguna de `docs/knowledge/anatomy.md` §4), sobre el tórax del paso C con sus líneas anatómicas. |
+| `probe.blueUpperPose.z`   | 90 mm (70–110)        | El EIC2 extrapolado de las costillas de VExUS (5.ª a 7.ª a 40, 20 y 0 mm del xifoides, 20 mm por costilla): la escena heredada no tiene costillas por encima de la 5.ª.                                                                            | Con las costillas 2.ª–4.ª del paso C: el centro del EIC2 en la línea medioclavicular (meta A-T1).                                                                                             |
+
 ## Física
 
 | Parámetro | Valor y rango | Por qué | Cómo calibrar |

@@ -1,4 +1,5 @@
 import type { ParameterSet } from '../core/evidence';
+import { BLUE_UPPER_POSE } from '../probe/probe';
 
 /**
  * Todos los conjuntos de parámetros del modelo (decisión 4). `evidence.test.ts` comprueba sobre esta
@@ -6,4 +7,4 @@ import type { ParameterSet } from '../core/evidence';
  * docs/APPROXIMATIONS.md; también que ningún `defineParameters(…)` del código quede fuera de ella.
  * Un conjunto nuevo se añade aquí en el mismo cambio que lo crea.
  */
-export const PARAMETER_SETS: readonly ParameterSet[] = [];
+export const PARAMETER_SETS: readonly ParameterSet[] = [BLUE_UPPER_POSE];
