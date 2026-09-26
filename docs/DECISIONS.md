@@ -278,11 +278,12 @@ C la anatomía del tórax con las dimensiones de la base (metas A). En el paso A
 - **Pruebas**: se porta el arnés de VExUS de estos módulos (22 archivos de prueba y 5 de apoyo); las cifras de
   la escena abdominal se sustituyen por lo medido en vistas del tórax, con el margen explicado en cada prueba,
   y se quita lo que comprueba el shader ensamblado (vuelve en el paso B). Se añaden invariantes físicas propias
-  (`src/validation/physicsInvariants.test.ts`: líneas A a múltiplos exactos de la profundidad de la pleura,
-  energía conservada en una interfaz, la sonda que solo empuja, el deslizamiento con la fase del reloj único,
-  misma semilla y mismo resultado) y las metas A-T1–A-T3 y A-T6–A-T11 de la base medidas sobre la escena
-  heredada (`src/validation/anatomyTargets.test.ts`): las que aún no cumple exigen fallar por su aserción (no
-  por un error del código de medida) y llevan el valor medido.
+  (`src/validation/physicsInvariants.test.ts`: líneas A a múltiplos exactos de la profundidad de la pleura y
+  cada vez más débiles, energía conservada en una interfaz y ninguna cara que refleje más de lo que le llega, la
+  pleura de A0 donde la clasificación sale de la pared, la sonda que solo empuja, el deslizamiento con la fase
+  del reloj único, misma semilla y mismo resultado) y las metas A-T1–A-T3 y A-T6–A-T11 de la base medidas
+  sobre la escena heredada (`src/validation/anatomyTargets.test.ts`): las que aún no cumple exigen fallar por
+  su aserción (no por un error del código de medida) y llevan el valor medido.
 - **Por qué no se portan las cifras**: una cifra de VExUS mide su hígado, su cava o su riñón con sus puntos de
   partida; en el tórax no protegería nada, o protegería algo falso. Lo que protege al tórax son las leyes
   físicas, que valen en cualquier escena, y las medidas del propio tórax, que el paso C hará cumplir.
@@ -292,7 +293,7 @@ pared del abdomen (pleura a 25–28 mm) y las costillas 5.ª–10.ª derechas, a
 la fase no se cumplen y quedan medidas; A-T6 (líneas A) sí. Los archivos idénticos se unirán sin más; los
 adaptados, con la diferencia de su fila. El núcleo del paciente, la muestra fisiológica y el instante de la
 escena son la propuesta de contrato común para la unión (`docs/UNIFICATION.md`). La cobertura queda en
-92,8 % de sentencias, 88,4 % de ramas, 93,3 % de funciones y 94,2 % de líneas: por encima de los umbrales,
+92,8 % de sentencias, 88,5 % de ramas, 93,3 % de funciones y 94,2 % de líneas: por encima de los umbrales,
 que no cambian. El origen ya avanzó después del commit fijado: sus decisiones 76 (ecos parásitos), 77
 (armónica tisular: la pleura, el receptor, el haz, la composición y el perfil) y 79 (la respiración con PEEP y
 la aurícula de lazo cerrado: el paciente, la respiración y el motor) tocan archivos portados; se revisará al
@@ -301,8 +302,9 @@ fijar el paso B.
 **Verificación.** `src/validation/provenance.test.ts` y `npm run provenance -- --check` (la tabla dice lo que
 es cada archivo); `src/validation/layers.test.ts` (las capas de VExUS, sin cambios en la matriz); las
 invariantes de `src/validation/physicsInvariants.test.ts`, cada una comprobada con una mutación del código que
-protege (descritas en la PR): las líneas A con el orden de la réplica y la profundidad de su perfil mutados;
-la energía con el coeficiente de Fresnel y el lóbulo de Kirchhoff sin su normalización; la sonda con la piel
-que tira y con un perfil que estira bajo la pared; el deslizamiento con el pulmón sin descender y con una
-respiración de reloj propio; la semilla con el ritmo y el moteado de azar sin semilla. Todas fallaron con la
-mutación y pasan sin ella.
+protege (descritas en la PR): las líneas A con el orden de la réplica y la profundidad de su perfil mutados, y
+crecientes con su orden; la energía con el coeficiente de Fresnel y el lóbulo de Kirchhoff sin su
+normalización, la reflectividad ×1,1 y la ida y vuelta con R_t invertido; la pleura de A0 1 mm más honda; la
+sonda con la piel que tira y con un perfil que estira bajo la pared; el deslizamiento con el pulmón sin
+descender y con una respiración de reloj propio; la semilla con el ritmo y el moteado de azar sin semilla.
+Todas fallaron con la mutación y pasan sin ella.

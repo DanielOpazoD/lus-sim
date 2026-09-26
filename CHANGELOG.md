@@ -14,8 +14,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   receptor, moteado anclado, eco de interfaz, pared, pleura con su serie de reverberaciones y el
   deslizamiento, miradas dirigidas, transmisión, apertura y composición), con su procedencia fila a fila.
 - Pruebas del motor: el arnés de VExUS con las cifras del tórax, invariantes físicas con su mutación (líneas A
-  a múltiplos de la pleura, energía en una interfaz, la sonda que solo empuja, el deslizamiento con el reloj,
-  misma semilla) y las metas A de la fase medidas en la escena heredada (las que aún no se cumplen exigen
+  a múltiplos de la pleura y decrecientes, energía en una interfaz y reflectividad acotada, la pleura de A0 en el
+  cambio de tejido, la sonda que solo empuja, el deslizamiento con el reloj, misma semilla) y las metas A de la fase medidas en la escena heredada (las que aún no se cumplen exigen
   fallar por su aserción).
 - Limitaciones heredadas y nuevas con identificador (costillas solo derechas y solo 5.ª–10.ª, pared del
   abdomen, cortina solo derecha, abdomen genérico, pulmón sin líneas B, sonda convexa, entre otras).

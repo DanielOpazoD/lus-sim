@@ -38,15 +38,16 @@ la salida actual no protege nada.
   en la prueba) o por leyes físicas, y lo que comprueba el shader ensamblado vuelve con la GPU en el paso B.
   `docs/PROVENANCE.md` dice qué prueba es idéntica y qué cambió en cada una adaptada.
 - **Invariantes físicas** (`src/validation/physicsInvariants.test.ts`, guía §18): las líneas A a múltiplos
-  exactos de la profundidad de la pleura; la reflexión y la transmisión en una interfaz conservan la energía; la
-  sonda solo empuja; el deslizamiento se mueve con la fase respiratoria del reloj único; misma semilla, mismo
-  resultado. Cada una se comprobó con la mutación del código que protege (descritas en la decisión 10).
+  exactos de la profundidad de la pleura y cada vez más débiles (cada ida y vuelta pierde energía); la reflexión
+  y la transmisión en una interfaz conservan la energía y ninguna cara refleja más de lo que le llega; la pleura
+  de A0 está donde la clasificación sale de la pared, con pulmón detrás justo sobre el borde; la sonda solo
+  empuja; el deslizamiento se mueve con la fase respiratoria del reloj único; misma semilla, mismo resultado. Cada una se comprobó con la mutación del código que protege (descritas en la decisión 10).
 - **Metas A de la fase que aún no se cumplen** (`src/validation/anatomyTargets.test.ts`): se miden en la escena
   heredada con el procedimiento de `src/validation/support/chestView.ts` (la sonda apoyada con su contacto, en
   fin de espiración, y las costillas buscadas por su número) y llevan el valor medido en su comentario. No son
   `it.fails`, que también «pasa» si la prueba lanza por un error propio: cada una exige que su cuerpo falle por
   una aserción (`chai.AssertionError`). El paso C las pasa a `it`.
-- **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,4 % de ramas,
+- **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,5 % de ramas,
   93,3 % de funciones y 94,2 % de líneas. Queda sobre los umbrales (90/85/90/90), que no cambian.
 
 ## Invariantes previstas
