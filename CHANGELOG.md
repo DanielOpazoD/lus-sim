@@ -16,6 +16,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   fisiopatología para el paciente virtual, clínica y banco de imágenes de referencia, con bibliografía
   verificada y deduplicada (`docs/REFERENCES.md`), metas de prueba ordenadas por fase y vacíos de
   conocimiento declarados.
+- Clínica al día con textos completos aportados por Daniel: la actualización 2025 del consenso
+  internacional (Intensive Care Med 2026), el consenso EACVI de insuficiencia cardiaca (2023), las
+  guías de Demi y cols. (2023) y revisiones de neumonía, UCI, urgencias e integración con la
+  ecocardiografía; atribuciones a fuentes corregidas donde el texto no las respaldaba.
 - Marco anatómico y unidades de VExUS (7); ts2glsl para la física escalar propia (8).
 - Guardas de documentación: scripts de npm citados que existen, documentos de tema enlazados desde
   `docs/KNOWLEDGE.md`, citas `[@clave]` que existen y bibliografía sin entradas huérfanas.

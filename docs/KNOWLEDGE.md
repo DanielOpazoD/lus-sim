@@ -23,13 +23,13 @@ por Daniel antes de cerrar la fase 0.
 
 ## 1. Documentos de tema
 
-| Documento                            | Contenido                                                                                                                                                                                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/knowledge/physics.md`          | Propiedades acústicas por tejido, línea pleural, líneas A y B y su mecanismo, deslizamiento, pulso y punto pulmonar, consolidación, derrame, sombra costal, espejo; modelos publicados; metas T01–T39.         |
-| `docs/knowledge/anatomy.md`          | Pared torácica por región y por capa, costillas y espacios intercostales, pleura, límites del pulmón y recesos, diafragma, escápula, microanatomía subpleural; avatar de referencia; metas T1–T22.             |
-| `docs/knowledge/pathophysiology.md`  | Relaciones cuantitativas entre agua pulmonar, presiones, PEEP, aireación y hallazgos; 14 variables latentes del paciente con sus ecuaciones de acoplamiento; metas T1–T26.                                     |
-| `docs/knowledge/clinical.md`         | Definiciones de consenso, exactitud diagnóstica, esquemas de zonas, puntajes, protocolos BLUE y FALLS, ecografía diafragmática, 20 casos docentes, trampas, cálculo del puntaje sobre la señal y metas T1–T15. |
-| `docs/knowledge/reference-images.md` | Imágenes y vídeos reales con licencia para el banco de referencia (decisión 5), métricas de imagen y riesgos legales y éticos.                                                                                 |
+| Documento                            | Contenido                                                                                                                                                                                                                                    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/knowledge/physics.md`          | Propiedades acústicas por tejido, línea pleural, líneas A y B y su mecanismo, deslizamiento, pulso y punto pulmonar, consolidación, derrame, sombra costal, espejo; modelos publicados; metas T01–T39.                                       |
+| `docs/knowledge/anatomy.md`          | Pared torácica por región y por capa, costillas y espacios intercostales, pleura, límites del pulmón y recesos, diafragma, escápula, microanatomía subpleural; avatar de referencia; metas T1–T22.                                           |
+| `docs/knowledge/pathophysiology.md`  | Relaciones cuantitativas entre agua pulmonar, presiones, PEEP, aireación y hallazgos; 14 variables latentes del paciente con sus ecuaciones de acoplamiento; metas T1–T29.                                                                   |
+| `docs/knowledge/clinical.md`         | Definiciones de consenso, exactitud diagnóstica, esquemas de zonas, puntajes, protocolos BLUE y FALLS, ecografía diafragmática, 23 casos docentes (3 de insuficiencia cardiaca), trampas, cálculo del puntaje sobre la señal y metas T1–T31. |
+| `docs/knowledge/reference-images.md` | Imágenes y vídeos reales con licencia para el banco de referencia (decisión 5), métricas de imagen y riesgos legales y éticos.                                                                                                               |
 
 Para no confundir metas con el mismo número, en este documento se prefijan: **F** física, **A**
 anatomía, **P** fisiopatología y **C** clínica (así, F-T01 es la meta T01 de `physics.md`).
@@ -101,6 +101,18 @@ anatomía, **P** fisiopatología y **C** clínica (así, F-T01 es la meta T01 de
     según el volumen). Con ellos se separan la neumonía y la atelectasia [@demi-guias-2023;
     @kok-neumonia-2025; @berry-uci-2025]. Ninguna de las fuentes leídas aporta un puntaje diagnóstico de
     la neumonía asociada al ventilador (`clinical.md` §8).
+14. La insuficiencia cardiaca (IC) tiene su propio consenso, el de la EACVI de 2023
+    [@gargani-eacvi-2023], leído completo, con dos fuentes de apoyo [@yuriditsky-ecocardiografistas-2021;
+    @gargani-cardiopractice-2025]. Cambios que afectan al simulador (`clinical.md` §1.8.5, §1.8.8 y §6.3):
+    - el conteo de la IC usa 8 zonas por omisión, frente a las 28 u 8 que admite 2026 para el agua
+      extravascular;
+    - una zona con derrame visible no es evaluable para líneas B;
+    - las líneas B se cuentan en el peor punto de cada zona; las confluentes, como % ÷ 10, con un tope de
+      10 por zona;
+    - los cortes al alta llevan intervalos de confianza muy amplios, y el criterio de 8 zonas es ambiguo
+      en su fuente;
+    - la descongestión eficaz es llegar a cero líneas B o bajar ≥50 %;
+    - la matriz E/e′ × líneas B es la prueba de coherencia con EchoTwin y VExUS.
 
 ## 3. El paciente virtual
 
@@ -117,13 +129,13 @@ entregarán EchoTwin, VExUS y el simulador del R860.
 
 ## 4. Metas de prueba por fase
 
-| Fase (`docs/ROADMAP.md`)   | Metas                                                                                                                                                                                                                                                                                                                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 — motor y primera imagen | A-T1–T3, A-T6–T11 (profundidades, líneas A, murciélago, espacios intercostales, grosor de la línea pleural); F-T01–T09, F-T35 (espaciado y decaimiento de líneas A, incidencia, sombra, cartílago).                                                                                                                                                                                                                 |
-| 2 — física pulmonar        | F-T10–T34 y F-T37–T39 (modo M, deslizamiento, líneas B y su selectividad, foco, armónicos, composición, líneas Z y E, consolidación con sus artefactos de margen, reclutamiento corriente y broncograma líquido, derrame, espejo); A-T20–T21 (líneas B septales, broncograma); C-T1, C-T2 y C-T15 (geometría del broncograma, flujo Doppler según la perfusión, índice mecánico del preajuste).                     |
-| 3 — tórax completo         | A-T12–T19 (líquido fisiológico, cortina, diafragma, ventana cardiaca, escápula, oblicuidad costal); P-T23–T26 (neumotórax, derrame, deslizamiento, diafragma); F-T36 (hidropunto).                                                                                                                                                                                                                                  |
-| 4 — clínica                | C §6 (rasgos, puntajes y agregados sobre la señal; modo examen; cohortes virtuales frente a la exactitud publicada); P-T1–T12 y P-T18–T22 (agua y conteos, presiones, distribución, cinética); C-T3–T6 y C-T10–T14 (neumonía frente a atelectasia, dependencia del esquema, falsos negativos, curso de la neumonía, tiempo, aprendizaje, pensamiento diagnóstico, patrón de referencia y LUS-ARDS, esta bloqueada). |
-| 5 — puentes                | P-T13–T17 (PEEP, reaireación, hiperinsuflación invisible, densidad, mecánica); C-T7–T9 (reaireación de la neumonía asociada al ventilador, destete, umbrales diafragmáticos con su maniobra).                                                                                                                                                                                                                       |
+| Fase (`docs/ROADMAP.md`)   | Metas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — motor y primera imagen | A-T1–T3, A-T6–T11 (profundidades, líneas A, murciélago, espacios intercostales, grosor de la línea pleural); F-T01–T09, F-T35 (espaciado y decaimiento de líneas A, incidencia, sombra, cartílago).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 2 — física pulmonar        | F-T10–T34 y F-T37–T39 (modo M, deslizamiento, líneas B y su selectividad, foco, armónicos, composición, líneas Z y E, consolidación con sus artefactos de margen, reclutamiento corriente y broncograma líquido, derrame, espejo); A-T20–T21 (líneas B septales, broncograma); C-T1, C-T2 y C-T15 (geometría del broncograma, flujo Doppler según la perfusión, índice mecánico del preajuste).                                                                                                                                                                                                                                                                                                          |
+| 3 — tórax completo         | A-T12–T19 (líquido fisiológico, cortina, diafragma, ventana cardiaca, escápula, oblicuidad costal); P-T23–T26 (neumotórax, derrame, deslizamiento, diafragma); F-T36 (hidropunto).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 4 — clínica                | C §6 (rasgos, puntajes y agregados sobre la señal; modo examen; cohortes virtuales frente a la exactitud publicada); P-T1–T12 y P-T18–T22 (agua y conteos, presiones, distribución, cinética); C-T3–T6 y C-T10–T14 (neumonía frente a atelectasia, dependencia del esquema, falsos negativos, curso de la neumonía, tiempo, aprendizaje, pensamiento diagnóstico, patrón de referencia y LUS-ARDS, esta bloqueada); C-T16–T24 y C-T27–T31 (conteo de la IC, derrame no evaluable, exactitud, sanos, 8 frente a 28 zonas, banderas, descongestión, cambio mínimo, IC derecha aislada, rasgos diferenciales, estrés y postura); P-T28–T29 (derrame más lento que el edema y magnitud de la descongestión). |
+| 5 — puentes                | P-T13–T17 (PEEP, reaireación, hiperinsuflación invisible, densidad, mecánica); C-T7–T9 (reaireación de la neumonía asociada al ventilador, destete, umbrales diafragmáticos con su maniobra); C-T25–T26 y P-T27 (coherencia de la E/e′ de EchoTwin y la vena cava de VExUS con las líneas B).                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 Cada meta entra como prueba en la fase de su módulo, con su mutación (`docs/TESTING.md`). Las
 tolerancias marcadas [DERIVADO] en los documentos de tema son propuestas razonables, no valores
@@ -162,6 +174,20 @@ publicados, y se declaran como tales en la prueba.
   otras siete inconsistencias internas menores, listadas allí mismo.
 - **Artefactos verticales sin deslizamiento**: pueden verse, pero 2026 no les da el valor de una línea B
   (D1_1.1). Se clasifican aparte y no entran en el grado mientras no haya consenso.
+- **Consenso de 2026 frente al EACVI en la IC**: ámbito general frente a específico de la IC. Se anotan
+  ambos (`clinical.md` §5.12):
+  - Esquema: 8 zonas «idealmente» según [@gargani-eacvi-2023], frente a 28 u 8 zonas, las 28 sobre todo
+    en cardiología y diálisis, en 2026 (D6_2.4) [@volpicelli-actualizacion-2026].
+  - Postura para cuantificar: sentado, semirrecostado o supino, siempre la misma, según el EACVI;
+    supino o casi supino según 2026.
+  - Armónicos: el EACVI acepta el preajuste cardiaco y no describe diferencias clínicamente
+    significativas entre ajustes; [@yuriditsky-ecocardiografistas-2021] los apaga, y 2026 sugiere
+    apagarlos, aunque admite que los ajustes cambian el aspecto de las líneas B y no su significado
+    (D1_1.2).
+  - Frente a la radiografía con NT-proBNP: la ecografía «mejora» la exactitud según el EACVI, y «no es
+    inferior» y es más rápida según 2026 (D3_3.4) y [@gargani-cardiopractice-2025].
+- **Criterio de 8 zonas al alta (Coiro 2015)**: «≥1 zona positiva en cada hemitórax» según el EACVI y «≥1
+  de 8» según una revisión sistemática; sin verificar en el texto completo (`clinical.md` §8).
 
 ## 6. Vacíos de conocimiento
 
@@ -183,6 +209,10 @@ La actualización 2026 del consenso internacional [@volpicelli-actualizacion-202
 - los vacíos que 2026 declara: umbrales de pronóstico del puntaje, subtipos del SDRA, predicción del
   destete, cuantificación del neumotórax y del derrame, y cuantificación del deslizamiento.
 
+En la insuficiencia cardiaca, el EACVI no da umbrales numéricos para la IC crónica ni para el estrés, ni
+cifras de concordancia, así que el cambio mínimo detectable del conteo queda como parámetro. Tampoco
+define los reparos de sus esquemas de 4 y 6 zonas (`clinical.md` §8).
+
 Las revisiones de 2024–2025 [@kok-neumonia-2025; @berry-uci-2025; @ovesen-urgencias-2024], leídas
 completas, no cierran tres vacíos: el umbral <13 de Soummer sigue sin verificar, no traen ningún puntaje
 diagnóstico de la neumonía asociada al ventilador (VPLUS o CPIS con ecografía) y dan las reglas del
@@ -202,7 +232,9 @@ LUS-ARDS solo de segunda mano (`clinical.md` §8).
   pregunta clínica (`clinical.md` §3.8).
   - Síndrome intersticial: 8 zonas (D3_1.2), o 4 en el crítico con insuficiencia respiratoria aguda.
   - Aireación y SDRA en la UCI: 12 zonas (D6_7.4).
-  - Congestión en cardiología o diálisis: 28 u 8 zonas (D6_2.4).
+  - Congestión en cardiología o diálisis: 28 u 8 zonas (D6_2.4). En la IC, el modo examen usa 8 zonas
+    por omisión, porque el consenso específico de la IC las prefiere y su índice C no es inferior al de
+    28 [@gargani-eacvi-2023]; las 28 quedan como alternativa (`clinical.md` §3.8).
   - EPI y consolidaciones: todo el tórax, con las zonas posteriores (D3_1.2, D4_1.5).
   - El modo examen elige el esquema según el caso.
   - En la investigación de urgencias, el de 8 zonas es también el más usado (74 de 406 estudios, 18 %)
