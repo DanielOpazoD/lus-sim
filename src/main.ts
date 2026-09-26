@@ -8,6 +8,7 @@ import type { Simulator } from './app/simulator';
 import { Store } from './app/store';
 import { NonFiniteStateError } from './physiology/engine';
 import { Banner } from './ui/controllers/banner';
+import { bindCine } from './ui/controllers/cine';
 import { bindGpuLifecycle } from './ui/controllers/gpuLifecycle';
 import { HeartRateDisplay, hudText, renderLines } from './ui/controllers/hud';
 import { setPressed } from './ui/controls';
@@ -25,8 +26,8 @@ import { compoundActive } from './ultrasound/compound';
  * (simulador vivo + equipo), `ui/controllers/*` (HUD, pérdida de GPU, avisos) y `ErrorBudget` (bucle que se
  * degrada, no muere). Todo el tiempo procede del reloj de la simulación.
  *
- * lus-sim (decisión 13): solo el modo B, con el preajuste pulmonar y la sonda en el punto BLUE superior; sin
- * casos, Doppler, audio, modo M, medición, docente ni navegador 3D de VExUS. La e2e (`?e2e`) ve la misma aplicación
+ * lus-sim (decisión 13): solo el modo B, con el preajuste pulmonar y la sonda en el punto BLUE superior, y el cine al
+ * congelar; sin casos, Doppler, audio, modo M, medición, docente ni navegador 3D de VExUS. La e2e (`?e2e`) ve la misma aplicación
  * y sus ganchos (`window.__lusTest`).
  */
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -115,7 +116,7 @@ $<HTMLButtonElement>('diagnostics').addEventListener('click', () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
-// con la imagen congelada la sonda no se mueve
+// con la imagen congelada la sonda no se mueve: la rueda y ← → recorren el cine (decisión 80 de VExUS)
 const input = new ProbeInput(
   sectorWrap,
   () => sim().pose,
@@ -123,13 +124,26 @@ const input = new ProbeInput(
   () => !store.get().frozen,
 );
 registerDevtools(sim, dispatch);
-session.onSimulatorChanged(() => panel.sync());
+session.onSimulatorChanged(() => {
+  panel.sync();
+  cine.sync();
+});
 
 // --- Controles de la barra ----------------------------------------------------
 const freezeBtn = $<HTMLButtonElement>('freeze');
 freezeBtn.addEventListener('click', () => store.set({ frozen: !store.get().frozen }));
 bindKeyboardShortcuts(store, dispatch);
-const gpu = bindGpuLifecycle(glCanvas, sim, banner);
+// el cine era del renderizador viejo (decisión 80 de VExUS)
+const gpu = bindGpuLifecycle(glCanvas, sim, banner, () => cine.sync());
+const cine = bindCine({
+  bar: $('cine-bar'),
+  slider: $<HTMLInputElement>('cine'),
+  label: $('cine-time'),
+  freezeButton: freezeBtn,
+  host: sectorWrap,
+  getSim: sim,
+  store,
+});
 
 // --- Estado de UI → sesión -------------------------------------------------------
 store.subscribe((st, prev) => {
@@ -171,7 +185,10 @@ function frame(now: number, dt: number): void {
   input.tick(dt);
   probeAnimator.tick(dt);
   s.advance(dt);
-  if (!gpu.lost) s.render();
+  if (!gpu.lost) {
+    s.render();
+    cine.tick();
+  }
   drawOverlay(overlay, s);
   const t = s.physiology.clock.t;
   const shown = s.displayed.bmode;

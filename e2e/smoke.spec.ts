@@ -70,8 +70,19 @@ test('los mandos del equipo y congelar: el teclado y la consola cambian la image
   const frozenT = await page.evaluate(() => window.__lusTest!.sim().physiology.clock.t);
   await page.waitForTimeout(1500);
   expect(await page.evaluate(() => window.__lusTest!.sim().physiology.clock.t)).toBe(frozenT);
+  // el cine (decisión 80 de VExUS): ← recorre los cuadros guardados hacia atrás
+  await expect(page.locator('#cine-bar')).toBeVisible();
+  await expect(page.locator('#cine-time')).toHaveText('0,00 s');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#cine-time')).toHaveText(/^−0,\d\d s$/);
+  // con la imagen congelada el HUD dice lo que se ve: cambiar la profundidad no cambia el cuadro mostrado
+  await page.keyboard.press(']');
+  await expect(hud).toContainText('13 cm');
   await page.getByRole('button', { name: 'Congelar' }).click();
   await expect(page.locator('#live-chip')).toHaveText('LIVE');
+  await expect(page.locator('#cine-bar')).toBeHidden();
+  await expect(hud).toContainText('14 cm');
   // la respiración: apnea en la consola
   await page.getByRole('button', { name: 'Apnea espiratoria' }).click();
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().patient.respiratoryPattern)).toBe('apnea-expiratory');

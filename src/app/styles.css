@@ -1,5 +1,5 @@
 /* Hoja de estilos de la interfaz (adaptada de VExUS, docs/PROVENANCE.md; decisión 13): el mismo tema, sin la marca,
-   el navegador 3D, el corte, las trazas, el cine, las pestañas, el Doppler, la medición ni el docente. */
+   el navegador 3D, el corte, las trazas, las pestañas, el Doppler, la medición ni el docente. */
 
 /* El atributo hidden gana a cualquier display de componente (p. ej. .menu). */
 [hidden] {
@@ -414,6 +414,35 @@ button.secondary.on {
   border-radius: 4px;
   pointer-events: none;
   max-width: 55%;
+}
+/* cine (decisión 80 de VExUS): deslizador bajo la imagen con la imagen congelada; el aviso y el HUD de abajo le dejan
+   sitio */
+.cine-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  width: min(420px, 60%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.cine-bar input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.cine-bar span {
+  min-width: 56px;
+  text-align: right;
+  font: 12px/16px var(--mono);
+}
+.app.frozen .disclaimer,
+.app.frozen .hud-br {
+  bottom: 52px;
 }
 .banner {
   position: absolute;

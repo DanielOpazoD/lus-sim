@@ -546,15 +546,16 @@ táctil), los mandos del equipo, el HUD, los atajos, la pérdida del contexto We
 lo demás, cuando llegue lo que lo necesita. (c) Una interfaz nueva: pierde la unión barata (decisión 1).
 
 **Decisión.** (b) (`docs/PROVENANCE.md`, sección del paso B2b). Idénticos: la animación hacia un punto de partida, el
-presupuesto de errores del bucle, la entrada de la sonda, las fábricas de controles, los plegables, el aviso y la
-pérdida de GPU. Adaptados: la raíz de composición (`src/main.ts`), `index.html` y la hoja de estilos sin la marca ni
+presupuesto de errores del bucle, la entrada de la sonda, las fábricas de controles, los plegables, el aviso, la
+pérdida de GPU y el cine al congelar (decisión 80 de VExUS: el deslizador, ← → y la rueda recorren los cuadros
+guardados, y el HUD dice los ajustes del cuadro que se ve). Adaptados: la raíz de composición (`src/main.ts`), `index.html` y la hoja de estilos sin la marca ni
 lo abdominal; la sesión sin casos (el paciente por omisión y «Reiniciar paciente»); el estado de la UI (la
 congelación); el diagnóstico exportable (`lus-diagnostico/1`); el HUD, los atajos (Espacio, [ ], − +), la
 superposición (regla de profundidad, marcador y foco), la consola de una pestaña (imagen, sonda, respiración y
 avanzado, con la TGC de 8 bandas) y las tarjetas de los puntos de partida BLUE. La aplicación arranca en el punto BLUE
 superior con el preajuste pulmonar; con `?e2e` expone los ganchos sobre su simulador vivo, y el banco oculto del
-paso B2a desaparece. No se portan: los casos, el Doppler, el audio, el modo M y el cine a la vista (siguen en el
-renderizador: el modo M pulmonar es de la fase 2), la medición, el modo docente, el navegador 3D y el corte. Nueva
+paso B2a desaparece. No se portan: los casos, el Doppler, el audio, el modo M (la franja sigue en el renderizador:
+el modo M pulmonar es de la fase 2), la medición, el modo docente, el navegador 3D y el corte. Nueva
 limitación `ui-minimal`; `no-image-yet` se borra en este cambio.
 
 **Consecuencias.**
@@ -564,18 +565,18 @@ limitación `ui-minimal`; `no-image-yet` se borra en este cambio.
   BLUE inferior y el PLAPS, las corticales costales con su sombra y la línea pleural entre ellas (el signo del
   murciélago). El deslizamiento se ve en un modo M hecho con la columna central de la imagen cuadro a cuadro: bajo la
   pleura el patrón cambia con cada ciclo respiratorio y en apnea queda en líneas horizontales, como la pared.
-- 60 cuadros/s con GPU real (Apple M4) a 1280 × 800. El chunk principal sube de 148,5 a 170,4 kB (la interfaz, ≈ 22 kB)
-  y su presupuesto, de 160 a 180 kB; la hoja de estilos va aparte (8,7 kB).
+- 60 cuadros/s con GPU real (Apple M4) a 1280 × 800. El chunk principal sube de 148,5 a 171,7 kB (la interfaz, ≈ 23 kB)
+  y su presupuesto, de 160 a 180 kB; la hoja de estilos va aparte (9,0 kB).
 - El alumno mueve la sonda sin ver el tórax: los puntos de partida la dejan cerca de cada ventana (guía §7) y el HUD y
   la consola dicen la pose, la profundidad y el acoplamiento. El navegador 3D necesita las mallas del tórax (paso C o
-  fase 3); el modo M, el cine y la medición, sus observables (fase 2).
+  fase 3); el modo M y la medición, sus observables (fase 2).
 
 **Verificación.** `npm run check` y `npm run e2e` en verde. El humo (`e2e/smoke.spec.ts`) comprueba el arranque con imagen
 (la línea pleural saturada en el lienzo) y el aviso, los mandos por teclado y consola con el HUD, congelar (el reloj se
-detiene), la sonda por arrastre y por una tarjeta, y la recuperación tras perder el contexto WebGL. Cada prueba se
+detiene; el cine recorre los cuadros y el HUD dice los del cuadro que se ve), la sonda por arrastre y por una tarjeta, y la recuperación tras perder el contexto WebGL. Cada prueba se
 comprobó con una mutación que la hace fallar: la GPU que no se reconstruye tras la pérdida (lienzo negro), el atajo ]
-sin efecto, la congelación que no llega al simulador, la tarjeta que no anima la sonda y la presentación 57 dB más
-oscura (máximo 70 de gris). Las unitarias (`src/validation/controllers.test.ts`, `src/validation/startPointCards.test.ts`,
+sin efecto, la congelación que no llega al simulador, la tarjeta que no anima la sonda, la presentación 57 dB más
+oscura (máximo 70 de gris) y el cine que no se dibuja al congelar (← no recorre los cuadros). Las unitarias (`src/validation/controllers.test.ts`, `src/validation/startPointCards.test.ts`,
 `src/validation/uiInput.test.ts`) prueban el HUD, el diagnóstico, las tarjetas, el estado de la UI, la animación, los
 atajos y la entrada de la sonda sin DOM. Revisión adversarial de contexto limpio antes de abrir la PR (en su
 descripción).

@@ -36,7 +36,7 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   orden 3 y 4 no cumplen F-T01 frente a la línea pleural mostrada (+0,56…+1,13 mm); la prueba exige el fallo.
 - Fase 1, paso B2b: la aplicación con una interfaz mínima del modo B (13): la imagen del tórax a la vista con la
   sonda libre (ratón, trackpad, teclado y táctil), los puntos de partida BLUE superior, BLUE inferior y PLAPS, la
-  consola (imagen, sonda, respiración y avanzado), el HUD, los atajos, congelar, el diagnóstico exportable, la
+  consola (imagen, sonda, respiración y avanzado), el HUD, los atajos, congelar con el cine, el diagnóstico exportable, la
   recuperación de la pérdida del contexto WebGL y el aviso de que no es un dispositivo médico.
 - e2e de humo de la aplicación (`e2e/smoke.spec.ts`) y pruebas de la interfaz sin DOM, cada guarda con su mutación.
 
@@ -48,7 +48,7 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   presupuesto del bundle deja fuera del total los chunks de solo pruebas; `CONTRIBUTING.md` remite a la misión.
 - El presupuesto del chunk principal sube de 40 a 160 kB con la GPU portada (148,5 kB medidos) (12).
 - `no-sidelobes` lleva la doble cuenta de la reverberación de la pared medida en la GPU (12).
-- El presupuesto del chunk principal sube a 180 kB con la interfaz (170,4 kB medidos) (13).
+- El presupuesto del chunk principal sube a 180 kB con la interfaz (171,7 kB medidos) (13).
 
 ### Quitado
 

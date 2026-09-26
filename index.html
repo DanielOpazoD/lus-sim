@@ -50,6 +50,7 @@
               <li><kbd>[</kbd><kbd>]</kbd> profundidad</li>
               <li><kbd>−</kbd><kbd>+</kbd> ganancia</li>
               <li><kbd>Espacio</kbd> congelar</li>
+              <li><kbd>←</kbd><kbd>→</kbd> cine (congelada)</li>
             </ul>
           </div>
           <div id="start-points" class="windows" role="group" aria-labelledby="windows-title"></div>
@@ -64,6 +65,10 @@
             <div class="hud-tl" id="hud-tl"></div>
             <div class="hud-tr" id="hud-tr"></div>
             <div class="hud-br" id="hud-br"></div>
+          </div>
+          <div id="cine-bar" class="cine-bar" hidden>
+            <input type="range" id="cine" min="0" max="0" step="1" value="0" aria-label="Cuadro del cine (← →)" />
+            <span id="cine-time" aria-hidden="true">0,00 s</span>
           </div>
           <div class="disclaimer">
             Simulador educativo con un paciente sintético. No es un dispositivo médico: no utilizar para diagnóstico ni para decisiones
