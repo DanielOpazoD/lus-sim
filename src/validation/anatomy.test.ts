@@ -98,6 +98,38 @@ describe('Anatomía implícita (base B)', () => {
     }
   });
 
+  it('el «resto» mide también su distancia a la pared: tiende a 0 junto a su cara interna', () => {
+    // La rama es de lus-sim (decisión 10): en VExUS el hígado y los órganos se interponían entre el resto y la
+    // pared; aquí el resto la toca bajo las cúpulas, así que su bd no puede pasar de la distancia a la cara interna
+    // de la pared. Columnas horizontales a z = −120 (muy bajo las cúpulas: el diafragma queda lejos) desde el eje del
+    // tronco hacia la derecha, la izquierda, delante y las dos diagonales anteriores (detrás está la columna); el
+    // mismo criterio que la prueba anterior, con la pared como la interfaz que se encuentra
+    for (const [dx, dy] of [
+      [-1, 0],
+      [1, 0],
+      [0, 1],
+      [-Math.SQRT1_2, Math.SQRT1_2],
+      [Math.SQRT1_2, Math.SQRT1_2],
+    ] as const) {
+      const samples: Array<{ r: number; bd: number }> = [];
+      let rT = Number.NaN;
+      for (let r = 0; r < 200; r += 0.25) {
+        const c = cls([dx * r, dy * r, -120]);
+        if (c.tissue === Tissue.Bowel) samples.push({ r, bd: c.boundaryDistance });
+        else {
+          expect([Tissue.Fat, Tissue.Muscle], `${dx},${dy}: ${Tissue[c.tissue]} a ${r} mm`).toContain(c.tissue);
+          rT = r;
+          break;
+        }
+      }
+      expect(rT, `${dx},${dy}: sin transición`).not.toBeNaN();
+      // el último punto del resto está a < 0,3 mm de la pared (el paso de la columna es 0,25 mm)
+      expect(samples[samples.length - 1].bd, `${dx},${dy}`).toBeLessThan(0.3);
+      for (const p of samples.filter((q) => rT - q.r < 10)) expect(p.bd, `${dx},${dy} a ${p.r}`).toBeLessThanOrEqual(rT - p.r + 1e-9);
+      expect(samples[0].bd).toBe(5);
+    }
+  });
+
   it('el peso respiratorio es 0 en la pared y 1 en las vísceras', () => {
     expect(scene.respiratoryWeight([0, 100, 0])).toBe(0);
     expect(scene.respiratoryWeight([-60, 20, 20])).toBeCloseTo(1, 3);
