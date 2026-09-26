@@ -8,6 +8,7 @@
  * cuando el paso C cambie la anatomía.
  */
 import { AnatomyQuery } from '../../anatomy/query';
+import type { Rib } from '../../anatomy/primitives';
 import type { AnatomyScene, SceneInstant } from '../../anatomy/scene';
 import { Tissue } from '../../anatomy/tissues';
 import type { Vec3 } from '../../core/vec3';
@@ -132,21 +133,27 @@ export function arcMm(tr: Transducer, dTheta: number, r: number): number {
   return (tr.curvatureRadius + r) * dTheta;
 }
 
-/** Altura z (mm) de la línea media de la costilla n (5.ª–10.ª en la escena heredada) en el ángulo del tronco φ. */
-export function ribZ(scene: AnatomyScene, n: number, phi: number): number | null {
-  const rib = scene.ribs[n - 5];
-  if (!rib) return null;
+/** ¿Tiene la escena la costilla de número n? */
+export function hasRib(scene: AnatomyScene, n: number): boolean {
+  return scene.ribNumbers.includes(n);
+}
+
+/** La costilla de número n (por su número, `AnatomyScene.ribNumbers`); lanza si la escena no la tiene. */
+export function ribOf(scene: AnatomyScene, n: number): Rib {
+  const i = scene.ribNumbers.indexOf(n);
+  if (i < 0) throw new Error(`la escena no tiene la costilla ${n} (tiene ${scene.ribNumbers.join(', ')})`);
+  return scene.ribs[i];
+}
+
+/** Altura z (mm) de la línea media de la costilla n en el ángulo del tronco φ (la ley de `sdRib`); lanza si falta. */
+export function ribZ(scene: AnatomyScene, n: number, phi: number): number {
+  const rib = ribOf(scene, n);
   return rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi));
 }
 
-/**
- * Altura z (mm) del centro del espacio intercostal n (entre las costillas n y n + 1) en φ; null si la escena
- * no tiene alguna de las dos.
- */
-export function intercostalZ(scene: AnatomyScene, n: number, phi: number): number | null {
-  const a = ribZ(scene, n, phi);
-  const b = ribZ(scene, n + 1, phi);
-  return a === null || b === null ? null : 0.5 * (a + b);
+/** Altura z (mm) del centro del espacio intercostal n (entre las costillas n y n + 1) en φ; lanza si falta una. */
+export function intercostalZ(scene: AnatomyScene, n: number, phi: number): number {
+  return 0.5 * (ribZ(scene, n, phi) + ribZ(scene, n + 1, phi));
 }
 
 /** Pose longitudinal (marcador craneal) sobre la piel en (φ, z), sin basculación ni inclinación. */

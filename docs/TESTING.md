@@ -41,11 +41,11 @@ la salida actual no protege nada.
   exactos de la profundidad de la pleura; la reflexión y la transmisión en una interfaz conservan la energía; la
   sonda solo empuja; el deslizamiento se mueve con la fase respiratoria del reloj único; misma semilla, mismo
   resultado. Cada una se comprobó con la mutación del código que protege (descritas en la decisión 10).
-- **Metas A de la fase como `it.fails`** (`src/validation/anatomyTargets.test.ts`): se miden en la escena
+- **Metas A de la fase que aún no se cumplen** (`src/validation/anatomyTargets.test.ts`): se miden en la escena
   heredada con el procedimiento de `src/validation/support/chestView.ts` (la sonda apoyada con su contacto, en
-  fin de espiración) y llevan el valor medido en su comentario. Un `it.fails` también «pasa» si la prueba
-  lanza por un error propio: al escribirlas se comprobó que cada una falla por su aserción. El paso C las
-  pasa a `it`.
+  fin de espiración, y las costillas buscadas por su número) y llevan el valor medido en su comentario. No son
+  `it.fails`, que también «pasa» si la prueba lanza por un error propio: cada una exige que su cuerpo falle por
+  una aserción (`chai.AssertionError`). El paso C las pasa a `it`.
 - **Cobertura medida** con el código portado (todos los niveles): 92,8 % de sentencias, 88,4 % de ramas,
   93,3 % de funciones y 94,2 % de líneas. Queda sobre los umbrales (90/85/90/90), que no cambian.
 

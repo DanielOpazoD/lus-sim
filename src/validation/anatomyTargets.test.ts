@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { chai, describe, expect, it } from 'vitest';
 import { Interface } from '../anatomy/interfaces';
 import { AnatomyScene } from '../anatomy/scene';
 import { Tissue } from '../anatomy/tissues';
@@ -12,6 +12,7 @@ import {
   chestView,
   intercostalZ,
   longitudinalPose,
+  ribOf,
   ribShadows,
   ribZ,
   scanLine,
@@ -27,20 +28,43 @@ import { median, simulate, type Scene } from './support/interfaceTwin';
  * respiración en fin de espiración, midiendo a lo largo de sus líneas. Las metas son para una sonda lineal de
  * 38–40 mm; lus-sim solo tiene aún el convexo de 3,5 MHz (`convex-probe-only`), así que se mide con él.
  *
- * Lo que la escena heredada aún no cumple va como `it.fails`, con el valor medido en su comentario: el paso C
- * (anatomía del tórax) las hará pasar a `it`. No se ajusta la anatomía aquí. Cada umbral es el criterio de
- * aceptación de la meta, tal cual.
+ * Lo que la escena heredada aún no cumple va con `notYetMet`, con el valor medido en su comentario: la prueba
+ * exige que la meta falle por su aserción (`chai.AssertionError`), no por un error del código de medida; el
+ * paso C (anatomía del tórax) las pasará a `it`. No se ajusta la anatomía aquí. Cada umbral es el criterio de
+ * aceptación de la meta, tal cual. Las costillas se buscan por su número (`AnatomyScene.ribNumbers`): si falta
+ * una que la meta necesita, la prueba lo afirma primero.
  */
 const scene = new AnatomyScene(defaultPatient());
 const tr = CONVEX_C35;
 /** Paso angular entre dos líneas del convexo (rad). */
 const PITCH = (2 * tr.halfSector) / (tr.lines - 1);
-/** Línea medioclavicular, axilar anterior y media de la escena (φ del tronco): la de la pose por omisión y ±. */
+/**
+ * Líneas del tórax en la escena (ángulo del tronco φ), posiciones de medida de las pruebas:
+ *  - LMC, la medioclavicular derecha: la de la pose por omisión (`BLUE_UPPER_POSE`), donde el cartílago costal de
+ *    VExUS pasa a hueso;
+ *  - LAM, la axilar media: φ = π, el costado del tronco, donde VExUS pone su ventana intercostal;
+ *  - LAA, la axilar anterior: 0,9π, entre la medioclavicular y la axilar media, más cerca de esta. No hay fuente
+ *    que la sitúe en el tronco elíptico (docs/knowledge/anatomy.md no da la posición de las líneas axilares): A-T2
+ *    admite la LAA o la LAM y se miden las dos, así que el resultado no depende de esta estimación;
+ *  - POSTERIOR, la axilar posterior: 1,2π, el tope de `clampPose` en decúbito supino (VExUS la llama así), lo más
+ *    posterior que llega la sonda. Yoshida midió la banda posterior a 50–60 mm de las apófisis espinosas y
+ *    sentado: la meta posterior se mide aquí más lateral de lo que pide.
+ */
 const LMC = defaultPose().phi;
 const LAA = 0.9 * Math.PI;
 const LAM = Math.PI;
-/** Posterior (entre la línea axilar posterior y la escapular), en decúbito supino hasta donde llega la sonda. */
 const POSTERIOR = 1.2 * Math.PI;
+
+/**
+ * Meta que la escena aún no cumple: la prueba exige que su cuerpo falle por una aserción (`chai.AssertionError`),
+ * no por un error del código de medida (un TypeError, una costilla que falta sin decirlo). Cuando el paso C la
+ * cumpla, esta prueba falla y hay que pasarla a `it`.
+ */
+function notYetMet(title: string, body: () => void): void {
+  it(`${title} [aún no se cumple]`, () => {
+    expect(body).toThrow(chai.AssertionError);
+  });
+}
 
 /** Profundidad de la pleura parietal (mm) bajo la línea central de la sonda en la pose. */
 function pleuraDepth(pose: ProbePose): number {
@@ -49,10 +73,9 @@ function pleuraDepth(pose: ProbePose): number {
   return d;
 }
 
-/** Pose longitudinal centrada en el espacio intercostal n en φ (null si la escena no tiene sus costillas). */
-function icsPose(n: number, phi: number): ProbePose | null {
-  const z = intercostalZ(scene, n, phi);
-  return z === null ? null : longitudinalPose(phi, z);
+/** Pose longitudinal centrada en el espacio intercostal n en φ (lanza si la escena no tiene sus costillas). */
+function icsPose(n: number, phi: number): ProbePose {
+  return longitudinalPose(phi, intercostalZ(scene, n, phi));
 }
 
 /**
@@ -65,10 +88,10 @@ function batSign(v: ChestView) {
   const shadows = ribShadows(scanView(v));
   const left = shadows.filter((s) => s.theta1 < 0).pop();
   const right = shadows.find((s) => s.theta0 > 0);
-  if (!left || !right) return null;
+  if (!left || !right) throw new Error('sin dos sombras costales a los lados de la línea central');
   const center = 0.5 * (left.theta1 + right.theta0);
   const D = scanLine(v, center).pleuraMm;
-  if (D === null) return null;
+  if (D === null) throw new Error('sin pleura en el centro del espacio intercostal');
   const ribLine = 0.5 * (left.ribTopMm + right.ribTopMm);
   let muscle = 0;
   const step = 0.02;
@@ -91,16 +114,16 @@ describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anat
   // La pared es la del abdomen de VExUS, 2 + 14 + 12 = 28 mm en la métrica radial y la misma en todo el
   // tronco (`thorax-wall-abdominal-habitus`): delante sale 25 mm porque la normal de la piel no es radial.
 
-  it.fails('A-T1: la pleura en EIC2-LMC (el punto BLUE superior) está a 12–20 mm (hoy 25,2)', () => {
+  notYetMet('A-T1: la pleura en EIC2-LMC (el punto BLUE superior) está a 12–20 mm (hoy 25,2)', () => {
     const d = pleuraDepth(defaultPose());
     expect(d).toBeGreaterThanOrEqual(12);
     expect(d).toBeLessThanOrEqual(20);
   });
 
-  it.fails('A-T2: en EIC5 LAA/LAM a 10–16 mm y el cociente lateral/anterior entre 0,7 y 0,9 (hoy 27,2 y 28,0; cociente 1,08–1,11)', () => {
+  notYetMet('A-T2: en EIC5 LAA/LAM a 10–16 mm y el cociente lateral/anterior entre 0,7 y 0,9 (hoy 27,2 y 28,0; cociente 1,08–1,11)', () => {
     const anterior = pleuraDepth(defaultPose());
     for (const phi of [LAA, LAM]) {
-      const d = pleuraDepth(icsPose(5, phi)!);
+      const d = pleuraDepth(icsPose(5, phi));
       expect(d).toBeGreaterThanOrEqual(10);
       expect(d).toBeLessThanOrEqual(16);
       expect(d / anterior).toBeGreaterThanOrEqual(0.7);
@@ -108,11 +131,12 @@ describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anat
     }
   });
 
-  it.fails('A-T3: en EIC4-LAM a 14–22 mm y más honda que en A-T1 (hoy 28,0: más honda, pero fuera del rango)', () => {
-    // EIC4: la escena no tiene la 4.ª costilla (`ribs-5-10-only`); se toma medio periodo costal por encima de la
-    // 5.ª, con el periodo de la 5.ª y la 6.ª en esa línea
-    const z5 = ribZ(scene, 5, LAM)!;
-    const d = pleuraDepth(longitudinalPose(LAM, z5 + 0.5 * (z5 - ribZ(scene, 6, LAM)!)));
+  notYetMet('A-T3: en EIC4-LAM a 14–22 mm y más honda que en A-T1 (hoy sin 4.ª costilla; medio periodo sobre la 5.ª, 28,0)', () => {
+    // EIC4 necesita la 4.ª costilla, que la escena no tiene (`ribs-5-10-only`). Medido medio periodo costal por
+    // encima de la 5.ª (con el de la 5.ª y la 6.ª en esa línea): la pleura, a 28,0 mm, más honda que en A-T1 pero
+    // fuera del rango
+    expect(scene.ribNumbers, 'la escena no tiene la 4.ª costilla').toContain(4);
+    const d = pleuraDepth(icsPose(4, LAM));
     expect(d).toBeGreaterThan(pleuraDepth(defaultPose()));
     expect(d).toBeGreaterThanOrEqual(14);
     expect(d).toBeLessThanOrEqual(22);
@@ -152,13 +176,14 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
 describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda intercostales', () => {
   // Corte longitudinal centrado en el EIC5 de la línea axilar media (entre la 5.ª y la 6.ª costillas de la
   // escena): el primero en que hay costillas a los dos lados de la línea central. En el punto BLUE superior
-  // (EIC2) la escena no tiene costillas (`ribs-5-10-only`). Medido (26-09-2026): pleura 28,0 mm; línea
+  // (EIC2) solo asoma, en el borde caudal del sector, la sombra de la 5.ª costilla (de −34° a −26,5°, cresta
+  // a 18,4 mm): no hay signo del murciélago (`ribs-5-10-only`). Medido (26-09-2026): pleura 28,0 mm; línea
   // pleural 7,0 mm bajo la línea costal; sombras de 14,8 y 14,8 mm; EIC visible de 6,6 mm; periodo 21,3 mm;
   // banda de músculo entre la línea costal y la pleura de 5,0 mm (anterior, EIC5-LMC: 7,2; posterior,
   // EIC7 a 1,2π: 6,1), la misma en inspiración profunda.
-  const lateral = batSign(chestView(scene, icsPose(5, LAM)!))!;
+  const lateral = batSign(chestView(scene, icsPose(5, LAM)));
 
-  it.fails('A-T7: la línea pleural está 4–6 mm bajo la línea costal (hoy 7,0)', () => {
+  notYetMet('A-T7: la línea pleural está 4–6 mm bajo la línea costal (hoy 7,0)', () => {
     expect(lateral.pleuraBelowRibLineMm).toBeGreaterThanOrEqual(4);
     expect(lateral.pleuraBelowRibLineMm).toBeLessThanOrEqual(6);
   });
@@ -170,27 +195,27 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
     }
   });
 
-  it.fails('A-T7: el espacio intercostal visible mide 14–20 mm (hoy 6,6: las costillas están a 17 mm en la línea axilar media)', () => {
+  notYetMet('A-T7: el espacio intercostal visible mide 14–20 mm (hoy 6,6: las costillas están a 17 mm en la línea axilar media)', () => {
     expect(lateral.intercostalMm).toBeGreaterThanOrEqual(14);
     expect(lateral.intercostalMm).toBeLessThanOrEqual(20);
   });
 
-  it.fails('A-T8: el periodo costal en el corte longitudinal es de 28–35 mm (hoy 21,3)', () => {
+  notYetMet('A-T8: el periodo costal en el corte longitudinal es de 28–35 mm (hoy 21,3)', () => {
     // la meta: en 40 mm, un EIC completo y dos sombras parciales; con este periodo caben dos espacios
     expect(lateral.ribPeriodMm).toBeGreaterThanOrEqual(28);
     expect(lateral.ribPeriodMm).toBeLessThanOrEqual(35);
   });
 
-  it.fails('A-T9: en la región paraesternal el EIC2 es ≥ EIC3 + 3 mm (hoy no hay EIC2 ni EIC3: faltan las costillas 2.ª–4.ª)', () => {
-    const width = (n: number): number => {
-      const a = ribZ(scene, n, 0.55 * Math.PI);
-      const b = ribZ(scene, n + 1, 0.55 * Math.PI);
-      return a === null || b === null ? Number.NaN : a - b - 2 * scene.ribs[0].halfWidth;
-    };
+  notYetMet('A-T9: en la región paraesternal el EIC2 es ≥ EIC3 + 3 mm (hoy no hay EIC2 ni EIC3: faltan las costillas 2.ª–4.ª)', () => {
+    for (const n of [2, 3, 4]) expect(scene.ribNumbers, `la escena no tiene la costilla ${n}`).toContain(n);
+    // ancho del espacio n en la región paraesternal (φ 0,55π, ~25 mm de la línea media): la distancia entre las
+    // líneas medias de sus costillas menos sus dos semianchos
+    const width = (n: number): number =>
+      ribZ(scene, n, 0.55 * Math.PI) - ribZ(scene, n + 1, 0.55 * Math.PI) - ribOf(scene, n).halfWidth - ribOf(scene, n + 1).halfWidth;
     expect(width(2)).toBeGreaterThanOrEqual(width(3) + 3);
   });
 
-  it.fails('A-T10: la banda intercostal mide 1,5–3,5 mm delante, 2,5–4,5 al lado y 3,5–5,5 detrás (hoy 7,2 / 5,0 / 6,1)', () => {
+  notYetMet('A-T10: la banda intercostal mide 1,5–3,5 mm delante, 2,5–4,5 al lado y 3,5–5,5 detrás (hoy 7,2 / 5,0 / 6,1)', () => {
     // la banda: el músculo que la clasificación pone entre la línea costal y la pleura en el centro del
     // espacio. La pared heredada no tiene intercostales (`wall-generic-layers`): es el músculo de la pared
     // abdominal de VExUS que cae a esa altura
@@ -200,15 +225,15 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
       [POSTERIOR, 7, 3.5, 5.5],
     ];
     for (const [phi, n, lo, hi] of cases) {
-      const b = batSign(chestView(scene, icsPose(n, phi)!))!;
+      const b = batSign(chestView(scene, icsPose(n, phi)));
       expect(b.intercostalBandMm).toBeGreaterThanOrEqual(lo);
       expect(b.intercostalBandMm).toBeLessThanOrEqual(hi);
     }
   });
 
-  it.fails('A-T10: al inspirar a fondo solo engrosa la banda anterior, +0,4–0,8 mm (hoy +0,0: la pared no respira)', () => {
-    const at = (phi: number, n: number, resp = deepInspiration) => batSign(chestView(scene, icsPose(n, phi)!, resp))!.intercostalBandMm;
-    const rest = (phi: number, n: number) => batSign(chestView(scene, icsPose(n, phi)!))!.intercostalBandMm;
+  notYetMet('A-T10: al inspirar a fondo solo engrosa la banda anterior, +0,4–0,8 mm (hoy +0,0: la pared no respira)', () => {
+    const at = (phi: number, n: number, resp = deepInspiration) => batSign(chestView(scene, icsPose(n, phi), resp)).intercostalBandMm;
+    const rest = (phi: number, n: number) => batSign(chestView(scene, icsPose(n, phi))).intercostalBandMm;
     const anterior = at(LMC, 5) - rest(LMC, 5);
     expect(anterior).toBeGreaterThanOrEqual(0.4);
     expect(anterior).toBeLessThanOrEqual(0.8);
@@ -244,7 +269,7 @@ describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {
     return median(widths);
   }
 
-  it.fails('A-T11: la PLT crece 0,67 ± 0,12 mm por cm de profundidad con una sonda de sector (hoy 0: 0,70 mm de 15 a 60 mm)', () => {
+  notYetMet('A-T11: la PLT crece 0,67 ± 0,12 mm por cm de profundidad con una sonda de sector (hoy 0: 0,70 mm de 15 a 60 mm)', () => {
     // el pulso axial (σ fija, AXIAL_SIGMA_MM) y el perfil de la cara no dependen de la profundidad, y en las
     // líneas centrales la pleura plana es normal al haz: la PSF lateral no la engruesa
     const slopePerCm = (plt(60) - plt(20)) / 4;

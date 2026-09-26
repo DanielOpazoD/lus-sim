@@ -41,7 +41,7 @@ import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface }
  * +x izquierda del paciente, +y anterior, +z craneal (marco levógiro, decisión 22).
  * Las dimensiones son las de VExUS: [EXTRAPOLACIÓN PROPIA] de un adulto de IMC 25; ningún ángulo o
  * longitud se presenta como dato anatómico medido. Las del tórax de la base de conocimiento (metas A)
- * llegan en el paso C (`anatomy.test.ts` las fija como `it.fails` con lo medido).
+ * llegan en el paso C (`anatomyTargets.test.ts` mide cuáles no se cumplen aún, con lo medido).
  */
 
 export interface Classification {
@@ -122,6 +122,12 @@ export function ribTiltMm(ribNo: number): number {
 export class AnatomyScene {
   readonly torso: Torso;
   readonly ribs: Rib[];
+  /**
+   * Número anatómico de cada costilla de `ribs`, en el mismo orden (lus-sim, decisión 10): la escena heredada
+   * tiene de la 5.ª a la 10.ª. Las medidas buscan una costilla por su número, nunca por su posición en la lista
+   * (si el paso C añade las 1.ª–4.ª, la 5.ª deja de ser la primera).
+   */
+  readonly ribNumbers: number[];
   readonly diaphragm: Diaphragm;
   readonly spine: Spine;
 
@@ -145,6 +151,7 @@ export class AnatomyScene {
     // apófisis transversas de 40 mm a cada lado. Las costillas terminan en ellas.
     this.spine = { kind: 'cylinderZ', x0: 0, y0: -46, r: 17, archHalfWidth: 40, archY0: -78, archY1: -58 };
     this.ribs = [];
+    this.ribNumbers = [];
     // Costillas derechas 5–10: el 7.º cartílago llega al esternón a la altura del xifoides (z 0).
     // Oblicuidad creciente hacia abajo: la cabeza de la 5.ª está en T5 (≈ 6 cm sobre su
     // extremo anterior) y la de la 10.ª en T10, a la altura del xifoides (≈ 9 cm sobre el
@@ -162,6 +169,7 @@ export class AnatomyScene {
         cartilageFromPhi: Math.PI / 4,
         rightOnly: true,
       });
+      this.ribNumbers.push(5 + i);
     }
   }
 

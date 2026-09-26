@@ -281,7 +281,8 @@ C la anatomía del tórax con las dimensiones de la base (metas A). En el paso A
   (`src/validation/physicsInvariants.test.ts`: líneas A a múltiplos exactos de la profundidad de la pleura,
   energía conservada en una interfaz, la sonda que solo empuja, el deslizamiento con la fase del reloj único,
   misma semilla y mismo resultado) y las metas A-T1–A-T3 y A-T6–A-T11 de la base medidas sobre la escena
-  heredada (`src/validation/anatomyTargets.test.ts`): las que aún no cumple son `it.fails` con el valor medido.
+  heredada (`src/validation/anatomyTargets.test.ts`): las que aún no cumple exigen fallar por su aserción (no
+  por un error del código de medida) y llevan el valor medido.
 - **Por qué no se portan las cifras**: una cifra de VExUS mide su hígado, su cava o su riñón con sus puntos de
   partida; en el tórax no protegería nada, o protegería algo falso. Lo que protege al tórax son las leyes
   físicas, que valen en cualquier escena, y las medidas del propio tórax, que el paso C hará cumplir.

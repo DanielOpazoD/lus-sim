@@ -68,18 +68,18 @@ término nuevo entra en el código, entra aquí. Las definiciones operativas con
 
 ## Código y proceso
 
-| Término                  | Significado                                                                                                                                |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Reloj único**          | `SimulationClock`: la única fuente de tiempo del motor (`src/core/clock.ts`).                                                              |
-| **Paso A, B y C**        | Los tres pasos de la fase 1 (decisión 10): física en TypeScript, GPU y app, y anatomía del tórax con las dimensiones de la base.           |
-| **Núcleo del paciente**  | La parte del `PatientState` de VExUS que leen el ritmo, la respiración y la escena del tórax (`src/physiology/patientState.ts`).           |
-| **Instante de escena**   | `SceneInstant`: lo que la fisiología impone a la anatomía en un instante del reloj (hoy, el descenso del diafragma).                       |
-| **«Resto»**              | El tejido por defecto de la clasificación de VExUS (`Tissue.Bowel`): lo que queda bajo el diafragma en el tórax portado.                   |
-| **Gemelo B → C → D**     | Réplica en CPU de las pasadas del renderizador (campo, pulso axial y PSF lateral) con las funciones de producción: mide la imagen sin GPU. |
-| **Meta A-T*n* / F-T*n*** | Meta de prueba de la base de conocimiento (anatomía, física…); si la escena aún no la cumple, `it.fails` con el valor medido.              |
-| **Gemelos TS/GLSL**      | La misma fórmula escrita en TypeScript (pruebas, CPU) y en GLSL (GPU), con una prueba de equivalencia exacta.                              |
-| **Evidencia**            | Tipo de respaldo de un parámetro: documentado, consenso, derivado, estimado o extrapolación (`src/core/evidence.ts`).                      |
-| **Procedencia / deriva** | De dónde viene un archivo portado y cuánto se ha alejado de su origen (`docs/PROVENANCE.md`, `npm run provenance`).                        |
-| **Banco de referencia**  | Ecografías reales con licencia, guardadas fuera del repo, contra las que se mide la imagen simulada (decisión 5).                          |
-| **Prueba ciega**         | Mosaicos con imágenes reales y simuladas mezcladas; un observador experto señala las simuladas y el rasgo que las delata.                  |
-| **Revisión adversarial** | Revisión de un cambio por un agente o persona sin el contexto de quien lo hizo, que ejecuta y mide en lugar de solo leer.                  |
+| Término                  | Significado                                                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Reloj único**          | `SimulationClock`: la única fuente de tiempo del motor (`src/core/clock.ts`).                                                                                    |
+| **Paso A, B y C**        | Los tres pasos de la fase 1 (decisión 10): física en TypeScript, GPU y app, y anatomía del tórax con las dimensiones de la base.                                 |
+| **Núcleo del paciente**  | La parte del `PatientState` de VExUS que leen el ritmo, la respiración y la escena del tórax (`src/physiology/patientState.ts`).                                 |
+| **Instante de escena**   | `SceneInstant`: lo que la fisiología impone a la anatomía en un instante del reloj (hoy, el descenso del diafragma).                                             |
+| **«Resto»**              | El tejido por defecto de la clasificación de VExUS (`Tissue.Bowel`): lo que queda bajo el diafragma en el tórax portado.                                         |
+| **Gemelo B → C → D**     | Réplica en CPU de las pasadas del renderizador (campo, pulso axial y PSF lateral) con las funciones de producción: mide la imagen sin GPU.                       |
+| **Meta A-T*n* / F-T*n*** | Meta de prueba de la base de conocimiento (anatomía, física…); si la escena aún no la cumple, la prueba exige que falle por su aserción y lleva el valor medido. |
+| **Gemelos TS/GLSL**      | La misma fórmula escrita en TypeScript (pruebas, CPU) y en GLSL (GPU), con una prueba de equivalencia exacta.                                                    |
+| **Evidencia**            | Tipo de respaldo de un parámetro: documentado, consenso, derivado, estimado o extrapolación (`src/core/evidence.ts`).                                            |
+| **Procedencia / deriva** | De dónde viene un archivo portado y cuánto se ha alejado de su origen (`docs/PROVENANCE.md`, `npm run provenance`).                                              |
+| **Banco de referencia**  | Ecografías reales con licencia, guardadas fuera del repo, contra las que se mide la imagen simulada (decisión 5).                                                |
+| **Prueba ciega**         | Mosaicos con imágenes reales y simuladas mezcladas; un observador experto señala las simuladas y el rasgo que las delata.                                        |
+| **Revisión adversarial** | Revisión de un cambio por un agente o persona sin el contexto de quien lo hizo, que ejecuta y mide en lugar de solo leer.                                        |

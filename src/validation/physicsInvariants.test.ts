@@ -50,7 +50,7 @@ describe('líneas A: la serie de reverberaciones las pone a múltiplos exactos d
     // La amplitud de la réplica (ganancia × perfil de la cara de un lado, 2,5σh dentro del músculo): sus picos a
     // lo largo de la línea central, con la pleura de dos vistas del tórax que la tienen a otra profundidad. La
     // separación sigue a D, venga de donde venga: no es una textura. Umbral: el paso del barrido (0,002 mm)
-    for (const pose of [defaultPose(), longitudinalPose(Math.PI, intercostalZ(scene, 5, Math.PI)!)]) {
+    for (const pose of [defaultPose(), longitudinalPose(Math.PI, intercostalZ(scene, 5, Math.PI))]) {
       const D = scanLine(chestView(scene, pose), 0).pleuraMm!;
       const amp = (s: number): number => {
         const p = pleuraTerms(s, D, 0.4, pleuraCoherence(1, k0), () => 0.4)[0];
