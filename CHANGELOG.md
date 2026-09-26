@@ -5,6 +5,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ## [Sin publicar]
 
+## [0.1.0] — 2026-09-26 — fase 0: cimientos
+
 ### Añadido
 
 - Fase 0, cimientos: repositorio con la pila y las herramientas de VExUS (2), integración continua
