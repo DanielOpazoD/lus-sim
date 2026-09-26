@@ -261,25 +261,37 @@ describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared baj
     }
   });
 
-  it('lo hondo: más allá del alcance nada se mueve; a más de 60 mm, menos que la cara', () => {
-    // alcance medido: 94 (BLUE e izquierdo), 113 (lateral), 124 (transversal) y 102 mm (posterior); el tejido a más
-    // de 60 mm (pulmón, el «resto») se mueve menos que la cara: el empuje se apaga bajo la pared
+  it('lo hondo: más allá del alcance nada se mueve; el pulmón y el «resto» a más de 60 mm, menos que la cara', () => {
+    // alcance medido: 94 (BLUE e izquierdo), 113 (lateral), 124 (transversal) y 102 mm (posterior); el tejido hondo
+    // a más de 60 mm (pulmón, el «resto») se mueve menos que la cara: el empuje se apaga bajo la pared. Como en
+    // VExUS (sus vasos y el riñón), el desplazamiento y su cuenta son solo de ese tejido, no de la pared del otro
+    // lado ni de la columna; la identidad más allá del alcance vale para toda muestra y lleva su propia cuenta
     for (const id of VIEW_IDS) {
       const { frame, k } = view(id);
       expect(k.reachMm, id).toBeLessThan(180);
       let worst = 0;
-      let n = 0;
+      let deep = 0;
+      let beyond = 0;
       for (let i = 0; i < tr.lines; i += 3)
         for (let d = 60; d <= 180; d += 1.5)
           for (const e of [-2, 0, 2]) {
             const p0 = pointOnLine(frame, tr, lineAngle(i, tr), d);
             const p: Vec3 = [p0[0] + frame.elevation[0] * e, p0[1] + frame.elevation[1] * e, p0[2] + frame.elevation[2] * e];
             const m = uncompress(p, k);
-            if (d >= k.reachMm) expect(m, `${id} ${d}`).toEqual(p);
-            n++;
+            if (d >= k.reachMm) {
+              expect(m, `${id} ${d}`).toEqual(p);
+              beyond++;
+            }
+            const t = scene.classify(m, BASELINE_INSTANT).tissue;
+            if (t !== Tissue.Lung && t !== Tissue.Bowel) continue;
+            deep++;
             worst = Math.max(worst, Math.hypot(m[0] - p[0], m[1] - p[1], m[2] - p[2]));
           }
-      expect(n, id).toBeGreaterThan(200);
+      // medido el 26-09-2026: 9825–15 318 muestras hondas y 7296–11 136 más allá del alcance por vista; el tejido
+      // hondo se movió 0,49 (BLUE e izquierdo), 0,68 (lateral), 0,74 (transversal) y 0,58 (posterior) del
+      // hundimiento. Las cuentas mínimas solo fallan si una vista deja de ver tejido hondo o el alcance crece
+      expect(deep, id).toBeGreaterThan(5000);
+      expect(beyond, id).toBeGreaterThan(5000);
       expect(worst, id).toBeLessThan(0.8 * k.summary.indentMm);
     }
   });
