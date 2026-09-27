@@ -337,7 +337,7 @@ function ribMidline(scene: AnatomyScene, au: number, side: -1 | 1): [number, num
   const sx = t.a * Math.sin(tau);
   const sy = t.b * Math.cos(tau);
   const R = Math.hypot(sx, sy);
-  let d = t.skinMm + t.fatMm + t.muscleMm;
+  let d = scene.wallThicknessAt([sx, sy, 0]);
   for (let i = 0; i < 3; i++) d = ribCenterDepth([sx * (1 - d / R), sy * (1 - d / R), 0], t, scene.ribCage);
   return [side * sx * (1 - d / R), sy * (1 - d / R)];
 }

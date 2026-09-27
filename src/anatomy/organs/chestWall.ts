@@ -2,7 +2,7 @@ import { defineParameters } from '../../core/evidence';
 import type { ChestHabitus } from '../../physiology/patientState';
 import { torsoDepthGradient, torsoSkinPoint, type ChestWallLookup, type Torso, type WallLayersAt } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
-import { RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
+import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
 import { wallArc, wallPerimeter } from './wall';
 
 /**
@@ -41,9 +41,11 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     value: 2.5,
     unit: 'mm',
     range: [2, 3],
-    evidence: 'documentado',
+    evidence: 'estimado',
     sources: ['laurent-piel-2007'],
-    note: 'Piel supraescapular, 2,54 mm por ecografía de 20 MHz (Laurent): la de detrás',
+    note:
+      'Piel de detrás: la supraescapular, 2,54 mm por ecografía de 20 MHz (Laurent), llevada bajo la escápula y a la columna ' +
+      '[SUPUESTO de la base: la fila infraescapular del avatar]',
   },
   fatAnteriorMm: {
     value: 3.7,
@@ -126,7 +128,7 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     unit: 'mm',
     range: [2, 7],
     evidence: 'estimado',
-    sources: ['laurent-piel-2007'],
+    sources: [],
     note: 'Grasa subcutánea infraescapular del avatar [SUPUESTO] (anatomy.md §2.3)',
   },
   latissimusMm: {
@@ -134,7 +136,7 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     unit: 'mm',
     range: [3, 8],
     evidence: 'estimado',
-    sources: ['laurent-piel-2007'],
+    sources: [],
     note: 'Dorsal ancho infraescapular del avatar [SUPUESTO]; con piel 2,5, grasa 4 e intercostales 4,3, 16 mm',
   },
   intercostalPosteriorMm: {
@@ -153,7 +155,7 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     sources: ['oontan-paravertebral-2013'],
     note:
       'Piel → pleura en la línea media posterior: la pared heredada (28 mm); entre la infraescapular y ella, interpolada (en ' +
-      'la paravertebral, a 6 cm de la línea media, ≈ 19). La base solo da apófisis transversa → pleura, 21 ± 4,2 mm a 25 mm ' +
+      'la paravertebral, a 6 cm de la línea media, ≈ 21 por la normal). La base solo da apófisis transversa → pleura, 21 ± 4,2 mm a 25 mm ' +
       'de la línea media (Oon Tan); piel → apófisis, NO ENCONTRADO: la pared de detrás de la columna es un supuesto',
   },
   infrascapularPhi: {
@@ -193,7 +195,7 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     unit: 'mm',
     range: [60, 150],
     evidence: 'estimado',
-    sources: ['gray-anatomia-1918'],
+    sources: [],
     note:
       'Bajo el reborde costal la pared pasa a la del abdomen del hábito (VExUS: 28 mm) en estos mm [SUPUESTO]: al lado, de 13 a ' +
       '28 mm. Más corta, las capas se inclinan demasiado: en 20 mm la cara interna de la pared caía 37° bajo la sonda y el ' +
@@ -240,11 +242,12 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     value: 2,
     unit: 'mm',
     range: [0, 3],
-    evidence: 'documentado',
+    evidence: 'estimado',
     sources: ['mclean-paredus-2011'],
     note:
-      'Mujer: la mama añade en ecografía +0–3 mm en EIC2-LMC (McLean; +8 en la pared anatómica, Laan y Yamagiwa), en grasa, ' +
-      'del esternón a la axilar anterior y apagándose hasta la media (Gray: la mama llega a la LAM)',
+      'Mujer: la mama añade en ecografía +0–3 mm en EIC2-LMC (McLean, documentado; +8 en la pared anatómica, Laan y Yamagiwa); ' +
+      'se toman 2 [SUPUESTO: el punto dentro del rango], en grasa, del esternón a la axilar anterior y apagándose hasta la media ' +
+      '(Gray: la mama llega a la LAM)',
   },
 });
 
@@ -271,6 +274,8 @@ interface StationLayers {
 
 /** Las estaciones de la pared (|u| en mm de piel), para las pruebas y la documentación. */
 export interface ChestWallStations {
+  /** El borde del cuerpo del esternón (de la línea media a él, la pared del esternón). */
+  sternalEdge: number;
   parasternal: number;
   midclavicular: number;
   anteriorAxillary: number;
@@ -290,6 +295,11 @@ export interface ChestWall extends ChestWallLookup {
   zLow: number;
   /** Capas del abdomen (radiales): piel, grasa, músculo (con la preperitoneal), preperitoneal. */
   abdomen: [number, number, number, number];
+  /**
+   * Cota superior del grosor de la pared en todo el tronco (mm, radial): la GLSL no lee la tabla para las muestras más
+   * hondas que ella más lo que miran la cortina, el «resto» y el peso respiratorio (ahí el resultado no depende del grosor).
+   */
+  maxTotal: number;
   stations: ChestWallStations;
   habitus: ChestHabitus;
 }
@@ -367,6 +377,7 @@ function stationLayers(
   h: ChestHabitus,
   complex: number,
 ): {
+  sternal: StationLayers;
   anterior: StationLayers;
   lateralLow: StationLayers;
   lateralHigh: StationLayers;
@@ -381,6 +392,16 @@ function stationLayers(
     skin: skinA,
     fat: P.fatAnteriorMm.value,
     muscle: P.pectoralMm.value,
+    band: P.intercostalAnteriorMm.value,
+    complex,
+  };
+  // sobre el esternón no hay pectoral ni intercostales: piel, grasa presternal (la de delante) y el hueso, que cuelga de la
+  // pleura (`organs/ribcage.ts`); su grosor ocupa el músculo y la banda de la tabla (lo clasifica la parrilla)
+  const sternumMm = RIBCAGE.params.sternumThicknessMm.value;
+  const sternal: StationLayers = {
+    skin: skinA,
+    fat: P.fatAnteriorMm.value,
+    muscle: sternumMm - P.intercostalAnteriorMm.value,
     band: P.intercostalAnteriorMm.value,
     complex,
   };
@@ -423,17 +444,23 @@ function stationLayers(
       s.fat *= f;
       s.muscle *= mu;
     }
+    // el esternón no adelgaza
+    sternal.fat *= f;
   } else if (h.build === 'obese') {
     const total = (s: StationLayers) => s.skin + s.fat + s.muscle + s.band + s.complex;
     const dAnterior = P.obeseAnteriorWallMm.value - total(anterior);
     const dLateral = P.obeseLateralRatio.value * P.obeseAnteriorWallMm.value - total(lateralLow);
+    sternal.fat += dAnterior;
     anterior.fat += dAnterior;
     lateralLow.fat += dLateral;
-    lateralHigh.fat += dLateral;
+    // la axila alta, lo mismo que delante: con el aumento del lado (EIC5-LAM, Alkan) la pared de la axila pasaba de 30 mm y
+    // bajaba 7 mm hacia atrás
+    lateralHigh.fat += dAnterior;
     posterior.fat += dAnterior;
     paravertebral.fat += dAnterior;
   }
   return {
+    sternal,
     anterior,
     lateralLow,
     lateralHigh,
@@ -453,6 +480,7 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
   const P = CHEST_WALL.params;
   const L = stationLayers(habitus, complexMm);
   const st: ChestWallStations = {
+    sternalEdge: skinArc(Math.PI - Math.acos(RIBCAGE.params.sternumBodyHalfWidthMm.value / t.a), t),
     parasternal: skinArc(thoraxLinePhi('parasternal', t), t),
     midclavicular: skinArc(thoraxLinePhi('midclavicular', t), t),
     anteriorAxillary: skinArc(thoraxLinePhi('anteriorAxillary', t), t),
@@ -462,11 +490,13 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     paravertebral: skinArc(thoraxLinePhi('paravertebral', t), t),
     posteriorMidline: 0.5 * wallPerimeter(t),
   };
-  // nodos de las capas bajas y altas: delante (línea media, paraesternal, LMC), al lado (LAA, LAM; la LAP solo en las
+  // nodos de las capas bajas y altas: el esternón (de la línea media a su borde), delante (paraesternal, LMC), al lado (LAA, LAM; la LAP solo en las
   // altas, el pliegue axilar posterior), detrás (infraescapular y línea media posterior: con un nodo en la paravertebral,
-  // 12 mm en 30 de piel inclinaban las caras más de lo que acota la salida barata de la pasada B; ahí queda ≈ 19 mm)
+  // 12 mm en 30 de piel inclinaban las caras más de lo que acota la salida barata de la pasada B; ahí queda ≈ 21 mm por la
+  // normal)
   const low: Array<[number, StationLayers]> = [
-    [0, L.anterior],
+    [0, L.sternal],
+    [st.sternalEdge, L.sternal],
     [st.parasternal, L.anterior],
     [st.midclavicular, L.anterior],
     [st.anteriorAxillary, L.lateralLow],
@@ -475,7 +505,8 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     [st.posteriorMidline, L.paravertebral],
   ];
   const high: Array<[number, StationLayers]> = [
-    [0, L.anterior],
+    [0, L.sternal],
+    [st.sternalEdge, L.sternal],
     [st.parasternal, L.anterior],
     [st.midclavicular, L.anterior],
     [st.anteriorAxillary, L.lateralHigh],
@@ -513,11 +544,17 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     table.set(hi.v, o + 4);
     table.set(lo.v, o + 8);
   }
+  let maxTotal = t.skinMm + t.fatMm + t.muscleMm;
+  for (let j = 0; j < CHEST_WALL_COLS; j++) {
+    const o = j * CHEST_WALL_TEXELS_PER_COL * 4;
+    maxTotal = Math.max(maxTotal, table[o], table[o + 1]);
+  }
   const cw: ChestWall = {
     table,
     zHigh: 1e4,
     zLow: 1e4 - 1,
     abdomen: [t.skinMm, t.fatMm, t.muscleMm, t.preperitonealMm],
+    maxTotal,
     stations: st,
     habitus,
     layers: (u, z) => wallLayersAt(cw, u, z),
@@ -632,14 +669,15 @@ export function wallLayersAt(cw: ChestWall, u: number, z: number): WallLayersAt 
 export function chestWallInspiration(cw: ChestWall, u: number, _z: number, caudalMm: number): number {
   const [j, f] = column(u);
   const P = CHEST_WALL.params;
-  return texelAt(cw, j, f, 0)[3] * P.intercostalInspirationMm.value * clamp01(caudalMm / P.inspirationReferenceMm.value);
+  const insp = P.intercostalInspirationMm.value;
+  return texelAt(cw, j, f, 0)[3] * Math.min((insp / P.inspirationReferenceMm.value) * Math.max(caudalMm, 0), insp);
 }
 
 const f4 = (x: number): string => x.toFixed(4);
 
 /**
  * Gemelo GLSL. Usa la tabla en la textura de escena (`sceneTexel`, desde `CW_BASE`), uWall (la pared del abdomen del
- * hábito), uChestWall = (zHigh, zLow, engrosamiento inspiratorio por mm de descenso, descenso de referencia) y uResp.x (el
+ * hábito), uChestWall = (zHigh, zLow, engrosamiento inspiratorio por mm de descenso, grosor máximo de la pared) y uResp.x (el
  * descenso del diafragma).
  */
 const PW = CHEST_WALL.params;
@@ -648,6 +686,7 @@ export const CHEST_WALL_GLSL = /* glsl */ `
 #define CW_COLS ${CHEST_WALL_COLS}
 #define CW_DU ${f4(CHEST_WALL_DU_MM)}
 #define CW_ABD_BLEND ${f4(PW.abdomenBlendMm.value)}
+#define CW_INSP_MM ${f4(PW.intercostalInspirationMm.value)}
 vec4 cwTexel(int j, float f, int k) {
   int a = CW_BASE + j * ${CHEST_WALL_TEXELS_PER_COL} + k;
   return mix(sceneTexel(a), sceneTexel(a + ${CHEST_WALL_TEXELS_PER_COL}), f);
@@ -677,7 +716,7 @@ vec4 wallLayersAt(float u, float z, out vec4 extra) {
   float abd = 1.0 - smoothstep(a.z - CW_ABD_BLEND, a.z, z);
   float W = mix(a.y, a.x, hi);
   vec4 s = mix(L, H, hi);
-  extra = vec4(s.w, a.w * uChestWall.z * clamp(uResp.x, 0.0, uChestWall.w), abd, 0.0);
+  extra = vec4(s.w, a.w * min(uChestWall.z * max(uResp.x, 0.0), CW_INSP_MM), abd, 0.0);
   return mix(vec4(s.x, s.y, W - s.x - s.y, s.z), uWall, abd);
 }
 `;

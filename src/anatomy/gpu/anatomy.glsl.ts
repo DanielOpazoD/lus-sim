@@ -99,7 +99,9 @@ vec3 torsoNormal(vec3 p) {
 
 float wallTotalMm(vec3 m);
 float respWeight(vec3 m) {
-  float inside = -torsoDepth(m) - wallTotalMm(m);
+  // lus-sim (decisión 17): más hondo que la pared más gruesa (uChestWall.w) + 25 mm el peso de la pared es 1 sin leerla
+  float d = -torsoDepth(m);
+  float inside = d >= uChestWall.w + 25.0 ? 25.0 : d - wallTotalMm(m);
   float wWall = smoothstep(0.0, 25.0, inside);
   float dSpine = length(m.xy - uSpine.xy);
   float wSpine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, dSpine);
@@ -164,10 +166,14 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   tn = vec3(0.0, 1.0, 0.0);
   wall = 0.0;
   if (m.z < uTorso.z || m.z > uTorso.w || depth > 0.0) return true;
-  // lus-sim (decisión 17): la pared por región en el (u, z) de la muestra (organs/chestWall.ts); sus capas, solo dentro
-  float u = wallArc(m);
-  wall = wallTotalAt(u, m.z);
+  // lus-sim (decisión 17): la pared por región en el (u, z) de la muestra (organs/chestWall.ts); sus capas, solo dentro. Más
+  // hondo que la pared más gruesa (uChestWall.w) más lo que miran la cortina (3 mm) y el «resto» (su tope) no hace falta
+  // leerla: el grosor máximo da lo mismo en todo lo que sigue (la muestra no está en la pared, ni en la lámina, y la
+  // distancia del «resto» a la pared pasa de su tope)
   float d = -depth;
+  float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM);
+  float u = d < far ? wallArc(m) : 0.0;
+  wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;
   vec4 wx = vec4(0.0);
   vec4 wl = vec4(0.0);
   if (d < wall) wl = wallLayersAt(u, m.z, wx);

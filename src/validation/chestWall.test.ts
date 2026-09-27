@@ -12,9 +12,11 @@ import {
   wallTotalAt,
 } from '../anatomy/organs/chestWall';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from '../anatomy/organs/ribcage';
-import { WALL, wallArc, wallBand, wallDepths, wallLayers, wallPlaneDepth, wallPlaneGap } from '../anatomy/organs/wall';
-import { torsoDepthGradient, torsoSkinPoint, type WallLayersAt } from '../anatomy/primitives';
-import { AnatomyScene } from '../anatomy/scene';
+import { WALL, wallArc, wallBand, wallDepths, wallInnerNormal, wallLayers, wallPlaneDepth, wallPlaneGap } from '../anatomy/organs/wall';
+import { torsoDepthGradient, torsoNormal, torsoSkinPoint, type WallLayersAt } from '../anatomy/primitives';
+import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
+import { Tissue } from '../anatomy/tissues';
+import { FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED } from '../ultrasound/shaders/passes.glsl';
 import type { Vec3 } from '../core/vec3';
 import { defaultPatient, type ChestHabitus } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
@@ -201,7 +203,85 @@ describe('pared torácica por región (decisión 17)', () => {
     near(wallOf({ build: 'average', sex: 'female' }, st.midaxillary, LOW_Z), 12.8, 'mujer, LAM');
   });
 
-  it('gemelo GLSL: la tabla y las constantes salen del módulo, y el shader lee la pared por región', () => {
+  it('sobre el esternón, piel y grasa presternal: el hueso empieza donde acaba la grasa en todos los hábitos', () => {
+    for (const build of ['average', 'thin', 'obese'] as const) {
+      const p = defaultPatient();
+      const sc = new AnatomyScene({ ...p, habitus: { ...p.habitus, chest: { build, sex: 'male' } } });
+      const L = sc.chestWall.layers(0, 60);
+      let bone = -1;
+      for (let d = 0; d < 40; d += 0.05) {
+        const t0 = sc.classify([0, sc.torso.b - d, 60], BASELINE_INSTANT).tissue;
+        if (t0 === Tissue.Bone) {
+          bone = d;
+          break;
+        }
+      }
+      // (en la línea media la métrica es la normal)
+      expect(bone, build).toBeCloseTo(L.skin + L.fat, 0);
+      expect(bone, build).toBeGreaterThan(3);
+    }
+  });
+
+  it('la pleura se inclina con la pared (la normal de su cara, no la de la piel): poco delante, hasta ≈ 10° hacia la axila', () => {
+    const tilt = (u: number, z: number): number => {
+      const tau = (() => {
+        let lo = 0;
+        let hi = Math.PI;
+        for (let i = 0; i < 50; i++) {
+          const mid = 0.5 * (lo + hi);
+          if (wallArc([t.a * Math.sin(mid), t.b * Math.cos(mid), 0], t) < u) lo = mid;
+          else hi = mid;
+        }
+        return 0.5 * (lo + hi);
+      })();
+      const sk: Vec3 = [-t.a * Math.sin(tau), t.b * Math.cos(tau), z];
+      const R = Math.hypot(sk[0], sk[1]);
+      const d = cw.total(u, z);
+      const m: Vec3 = [sk[0] * (1 - d / R), sk[1] * (1 - d / R), z];
+      const n = wallInnerNormal(m, t);
+      const ns = torsoNormal(m, t);
+      return (Math.acos(Math.min(1, n[0] * ns[0] + n[1] * ns[1] + n[2] * ns[2])) * 180) / Math.PI;
+    };
+    // delante, lo que cambian con u la métrica radial y la pared del esternón a la medioclavicular (3,1°)
+    expect(tilt(st.midclavicular, LOW_Z)).toBeLessThan(4);
+    let worst = 0;
+    for (let z = cw.zLow; z <= cw.zHigh; z += 2) worst = Math.max(worst, tilt(st.midaxillary, z));
+    expect(worst).toBeGreaterThan(5);
+    expect(worst).toBeLessThan(12);
+    // y es la que usa la pasada B para la incidencia de la pleura
+    for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) expect(src).toContain('wallInnerNormal(toMaterial(pD))');
+  });
+
+  it('las cúpulas van con la cara interna de la pared: la cortina del receso lateral y posterior baja lo que el diafragma', () => {
+    // lus-sim (decisión 17): sin escalarlas, la pleura del flanco quedaba fuera de su elipse, el pulmón llegaba a la
+    // inserción (−50) y el borde no se movía al respirar. A 1,5 mm de la pleura, de la axilar anterior a 1,2π
+    const border = (phi: number, caudal: number): number => {
+      let low = Number.NaN;
+      for (let z = 60; z >= -120; z -= 0.5) {
+        const sk = torsoSkinPoint(phi, z, t);
+        const R = Math.hypot(sk[0], sk[1]);
+        let lo = 0;
+        let hi = 60;
+        for (let i = 0; i < 40; i++) {
+          const d = 0.5 * (lo + hi);
+          if (scene.insideWallMm([sk[0] * (1 - d / R), sk[1] * (1 - d / R), z]) < 1.5) lo = d;
+          else hi = d;
+        }
+        const d = 0.5 * (lo + hi);
+        if (scene.classify([sk[0] * (1 - d / R), sk[1] * (1 - d / R), z], { diaphragmCaudalMm: caudal }).tissue !== Tissue.Lung) break;
+        low = z;
+      }
+      return low;
+    };
+    for (const f of [0.85, 1, 1.1, 1.2]) {
+      const rest = border(f * Math.PI, 0);
+      const deep = border(f * Math.PI, 30);
+      expect(rest, `${f}π`).toBeGreaterThan(10);
+      expect(rest - deep, `${f}π`).toBeGreaterThanOrEqual(24);
+    }
+  });
+
+  it('gemelo GLSL: la tabla y las constantes salen del módulo, y el shader y la escena leen la misma pared', () => {
     expect(ANATOMY_GLSL).toContain(CHEST_WALL_GLSL);
     expect(CHEST_WALL_GLSL).toContain(`#define CW_BASE ${CHEST_WALL_BASE}`);
     expect(CHEST_WALL_GLSL).toContain(`#define CW_COLS ${CHEST_WALL_COLS}`);
@@ -213,9 +293,25 @@ describe('pared torácica por región (decisión 17)', () => {
       cw.zHigh,
       cw.zLow,
       P.intercostalInspirationMm.value / P.inspirationReferenceMm.value,
-      P.inspirationReferenceMm.value,
+      cw.maxTotal,
     ]);
-    // los gemelos TS con el mismo nombre que la GLSL, sobre la misma tabla float32
+    // la GLSL no lee la tabla más hondo que `maxTotal` (más la lámina de la cortina o el tope del «resto»): es una cota de
+    // verdad, en todo el tronco y en cada hábito
+    for (const chest of [
+      { build: 'average', sex: 'male' },
+      { build: 'thin', sex: 'female' },
+      { build: 'obese', sex: 'female' },
+    ] as const) {
+      const p = defaultPatient();
+      const w = new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } }).chestWall;
+      let max = 0;
+      for (let uu = 0; uu <= 440; uu += 2) for (let z = -300; z <= 300; z += 5) max = Math.max(max, w.total(uu, z));
+      expect(w.maxTotal, chest.build).toBeGreaterThanOrEqual(max);
+      expect(w.maxTotal - max, chest.build).toBeLessThan(0.5);
+    }
+    expect(ANATOMY_GLSL).toContain('float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM);');
+    // la escena lee la pared con los gemelos TS de nombre GLSL, sobre la misma tabla float32 (que el GLSL da lo mismo lo
+    // comprueba la e2e: volumen, cáscara y extremos de las costillas)
     for (const [uu, z] of [
       [33, 12],
       [-190, 55],

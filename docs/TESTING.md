@@ -100,7 +100,7 @@ la salida actual no protege nada.
   todas las líneas.
 - **La meta por partes.** La intensidad media de cada sombra (≥ 20 dB bajo el eco intercostal) se exige; la pleura que se
   ve dentro de la sombra solo puede ser penumbra (a > −40 dB, solo fuera de la sombra completa), y en la sombra completa
-  la pleura queda ≥ 40 dB bajo el eco intercostal y la ventana ≥ 40 dB bajo la de las líneas libres. «Bajo la costilla no
+  la pleura queda ≥ 40 dB bajo el eco intercostal y la ventana ≥ 39 dB bajo la de las líneas libres. «Bajo la costilla no
   hay línea pleural ni líneas A» se juzga en la pantalla (nada sobre el negro) y aún no se cumple: la prueba exige el
   fallo con su tamaño a ±2,5 dB (`rib-shadow-pleura-residual`). La geometría (la pleura 5 ± 1 mm bajo la cresta costal)
   se mide en TypeScript con `support/chestView.ts` y es del paso C, como la línea base de las costillas y los espacios

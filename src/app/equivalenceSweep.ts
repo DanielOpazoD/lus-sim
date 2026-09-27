@@ -2,7 +2,7 @@ import { START_POINTS } from './startPoints';
 import type { Simulator } from './simulator';
 import { Interface, isRibInterface } from '../anatomy/interfaces';
 import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
-import { wallArc } from '../anatomy/organs/wall';
+import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
 import type { Vec3 } from '../core/vec3';
 import { Tissue } from '../anatomy/tissues';
 import type { ProbeCompression } from '../anatomy/compression';
@@ -126,6 +126,8 @@ export interface VolumeEquivalenceReport {
    */
   boundaryDistanceMaxErr: number;
   boundaryWorst: string;
+  /** Puntos interiores donde la distancia al borde de la CPU no es continua (`boundaryStable`) y no se compara. */
+  boundaryUnstable: number;
   /** Puntos interiores por tejido (en la CPU), para ver que la prueba tiene dientes. */
   byTissue: Record<string, number>;
 }
@@ -166,11 +168,13 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
   const face = new FaceTally();
   let bdMax = 0;
   let bdWorst = '';
+  let bdUnstable = 0;
   for (let i = 0; i < n; i++) {
     const p: [number, number, number] = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
     const q = sim.anatomy.classifyWorld(p, sim.sample);
     if (q.boundaryDistance < 1 || !faceStable(sim, p, q.interface)) continue;
     const bdComparable = boundaryStable(sim, p, q.boundaryDistance);
+    if (!bdComparable) bdUnstable++;
     interior++;
     byTissue[Tissue[q.tissue]] = (byTissue[Tissue[q.tissue]] ?? 0) + 1;
     const cpuTissue: number = q.tissue;
@@ -198,6 +202,7 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
     interfaceWorst: [topPairs(face.pairs), face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`].filter(Boolean).join('; '),
     boundaryDistanceMaxErr: bdMax,
     boundaryWorst: bdWorst,
+    boundaryUnstable: bdUnstable,
     byTissue,
   };
 }
@@ -521,7 +526,7 @@ export function ribEndsEquivalence(sim: Simulator): RibEndsReport {
         const sy = t.b * Math.cos(tau);
         const R = Math.hypot(sx, sy);
         const zc = ribTableZ(cage, k, au);
-        let dc = t.skinMm + t.fatMm + t.muscleMm;
+        let dc = wallTotalMm([sx, sy, zc], t);
         for (let i = 0; i < 3; i++) dc = ribCenterDepth([sx * (1 - dc / R), sy * (1 - dc / R), zc], t, cage);
         for (const dz of RIB_END_DZ) for (const dd of RIB_END_DD) pts.push([sx * (1 - (dc + dd) / R), sy * (1 - (dc + dd) / R), zc + dz]);
       }

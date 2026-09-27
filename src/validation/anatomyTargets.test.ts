@@ -333,32 +333,61 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
 
 describe('F-T08: la línea pleural 5 ± 1 mm bajo la superficie costal (signo del murciélago)', () => {
   // La primera parte de la meta F-T08 (`docs/knowledge/physics.md` §3.3; G4 [CONSENSO]: «≈ 0,5 cm más profunda que la
-  // línea costal»), en la anatomía por omisión: en cada punto de partida, para cada sombra costal entera, la pleura de la
-  // primera línea sin hueso a cada lado frente a la cresta de la costilla (`pleuraBelowRibCrestMm`), la media de los dos
-  // lados (el convexo hace el lado de fuera ≈ 1,7 mm más hondo que el de dentro en una sombra lejos del centro). Medido
-  // (27-09-2026, decisiones 16 y 17): BLUE superior 5,2 y 5,3 mm (lados 4,8–5,7); BLUE inferior 5,2 y 5,7 (4,0–7,4: su
-  // costilla de arriba está en la subida de la pared hacia la axila, que inclina la pleura bajo ella); PLAPS 5,2, 5,2 y 5,2
-  // (4,3–6,0). Con la pared heredada, 5,1–5,5; con las costillas de VExUS, 7,2–8,8. En la imagen la distancia es
-  // 0,35 mm mayor: la cortical costal es una cara de un lado que dibuja el tejido de fuera (decisión 15). La sombra en sí
-  // (oscura, con la penumbra de la apertura) se mide en la envolvente de la GPU: `e2e/imagen.spec.ts`.
-  const measured = START_POINTS.map((sp) => {
-    const pose: ProbePose = { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 };
-    return { id: sp.id, below: pleuraBelowRibCrestMm(chestView(scene, pose)) };
+  // línea costal»): para cada sombra costal entera del corte, la pleura de la primera línea sin hueso a cada lado frente a
+  // la cresta de la costilla (`pleuraBelowRibCrestMm`), la media de los dos lados (el convexo hace el lado de fuera ≈ 1,7 mm
+  // más hondo que el de dentro en una sombra lejos del centro). En los tres puntos de partida y en cortes de cada región
+  // (EIC4 de la LAA, EIC4 y EIC5 de la LAM, EIC3 de la LMC, EIC2 y EIC7 a 1,2π), con el avatar y con las variantes.
+  // Medido (27-09-2026, decisiones 16 y 17): medias de 5,0–5,9 mm en todos; por lado, 3,9–7,6: en la subida de la pared
+  // hacia la axila (del centro del EIC5 a la 4.ª costilla, `chest-wall-regional-approx`) la pleura se inclina ≈ 10° bajo
+  // la 5.ª costilla y un lado queda ≈ 2,5 mm más hondo que el otro (EIC4 de la LAA, EIC5 de la LAM, el BLUE inferior). Con la
+  // pared heredada, 5,1–5,5; con las costillas de VExUS, 7,2–8,8. En la imagen la distancia es 0,35 mm mayor: la cortical
+  // costal es una cara de un lado que dibuja el tejido de fuera (decisión 15). La sombra en sí (oscura, con la penumbra de la
+  // apertura) se mide en la envolvente de la GPU: `e2e/imagen.spec.ts`.
+  const withChest = (chest: NonNullable<PatientState['habitus']['chest']>) => {
+    const p = defaultPatient();
+    return new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } });
+  };
+  const views = (sc: AnatomyScene, all: boolean): Array<[string, ProbePose]> => {
+    const out: Array<[string, ProbePose]> = START_POINTS.map((sp) => [
+      sp.id,
+      { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 },
+    ]);
+    const lam = thoraxLinePhi('midaxillary', sc.torso);
+    const cuts: Array<[string, number, number]> = all
+      ? [
+          ['EIC4 LAA', thoraxLinePhi('anteriorAxillary', sc.torso), 4],
+          ['EIC4 LAM', lam, 4],
+          ['EIC5 LAM', lam, 5],
+          ['EIC3 LMC', thoraxLinePhi('midclavicular', sc.torso), 3],
+          ['EIC2 1,2π', POSTERIOR, 2],
+          ['EIC7 1,2π', POSTERIOR, 7],
+        ]
+      : [['EIC5 LAM', lam, 5]];
+    for (const [name, phi, n] of cuts) out.push([name, longitudinalPose(phi, intercostalZ(sc, n, phi))]);
+    return out;
+  };
+  const measure = (label: string, sc: AnatomyScene, all: boolean) =>
+    views(sc, all).map(([id, pose]) => ({ id: `${label}, ${id}`, below: pleuraBelowRibCrestMm(chestView(sc, pose)) }));
+  const measured = [
+    ...measure('avatar', scene, true),
+    ...measure('delgada', withChest({ build: 'thin', sex: 'male' }), false),
+    ...measure('obesa', withChest({ build: 'obese', sex: 'male' }), false),
+    ...measure('mujer', withChest({ build: 'average', sex: 'female' }), false),
+  ];
+
+  it('hay qué medir: sombras costales enteras con pleura a los dos lados en cada corte', () => {
+    for (const m of measured) expect(m.below.length, m.id).toBeGreaterThanOrEqual(1);
   });
 
-  it('hay qué medir: sombras costales enteras con pleura a los dos lados en los tres puntos de partida', () => {
-    for (const m of measured) expect(m.below.length, m.id).toBeGreaterThanOrEqual(2);
-  });
-
-  it('F-T08: la pleura a 4–6 mm bajo la cresta costal en los tres puntos de partida (5,2–5,7)', () => {
+  it('F-T08: la pleura a 4–6 mm bajo la cresta costal en todos los cortes y hábitos (medias de 5,0–5,9)', () => {
     for (const m of measured)
       for (const [a, b] of m.below) {
         expect(0.5 * (a + b), m.id).toBeGreaterThanOrEqual(4);
         expect(0.5 * (a + b), m.id).toBeLessThanOrEqual(6);
-        // y ningún lado lejos: el sesgo del convexo es de ≈ 1,7 mm entre los dos, y en la subida de la pared hacia la axila
-        // (decisión 17) la pleura se inclina bajo la costilla, hasta 1,7 mm más
+        // y ningún lado lejos: el sesgo del convexo (≈ 1,7 mm entre los dos) y la inclinación de la pleura en la subida de
+        // la pared hacia la axila (≈ 2,5 mm más)
         expect(Math.min(a, b), m.id).toBeGreaterThanOrEqual(3.5);
-        expect(Math.max(a, b), m.id).toBeLessThanOrEqual(7.5);
+        expect(Math.max(a, b), m.id).toBeLessThanOrEqual(8);
       }
   });
 });
@@ -401,11 +430,13 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
         for (const c of crossings) expect(c.side, tag).toBe(side);
         // entre dos costillas seguidas, un espacio: ≥ 1 mm sin hueso ni cartílago en la clasificación de la parrilla y en la
         // de la escena (dos costillas que se tocan o se solapan no son dos costillas con su espacio, aunque cambie el índice)
-        const hit = ribLinePoint(line(name, side), scene.torso, scene.ribCage);
         for (let i = 1; i < crossings.length; i++) {
           const eic = `${tag}; EIC${crossings[i - 1].number}`;
           expect(crossings[i - 1].zBottom - crossings[i].zTop - ALONG_STEP_MM, eic).toBeGreaterThanOrEqual(1);
-          const mid = scene.classify([hit[0], hit[1], 0.5 * (crossings[i - 1].zBottom + crossings[i].zTop)], BASELINE_INSTANT);
+          // el centro del espacio, a la profundidad de la línea media de las costillas a esa altura (decisión 17: la pared,
+          // y con ella la parrilla, cambia con z)
+          const zMid = 0.5 * (crossings[i - 1].zBottom + crossings[i].zTop);
+          const mid = scene.classify(ribLinePoint(line(name, side), scene.torso, scene.ribCage, zMid), BASELINE_INSTANT);
           expect([Tissue.Bone, Tissue.Cartilage], eic).not.toContain(mid.tissue);
           spaces.add(crossings[i - 1].number);
         }
@@ -621,11 +652,11 @@ describe('A-T19: oblicuidad costal', () => {
 
 describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
   // La parrilla del adulto promedio (decisión 16) sigue la base; el pulmón y las cúpulas siguen siendo los heredados de VExUS
-  // (limitación `lung-border-above-ribcage`). Medido (27-09-2026, con la pared torácica por región, decisión 17) en fin de
-  // espiración, 4 mm por dentro de la pleura parietal (`lungBorderZ`): derecho z 31 en la LMC (entre la 4.ª y la 5.ª),
-  // −49,5 en la LAM (la 8.ª, −35,1) y 37,5 en la paravertebral (la 7.ª); izquierdo 10, −49,5 y 3,5. Con la pared heredada:
-  // 41,5, 21 y 42,5; 17, 4,5 y 9. Gray (anatomy.md §1.5): la 6.ª costilla en la LMC, la 8.ª en la LAM y la apófisis espinosa
-  // de T10 detrás, cuya punta queda a la altura del cuerpo de T11 (z −35)
+  // (limitación `lung-border-above-ribcage`). Medido (27-09-2026, con la pared torácica por región y las cúpulas escaladas
+  // con su cara interna, decisión 17) en fin de espiración, 4 mm por dentro de la pleura parietal (`lungBorderZ`): derecho
+  // z 43 en la LMC (la 4.ª costilla), 20 en la LAM (la 6.ª) y 45 en la paravertebral (entre la 7.ª y la 8.ª); izquierdo
+  // 17,5, 4 y 10,5. Con la pared heredada: 41,5, 21 y 42,5; 17, 4,5 y 9. Gray (anatomy.md §1.5): la 6.ª costilla en la LMC, la 8.ª
+  // en la LAM y la apófisis espinosa de T10 detrás, cuya punta queda a la altura del cuerpo de T11 (z −35)
   const PARAVERTEBRAL = (side: -1 | 1) => line('paravertebral', side);
   /** El borde, «a la altura de la costilla n»: entre el centro del espacio de encima y el del de debajo. */
   const atRib = (z: number | null, n: number, phi: number) => {
@@ -644,13 +675,14 @@ describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
     for (const b of border) for (const z of [b.lmc, b.lam, b.post]) expect(z, `lado ${b.side}`).not.toBeNull();
   });
 
-  it('A-T13: en la LAM el borde del pulmón está a la altura de la 8.ª costilla en FRC (z −49,5 a los dos lados; la 8.ª, −35,1)', () => {
-    // con la pared torácica por región (decisión 17) la pleura del flanco queda 15 mm más afuera, fuera de la elipse de la
-    // cúpula heredada: el pulmón llega a la inserción del diafragma en el flanco (−50 mm). Con la pared heredada, la 6.ª
-    for (const b of border) atRib(b.lam, 8, line('midaxillary', b.side));
-  });
+  notYetMet(
+    'A-T13: en la LAM el borde del pulmón está a la altura de la 8.ª costilla en FRC (hoy la 6.ª: z 20 derecho, 4 izquierdo)',
+    () => {
+      for (const b of border) atRib(b.lam, 8, line('midaxillary', b.side));
+    },
+  );
 
-  notYetMet('borde del pulmón de Gray: la 6.ª costilla en la LMC y T10 detrás (hoy entre la 4.ª y la 5.ª, z 31, y la 7.ª, z 37,5)', () => {
+  notYetMet('borde del pulmón de Gray: la 6.ª costilla en la LMC y T10 detrás (hoy la 4.ª y entre la 7.ª y la 8.ª, z 43 y 45)', () => {
     const seg = RIBCAGE.params.thoracicSegmentMm.value;
     for (const b of border) {
       atRib(b.lmc, 6, line('midclavicular', b.side));

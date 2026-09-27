@@ -793,11 +793,8 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
             if (got.pleura) {
               edgeLines++;
               // cerca del borde por el lado del hígado: la pleura existe aunque el rayo central no dé en el pulmón
-              // junto a la inserción del diafragma la cuña de pulmón bajo la pared es más fina que un segmento grueso.
-              // lus-sim (decisión 17): con la pared torácica por región la pleura del flanco queda 15 mm más afuera, junto
-              // al borde de la elipse de la cúpula heredada, donde su flanco es casi vertical: la cuña, de 7,2 mm de alto
-              // (antes < 3), sigue sin llegar a un segmento grueso de ancho (paso C3: el pulmón y la cúpula)
-              expect(got.pleura.dz, tag).toBeLessThan(8);
+              // junto a la inserción del diafragma la cuña de pulmón bajo la pared es más fina que un segmento grueso
+              expect(got.pleura.dz, tag).toBeLessThan(3);
               expect(got.pleura.dz, tag).toBeGreaterThan(-CURTAIN_RECORD_MM);
               expect(got.pleura.dL).toBe(0);
               expect(got.pleura.curtainLast).toBe(-1);
@@ -820,11 +817,8 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
     const q = sceneQuery(scene, cal);
     const step = depth / N;
     let grazingLines = 0;
-    // lus-sim (decisión 17): con la pared torácica por región la vista de arriba (φ 0,98π, z 3) ya no tiene esas líneas
-    // (el pulmón del flanco llega a la pared); las tiene un corte oblicuo algo más atrás y más abajo (una búsqueda de φ, z,
-    // giro y basculación: 14 líneas de cada 96 con cada basculación)
     for (const rock of [0.2, 0.55]) {
-      const fr = probeFrame({ phi: Math.PI * 1.06, z: -30, lift: 0, yaw: -1, rock, tilt: 0 }, scene.torso, CONVEX_C35);
+      const fr = probeFrame({ phi: Math.PI * 0.98, z: 3, lift: 0, yaw: -1.25, rock, tilt: 0 }, scene.torso, CONVEX_C35);
       for (let i = 0; i < CONVEX_C35.lines; i++) {
         const th = -CONVEX_C35.halfSector + (2 * CONVEX_C35.halfSector * (i + 0.5)) / CONVEX_C35.lines;
         const origin = pointOnLine(fr, CONVEX_C35, th, 0);
@@ -914,9 +908,7 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
           expect(got.gasKind).toBe(1);
         }
     }
-    // lus-sim (decisión 17): 20 (antes más de 40): con la pared torácica por región el pulmón del flanco llega a la pared y
-    // más líneas de estas vistas cruzan antes el pulmón del receso
-    expect(mirrors).toBeGreaterThan(15);
+    expect(mirrors).toBeGreaterThan(40);
   });
 
   it('A1 marca el pulmón de la cortina con 3 y los gemelos de A2 no lo toman por un impacto de gas', () => {

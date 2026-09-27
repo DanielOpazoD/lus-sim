@@ -42,9 +42,11 @@ conservan su identificador (decisiones 10 y 11).
   piel hacia fuera. La pared baja del EIC5 (Nelson) y la alta de la axila (McLean, 18 mm en el EIC4) no caben en un solo
   espacio intercostal: la transición va del centro del EIC5 a la 4.ª costilla de la LAM y el EIC4 queda a 16,7 mm; la pleura
   se inclina bajo la 5.ª costilla y el signo del murciélago del EIC5 lateral queda a 4,2 mm (el de F-T08 del punto BLUE
-  inferior, con un lado a 7,4). Sin escápula (la pared de detrás arriba es la infraescapular), sin los límites
+  inferior, con un lado a 7,4). Sobre el esternón, piel y grasa presternal sobre el hueso (5,5 mm; 3,6 la delgada), sin el
+  pectoral que cubre sus bordes. El contacto de la sonda toma, en cada línea, la pared donde entra en la piel, no la de cada
+  profundidad. Sin escápula (la pared de detrás arriba es la infraescapular), sin los límites
   craneocaudales de la mama (la variante de mujer suma sus 2 mm a toda altura, del esternón a la axilar anterior), con la
-  pared paravertebral heredada (28 mm en la línea media posterior, ≈ 19 en la paravertebral: piel → apófisis transversa,
+  pared paravertebral heredada (28 mm en la línea media posterior, ≈ 21 por la normal en la paravertebral: piel → apófisis transversa,
   NO ENCONTRADO en la base) y el paso a la pared del abdomen en 100 mm bajo el reborde costal [SUPUESTO]. La variante de
   mujer no tiene la sección costal 20–35 % menor ni la caja más pequeña de la base.
 - **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
@@ -58,14 +60,14 @@ conservan su identificador (decisiones 10 y 11).
   la pleura parietal acaba en x = 10 mm (`pleuraXMax`). En el hemitórax izquierdo el pulmón bajo la pared no
   registra pleura: desde la decisión 16 la imagen muestra allí las costillas con su sombra, pero sin línea pleural ni
   líneas A (paso C3).
-- **El borde del pulmón es el heredado, por encima del de Gray delante y detrás** (`lung-border-above-ribcage`, decisión
-  16): la parrilla sigue la base, pero el pulmón y las cúpulas siguen siendo los de VExUS. En fin de espiración, 4 mm por
-  dentro de la pleura, el pulmón derecho acaba en z 31 en la LMC (entre la 4.ª y la 5.ª costillas; Gray: la 6.ª, z −17) y
-  en 37,5 junto a la columna (la 7.ª; Gray: la apófisis espinosa de T10, z ≈ −35); el izquierdo, en 10 y 3,5. En la LAM
-  acaba a la altura de la 8.ª (z −49,5, la inserción del diafragma en el flanco; meta A-T13) desde que la pared torácica por
-  región (decisión 17) llevó la pleura del flanco fuera de la elipse de la cúpula heredada; antes, en la 6.ª. Bajo la pleura
-  de los EIC4–8 de la LMC y los EIC8–10 de la LAM derechas no hay pulmón sino diafragma y abdomen, y no hay seno
-  costofrénico: la reflexión pleural no llega a la 8.ª unión condrocostal ni a la 10.ª costilla (paso C3).
+- **El borde del pulmón es el heredado, unas dos costillas por encima del de Gray** (`lung-border-above-ribcage`, decisión
+  16): la parrilla sigue la base, pero el pulmón y las cúpulas son los de VExUS (desde la decisión 17, escaladas con la cara
+  interna de la pared torácica por región, que las mantiene respecto de la pleura como estaban). En fin de espiración, 4 mm
+  por dentro de la pleura, el pulmón derecho acaba en z 43 en la LMC (la 4.ª costilla; Gray: la 6.ª, z −17), en 20 en la LAM
+  (la 6.ª; Gray: la 8.ª, z −35) y en 45 junto a la columna (entre la 7.ª y la 8.ª; Gray: la apófisis espinosa de T10,
+  z ≈ −35); el izquierdo, en 17,5, 4 y 10,5. Bajo la pleura de los EIC4–8 de la LMC y los EIC6–10 de la LAM derechas no hay
+  pulmón sino diafragma y abdomen, y la reflexión pleural no llega a la 8.ª unión condrocostal ni a la 10.ª costilla (meta
+  A-T13, paso C3).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
