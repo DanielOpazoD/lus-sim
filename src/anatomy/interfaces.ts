@@ -288,7 +288,7 @@ export const INTERFACES: Readonly<Record<Interface, InterfaceProps>> = {
     slopeRms: 0.15,
     twoSided: false,
     source:
-      'Fresnel músculo / gas (TISSUES), |R| ≈ 0,9995; s 0,15 [ESTIMADO 0,10–0,15]: la línea pleural es la más brillante cerca de la normal y se apaga en los bordes del sector (Lee 2017, J Med Ultrasound 25:101, fig. 5B; PMC10132878 fig. 2A); σz 0,05 mm [ESTIMADO, calibrable 0,04–0,07]: su parte coherente (−8,9 dB a 0°) la satura 1,2–1,3 mm a 0–15° con K = 55 dB (gemelo) y es la reflexión coherente de cada rebote de la serie bajo la pleura; de un lado: la dibuja el músculo (la pared es su dueña, decisión 61)',
+      'Fresnel músculo / gas (TISSUES), |R| ≈ 0,9995; s 0,15 [ESTIMADO 0,10–0,15]: la línea pleural es la más brillante cerca de la normal y se apaga en los bordes del sector (Lee 2017, J Med Ultrasound 25:101, fig. 5B; PMC10132878 fig. 2A); σz 0,05 mm [ESTIMADO, calibrable 0,04–0,07]: su parte coherente (−8,9 dB a 0°) la satura 1,2–1,3 mm a 0–15° con K = 55 dB (gemelo) y es la reflexión coherente de cada rebote de la serie bajo la pleura; de un lado: la pared es su dueña (decisión 61). lus-sim: su eco, la línea pleural y sus réplicas, lo dibuja la rama del pulmón de la pasada B a los dos lados del cruce, sin el desplazamiento de un lado (`pleuraSeriesEcho`, decisión 15)',
   },
   [Interface.SkinFat]: {
     name: 'dermis / grasa subcutánea',

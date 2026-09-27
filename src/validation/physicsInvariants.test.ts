@@ -10,8 +10,16 @@ import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, clampPose, defaultPose, lineAngle, pointOnLine, type ProbePose } from '../probe/probe';
-import { IFACE_SHIFT_MM, IFACE_SLOPE_REF, facetLobe, interfaceEchoField } from '../ultrasound/interfaceEcho';
-import { PLEURA_RT_RANGE, aLineGain, pleuraCoherence, pleuraRoundTrip, pleuraTerms, slidingField } from '../ultrasound/pleura';
+import { IFACE_SLOPE_REF, facetLobe } from '../ultrasound/interfaceEcho';
+import {
+  PLEURA_RT_RANGE,
+  aLineGain,
+  pleuraCoherence,
+  pleuraRoundTrip,
+  pleuraSeriesEcho,
+  pleuraTerms,
+  slidingField,
+} from '../ultrasound/pleura';
 import { scattererField } from '../ultrasound/speckleField';
 import { SCAN_DEPTH_MM, chestView, intercostalZ, longitudinalPose, scanLine, type ChestView } from './support/chestView';
 
@@ -46,15 +54,17 @@ describe('líneas A: la serie de reverberaciones las pone a múltiplos exactos d
     );
   });
 
-  it('los picos de la línea pleural y de las líneas A se separan exactamente D (la pleura medida en la escena)', () => {
-    // La amplitud de la réplica (ganancia × perfil de la cara de un lado, 2,5σh dentro del músculo): sus picos a
-    // lo largo de la línea central, con la pleura de dos vistas del tórax que la tienen a otra profundidad. La
-    // separación sigue a D, venga de donde venga: no es una textura. Umbral: el paso del barrido (0,002 mm)
+  it('los picos de la línea pleural y de las líneas A caen en k·D exactos (la pleura medida en la escena)', () => {
+    // La amplitud de la réplica (ganancia × el perfil que dibuja la pasada B, `pleuraSeriesEcho`, centrado en el cruce:
+    // decisión 15): sus picos a lo largo de la línea central, con la pleura de dos vistas del tórax que la tienen a
+    // otra profundidad. La línea pleural cae en D y cada línea A en k·D, venga D de donde venga: no es una textura, y
+    // es la meta F-T01 en el gemelo (con el perfil de un lado, toda la serie caía 0,35 mm por encima: `IFACE_SHIFT_MM`).
+    // Umbral: el paso del barrido (0,002 mm)
     for (const pose of [defaultPose(), longitudinalPose(Math.PI, intercostalZ(scene, 5, Math.PI))]) {
       const D = scanLine(chestView(scene, pose), 0).pleuraMm!;
       const amp = (s: number): number => {
         const p = pleuraTerms(s, D, 0.4, pleuraCoherence(1, k0), () => 0.4)[0];
-        return p.gain * interfaceEchoField(Interface.PleuraWall, 1, 1, p.depth, k0);
+        return p.gain * pleuraSeriesEcho(1, p.depth, k0);
       };
       const peaks: number[] = [];
       for (let k = 1; k <= 4; k++) {
@@ -62,7 +72,10 @@ describe('líneas A: la serie de reverberaciones las pone a múltiplos exactos d
         for (let s = k * D - 1; s <= k * D + 1; s += 0.002) if (amp(s) > amp(best)) best = s;
         peaks.push(best);
       }
-      expect(Math.abs(peaks[0] - (D - IFACE_SHIFT_MM))).toBeLessThanOrEqual(0.002);
+      for (let k = 1; k <= peaks.length; k++)
+        expect(Math.abs(peaks[k - 1] - k * D), `k ${k}, D ${D.toFixed(2)}`).toBeLessThanOrEqual(0.002);
+      // F-T01: la línea A de orden k a k veces la línea pleural mostrada (el pico de k = 1)
+      for (let k = 2; k <= peaks.length; k++) expect(Math.abs(peaks[k - 1] - k * peaks[0]), `F-T01, k ${k}`).toBeLessThanOrEqual(0.002 * k);
       for (let k = 1; k < peaks.length; k++) expect(Math.abs(peaks[k] - peaks[k - 1] - D), `D ${D.toFixed(2)}`).toBeLessThanOrEqual(0.004);
     }
   });

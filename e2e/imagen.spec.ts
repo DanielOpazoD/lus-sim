@@ -137,49 +137,61 @@ test('el moteado del músculo de la pared tiene estadística de Rayleigh', async
   expect(errors).toEqual([]);
 });
 
-test('líneas A en la envolvente de la GPU: separadas por la profundidad de la pleura; F-T01 aún no (pleura-echo-offset)', async ({
+test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada (F-T01) y separadas por la profundidad de la pleura', async ({
   page,
 }) => {
   // Meta F-T01 (`docs/knowledge/physics.md` §3.3): la línea A de orden k a k·z_pl MOSTRADO ± 0,5 mm (o 1 píxel), medida
-  // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia. Con
-  // GPU real y con SwiftShader, en los tres puntos de partida y en apnea espiratoria (medido el 26-09-2026):
-  //  - frente al cruce de la pleura D del gemelo de A0: todos los órdenes 1–4 en todos los grupos, a −0,42…−0,25 mm de
-  //    k·D, y la separación entre órdenes a ≤ 0,084 mm de D (la física de la serie: cada rebote, un viaje más);
-  //  - frente a la línea pleural mostrada (F-T01): el orden 2 a +0,27…+0,39 mm, el 3 a +0,56…+0,76 y el 4 a
-  //    +0,87…+1,13 (1 píxel = 0,257 mm). Toda la serie se dibuja 0,35 mm por encima de su cruce (la cara de un lado de
-  //    VExUS), así que r_k − k·r_1 = 0,35·(k − 1): los órdenes 3 y 4 no cumplen la meta.
+  // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia.
+  // Desde la decisión 15 la rama del pulmón de la pasada B dibuja la línea pleural y sus réplicas centradas en su cruce
+  // (`pleuraSeriesEcho`), en la mirada 0 y en la dirigida. Con SwiftShader y con GPU real (Apple M4), en los tres puntos de
+  // partida y en apnea espiratoria (26-09-2026; los extremos de varias pasadas, que cambian con el ruido del receptor):
+  //  - frente al cruce de la pleura D del gemelo de A0: los órdenes 1–4, a −0,11…+0,07 mm de k·D (antes, con el perfil de
+  //    la cara de un lado, −0,43…−0,26: toda la serie 0,35 mm por encima de su cruce), y la separación entre órdenes a
+  //    ≤ 0,08 mm de D;
+  //  - frente a la línea pleural mostrada (F-T01): los órdenes 2–4 a −0,20…+0,05 mm (antes el 2 a +0,27…+0,39, el 3 a
+  //    +0,56…+0,76 y el 4 a +0,87…+1,13: 0,35·(k − 1), fuera de la meta en los órdenes 3 y 4). 1 píxel = 0,268 mm;
+  //  - con la composición espacial (la envolvente de K con el anillo lleno; el preajuste pulmonar la apaga, pero la consola
+  //    la enciende): a −0,07…+0,07 mm de k·D y F-T01 a −0,28…0,00 mm. El peso de las miradas dirigidas en K cambia en D
+  //    (`curtainSteerWeight`: 1 encima, 1 − fAir debajo), sobre el pico de la línea pleural.
   test.setTimeout(300_000);
   const errors = await openBench(page);
-  for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
-    const a = await page.evaluate((id) => window.__lusTest!.aLines({ startPoint: id, respiration: 'apnea-expiratory' }), startPoint);
-    const tag = `${startPoint}: ${JSON.stringify(a)}`;
-    expect(a.groups, tag).toBeGreaterThanOrEqual(6);
-    // la pleura heredada a 25–29 mm (la pared del abdomen de VExUS, `thorax-wall-abdominal-habitus`): caben 4 órdenes
-    expect(
-      a.orders.map((o) => o.k),
-      tag,
-    ).toEqual([1, 2, 3, 4]);
-    for (const o of a.orders) {
-      // cada orden se ve en casi todos los grupos (la línea A de orden 4, a ~10 cm, es la más débil)
-      expect(o.peaks, tag).toBeGreaterThanOrEqual(Math.ceil(0.9 * o.groups));
-      expect(Math.max(Math.abs(o.minErrMm), Math.abs(o.maxErrMm)), tag).toBeLessThanOrEqual(0.5);
-      // la desviación declarada (`pleura-echo-offset`): toda la serie, la línea pleural incluida, se dibuja 0,35 mm
-      // (IFACE_SHIFT_MM, la cara de un lado de VExUS) por encima de su cruce
-      expect(o.maxErrMm, tag).toBeLessThan(-0.2);
-      expect(o.minErrMm, tag).toBeGreaterThan(-0.5);
-      // la separación entre líneas A es la profundidad de la pleura (guía §18): un tercio de la FWHM axial del pulso
-      if (o.k >= 2) expect(o.maxSpacingErrMm, tag).toBeLessThanOrEqual(0.2);
+  /** Cuántos errores caben en la tolerancia, y cuántos se exigen: todos, o el 90 % en el orden 4. */
+  const within = (errs: number[], tol: number): number => errs.filter((e) => Math.abs(e) <= tol).length;
+  const needed = (o: { k: number; errMm: number[] }, n = o.errMm.length): number => (o.k <= 3 ? n : Math.floor(0.9 * n));
+  for (const compound of [false, true])
+    for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
+      const a = await page.evaluate(
+        ([id, c]) => window.__lusTest!.aLines({ startPoint: id, respiration: 'apnea-expiratory', compound: c }),
+        [startPoint, compound] as const,
+      );
+      const tag = `${startPoint}${compound ? ' (compuesto)' : ''}: ${JSON.stringify(a)}`;
+      expect(a.groups, tag).toBeGreaterThanOrEqual(6);
+      // la pleura heredada a 25–29 mm (la pared del abdomen de VExUS, `thorax-wall-abdominal-habitus`): caben 4 órdenes
+      expect(
+        a.orders.map((o) => o.k),
+        tag,
+      ).toEqual([1, 2, 3, 4]);
+      for (const o of a.orders) {
+        // cada orden se ve en casi todos los grupos: la línea A de orden 4, a ~10 cm, es la más débil (16 dB de
+        // prominencia en el PLAPS) y en unas pasadas se pierde en 1 de sus 6 grupos, con GPU real y con SwiftShader
+        expect(o.peaks, tag).toBeGreaterThanOrEqual(Math.floor(0.9 * o.groups));
+        // la serie, la línea pleural incluida, en k·D: un tercio de la FWHM axial del pulso (el perfil de la cara de un
+        // lado la dejaba 0,35 mm por encima y fallaba aquí). En todos los grupos, salvo en el orden 4, la línea A más débil
+        // (16–22 dB), donde el detector puede tomar otro máximo de su ventana en un grupo (una vez, −1,08 mm en 1 de 6
+        // grupos del orden 4 compuesto del PLAPS con SwiftShader; no se repitió en 16 pasadas): ahí, en el 90 %
+        expect(within(o.errMm, 0.2), tag).toBeGreaterThanOrEqual(needed(o));
+        // la separación entre líneas A es la profundidad de la pleura (guía §18): un tercio de la FWHM axial del pulso
+        if (o.k >= 2) expect(within(o.spacingErrMm, 0.2), tag).toBeGreaterThanOrEqual(needed(o, o.spacingErrMm.length));
+      }
+      // F-T01 frente a la línea pleural mostrada, en los órdenes 1–4 (el 1 es la línea pleural: r_1 − 1·r_1 = 0)
+      const tol = Math.max(0.5, a.pixelMm);
+      for (const o of a.orders.filter((x) => x.k >= 2)) {
+        const worst = Math.max(Math.abs(o.minShownErrMm), Math.abs(o.maxShownErrMm));
+        expect(
+          within(o.shownErrMm, tol),
+          `F-T01, orden ${o.k}: el peor ${worst.toFixed(2)} mm frente a ${tol} mm (${tag})`,
+        ).toBeGreaterThanOrEqual(needed(o, o.shownErrMm.length));
+      }
     }
-    // F-T01 frente a la línea pleural mostrada: el fallo conocido, con su tamaño. Cuando se corrija la desviación, esta
-    // prueba fallará aquí: entonces se exige la meta en todos los órdenes y se borra `pleura-echo-offset`
-    const tol = Math.max(0.5, a.pixelMm);
-    for (const o of a.orders.filter((x) => x.k >= 2)) {
-      const expected = 0.35 * (o.k - 1);
-      expect(o.minShownErrMm, tag).toBeGreaterThan(expected - 0.25);
-      expect(o.maxShownErrMm, tag).toBeLessThan(expected + 0.25);
-      const worst = Math.max(Math.abs(o.minShownErrMm), Math.abs(o.maxShownErrMm));
-      expect(worst <= tol, `F-T01, orden ${o.k}: ${worst.toFixed(2)} mm frente a ${tol} mm (${tag})`).toBe(o.k === 2);
-    }
-  }
   expect(errors).toEqual([]);
 });

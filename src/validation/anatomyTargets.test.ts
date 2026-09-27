@@ -5,8 +5,7 @@ import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
-import { interfaceEchoField } from '../ultrasound/interfaceEcho';
-import { pleuraCoherence, pleuraTerms } from '../ultrasound/pleura';
+import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import {
   arcMm,
   chestView,
@@ -155,7 +154,7 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
     const tD = 0.5;
     const amp = (s: number): number => {
       const p = pleuraTerms(s, D, tD, chi, () => tD).find((t) => t.family === 'pleura')!;
-      return p.gain * interfaceEchoField(Interface.PleuraWall, 1, 1, p.depth, k0);
+      return p.gain * pleuraSeriesEcho(1, p.depth, k0);
     };
     const peak = (lo: number, hi: number): number => {
       let best = lo;
@@ -247,7 +246,9 @@ describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {
    * gemelo B → C → D de los ecos de interfaz (`support/interfaceTwin.ts`): una pleura plana a D mm bajo la cara
    * (la cara `Interface.PleuraWall`, que dibuja el músculo de encima) sin moteado, el pulso axial de la pasada C
    * y la PSF lateral de la D. El modelo no tiene grosor pleural anatómico: la línea sale de la PSF
-   * (recomendación 2 de anatomy.md §3, que la segunda mitad de la meta pide).
+   * (recomendación 2 de anatomy.md §3, que la segunda mitad de la meta pide). La imagen dibuja la línea pleural
+   * centrada en el cruce (`pleuraSeriesEcho`, decisión 15) y aquí la dibuja el músculo con el perfil de un lado,
+   * 0,35 mm por encima: la anchura, que es lo que se mide, es la misma.
    */
   function plt(D: number): number {
     const plane: Scene = {

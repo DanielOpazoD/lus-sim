@@ -28,6 +28,7 @@ import {
   curtainEdgeSigmaMm,
   elevSigmaMm,
   pleuraCoherence,
+  pleuraSeriesEcho,
   pleuraTerms,
   slidingField,
 } from '../../ultrasound/pleura';
@@ -255,7 +256,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
         let ai = 0;
         for (const term of pleuraTerms(r, D, tD, pleuraCoherence(c, K0), T)) {
           if (term.family === 'pleura') {
-            if (parts.pleura) ar += term.gain * interfaceEchoField(Interface.PleuraWall, c, 1, term.depth, K0);
+            if (parts.pleura) ar += term.gain * pleuraSeriesEcho(c, term.depth, K0);
             continue;
           }
           if (!parts.series) continue;
