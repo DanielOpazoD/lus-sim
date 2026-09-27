@@ -1,12 +1,12 @@
 import {
   PROBE_COMPRESSION,
-  compressionPlateMm,
   compressionReachMm,
   nodeInterp,
   nodeSin,
   type CompressionNode,
   type ProbeCompression,
 } from '../anatomy/compression';
+import { wallTotalMm } from '../anatomy/organs/wall';
 import { torsoDepth, torsoDepthGradient, type Torso } from '../anatomy/primitives';
 import { length, smoothstep, type Vec3 } from '../core/vec3';
 import { probeFrame, skinSoftness, type ProbeFrame, type ProbePose, type Transducer } from './probe';
@@ -119,6 +119,11 @@ interface NodeGeometry {
   rW: number;
   /** Mayor hueco de los bordes elevacionales de la huella a la piel (mm, por la normal de la piel). */
   gapElevation: number;
+  /**
+   * Grosor de la pared (mm, radial) donde la línea entra en la piel (lus-sim, decisión 17: la pared torácica por región;
+   * en VExUS, el mismo en todo el tronco): D* del nodo = W + `wallTolMm`.
+   */
+  W: number;
 }
 
 interface FaceGeometry {
@@ -127,7 +132,7 @@ interface FaceGeometry {
   penetration: number;
 }
 
-function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso, W: number): FaceGeometry {
+function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso): FaceGeometry {
   const n = PROBE_COMPRESSION.nodes;
   const R = tr.curvatureRadius;
   const halfElev = tr.elevationMm / 2;
@@ -150,25 +155,32 @@ function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso, W: number): Fa
       skinGap([E[0] - el[0] * halfElev, E[1] - el[1] * halfElev, E[2] - el[2] * halfElev], t),
     );
     penetration = Math.max(penetration, -skinGap(E, t));
-    const depthAt = (r: number): number => -torsoDepth([E[0] + dir[0] * r, E[1] + dir[1] * r, E[2] + dir[2] * r], t);
+    const at = (r: number): Vec3 => [E[0] + dir[0] * r, E[1] + dir[1] * r, E[2] + dir[2] * r];
+    // lus-sim (decisión 17): la pared por región, con el grosor de donde la línea entra en la piel (la cara interna de la
+    // pared bajo el elemento, paralela a la piel a esa profundidad radial, como en VExUS con su grosor fijo)
     const rs = skinEntry(E, dir, t, -60, 200);
+    const W = wallTotalMm(rs === null ? E : at(rs), t);
+    const depthAt = (r: number): number => -torsoDepth(at(r), t) - W;
     // a lo largo de la línea la pared mide al menos ~W: la búsqueda de su cara interna empieza cerca
     const near = rs === null ? 0 : rs + 0.9 * W;
     const rW =
       rs === null
         ? null
-        : depthAt(near) >= W
-          ? firstCrossing(depthAt, W, rs, near)
-          : firstCrossing(depthAt, W, near, rs + WALL_SEARCH_FACTOR * W);
-    nodes.push({ rs, rW: rs === null ? Infinity : (rW ?? rs + WALL_SEARCH_FACTOR * W), gapElevation: gapE });
+        : depthAt(near) >= 0
+          ? firstCrossing(depthAt, 0, rs, near)
+          : firstCrossing(depthAt, 0, near, rs + WALL_SEARCH_FACTOR * W);
+    nodes.push({ rs, rW: rs === null ? Infinity : (rW ?? rs + WALL_SEARCH_FACTOR * W), gapElevation: gapE, W });
   }
   return { nodes, penetration };
 }
 
+/** D* del nodo (mm): la cara interna de la pared bajo la cara, su grosor más la tolerancia. */
+const nodeTarget = (g: NodeGeometry): number => g.W + CONTACT.wallTolMm;
+
 /** Lo que le falta al nodo para apoyar con la pared paralela (mm; ≤ 0: apoya). */
-function nodeShortfall(g: NodeGeometry, wallTarget: number): number {
+function nodeShortfall(g: NodeGeometry): number {
   if (g.rs === null) return Infinity;
-  return Math.max(g.rW - wallTarget, g.gapElevation - CONTACT.gelMm);
+  return Math.max(g.rW - nodeTarget(g), g.gapElevation - CONTACT.gelMm);
 }
 
 /** Resumen del contacto (para la UI, el banco y las pruebas). */
@@ -196,8 +208,6 @@ export interface ProbeContact extends ProbeCompression {
 
 /** Contacto, marco efectivo y tabla de compresión de un cuadro, desde la pose. */
 export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeContact {
-  const W = compressionPlateMm(t);
-  const target = W + CONTACT.wallTolMm;
   // la sonda se hunde a lo largo de su eje (el operador empuja el mango): el plano de imagen no cambia, solo su
   // origen baja por la línea central. Lo que el usuario aprieta (lift < 0) se suma a lo largo del mismo eje (por
   // la normal de la piel, con la sonda inclinada, alejaba la cara y deslizaba el plano fuera de sí mismo)
@@ -208,9 +218,9 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
     const move = (p: Vec3): Vec3 => [p[0] + a[0] * indent, p[1] + a[1] * indent, p[2] + a[2] * indent];
     return { ...rigidFrame, face: move(rigidFrame.face), curvatureCenter: move(rigidFrame.curvatureCenter) };
   };
-  const shortfall = (g: FaceGeometry): number => Math.max(...g.nodes.map((n) => nodeShortfall(n, target)));
+  const shortfall = (g: FaceGeometry): number => Math.max(...g.nodes.map((n) => nodeShortfall(n)));
   // δ: el menor que hace apoyar toda la cara, con el tope de la presión
-  const rigid = measureFace(frameAt(0), tr, t, W);
+  const rigid = measureFace(frameAt(0), tr, t);
   const capacity = CONTACT.pressMm + CONTACT.pressSoftMm * skinSoftness(pose);
   const maxIndent = Math.max(0, capacity - Math.max(0, rigid.penetration));
   let q0 = shortfall(rigid);
@@ -218,7 +228,7 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
   let needed = 0;
   if (q0 > 0) {
     let hi = maxIndent;
-    let q1 = hi > 0 ? shortfall(measureFace(frameAt(hi), tr, t, W)) : q0;
+    let q1 = hi > 0 ? shortfall(measureFace(frameAt(hi), tr, t)) : q0;
     if (q1 > 0 || !Number.isFinite(q0)) {
       indent = hi;
       needed = q1 > 0 ? Infinity : hi;
@@ -228,7 +238,7 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
       let side = 0;
       for (let i = 0; i < PRESS_ITERATIONS && hi - lo > 0.05; i++) {
         const x = Math.min(hi - 0.01, Math.max(lo + 0.01, (lo * q1 - hi * q0) / (q1 - q0)));
-        const qx = shortfall(measureFace(frameAt(x), tr, t, W));
+        const qx = shortfall(measureFace(frameAt(x), tr, t));
         if (qx > 0) {
           lo = x;
           q0 = qx;
@@ -248,7 +258,11 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
   // al levantar la sonda el operador deja de apretar; lo que apriete el usuario, encima
   indent = indent * (1 - smoothstep(0, CONTACT.releaseMm, pose.lift)) + press;
   const frame = frameAt(indent);
-  const face = measureFace(frame, tr, t, W);
+  const face = measureFace(frame, tr, t);
+  // la pared bajo el centro de la cara (el resumen y la placa)
+  const center = face.nodes[face.nodes.length >> 1];
+  const W = center.W;
+  const target = nodeTarget(center);
   const nodes: CompressionNode[] = [];
   const hover: number[] = [];
   const parallel: number[] = [];
@@ -263,11 +277,12 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
     // línea: se traslada entera) si el empuje alcanza; si no, el empuje se apaga dentro de la pared
     const s0 = Math.min(0, g.rs);
     const T = g.rW - g.rs;
-    const D = Math.min(Math.max(g.rW, Math.min(target, T)), target + WALL_FADE_MAX_MM);
+    const Dk = nodeTarget(g);
+    const D = Math.min(Math.max(g.rW, Math.min(Dk, T)), Dk + WALL_FADE_MAX_MM);
     nodes.push([s0, Math.min(0, g.rW - D), D]);
     hover.push(1 - smoothstep(CONTACT.gelMm, CONTACT.gelMm + CONTACT.gelRampMm, Math.max(g.rs, g.gapElevation)));
     // la pared, respecto de la piel (un hueco de gel la baja entera, sin doblarla)
-    parallel.push(1 - smoothstep(target, target + CONTACT.wallRampMm, g.rW - Math.max(0, g.rs)));
+    parallel.push(1 - smoothstep(Dk, Dk + CONTACT.wallRampMm, g.rW - Math.max(0, g.rs)));
   }
   // La pared paralela, erosionada un nodo: entre un nodo que apoya y otro cuya pared se dobla, la tabla interpolada
   // ya dobla la pared (la cara interna sube 10 mm en 1°); esas líneas no acoplan. Después, un filtro [1 2 1]/4: la

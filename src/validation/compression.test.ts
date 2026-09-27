@@ -4,7 +4,6 @@ import { SCENE_UNIFORMS } from '../anatomy/gpu/sceneUniforms';
 import {
   COMPRESSION_GLSL,
   PROBE_COMPRESSION,
-  compressionPlateMm,
   compressionReachMm,
   compressionSample,
   compressionSpanMm,
@@ -17,6 +16,7 @@ import {
 import { torsoDepth, torsoDepthGradient } from '../anatomy/primitives';
 import { AnatomyQuery } from '../anatomy/query';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
+import { intercostalZ } from './support/chestView';
 import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { PhysiologyEngine } from '../physiology/engine';
@@ -49,11 +49,16 @@ import {
 const scene = new AnatomyScene(defaultPatient());
 const torso = scene.torso;
 const tr = CONVEX_C35;
-const W = compressionPlateMm(torso);
+/**
+ * lus-sim (decisión 17): la pared torácica cambia por región, así que cada capa se mide a su fracción del grosor de la pared
+ * del punto (`wallThicknessAt`): la media pared y la cara interna, la pleura parietal. En el tronco uniforme de VExUS era
+ * un grosor fijo (`compressionPlateMm`, que sigue siendo el de la pared del abdomen).
+ */
+const wallAt = (m: Vec3): number => scene.wallThicknessAt(m);
 
 type ViewId = 'blueUpper' | 'lateral' | 'lateralTransverse' | 'posterior' | 'leftUpper';
-/** EIC5 en la línea axilar media: entre la 5.ª (z 70) y la 6.ª (z 53) costillas de la escena. */
-const EIC5_LAM_Z = 61.5;
+/** EIC5 en la línea axilar media, entre la 5.ª y la 6.ª costillas de la parrilla (decisión 16). */
+const EIC5_LAM_Z = intercostalZ(scene, 5, Math.PI);
 const VIEWS: Record<ViewId, ProbePose> = {
   blueUpper: defaultPose(),
   lateral: { phi: Math.PI, z: EIC5_LAM_Z, lift: 0, yaw: 0, rock: 0, tilt: 0 },
@@ -68,9 +73,15 @@ function view(id: ViewId, extra: Partial<ProbePose> = {}): { pose: ProbePose; fr
   const k = probeContact(pose, tr, torso);
   return { pose, frame: k.frame, k };
 }
-/** Profundidad bajo la cara (mm) a la que la línea θ cruza la capa de profundidad radial w, con la compresión k. */
-function levelDepth(frame: ProbeFrame, k: ProbeCompression | null, theta: number, w: number): number {
-  for (let d = -2; d <= 160; d += 0.05) if (-torsoDepth(uncompress(pointOnLine(frame, tr, theta, d), k), torso) >= w) return d;
+/**
+ * Profundidad bajo la cara (mm) a la que la línea θ cruza la capa a la fracción `f` del grosor de la pared (0 la piel, 1 la
+ * cara interna), con la compresión k; o, con `f` > 1, la profundidad radial fija f − 1 (mm; la de las capas cercanas).
+ */
+function levelDepth(frame: ProbeFrame, k: ProbeCompression | null, theta: number, f: number): number {
+  for (let d = -2; d <= 160; d += 0.05) {
+    const m = uncompress(pointOnLine(frame, tr, theta, d), k);
+    if (-torsoDepth(m, torso) >= (f > 1 ? f - 1 : f * wallAt(m))) return d;
+  }
   return Number.NaN;
 }
 /** Líneas acopladas (contacto ≥ `min`). */
@@ -97,18 +108,19 @@ function materialRadius(frame: ProbeFrame, m: Vec3): number {
 }
 
 describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared bajo las líneas acopladas queda paralela a la cara', () => {
-  // Medido (26-09-2026; líneas acopladas de 192 y la cara interna de la pared, la pleura, bajo ellas): punto BLUE
-  // 192, 25,25–29,00 mm; lateral 192, 28,00–29,05; transversal 116 (±20,5°), 28,00–29,00; posterior 192,
-  // 26,40–29,05; izquierdo 192, 25,25–29,00. El tronco rígido bajo las mismas líneas: una cúpula de 15 mm. Lo que
-  // queda de variación es la métrica radial de las capas en el tronco elíptico: a φ = 3π/4 la pared mide 25,2 mm
-  // por la normal de la piel y 28 en la radial (la de la anatomía), así que la cara interna no es paralela a la
-  // piel en ninguna vista oblicua a los ejes de la elipse. Umbrales: lo medido con ≈ 0,3 mm de margen.
+  // Medido (27-09-2026, con la pared torácica por región, decisión 17; líneas acopladas de 192 y la cara interna de la pared,
+  // la pleura, bajo ellas, frente al grosor de la pared en su punto): punto BLUE 192, −1,55…+1,05 mm; lateral 192,
+  // 0,01…1,25; transversal 142, 0,02…1,78; posterior 192, −0,88…1,11; izquierdo 192, como el BLUE. El tronco rígido bajo
+  // las mismas líneas: una cúpula de 13–19 mm. Lo que queda de variación es la métrica radial de las capas en el tronco
+  // elíptico (a φ = 3π/4 la normal de la piel no es radial) y, en la pared por región, que el contacto toma el grosor de
+  // la pared donde cada línea entra en la piel y la cara interna lo toma en su propio punto. Umbrales: lo medido con
+  // ≈ 0,3 mm de margen.
   const cases: Array<[ViewId, number, number]> = [
-    ['blueUpper', 192, 4],
-    ['lateral', 192, 1.4],
-    ['lateralTransverse', 110, 1.4],
-    ['posterior', 192, 3],
-    ['leftUpper', 192, 4],
+    ['blueUpper', 192, 3],
+    ['lateral', 192, 1.6],
+    ['lateralTransverse', 110, 2.1],
+    ['posterior', 192, 2.3],
+    ['leftUpper', 192, 3],
   ];
   it.each(cases)(
     '%s: ≥ %s líneas acopladas; bajo ellas la piel en la cara y cada capa de la pared a la misma profundidad (cara interna ≤ %s mm)',
@@ -116,19 +128,26 @@ describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared baj
       const { frame, k } = view(id);
       const lines = coupledLines(k);
       expect(lines.length, id).toBeGreaterThanOrEqual(minLines);
-      const at = (kk: ProbeCompression | null, w: number) => lines.map((i) => levelDepth(frame, kk, lineAngle(i, tr), w));
+      const at = (kk: ProbeCompression | null, f: number) => lines.map((i) => levelDepth(frame, kk, lineAngle(i, tr), f));
       const skin = at(k, 0);
-      const mid = at(k, W / 2);
-      const inner = at(k, W);
-      const innerRigid = at(null, W);
-      const tag = `${id}: piel ${Math.min(...skin).toFixed(2)}–${Math.max(...skin).toFixed(2)}, media pared Δ ${spread(mid).toFixed(2)}, cara interna ${Math.min(...inner).toFixed(2)}–${Math.max(...inner).toFixed(2)} (rígido Δ ${spread(innerRigid).toFixed(1)})`;
+      // lo que cada capa se aparta de su profundidad (la fracción de la pared del punto de cruce, en la radial)
+      const off = (kk: ProbeCompression | null, f: number) =>
+        lines.map((i) => {
+          const d = levelDepth(frame, kk, lineAngle(i, tr), f);
+          return d - f * wallAt(uncompress(pointOnLine(frame, tr, lineAngle(i, tr), d), kk));
+        });
+      const mid = off(k, 0.5);
+      const inner = off(k, 1);
+      const innerRigid = at(null, 1);
+      const W = k.plateMm;
+      const tag = `${id}: piel ${Math.min(...skin).toFixed(2)}–${Math.max(...skin).toFixed(2)}, media pared Δ ${spread(mid).toFixed(2)}, cara interna −W ${Math.min(...inner).toFixed(2)}–${Math.max(...inner).toFixed(2)} (W ${W.toFixed(1)}; rígido Δ ${spread(innerRigid).toFixed(1)})`;
       // la piel llega a la cara (el gel salva lo que falte en las líneas de transición)
       for (const d of skin) expect(Math.abs(d), tag).toBeLessThan(0.5);
       // ninguna capa de la pared se dobla alejándose de la cara bajo una línea acoplada: todas quedan a su
       // profundidad (la cara interna a W … W + tolerancia + la mitad de la rampa)
       expect(spread(mid), tag).toBeLessThanOrEqual(maxSpread);
       expect(spread(inner), tag).toBeLessThanOrEqual(maxSpread);
-      expect(Math.max(...inner), tag).toBeLessThanOrEqual(W + CONTACT.wallTolMm + CONTACT.wallRampMm);
+      expect(Math.max(...inner), tag).toBeLessThanOrEqual(CONTACT.wallTolMm + CONTACT.wallRampMm);
       // el tronco rígido (sin compresión): la cúpula
       expect(spread(innerRigid), tag).toBeGreaterThan(8);
     },
@@ -147,10 +166,10 @@ describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared baj
       for (const i of coupledLines(k, 0.99)) {
         const th = lineAngle(i, tr);
         const dir = lineDirection(frame, th);
-        for (const w of [0.5, W / 2, W - 0.5]) {
-          const p = pointOnLine(frame, tr, th, levelDepth(frame, k, th, w));
+        for (const f of [1.5, 0.5, 0.97]) {
+          const p = pointOnLine(frame, tr, th, levelDepth(frame, k, th, f));
           worst = Math.max(worst, inPlaneAngleDeg(frame, warpNormal(warpAt(p, k), torsoDepthGradient(uncompress(p, k), torso)), dir));
-          const pr = pointOnLine(frame, tr, th, levelDepth(frame, null, th, w));
+          const pr = pointOnLine(frame, tr, th, levelDepth(frame, null, th, f));
           worstRigid = Math.max(worstRigid, inPlaneAngleDeg(frame, torsoDepthGradient(pr, torso), dir));
         }
       }

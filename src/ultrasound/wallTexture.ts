@@ -28,7 +28,7 @@ import { hash13, valueNoise } from './speckleField';
  * Cada lámina es especular a su manera: su brillo es ε + (1 − ε)·|cosθ|⁴ con θ entre el haz y su normal
  * [ESTIMADO], así que los septos paralelos a la piel brillan de frente y los perpendiculares apenas se ven.
  * Gemelos: estas funciones (TS) y `WALL_TEXTURE_GLSL` (pasada B), misma fórmula; las profundidades de las
- * capas salen de `organs/wall.ts` (uWall en la GPU).
+ * capas salen de `organs/wall.ts` (con la pared torácica por región de `organs/chestWall.ts`, lus-sim, decisión 17).
  */
 export const WALL_TEXTURE = {
   /** Lóbulo de la grasa subcutánea a lo largo de la piel (mm): 5–10 mm (PMC7441131). */
@@ -252,7 +252,7 @@ const f4 = (x: number): string => x.toFixed(4);
 
 /**
  * Gemelo GLSL (pasada B, detrás de `SPECKLE_TISSUE_GLSL`: usa hash13, valueNoise, torsoDepth, torsoNormal,
- * wallArc, uTorso y uWall de la anatomía).
+ * wallArc, uTorso y, lus-sim (decisión 17), las capas de la pared torácica por región, `wallLayersAt`).
  */
 export const WALL_TEXTURE_GLSL = /* glsl */ `
 #define WT_LOBULE_MM ${f4(WALL_TEXTURE.lobuleMm)}
@@ -277,9 +277,11 @@ float wallOrientation(vec3 n, vec3 dir) {
   return WT_ORIENT_FLOOR + (1.0 - WT_ORIENT_FLOOR) * c * c * c * c;
 }
 vec4 fatSeptum(vec3 m) {
-  float skin = uWall.x;
   float u = wallArc(m);
-  float fascia = wallDepths(u, m.z).y;
+  vec4 wx;
+  vec4 wl = wallLayersAt(u, m.z, wx);
+  float skin = wl.x;
+  float fascia = wallDepthsOf(u, m.z, wl, wx.z).y;
   float d = -torsoDepth(m);
   if (d < skin || d >= fascia) return vec4(0.0, 1.0, 0.0, 0.0);
   vec2 q = vec2(u, m.z) / WT_LOBULE_MM;

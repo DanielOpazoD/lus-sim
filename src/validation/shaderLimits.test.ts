@@ -221,11 +221,12 @@ describe('Límites del shader con margen para crecer', () => {
     // dirigido (con las caras de la pared, decisión 62), con sitio para la THI (~+14) sin pasar de 130. lus-sim
     // (decisiones 12 y 14): 85 y 87, sin los 30 de los uniforms del hígado, la vesícula, la aurícula, el gas y los riñones
     // (83 y 85 hasta que la tabla de tejidos, idéntica a la de VExUS, sumó los tres del retroperitoneo: TISSUE_VEC4 de 7
-    // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107. Si el
-    // recuento dejara de ver los arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
+    // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107; con la
+    // pared torácica por región (decisión 17: `uChestWall`), 106 y 108. Si el recuento dejara de ver los arrays (62 ranuras
+    // de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
-    expect(raw.slots).toBe(105);
+    expect(raw.slots).toBe(106);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);
