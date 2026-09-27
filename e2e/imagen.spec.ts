@@ -208,13 +208,14 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   // Medido con GPU real (Apple M4) y con SwiftShader, en apnea espiratoria (26-09-2026), relativo al eco pleural
   // intercostal:
   //  - la intensidad media bajo el hueso, de −25 dB (borde) a −83 dB: F-T08 cumple su umbral de 20 dB en todas;
-  //  - la penumbra ocupa 37 de las 70 líneas con hueso del BLUE inferior y 64 de las 103 del PLAPS (el cono mide
-  //    3,3–7,9 líneas de semiancho): la pleura se ve (> −40 dB) solo ahí, a ≤ 6 líneas del borde;
-  //  - en la sombra completa, la línea A de orden 2 a −80…−109 dB, por debajo del rango dinámico (70 dB): no se ve;
-  //  - pero la línea pleural sigue a −47…−65 dB, dentro del rango dinámico y 32–52 dB sobre el fondo de la sombra:
+  //  - la penumbra ocupa 41 de las 70 líneas con hueso del BLUE inferior y 69 de las 103 del PLAPS (el cono de la pasada
+  //    A mide 7,3–8,9 líneas de semiancho en la fila de la pleura): la pleura se ve (> −40 dB) solo ahí, a ≤ 6 líneas del
+  //    borde;
+  //  - en la sombra completa, la línea A de orden 2 a −80…−107 dB, por debajo del rango dinámico (70 dB): no se ve;
+  //  - pero la línea pleural sigue a −47…−65 dB, dentro del rango dinámico y 31–52 dB sobre el fondo de la sombra:
   //    `rib-shadow-pleura-residual` (la transmisión de la costilla, −64…−79 dB ida y vuelta por un rayo, es coherente, y el
-  //    pedestal de lóbulos laterales de la pasada D trae hasta ~15 dB de la pleura intercostal). Con el preajuste, que deja
-  //    la línea pleural unos 20 dB por encima del blanco, se ve gris (38–101) sobre la sombra negra.
+  //    pedestal de lóbulos laterales de la pasada D sube la pleura hasta ~15 dB en alguna línea: sin él, −51…−67). Con el
+  //    preajuste, que deja la línea pleural unos 20 dB por encima del blanco, se ve gris (38–101) sobre la sombra negra.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {

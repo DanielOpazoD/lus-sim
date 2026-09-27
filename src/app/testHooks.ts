@@ -670,8 +670,8 @@ export interface RibShadowLine {
   /** Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra); −1 fuera de las sombras. */
   edgeLines: number;
   /**
-   * Semiancho (líneas) del cono de emisión a la profundidad de la costilla, D_tx·(1 − r_costilla/D)/2 (la penumbra de
-   * la apertura, `ultrasound/aperture.ts`); NaN fuera de las sombras.
+   * Semiancho (líneas) del cono de emisión en la fila de la pleura, D_tx·(1 − r₀/r)/2 con r₀ el hueso más somero de las
+   * líneas que alcanza la apertura, como la pasada A (`apertureTransmission`); NaN fuera de las sombras.
    */
   coneHalfLines: number;
   /** Todas las líneas del cono de emisión cruzan hueso: la línea está fuera de la penumbra, en la sombra completa. */
@@ -797,12 +797,22 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const dTheta = (2 * tr.halfSector) / env.lines;
   // fuera del sector la sombra sigue (el borde del sector no es un borde de la sombra), como las tomas de la pasada A
   const isBone = (i: number): boolean => i < 0 || i >= env.lines || out[i].bone;
+  const beam = sim.profile.beam;
+  const maxHalf = Math.ceil((0.5 * beam.apertureTxMm) / (tr.curvatureRadius * dTheta));
   for (const x of out) {
     if (!x.bone) continue;
     let d = 0;
     while (d < env.lines && isBone(x.line - d - 1) && isBone(x.line + d + 1)) d++;
     x.edgeLines = d;
-    x.coneHalfLines = (0.5 * sim.profile.beam.apertureTxMm * (1 - x.ribTopMm / x.pleuraMm)) / ((tr.curvatureRadius + x.ribTopMm) * dTheta);
+    // el cono de la pasada A en la fila de la pleura: su obstáculo es el hueso más somero de las líneas que alcanza la
+    // apertura en la cara (también el de otra costilla)
+    const r = pleuraCapMm(x.pleuraMm, depth / COARSE_DEPTH);
+    let ro = Number.POSITIVE_INFINITY;
+    for (let k = -maxHalf; k <= maxHalf; k++) {
+      const o = out[x.line + k];
+      if (o?.bone && o.ribTopMm < r) ro = Math.min(ro, o.ribTopMm);
+    }
+    x.coneHalfLines = (0.5 * beam.apertureTxMm * (1 - ro / r)) / ((tr.curvatureRadius + ro) * dTheta);
     const h = Math.ceil(x.coneHalfLines);
     let all = true;
     for (let k = -h; k <= h && all; k++) all = out[Math.min(env.lines - 1, Math.max(0, x.line + k))].bone;
