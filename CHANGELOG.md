@@ -49,6 +49,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - El presupuesto del chunk principal sube de 40 a 160 kB con la GPU portada (148,5 kB medidos) (12).
 - `no-sidelobes` lleva la doble cuenta de la reverberación de la pared medida en la GPU (12).
 - El presupuesto del chunk principal sube a 180 kB con la interfaz (172,5 kB medidos) (13).
+- Lo portado de VExUS, al día con `c6c81ad` (14): el build quita del GLSL los espacios y los saltos de línea que no
+  separan nada (tercera etapa del minificado, `tools/build/glslCompact.ts`; el chunk principal baja de 172,5 a 163,5
+  kB), la tabla de tejidos lleva los tres del retroperitoneo de VExUS al final (sin uso en el tórax) y la pared que copia
+  la serie de la pleura usa la base del campo de dispersores. La imagen no cambia; el retroperitoneo y los casos trampa
+  del origen no se portan.
 
 ### Quitado
 

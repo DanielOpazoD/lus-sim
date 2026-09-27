@@ -599,3 +599,65 @@ que con la imagen congelada los deslizadores, las tarjetas y la animación moví
 reiniciar el paciente con la imagen congelada dejaba el lienzo negro, que los errores del bucle no se veían, los
 avisos de WebGL al recuperar la GPU, los atajos con modificadores, el diseño de teléfono, los rótulos que prometían
 hallazgos y omisiones de procedencia; todo está corregido o anotado arriba.
+
+## 14. Nuevo origen fijado: VExUS c6c81ad
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** El origen avanzó de `8e83d9a` (decisión 11) a `c6c81ad` con cuatro commits: la ronda 3 de su juez ciego
+(#99, solo documentos que lus-sim no porta), la tercera etapa del minificado del GLSL en el build (#100: quita los espacios
+y los saltos de línea que no separan nada, con dos léxicos que deben leer igual lo pegado), su decisión 81 (el
+retroperitoneo: psoas, cuadrado lumbar y grasa retroperitoneal, y la línea de Morison una sola) y su decisión 82 (casos
+trampa y contexto clínico). `npm run provenance` marcaba 24 filas con commits nuevos en el origen (4 idénticas y 20
+adaptadas), y dos idénticas ya pedían código que lus-sim no tenía: la pleura (`pleura.ts`) llama a `fieldForBase`, que la
+decisión 81 del origen separa en las pasadas, y el minificador (`glslMinify.ts`) importa `glslCompact.ts`.
+
+**Opciones.** (a) Quedarse en `8e83d9a` hasta el paso C: la deriva crece y la pleura, la pieza más delicada del motor, se
+aleja del origen justo antes de cambiarla (decisión 15). (b) Volver a fijar con el procedimiento de la decisión 11: lo
+idéntico se copia; lo adaptado se fusiona a tres bandas (base `8e83d9a`, lus-sim, origen `c6c81ad`); nada del abdomen ni
+de los casos. (c) Seguir la cabeza del origen: descartado en la decisión 11.
+
+**Decisión.** (b).
+
+- **Idénticos que cambiaron en el origen** (4), copiados de `c6c81ad`: la tabla de tejidos (tres tejidos nuevos al final
+  del enum, psoas 27, cuadrado lumbar 28 y grasa retroperitoneal 29: ningún índice se mueve, nada del tórax los clasifica
+  y las tablas por tejido de la GPU pasan de 7 a 8 vec4), la pleura (la pared que copia la serie usa `fieldForBase`), `gl.ts`
+  (`fragmentOutputCount` reconoce una `out` global tras `;` o `}`, porque la tercera etapa junta las líneas) y el
+  minificador con su tercera etapa.
+- **Nuevos**: `tools/build/glslCompact.ts`, idéntico; `src/validation/support/shaderGraph.ts`, el grafo de módulos en
+  memoria que el origen saca de la prueba del renombrado, adaptado con el nombre que no es ruta de la decisión 12 (sin él
+  la cobertura v8 vuelve a mezclar el fuente evaluado con el módulo real); `src/validation/glslCompact.test.ts`, adaptado
+  con los umbrales del tórax (15 módulos con GLSL y 19 programas; 27 946 caracteres ahorrados frente a los > 50 000 de
+  VExUS, que tiene el color y el abdomen).
+- **Adaptados** (20 con cambios en el origen). Se trae: el comentario del plugin en `vite.config.ts`; el de Morison en
+  `interfaces.ts` (una constante que lus-sim conserva); `TISSUE_COUNT` = 30 en `wall.test.ts`; la tercera etapa y el
+  grafo compartido en `glslMangle.test.ts`; en las pasadas, `fieldFor` y `fieldForPh` sobre su base (`fieldForBase`,
+  `fieldForPhBase`), una sola llamada en `sampleSide` y `sampleSidePh` y la lista del `hetGain` del origen, pero sin la
+  textura del retroperitoneo (`retroTexture`): en lus-sim `fieldFor` es su base; la suma de los puntos por tejido igual a
+  los interiores en `equivalenceSweep.test.ts` (lus-sim ya tenía `byTissue` en el barrido); la medida propia en el
+  presupuesto del bundle, y el recuento de ranuras de la pasada B en `shaderLimits.test.ts` (85 y 87, antes 83 y 85; el
+  comentario decía 84 y 86 desde que la revisión de la decisión 12 quitó `uRespVel`). Quedan como estaban los otros 13:
+  todo lo que el origen cambió en ellos es el retroperitoneo (la escena, la anatomía GLSL, el registro de órganos, las
+  pruebas de la anatomía, de las caras y del punto renal, la guarda de `fascicleSeptum` en un bucle) o los casos (las
+  capas, la hoja de estilos, el panel, el humo). La dependencia `cases → vexus` de la decisión 82 no se trae: lus-sim no
+  tiene casos; su análogo (`cases → lus`) se decidirá con ellos (fase 4).
+- **Limitaciones**: ninguna nueva ni quitada. No se heredan `simplified-retroperitoneum` (81) ni las doce de los casos
+  trampa (82), cuyo código no se porta.
+
+**Consecuencias.** Las 154 filas de vexus-sim (151 y las 3 nuevas) quedan en `c6c81ad`. El chunk principal baja de 172,5
+a 163,5 kB (176 622 → 167 443 B) con la tercera etapa. La imagen no cambia: la base de `fieldFor` es la función de antes,
+los tejidos nuevos no los clasifica nada y la tercera etapa deja los mismos tokens en cada programa (lo exige su
+prueba); las cifras de la e2e de la imagen (equivalencia, moteado, líneas A) son las de la decisión 12. Mientras se hacía
+este cambio el origen volvió a avanzar: `99ed6d5` (su decisión 83, ventanas epigástrica y subcostal) toca diez filas
+(la animación hacia un punto de partida, idéntica; los puntos de partida, la entrada de la sonda, las tarjetas, la hoja de
+estilos, las limitaciones y las pruebas de la compresión, de los puntos de partida, de las tarjetas y el humo). Trae dos
+mejoras genéricas que interesan a lus-sim (la animación por el arco corto también en basculación, inclinación y
+separación; Intro en una tarjeta ya no cancela el deslizamiento): quedan para el próximo fijado, con este mismo
+procedimiento.
+
+**Verificación.** `npm run provenance -- --check` con el origen en `c6c81ad` (un clon local sin copia de trabajo con
+`origin/main` en ese commit, `VEXUS_DIR`): «origen sin cambios» en las 154 filas y la tabla dice lo que es cada archivo;
+contra el origen vivo, las diez de la decisión 83 marcan un commit nuevo. `npm run check` y `npm run e2e` en verde. La
+prueba de la tercera etapa se comprobó en lus-sim con una mutación: con la etapa que nunca deja el espacio entre dos
+trozos de código fallan 11 de sus 13 pruebas, entre ellas la de los 19 programas del tórax («mismos tokens» con los dos
+léxicos).
