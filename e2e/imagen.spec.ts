@@ -215,7 +215,8 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   //  - pero la línea pleural sigue a −47…−65 dB, dentro del rango dinámico y 31–52 dB sobre el fondo de la sombra:
   //    `rib-shadow-pleura-residual` (la transmisión de la costilla, −64…−79 dB ida y vuelta por un rayo, es coherente, y el
   //    pedestal de lóbulos laterales de la pasada D sube la pleura hasta ~15 dB en alguna línea: sin él, −51…−67). Con el
-  //    preajuste, que deja la línea pleural unos 20 dB por encima del blanco, se ve gris (38–101) sobre la sombra negra.
+  //    preajuste, que deja la línea pleural 15–18 dB por encima del blanco (20·log10 del pico + la compensación nominal a
+  //    27 mm − 33 dB), se ve gris (38–101) sobre la sombra negra.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
