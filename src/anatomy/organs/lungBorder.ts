@@ -1,4 +1,5 @@
 import { defineParameters } from '../../core/evidence';
+import { DIAPHRAGM_EXCURSION } from '../../physiology/respiratory';
 import type { Vec3 } from '../../core/vec3';
 import { torsoDepth, type LungBorderLookup, type Torso } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
@@ -167,14 +168,14 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
     note: 'Grosor en la ZOA a TLC: 4,5 ± 0,9 (Ueki) y varones 5,6 ± 0,9 (Cardenas, vía Santana): 5,0, cociente 2,6 sobre FRC',
   },
   zoaTlcCaudalMm: {
-    value: 30,
+    value: DIAPHRAGM_EXCURSION.params.deepMm.value,
     unit: 'mm',
-    range: [30, 53],
-    evidence: 'estimado',
-    sources: [],
+    range: [31, 75],
+    evidence: 'derivado',
+    sources: ['santana-diafragmarevision-2020'],
     note:
-      'El descenso del diafragma que se toma por TLC: la inspiración profunda del modelo (`RespiratoryModel`, 30 mm); la base ' +
-      'da 5,3 cm en supino (Kantarci), así que el engrosamiento llega a TLC antes',
+      'El descenso del diafragma que se toma por TLC: la inspiración profunda del modelo (`physiology.diaphragmExcursion.deepMm`, ' +
+      '5,3 cm en supino, Kantarci vía Santana; decisión 22)',
   },
 });
 

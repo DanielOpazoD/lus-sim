@@ -143,7 +143,8 @@ export const HEART = defineParameters('anatomy.heart', {
       'El corazón, con el tapón y la franja de la ventana, no se mueve con la respiración (se apoya en el centro tendinoso, que ' +
       'baja poco); el campo respiratorio vuelve a su valor en esta distancia a su cara [SUPUESTO]. Con el corazón bajando con ' +
       'las vísceras y el tapón pegado a la pared, la cizalla dejaba bolsas de pulmón en la ventana al respirar (9 de 96 líneas ' +
-      'en la respiración tranquila). Con 50 mm, el gradiente del desplazamiento queda < 1 en la inspiración profunda',
+      'en la respiración tranquila). El pulmón que baja encima de él no pliega el campo con la inspiración profunda de la base ' +
+      '(53 mm) porque baja poco: la ley de altura del campo (decisión 22; sin ella, con 50 mm, el jacobiano llegaba a −0,53)',
   },
   sideWallMm: {
     value: 10,

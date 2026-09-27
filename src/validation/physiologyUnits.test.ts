@@ -157,8 +157,9 @@ describe('Respiración', () => {
       expect(Math.abs(dv - s.volumeRate)).toBeLessThan(1e-3);
     }
     expect(m.sample(0.2 * T).volumeRate).toBeCloseTo((0.5 * Math.PI) / (0.4 * T), 6);
-    expect(m.excursionMm()).toBe(10);
-    expect(new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), respiratoryPattern: 'deep' }).excursionMm()).toBe(30);
+    // lus-sim (decisión 22): la excursión de la base en supino, 16 mm tranquila y 53 profunda (en VExUS, 10 y 30)
+    expect(m.excursionMm()).toBe(16);
+    expect(new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), respiratoryPattern: 'deep' }).excursionMm()).toBe(53);
     const apE = new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), respiratoryPattern: 'apnea-expiratory' });
     const apI = new RespiratoryModel({ ...clonePatient(NORMAL_ADULT), respiratoryPattern: 'apnea-inspiratory' });
     for (let t = 0; t < 10; t += 0.2) {
@@ -169,7 +170,7 @@ describe('Respiración', () => {
       expect(e.pleuralMmHg).toBeCloseTo(apE.pleuralAtEndExpiration(), 12);
       const i = apI.sample(t);
       expect(i.volume).toBe(1);
-      expect(i.diaphragmCaudalMm).toBe(30);
+      expect(i.diaphragmCaudalMm).toBe(53);
       expect(i.diaphragmVelocityMmS).toBe(0);
     }
     // PEEP: 40 % a la pleura en los dos modos; con respiración espontánea es una CPAP (decisión 79 de VExUS;

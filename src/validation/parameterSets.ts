@@ -1,6 +1,6 @@
 import type { ParameterSet } from '../core/evidence';
 import { START_POINT_POSES } from '../app/startPoints';
-import { CHEST_WALL } from '../anatomy/organs/chestWall';
+import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { RIBCAGE } from '../anatomy/organs/ribcage';
@@ -9,6 +9,7 @@ import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
+import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 
 /**
  * Todos los conjuntos de parámetros del modelo (decisión 4). `evidence.test.ts` comprueba sobre esta
@@ -29,4 +30,6 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   LUNG_PRESET,
   TGC_REFERENCE,
   BONE_TRANSMISSION,
+  DIAPHRAGM_EXCURSION,
+  RESPIRATORY_WALL,
 ];

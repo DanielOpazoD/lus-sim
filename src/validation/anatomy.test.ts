@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { RespiratoryDeformation } from '../anatomy/deformation';
+import { RESPIRATORY_INVERSE, RespiratoryDeformation } from '../anatomy/deformation';
 import { AnatomyQuery } from '../anatomy/query';
-import { torsoSkinPoint } from '../anatomy/primitives';
+import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { lungBorderAt, zoaThicknessMm } from '../anatomy/organs/lungBorder';
+import { respiratoryWallOf, wallTotalOf } from '../anatomy/organs/chestWall';
+import { heartStillWeight } from '../anatomy/organs/heart';
+import { smoothstep } from '../core/vec3';
 import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
@@ -169,12 +172,46 @@ describe('Anatomía implícita (base B)', () => {
 
   it('el peso respiratorio es 0 en la pared y 1 en las vísceras', () => {
     expect(scene.respiratoryWeight([0, 100, 0])).toBe(0);
-    expect(scene.respiratoryWeight([-90, -10, 20])).toBeCloseTo(1, 3);
+    // bajo la cúpula más alta (lus-sim, decisión 22: por encima, la ley de altura)
+    expect(scene.respiratoryHeight.baseZ).toBeGreaterThan(0);
+    expect(scene.respiratoryWeight([-90, -10, 0])).toBe(1);
     // la columna no respira
     expect(scene.respiratoryWeight([scene.spine.x0, scene.spine.y0, 0])).toBe(0);
     // lus-sim (decisión 18): ni el corazón, ni el tapón de su ventana, que no se separa de él al respirar
     expect(scene.respiratoryWeight(scene.heart.center)).toBe(0);
     expect(scene.respiratoryWeight([-60, 20, 20])).toBeLessThan(1);
+    // lus-sim (decisión 22): la ley de altura, en recta de la cota de la cúpula a la altura en que se apaga el deslizamiento
+    const { baseZ, topZ } = scene.respiratoryHeight;
+    expect(topZ - baseZ).toBeCloseTo(scene.lungBorder.slideSpanMm, 9);
+    const at = (z: number) => scene.respiratoryWeight([-90, -10, z]);
+    expect(at(baseZ)).toBe(1);
+    expect(at(0.5 * (baseZ + topZ))).toBeCloseTo(0.5, 9);
+    expect(at(topZ)).toBe(0);
+    expect(at(topZ + 50)).toBe(0);
+  });
+
+  it('el peso es el producto de la pared, la columna, el corazón y la ley de altura (decisión 22), con la pared de la clasificación', () => {
+    // contra una cuenta independiente: la profundidad bajo la pared de la clasificación (`insideWallMm`) donde la pared que mira
+    // el campo es la de verdad (fuera del paso al abdomen alargado), y cada factor con sus números
+    const { baseZ, topZ } = scene.respiratoryHeight;
+    let n = 0;
+    for (let x = -155; x <= 155; x += 11)
+      for (let y = -100; y <= 100; y += 11) {
+        if (torsoDepth([x, y, 0], scene.torso) > 0) continue;
+        const c = scene.respiratoryColumn(x, y);
+        for (let z = -280; z <= 280; z += 13) {
+          const m: [number, number, number] = [x, y, z];
+          if (respiratoryWallOf(scene.chestWall, c.wall, c.wallBlendMm, z) !== wallTotalOf(scene.chestWall, c.wall, z)) continue;
+          n++;
+          const spine = smoothstep(scene.spine.r + 5, scene.spine.r + 35, Math.hypot(x - scene.spine.x0, y - scene.spine.y0));
+          const height = Math.min(1, Math.max(0, (topZ - z) / (topZ - baseZ)));
+          const expected = smoothstep(0, 25, scene.insideWallMm(m)) * spine * heartStillWeight(scene.heart, m) * height;
+          expect(scene.respiratoryWeight(m)).toBeCloseTo(expected, 12);
+          // y por su vertical, lo mismo
+          expect(scene.respiratoryWeightAt(c, z)).toBe(scene.respiratoryWeight(m));
+        }
+      }
+    expect(n).toBeGreaterThan(5000);
   });
 
   it('classifyWorld clasifica el punto material del mundo y da la velocidad respiratoria del tejido (sin sangre)', () => {
@@ -187,8 +224,10 @@ describe('Anatomía implícita (base B)', () => {
     expect(w.tissue).toBe(scene.classify(w.material, q.instantFor(engine.sample)).tissue);
     expect(w.bloodVelocity).toBeNull();
     expect(w.flowBasis).toBeNull();
-    // al inspirar, las vísceras bajan: velocidad a lo largo de la dirección de la deformación, (0, 0,15, −1)
+    // al inspirar, las vísceras bajan: velocidad a lo largo de la dirección de la deformación, (0, 0, −1) (lus-sim, decisión
+    // 22; en VExUS, (0, 0,15, −1) normalizada)
     const dir = RespiratoryDeformation.direction;
+    expect(dir).toEqual([0, 0, -1]);
     const speed = engine.sample.resp.diaphragmVelocityMmS * scene.respiratoryWeight(w.material);
     expect(speed).toBeGreaterThan(0);
     for (let a = 0; a < 3; a++) expect(w.tissueVelocity[a]).toBeCloseTo(dir[a] * speed, 9);
@@ -201,7 +240,7 @@ describe('Anatomía implícita (base B)', () => {
     // un punto 1,5 mm bajo la pared del seno costofrénico lateral derecho, 23 mm bajo el borde del pulmón en FRC: el
     // diafragma de la ZOA en espiración y pulmón cuando el diafragma del instante ha bajado más de 23 mm (el borde de la
     // cortina, el de FRC menos el descenso, pasa por debajo). A 1,5 mm de la pared el peso respiratorio es smoothstep(0,
-    // 25, 1,5) ≈ 0,01: el punto material sube unos 0,3 mm con los 30 mm de descenso, así que se deja ±1 mm de descenso
+    // 25, 1,5) ≈ 0,01: el punto material sube unos 0,55 mm con los 53 mm de descenso, así que se deja ±1 mm de descenso
     // alrededor de 23 sin juzgar. lus-sim (decisión 17): el punto, a 1,5 mm de la cara interna de la pared de ese punto
     // (por región); (decisión 18) con el borde del pulmón de la base (la 8.ª costilla en la LAM) y la ZOA bajo él
     const phi = Math.PI * 0.95;
@@ -221,8 +260,9 @@ describe('Anatomía implícita (base B)', () => {
       if (s.resp.diaphragmCaudalMm < 22) expect(t).toBe(Tissue.Diaphragm);
       if (s.resp.diaphragmCaudalMm > 24) expect(t).toBe(Tissue.Lung);
     }
-    // la inspiración profunda baja el diafragma 30 mm y el punto pasa de un tejido al otro dentro del ciclo
-    expect(maxCaudal).toBeCloseTo(30, 1);
+    // la inspiración profunda baja el diafragma 53 mm (lus-sim, decisión 22: la base en supino) y el punto pasa de un tejido
+    // al otro dentro del ciclo
+    expect(maxCaudal).toBeCloseTo(53, 1);
     expect([...seen].sort()).toEqual([Tissue.Lung, Tissue.Diaphragm].sort());
   });
 
@@ -232,10 +272,13 @@ describe('Anatomía implícita (base B)', () => {
     const q = new AnatomyQuery(scene);
     const m: [number, number, number] = [-90, -10, 20];
     const w = q.deformation.toWorld(m, engine.sample.resp);
-    // excursión profunda de 30 mm × volumen ≥ 0,9 × peso ≈ 1, casi toda en −z (lejos del corazón, que no respira)
-    expect(w[2]).toBeLessThan(m[2] - 20);
+    // excursión profunda de 53 mm × volumen ≥ 0,9 × peso (la ley de altura en z 20: 0,96), en −z (lejos del corazón, que
+    // no respira)
+    expect(w[2]).toBeLessThan(m[2] - 40);
+    expect(w[0]).toBe(m[0]);
+    expect(w[1]).toBe(m[1]);
     const back = q.deformation.toMaterial(w, engine.sample.resp);
-    expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2])).toBeLessThan(0.05);
+    expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2])).toBeLessThan(RESPIRATORY_INVERSE.toleranceMm);
     // la pared no se mueve con la respiración
     const wall: [number, number, number] = [0, 95, 60];
     expect(q.deformation.toWorld(wall, engine.sample.resp)).toEqual(wall);

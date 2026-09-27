@@ -60,7 +60,8 @@ conservan su identificador (decisiones 10 y 11).
   pulmonar (la segunda parte de A-T16) ni movimiento del corazón en la ventana; su pericardio no tiene cara propia y el
   borde de la ventana es duro (sin el volumen parcial de la cortina), aunque el pulmón que la rodea es una cuña fina sobre el
   corazón (una franja de 25 mm donde el corazón llega a la lámina de la cortina [SUPUESTO]). El corazón, con su tapón y su
-  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]). En la ventana el
+  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]), y la ventana no se
+  achica al inspirar (en el paciente real el pulmón se interpone y la tapa en parte; la e2e exige hoy que no cambie). En la ventana el
   miocardio mide hasta 25 mm antes de la cavidad (el tapón; el ventrículo derecho real, ≈ 5 mm); la cara inferior, cortada
   por la cúpula, es pared de 10 mm. Fuera del corazón, todo el tórax sobre las cúpulas
   sigue siendo pulmón: sin mediastino, grandes vasos, timo ni esófago. Largo, ancho, grosor, orientación y paredes son
@@ -70,32 +71,55 @@ conservan su identificador (decisiones 10 y 11).
   entre ellas; sin el receso costomediastínico izquierdo (Choi) ni diferencia entre los dos lados salvo la ventana
   cardiaca. La cúpula baja a la pared en una rampa de 40 mm [SUPUESTO] y su diafragma sigue siendo la lámina de 2,5 mm de
   VExUS; bajo el borde, la ZOA es una lámina de grosor uniforme contra la pared (1,9 mm en FRC, 5 a TLC) con solo su cara
-  abdominal (la pleural es la cara interna de la pared), hasta 20 mm bajo la reflexión [SUPUESTO]. La lámina de la
-  cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma del modelo: 10 mm en respiración tranquila y 30 en la
-  profunda (la base: 5,3 cm en supino; A-T13 en inspiración profunda no se cumple). El borde anterior se ancla en la línea
+  abdominal (la pleural es la cara interna de la pared), hasta 20 mm bajo la reflexión [SUPUESTO; la longitud de la ZOA es NO
+  ENCONTRADO]: A-T15 a TLC depende de él (con los 53 mm de la inspiración profunda, la cortina deja la ZOA medible a ≥ 10 mm de
+  su inserción solo en el EIC 9 de la LAA, a 10,3 mm; con menos de 19,7 mm la prueba falla y con ≥ 25,6 también mide la LAM,
+  en el EIC 10; decisión 22). La lámina de la
+  cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma (la base en supino, decisión 22: 16 mm en respiración
+  tranquila y 53 en la profunda), sin pasar de la reflexión (junto a la columna se detiene a 23 mm). El borde anterior se ancla en la línea
   paraesternal (el centro del 6.º cartílago, z 1,5) y sigue igual hasta la línea media: junto al borde del esternón, donde
   Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba no hay vértice: la lámina y la
-  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula). La excursión
-  de la base en supino (16 mm tranquila, 53 profunda) se probó en el paso C4 y se retiró: con 53 mm el campo respiratorio de
-  VExUS (su rampa de 25 mm bajo la pared y la del corazón, con la inversión de dos pasos de punto fijo) se pliega (≈ 300–350 cm³
-  con el jacobiano negativo) y la imagen de la inspiración profunda desplazaba tejidos hasta 27 mm.
+  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
   hepática en VExUS. En la imagen es un moteado sin estructura: la textura del «resto» de VExUS
   (`restTexture`) no se porta (decisión 12), y con el preajuste pulmonar queda casi negro (mediana 0–8 de gris
   bajo la cúpula). El hígado vuelve en la fase 3 como módulo portado.
-- **La inversión del campo respiratorio es aproximada** (`respiratory-inverse-fixed-point`, VExUS): el punto material de
-  cada muestra sale de dos pasos de punto fijo, m = q − d(m). Donde el peso respiratorio cambia deprisa (las rampas de la
-  pared, de la columna y, desde la decisión 18, del corazón) no converge: con los 30 mm de la inspiración profunda, el 9,6 %
-  de las muestras a menos de 8 cm de la piel yerra > 1 mm (hasta 15 mm, sobre todo en el pulmón y el «resto»); en la
-  respiración tranquila, nada. Con 53 mm el campo se pliega (decisión 19).
+- **El campo respiratorio es una traslación caudal con pesos** (`respiratory-field-vertical`, decisión 22): el tejido baja el
+  descenso del diafragma por un peso que es 0 en la pared, la columna y el corazón con su ventana, sube en sus rampas (25, 30
+  y 50 mm; la de la pared y la de la columna, [EXTRAPOLACIÓN PROPIA] de VExUS) y, por encima de la cúpula más alta, baja en
+  recta hasta 0 a 147 mm, en z 161, sobre la 1.ª costilla de la LMC [SUPUESTO: el tramo del deslizamiento llevado a la cúpula;
+  el deslizamiento se apaga más abajo, a 128–145 mm]. Por encima de z 161 el pulmón del campo no baja ni se estira, aunque el
+  del modelo llega a z 300. No hay movimiento anterior ni lateral (la pared del abdomen no
+  sale al inspirar y la parrilla no se expande: la piel es fija) ni cizalla en la pleura: el pulmón junto a la pared baja con la
+  rampa de la pared, sin deslizar (el deslizamiento de la imagen es un modelo aparte, `sliding-linear-height`). La rampa de la
+  pared, donde el abdomen es más grueso que el tórax, no mira la pared de verdad sino una cuyo paso al abdomen bajo el reborde
+  costal se alarga hasta no engrosar hacia abajo más de 0,1 mm/mm (`anatomy.respiratoryWall.slopeMax`): así el campo no se
+  pliega con ningún hábito del abdomen, pero el tejido junto a la pared empieza a bajar más hondo, tanto más cuanta más grasa
+  tenga el abdomen. Con la del paciente por omisión (14 mm; la interfaz no la cambia), 9,0 mm más en el reborde costal de la
+  LAM, 5,5 a la altura de la reflexión y < 1 mm desde z −39 (12,4, 9,2 y desde z 1 en la delgada), sin cambiar la cúpula junto
+  a la axilar; con 25 y 35 mm de grasa, 22 y 33 mm en el reborde, un paso de 393 y 543 mm (todo el tórax) y, con 53 mm de
+  excursión, la cúpula en (−120, 0) baja 43 y 8 mm y en (±130, 0), 7–10 y 0: queda quieta mientras la cortina baja sobre ella
+  (meta pendiente en `respiratoryField.test.ts`; la base dice que la excursión crece con el IMC). El jacobiano queda ≥ 0,57 con
+  53 mm y ≥ 0,39 con 75 (sobre el corazón) y llega a 2,51 bajo él: el campo no conserva el volumen (el pulmón sobre el corazón se
+  comprime al inspirar y las vísceras bajo él se estiran). La cúpula junto al corazón,
+  que no respira, baja menos que la excursión (con 53 mm): la derecha, entera junto a la axilar y el 52 % en su vértice; la
+  izquierda, el 35 % junto a la axilar y el 4 % en su vértice, cuando la base da la misma a los dos lados (meta pendiente en
+  `respiratoryField.test.ts`); junto a la pared del flanco, el 66 %. La excursión es la del avatar en supino y no depende del
+  hábito del abdomen; la mujer, 47 mm en la profunda y la misma tranquila. La inversa (mundo → material) es exacta a 0,026 mm
+  en el punto material (en el mundo, ≤ 0,068): una bisección de 10 pasos en la vertical.
 - **El deslizamiento es una traslación caudal, lineal con la altura** (`sliding-linear-height`, decisión 19): el pulmón bajo
   la pleura baja lo que el borde de su columna (sin pasar de la reflexión) hasta 15,5 mm sobre él y menos hacia arriba, en la
   recta que da el cociente de Briganti entre el EIC2 de la LMC y la base (0,42), y se apaga ≈ 147 mm sobre la base (138 en la mujer). En la
-  respiración tranquila del modelo: 10 mm en la base, 5,4 en el punto BLUE inferior y 4,2 en el superior (la base de
-  conocimiento: 8,6 en la base en ventilación mecánica, Briganti; 5,4 ± 2,5 de media en sanos, D5; ≈ 15 ± 5 en el punto
-  BLUE inferior en respiración espontánea, opinión de experto). No depende del modo ventilatorio, de la ventilación
+  respiración tranquila del modelo (16 mm, decisión 22): 16 mm en la base, 8,7 en el punto BLUE inferior, 8,4 en el PLAPS y
+  6,7 en el superior, y 9,3 de media en 12 campos (antes, con 10 mm: 10, 5,4, 5,2, 4,2 y 5,8). La base de conocimiento: 8,6 ±
+  4,3 en la base en ventilación mecánica (D1, Briganti; el modelo, +1,7 DE, porque la excursión no depende de la ventilación);
+  5,4 ± 2,5 en 12 campos en sanos respirando tranquilos (D5, Costamagna; el modelo, +1,5 DE, antes +0,2); ≈ 15 ± 5 en el
+  punto BLUE inferior en respiración espontánea (D4, opinión de experto; −1,3 DE, antes −1,9). El deslizamiento de la base es
+  el descenso del borde, y quizá solo una fracción de él (≈ 0,6 casaría con D5 y alejaría D4). En la inspiración profunda (53,
+  28,8, 27,5 y 22,0 mm) es una extrapolación: la base solo da la respiración tranquila. No depende del modo ventilatorio (la
+  ventilación mecánica no se alcanza desde la interfaz), de la ventilación
   regional ni de la deformación (menor delante que detrás, D8), y no se mueve con el latido (sin pulso pulmonar).
 
 ## Sonda

@@ -6,7 +6,7 @@ import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
-import { lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
+import { LUNG_BORDER, lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
 import { wallArc } from '../anatomy/organs/wall';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
@@ -713,7 +713,7 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  it('A-T13: en la respiración tranquila la cortina baja 0,9–2,8 cm (10 mm, lo que el diafragma del modelo)', () => {
+  it('A-T13: en la respiración tranquila la cortina baja 0,9–2,8 cm (16 mm, lo que el diafragma: la base en supino)', () => {
     const quiet = new RespiratoryModel(defaultPatient()).excursionMm();
     for (const side of [-1, 1] as const) {
       const phi = line('midaxillary', side);
@@ -723,16 +723,17 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  notYetMet(
-    'A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm (hoy 3,0: el diafragma del modelo, el de VExUS, baja 30 mm; con los 53 de la base el campo respiratorio se pliega, `lung-border-table`)',
-    () => {
-      const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
-      const phi = line('midaxillary');
+  // lus-sim (decisión 22): con la excursión de la base, 53 mm (en VExUS y hasta el paso C4, 30: con 53 su campo respiratorio
+  // se plegaba). Medido: 53 a los dos lados (la reflexión de la LAM queda 62 mm bajo el borde de FRC)
+  it('A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm en la LAM, a los dos lados (53 mm)', () => {
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    for (const side of [-1, 1] as const) {
+      const phi = line('midaxillary', side);
       const d = at(phi)! - at(phi, deep)!;
       expect(d).toBeGreaterThanOrEqual(31);
       expect(d).toBeLessThanOrEqual(75);
-    },
-  );
+    }
+  });
 
   it('A-T14: en la inspiración profunda la cortina izquierda tapa el espacio intercostal por el que se ve la cúpula', () => {
     // el primer EIC entero bajo el borde del pulmón en FRC en la LAM y la LAP izquierdas (el 8.º y el 9.º): en FRC, a 1,5 mm de
@@ -752,7 +753,7 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  it('A-T15: el diafragma de la ZOA (EIC 8–9, LAA y LAM) mide 1,1–2,7 mm en FRC y engruesa ≥ 20 % a TLC', () => {
+  it('A-T15: el diafragma de la ZOA (EIC 8–10, LAA y LAM) mide 1,1–2,7 mm en FRC y engruesa ≥ 20 % a TLC', () => {
     const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
     const t = scene.torso;
     /** Alto (mm) de la lámina de diafragma bajo la pleura, por la normal de la piel. */
@@ -765,16 +766,27 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
       }
       return run;
     };
+    // A TLC se mide en el primer EIC desde el 8.º cuyo centro queda a ≥ 5 mm bajo la cortina (tapado, bajo la lámina quedan 2 mm
+    // de la ZOA) y a ≥ 10 mm sobre la inserción de la ZOA (la reflexión menos `zoaBelowReflectionMm`, 20 mm [SUPUESTO]: la
+    // longitud de la ZOA es NO ENCONTRADO). Con los 53 mm de la base (decisión 22) en el avatar: en la LAA, el 9.º (10,3 mm
+    // sobre la inserción; Boon y el consenso miden ahí, EIC 8–9 por delante de la LAA); en la LAM ninguno (el 9.º lo tapa la
+    // cortina y el centro del 10.º queda a 4,4 mm de la inserción). En todo el rango del supuesto (10–40 mm): con < 19,7 mm la
+    // LAA no tiene EIC y la prueba falla; con ≥ 25,6 la LAM mide en el 10.º
+    const ZB = LUNG_BORDER.params.zoaBelowReflectionMm.value;
     for (const side of [-1, 1] as const)
       for (const l of ['anteriorAxillary', 'midaxillary'] as const) {
         const phi = line(l, side);
-        // el EIC 9 (el 8 de la LAM lo tapa la cortina a TLC: debajo de ella quedan 2 mm)
-        const z = intercostalZ(scene, 9, phi);
-        const frc = thickness(phi, z, 0);
-        const tlc = thickness(phi, z, deep);
+        // en FRC, en el EIC 9 (el de Boon)
+        const frc = thickness(phi, intercostalZ(scene, 9, phi), 0);
         expect(frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.1);
         expect(frc, `${l} ${side}`).toBeLessThanOrEqual(2.7);
-        expect(tlc / frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.2);
+        const tlcBorder = at(phi, deep)!;
+        const insertion = lungBorderAt(scene.lungBorder, wallArc(torsoSkinPoint(phi, 0, scene.torso), scene.torso))[1] - ZB;
+        const n = [8, 9, 10].find((k) => intercostalZ(scene, k, phi) <= tlcBorder - 5 && intercostalZ(scene, k, phi) >= insertion + 10);
+        if (l === 'midaxillary' && n === undefined) continue;
+        expect(n, `${l} ${side}: ningún EIC 8–10 descubierto a TLC y a ≥ 10 mm de la inserción de la ZOA`).toBeDefined();
+        const z = intercostalZ(scene, n!, phi);
+        expect(thickness(phi, z, deep) / thickness(phi, z, 0), `${l} ${side}`).toBeGreaterThanOrEqual(1.2);
       }
   });
 
