@@ -9,6 +9,7 @@ import {
   apertureTransmission,
   boneCoherence,
   coherentConeMean,
+  coneMeanOf,
   type ApertureGeometry,
 } from '../ultrasound/aperture';
 import { CONVEX_BEAM } from '../ultrasound/beamModel';
@@ -103,10 +104,37 @@ describe('la costilla como lente: la media del cono con la fase del hueso', () =
     expect(COH.kRxPerMm).toBeGreaterThan(7.4);
     expect(COH.kRxPerMm).toBeLessThan(7.6);
     expect(COH.sigmaPerMm / COH.kRxPerMm).toBeCloseTo(0.3333 / 3.5, 3);
-    // en armónica la emisión va a la mitad de la frecuencia
+    // en armónica la emisión va a la mitad de la frecuencia y construye el armónico (∝ p₁²)
     const h = boneCoherence(harmonicBeam(CONVEX_BEAM));
     expect(h.kTxPerMm).toBeCloseTo(COH.kRxPerMm / 2, 9);
     expect(h.kRxPerMm).toBeCloseTo(COH.kRxPerMm, 9);
+    expect(h.txSquared).toBe(true);
+    expect(COH.txSquared).toBe(false);
+  });
+
+  it('en armónica el cono de emisión pierde por la fase lo que pierde p₁, al cuadrado (la revisión lo halló)', () => {
+    const chords = Array.from({ length: 9 }, (_, j) => 4.7 * Math.sqrt(1 - ((-3.9 + (7.8 * j) / 8) / 7) ** 2));
+    const amps = chords.map((L) => 10 ** (-(2 * L) / 20));
+    const mean = amps.reduce((a, b) => a + b, 0) / 9;
+    const k = COH.kTxPerMm / 2;
+    // sin hueso, la media de siempre, con o sin cuadrado
+    expect(
+      coneMeanOf(
+        amps,
+        amps.map(() => 0),
+        k,
+        COH.sigmaPerMm,
+        true,
+      ),
+    ).toBeCloseTo(mean, 15);
+    // con la lente: la media por (coherente/media)² de las amplitudes de p₁ (√a)
+    const roots = amps.map(Math.sqrt);
+    const plain = roots.reduce((a, b) => a + b, 0) / 9;
+    const ratio = coherentConeMean(roots, chords, k, COH.sigmaPerMm) / plain;
+    expect(coneMeanOf(amps, chords, k, COH.sigmaPerMm, true)).toBeCloseTo(mean * ratio * ratio, 15);
+    expect(ratio).toBeLessThan(1);
+    // sin el cuadrado (la media coherente de a) el cono de emisión en armónica quedaba más brillante
+    expect(coherentConeMean(amps, chords, k, COH.sigmaPerMm)).toBeGreaterThan(coneMeanOf(amps, chords, k, COH.sigmaPerMm, true));
   });
 
   it('el GLSL de la pasada A es la misma media, con la fase de emisión en un cono y la de recepción en el otro', () => {
@@ -114,12 +142,13 @@ describe('la costilla como lente: la media del cono con la fase del hueso', () =
       'p += 2.0 * a[j] * a[m] * cos(kPh * d) * exp(-0.5 * (uBoneCoh.z * d) * (uBoneCoh.z * d));',
       'return sqrt(max(p, 0.0)) / float(AP_TAPS);',
       'if (!bone) return sum / float(AP_TAPS);',
-      'return apConeMean(line, k, halfTx, uBoneCoh.x, step) * apConeMean(line, k, halfRx, uBoneCoh.y, step);',
+      'return apConeMean(line, k, halfTx, uBoneCoh.x, step, uBoneCoh.w > 0.5) * apConeMean(line, k, halfRx, uBoneCoh.y, step, false);',
+      'return mean * (c / plain) * (c / plain);',
       'return boneChordMm(clamp(l, 0, int(uLinesF) - 1), (float(k) + 0.5) * step);',
     ])
       expect(APERTURE_GLSL, line).toContain(line);
     expect(STEERED_APERTURE_GLSL).toContain(
-      'return apConeMeanSteer(line, k, halfTx, uBoneCoh.x) * apConeMeanSteer(line, k, halfRx, uBoneCoh.y);',
+      'return apConeMeanSteer(line, k, halfTx, uBoneCoh.x, uBoneCoh.w > 0.5) * apConeMeanSteer(line, k, halfRx, uBoneCoh.y, false);',
     );
     expect(STEERED_APERTURE_GLSL).toContain('return texelFetch(uPreSteerX, ivec2(l, k), 0).z;');
     expect(BONE_CHORD_GLSL).toContain('return h3.x < 0.0 ? 0.0 : max(0.0, min(h3.y, r) - h3.x);');
@@ -155,9 +184,21 @@ describe('la cuerda de la costilla: entrada y salida exactas de A0 (h3)', () => 
   });
 
   it('A0 abre la bisección en las vueltas que siguen a la muestra del borde, con la clasificación de la vuelta', () => {
-    expect(FRAG_TRANS_HITS).toContain('if ((tissueFlag(c.tissue) > 1.5) == bEntering) bHi = bMid; else bLo = bMid;');
-    expect(FRAG_TRANS_HITS).toContain(`boneBis = ${MIRROR_BISECTION_STEPS};`);
-    expect(FRAG_TRANS_HITS).toContain('h3 = boneIn >= 0.0 ? vec4(boneIn, boneOut, 0.0, 0.0) : vec4(-1.0, -1.0, 0.0, 0.0);');
+    // la bisección de `boneEdge`, letra a letra (la revisión sesgó el intervalo de la salida y solo lo vio la e2e)
+    for (const line of [
+      'if ((tissueFlag(c.tissue) > 1.5) == bEntering) bHi = bMid; else bLo = bMid;',
+      `boneBis = ${MIRROR_BISECTION_STEPS};`,
+      'bLo = isBone ? max(r - step, 0.0) : r - step;',
+      'bHi = r;',
+      'float bMid = 0.5 * (bLo + bHi);',
+      'vec3 p = bis ? origin + dir0 * bMid : (mirrorSeg >= 0.0 ? hitPoint + dir * (r - hitR) : origin + dir * r);',
+      'if (bEntering) boneIn = 0.5 * (bLo + bHi); else boneOut = 0.5 * (bLo + bHi);',
+      'bool edge = (isBone && boneIn < 0.0) || (!isBone && boneIn >= 0.0);',
+      'if (mirrorSeg < 0.0 && boneOut < 0.0 && boneBis == 0) {',
+      'if (boneIn >= 0.0 && boneOut < 0.0) boneOut = boneLast + 0.5 * step;',
+      'h3 = boneIn >= 0.0 ? vec4(boneIn, boneOut, 0.0, 0.0) : vec4(-1.0, -1.0, 0.0, 0.0);',
+    ])
+      expect(FRAG_TRANS_HITS, line).toContain(line);
   });
 
   it('el hueso de la toma hasta la fila: el de la costilla que ya cruzó, y lo mismo por el camino dirigido con θ = 0', () => {

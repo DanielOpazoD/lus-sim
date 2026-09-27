@@ -41,6 +41,12 @@ export interface BoneCoherence {
   kTxPerMm: number;
   kRxPerMm: number;
   sigmaPerMm: number;
+  /**
+   * En armónica la emisión va a f/2 y la fuente del armónico es ∝ p₁² (decisión 77): el cono de emisión pierde por la fase
+   * lo que pierde p₁, al cuadrado (`coneMeanOf`). La revisión del ciclo 2 lo halló: sin el cuadrado, el cono de emisión en
+   * armónica quedaba 5–20 dB más brillante bajo una costilla.
+   */
+  txSquared: boolean;
 }
 
 /**
@@ -58,6 +64,8 @@ export function boneCoherence(beam: Pick<BeamParams, 'lambdaMm' | 'lambdaTxMm'>)
     kTxPerMm: perMm(C_RECONSTRUCTION_M_S / (beam.lambdaTxMm * 1e-3)),
     kRxPerMm: perMm(C_RECONSTRUCTION_M_S / (beam.lambdaMm * 1e-3)),
     sigmaPerMm: perMm(1 / (2 * Math.PI * Math.SQRT2 * sigmaT)),
+    // la emisión a una frecuencia menor que la recepción: la armónica (`harmonicBeam`, λ_tx = 2λ)
+    txSquared: beam.lambdaTxMm > beam.lambdaMm,
   };
 }
 
@@ -111,6 +119,28 @@ export interface ApertureGeometry {
  * (`steeredParity.ts`) lo usa para reconocer las muestras en empate de redondeo. `bone` (lus-sim, decisión 20): el hueso
  * de cada línea hasta r y su fase; sin él, ninguna toma cruza hueso (la media de amplitudes de siempre).
  */
+/**
+ * Media de un cono con la fase de su hueso (`coherentConeMean`) o, con `squared` (el cono de emisión en armónica: la fuente
+ * del armónico es ∝ p₁²), la media de amplitudes de siempre por la pérdida de coherencia de p₁ al cuadrado: con las
+ * amplitudes de p₁ (√a) y la fase de la emisión, (coherente/media)². Sin hueso, la media de siempre en los dos casos.
+ */
+export function coneMeanOf(amps: readonly number[], bones: readonly number[], k: number, sigma: number, squared: boolean): number {
+  if (!squared) return coherentConeMean(amps, bones, k, sigma);
+  const roots = amps.map((a) => Math.sqrt(a));
+  const n = amps.length;
+  let plain = 0;
+  let mean = 0;
+  for (let j = 0; j < n; j++) {
+    plain += roots[j];
+    mean += amps[j];
+  }
+  plain /= n;
+  mean /= n;
+  if (plain <= 0) return 0;
+  const c = coherentConeMean(roots, bones, k, sigma);
+  return mean * (c / plain) * (c / plain);
+}
+
 export function apertureTransmission(
   geom: ApertureGeometry,
   line: number,
@@ -136,7 +166,7 @@ export function apertureTransmission(
   const shrink = 1 - ro / r;
   const halfTx = (0.5 * geom.apertureTxMm * shrink) / spacing;
   const halfRx = (0.5 * Math.min(geom.apertureRxMaxMm, r / geom.fNumberRxMin) * shrink) / spacing;
-  const coneMean = (halfLines: number, k: number): number => {
+  const coneMean = (halfLines: number, k: number, squared: boolean): number => {
     const amps: number[] = [];
     const bones: number[] = [];
     for (let j = 0; j < APERTURE_TAPS; j++) {
@@ -145,10 +175,10 @@ export function apertureTransmission(
       amps.push(oneWay(l));
       bones.push(bone ? bone.mm(l) : 0);
     }
-    return coherentConeMean(amps, bones, k, bone ? bone.coherence.sigmaPerMm : 0);
+    return coneMeanOf(amps, bones, k, bone ? bone.coherence.sigmaPerMm : 0, squared);
   };
   const c = bone?.coherence;
-  return coneMean(halfTx, c ? c.kTxPerMm : 0) * coneMean(halfRx, c ? c.kRxPerMm : 0);
+  return coneMean(halfTx, c ? c.kTxPerMm : 0, c ? c.txSquared : false) * coneMean(halfRx, c ? c.kRxPerMm : 0, false);
 }
 
 /**
@@ -183,12 +213,13 @@ export function steeredApertureTransmission(
  * de un rayo (uPre0.x, dB) y los primeros impactos por línea (uHits0: gas en .y, hueso en .z, en
  * segmentos gruesos). Necesita uLinesF, uHalfSector, uCurvR, uCoarseN y uAperture. lus-sim (decisión 20): el hueso de
  * cada toma, la cuerda de la costilla de su línea hasta la fila con la entrada y la salida exactas de A0 (`boneChordMm`,
- * que va delante, con uHits3), y su fase (uBoneCoh: k de emisión, k de recepción y σ de la banda, por mm de hueso).
+ * que va delante, con uHits3), y su fase (uBoneCoh: k de emisión, k de recepción y σ de la banda, por mm de hueso, y en .w
+ * 1 si la emisión construye el armónico, ∝ p₁²).
  */
 export const APERTURE_GLSL = /* glsl */ `
 const int AP_TAPS = ${APERTURE_TAPS};
 const int AP_SEARCH = ${APERTURE_SEARCH_LINES};
-uniform vec3 uBoneCoh;
+uniform vec4 uBoneCoh;
 float apOneWay(int l, int k) {
   l = clamp(l, 0, int(uLinesF) - 1);
   return pow(10.0, -texelFetch(uPre0, ivec2(l, k), 0).x / 40.0);
@@ -215,7 +246,24 @@ float apCoherentMean(float a[AP_TAPS], float b[AP_TAPS], float kPh) {
   }
   return sqrt(max(p, 0.0)) / float(AP_TAPS);
 }
-float apConeMean(int line, int k, float halfLines, float kPh, float step) {
+// coneMeanOf: con squared (la emisión en armónica, uBoneCoh.w), la media por la pérdida de coherencia de p1 al cuadrado
+float apConeMeanOf(float a[AP_TAPS], float b[AP_TAPS], float kPh, bool squared) {
+  if (!squared) return apCoherentMean(a, b, kPh);
+  float r[AP_TAPS];
+  float plain = 0.0;
+  float mean = 0.0;
+  for (int j = 0; j < AP_TAPS; j++) {
+    r[j] = sqrt(a[j]);
+    plain += r[j];
+    mean += a[j];
+  }
+  plain /= float(AP_TAPS);
+  mean /= float(AP_TAPS);
+  if (plain <= 0.0) return 0.0;
+  float c = apCoherentMean(r, b, kPh);
+  return mean * (c / plain) * (c / plain);
+}
+float apConeMean(int line, int k, float halfLines, float kPh, float step, bool squared) {
   float a[AP_TAPS];
   float b[AP_TAPS];
   for (int j = 0; j < AP_TAPS; j++) {
@@ -224,7 +272,7 @@ float apConeMean(int line, int k, float halfLines, float kPh, float step) {
     a[j] = apOneWay(l, k);
     b[j] = apBoneMm(l, k, step);
   }
-  return apCoherentMean(a, b, kPh);
+  return apConeMeanOf(a, b, kPh, squared);
 }
 float apertureTransmission(int line, int k, float r, float step, float single) {
   float dTheta = 2.0 * uHalfSector / uLinesF;
@@ -247,13 +295,13 @@ float apertureTransmission(int line, int k, float r, float step, float single) {
   float shrink = 1.0 - ro / r;
   float halfTx = 0.5 * uAperture.x * shrink / spacing;
   float halfRx = 0.5 * min(uAperture.y, r / uAperture.z) * shrink / spacing;
-  return apConeMean(line, k, halfTx, uBoneCoh.x, step) * apConeMean(line, k, halfRx, uBoneCoh.y, step);
+  return apConeMean(line, k, halfTx, uBoneCoh.x, step, uBoneCoh.w > 0.5) * apConeMean(line, k, halfRx, uBoneCoh.y, step, false);
 }
 `;
 
 /**
  * `steeredApertureTransmission` en GLSL para la pasada A (etapa 2 de la decisión 58). Va detrás de
- * `APERTURE_GLSL` (usa AP_TAPS, AP_SEARCH y apCoherentMean). Lee el prefijo dirigido de A2 (`uPreSteer`: dB ida y
+ * `APERTURE_GLSL` (usa AP_TAPS, AP_SEARCH y apConeMeanOf). Lee el prefijo dirigido de A2 (`uPreSteer`: dB ida y
  * vuelta, y primer gas y primer hueso a lo largo del camino, −1 sin ellos) en la fila k de cada línea vecina y
  * necesita uLinesF, uHalfSector, uAperture y uSteer (θ, R·sin θ, R·cos θ, k2). `s` es la distancia a lo
  * largo del camino hasta el punto y `single`, la transmisión de su propio rayo dirigido. lus-sim (decisión 20): el
@@ -268,7 +316,7 @@ float apBoneMmSteer(int l, int k) {
   l = clamp(l, 0, int(uLinesF) - 1);
   return texelFetch(uPreSteerX, ivec2(l, k), 0).z;
 }
-float apConeMeanSteer(int line, int k, float halfLines, float kPh) {
+float apConeMeanSteer(int line, int k, float halfLines, float kPh, bool squared) {
   float a[AP_TAPS];
   float b[AP_TAPS];
   for (int j = 0; j < AP_TAPS; j++) {
@@ -277,7 +325,7 @@ float apConeMeanSteer(int line, int k, float halfLines, float kPh) {
     a[j] = apOneWaySteer(l, k);
     b[j] = apBoneMmSteer(l, k);
   }
-  return apCoherentMean(a, b, kPh);
+  return apConeMeanOf(a, b, kPh, squared);
 }
 float steeredApertureTransmission(int line, int k, float s, float single) {
   float dTheta = 2.0 * uHalfSector / uLinesF;
@@ -298,6 +346,6 @@ float steeredApertureTransmission(int line, int k, float s, float single) {
   float shrink = 1.0 - so / s;
   float halfTx = 0.5 * uAperture.x * shrink / spacing;
   float halfRx = 0.5 * min(uAperture.y, s / uAperture.z) * shrink / spacing;
-  return apConeMeanSteer(line, k, halfTx, uBoneCoh.x) * apConeMeanSteer(line, k, halfRx, uBoneCoh.y);
+  return apConeMeanSteer(line, k, halfTx, uBoneCoh.x, uBoneCoh.w > 0.5) * apConeMeanSteer(line, k, halfRx, uBoneCoh.y, false);
 }
 `;

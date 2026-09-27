@@ -1064,7 +1064,7 @@ export class UltrasoundRenderer {
     p.v3('uAperture', [beam.apertureTxMm, beam.apertureRxMaxMm, beam.fNumberRxMin]);
     // la fase del hueso de cada toma del cono, con el haz del modo B (la emisión de la armónica a la mitad)
     const coh = boneCoherence(bmodeBeam(this.profile, inputs.bmode));
-    p.v3('uBoneCoh', [coh.kTxPerMm, coh.kRxPerMm, coh.sigmaPerMm]);
+    p.v4('uBoneCoh', coh.kTxPerMm, coh.kRxPerMm, coh.sigmaPerMm, coh.txSquared ? 1 : 0);
     if (steered) {
       // el prefijo de la mirada del cuadro, que A2 acaba de escribir con su programa dirigido
       p.tex('uPreSteer', 3, this.tPre.textures[2]);

@@ -31,7 +31,7 @@
 // 2026-09-27 (ciclo 2, decisión 20): la costilla que apaga la pleura (la lente de fase en TS y en las dos GLSL de A, la
 // costilla de A0, el pedestal por la apertura de la línea, `ultrasound/boneTransmission.ts` con la evidencia de sus dos
 // parámetros, la ganancia del preajuste y los gemelos de las paridades, que viven en módulos que el renderizador importa)
-// llevan index de 226,6 a 234,9 kB. index sube a 240 kB y el total de JS a 245.
+// llevan index de 226,6 a 235,7 kB. index sube a 240 kB y el total de JS a 245.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 

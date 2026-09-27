@@ -1116,7 +1116,8 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
   frente; una sección redonda es más gruesa en el centro, así que las tomas del cono se suman con fases distintas. La media de
   cada cono (`coherentConeMean`) es la raíz de la potencia de la suma coherente promediada en la banda gaussiana del pulso de
   la pasada C (σ_E = 0,33 MHz): Σ_j Σ_m a_j·a_m·cos(k·ΔL)·e^(−(σ·ΔL)²/2); sin hueso, la media de siempre. La fase de emisión y la
-  de recepción son las del haz del modo B (en armónica, la emisión a la mitad: `boneCoherence`). El hueso de cada toma es la
+  de recepción son las del haz del modo B (`boneCoherence`); en armónica la emisión va a la mitad y la fuente del armónico es
+  ∝ p₁², así que el cono de emisión pierde la coherencia de p₁ al cuadrado (`coneMeanOf`). El hueso de cada toma es la
   cuerda exacta de su costilla: A0 guarda la entrada y la salida del primer tramo de hueso de cada línea antes del espejo (h3)
   con la bisección del espejo, en las vueltas que siguen a la muestra del borde (sin otra copia de la clasificación; con la
   cuenta de segmentos de 0,75 mm la fase era de escalera y no deformaba el frente). En las miradas dirigidas, la cuerda de la
@@ -1132,7 +1133,8 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
   de la tabla, 7,42 dB (derivado; physics.md §2.10: «≈ −7,4 dB»; VExUS cobraba 6 dB). El cartílago sigue a la frecuencia B.
 - **El preajuste no satura la línea pleural** (`LUNG_PRESET.gainDb`): −21 dB, la ganancia que deja bajo el blanco el eco pleural
   intercostal más brillante de los tres puntos de partida (medido: +19,4, +20,1 y +19,5 dB con 0 dB), por el enunciado 15 del
-  consenso de Demi 2023. El equipo baja ahora hasta −40 dB.
+  consenso de Demi 2023; estimado (el nivel de la línea pleural sale del eco de interfaz, sin calibrar). El equipo baja ahora
+  hasta −40 dB.
 - **Pruebas.** La e2e de F-T08 exige la meta: la línea pleural intercostal sin saturar (≤ 0 dB en la pantalla y a menos de 3 dB
   del blanco); cada sombra ≥ 20 dB bajo el eco intercostal; la pleura a más de −40 dB solo dentro de la penumbra física de cada
   línea (el semiancho del cono de emisión en la costilla más 2,5σ del lóbulo principal, `mainLobeLines`); en el núcleo (la
@@ -1145,7 +1147,8 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
 
 **Consecuencias.**
 
-- F-T08 se cumple entera (GPU real y SwiftShader, las mismas cifras a 0,3 dB): en el núcleo de la sombra (25, 25 y 36 líneas)
+- F-T08 se cumple entera con el preajuste en los tres puntos de partida (GPU real y SwiftShader, las mismas cifras a 0,3 dB),
+  que es lo que exige la e2e: en el núcleo de la sombra (25, 25 y 36 líneas)
   la línea pleural queda a −68,7…−86,1 dB del eco intercostal y a −71,1…−88,5 dB en la pantalla (negro); la línea A de orden 2, a
   −100,4…−114,9 dB en toda la sombra completa (antes visible en 86 de 125 líneas); cada sombra, a −38,0…−42,9 dB (−27,0 la
   parcial del borde del sector del BLUE inferior; antes −33,7…−39,3). En las líneas a más de 10 del borde (la medida de antes),
@@ -1156,8 +1159,14 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
   ida y vuelta); el pedestal por la apertura de la línea deja de traer la línea A y hasta 8,6 dB de pleura cerca del borde; el
   preajuste baja todo 21 dB en la pantalla (con él solo, la línea A ya queda en el negro, pero la pleura del núcleo no). Ninguna
   basta sola: cada mutación que quita una hace fallar la e2e.
+- Fuera de los tres puntos (medido por la revisión y de nuevo con la armónica corregida, GPU real): en los cortes
+  longitudinales de la LAM de los dos lados, del lado izquierdo y de 1,2π el núcleo queda en el negro salvo la LAM a z 20 (gris
+  2, 0,6 dB sobre el negro); en un corte oblicuo de 60° la costilla es más ancha y su cuerda más plana (menos lente) y el núcleo
+  llega a gris 6 (10 en armónica); en armónica, en el negro en los demás. Con más ganancia la pleura del núcleo reaparece (0 dB:
+  gris 25–40). Queda declarado en `rib-acoustics-simplified`.
 - La línea pleural intercostal queda a −0,9…−8,6 dB del blanco (gris 243–249 la más brillante); el resto de la imagen baja lo
-  mismo: la pared es gris oscura y, sin tocar la TGC, las líneas A se ven hasta ≈ 7 cm. El humo de la aplicación lo juzga así.
+  mismo: la pared es gris oscura (mediana 29–38) y, sin tocar la TGC, las líneas A se ven hasta ≈ 5 cm y el campo lejano es
+  negro. El humo de la aplicación lo juzga así.
 - Grosor de la línea pleural (meta F-T05 en la envolvente, A-T11 en la pantalla): la anchura a media altura de la envolvente, que
   no depende de la ganancia, es 0,68–0,85 mm en las líneas intercostales (mediana 0,69–0,73) frente a los 0,61 mm de la PSF axial:
   la mediana cumple ±20 %, no todas las líneas (hasta +39 %, por la incidencia y la PSF lateral). La saturación no era la causa
@@ -1167,7 +1176,7 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
   el pulso axial del modelo no depende de la profundidad (`notYetMet`).
 - Coste del cuadro en el M4: de 2,5 a 3,1 ms (A +0,17 ms, A0 +0,12, D +0,23), muy lejos de O6. Ranuras de A: los mismos uniforms
   más `uBoneCoh`; A lee además h2 y h3 y D, la transmisión dibujada (el grafo de pasadas lo declara). El chunk principal pasa de
-  226,6 a 234,9 kB: su presupuesto sube a 240 y el total de JS a 245.
+  226,6 a 235,7 kB: su presupuesto sube a 240 y el total de JS a 245.
 - Se borra `rib-shadow-pleura-residual`; nueva `rib-acoustics-simplified` (lente de fase fina de hueso homogéneo, sin refracción,
   onda transversal ni desplazamiento por velocidad; la frecuencia del hueso con la costilla de referencia; el pedestal con la
   mirada 0). `no-sidelobes` dice ahora que el pedestal entra por la apertura de la línea.
@@ -1179,4 +1188,12 @@ que hace el ecografista) o cambiar el rango dinámico (sin fuente).
 intercostal), el cono sin la fase (en la pantalla, −65…−73 dB: gris), el hueso a 2,5 MHz (−66…−73) y el preajuste con 0 dB (la
 línea pleural intercostal saturada). Las paridades nuevas casan a ≤ 10⁻⁴ dB (A de la mirada 0, la dibujada, D y las miradas dirigidas) y la
 cuerda de A0 a 0 mm; `boneTransmission.test.ts` comprueba que sin la fase, con el pedestal de siempre o con la media de VExUS
-las paridades fallan. Revisión adversarial de contexto limpio: ver la PR.
+las paridades fallan. Revisión adversarial de contexto limpio (midió con GPU real y SwiftShader en 17 poses, con composición y
+armónica; paridades en cinco poses más a ≤ 5·10⁻⁵ dB): sin bloqueantes. Halló que en armónica el cono de emisión no elevaba al
+cuadrado la coherencia de p₁ (quedaba 5–20 dB más brillante; corregido: `coneMeanOf`), que F-T08 en el negro depende del
+preajuste y del corte (declarado arriba y en `rib-acoustics-simplified`), que min(T_l/T_k) es la cota más favorable del
+pedestal (declarada), que la ganancia es una medida del simulador (ahora `estimado`, con su fila en `docs/APPROXIMATIONS.md`),
+que las líneas A se ven hasta ≈ 5 cm y no 7, que ninguna unitaria protegía el intervalo de la bisección de A0 (ahora sí) y que
+la penumbra depende de la apertura de emisión heredada sin calibrar (declarado). Comprobó que las 9 tomas no oscurecen de forma
+artificial (frente a una apertura continua se apartan −2,5…+15 dB, casi siempre hacia más brillante; con 17 tomas el núcleo se
+mueve ≤ 1,5 dB), las caras del hueso, su frecuencia, que la composición no cambia el núcleo y que no se pinta nada.

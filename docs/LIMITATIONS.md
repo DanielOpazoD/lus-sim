@@ -139,15 +139,24 @@ conservan su identificador (decisiones 10 y 11).
   allá de 26° de incidencia, no entran como onda longitudinal), la conversión a onda transversal, la cortical y el hueso
   esponjoso por separado, ni el desplazamiento por velocidad del eco que atraviesa el hueso (llegaría ≈ 2,5 mm antes). La
   fase solo es la de la primera costilla de cada línea antes del espejo, y en las miradas dirigidas, la de la línea que el
-  camino cruza en su primer hueso. En la sombra completa, el eco de la pleura queda a −68,7…−86,1 dB del intercostal en el
+  camino cruza en su primer hueso; en armónica, el cono de emisión pierde la coherencia de p₁ al cuadrado (la fuente del
+  armónico), sin el resto de la física de la armónica a través del hueso. En la sombra completa, el eco de la pleura queda a −68,7…−86,1 dB del intercostal en el
   núcleo (negro en la pantalla del preajuste) y la línea A de orden 2 a más de 100 dB bajo el blanco; la línea pleural se ve
   en la penumbra, el semiancho del cono de emisión en la costilla (6,6–10,5 líneas) más el lóbulo principal de la PSF (1–3
   líneas), por los rayos que pasan junto a la costilla o por su borde redondo, que es fino. Los lóbulos laterales de una
   línea ven lo de al lado con la menor de las dos transmisiones (la de la mirada 0, también en las dirigidas; bajo la pleura
   registrada, la de su fila tope, sin mirar la fracción de aire de la cortina): una aproximación del camino de la apertura de
-  la línea hasta la muestra vecina, que no sigue los rayos. El preajuste pulmonar no satura la línea pleural (−21 dB de
-  ganancia, decisión 20): toda la imagen baja lo mismo y la pared queda gris oscura; el campo lejano se sube con la TGC del
-  usuario (el consenso pide ganancia creciente hacia el campo lejano sin fijar la pendiente).
+  la línea hasta la muestra vecina, que no sigue los rayos, y la cota más favorable. Con la transmisión de la línea donde el
+  camino recto cruza la costilla (la revisión la probó), el núcleo sube 1,4–3,8 dB y en el BLUE inferior y el PLAPS llega a
+  gris 9. La penumbra la fija la apertura de emisión de VExUS (26 mm con el foco a 16 mm, F# 0,6, `NEEDS_CALIBRATION`): la
+  pleura se ve en 5–8 mm de cada sombra de 14–17 mm. F-T08 se cumple con el preajuste en los tres puntos de partida y en los
+  cortes longitudinales de la LAM, del lado izquierdo y de 1,2π; en la LAM a z 20 el núcleo llega a gris 2 y en un corte
+  oblicuo de 60° (la costilla más ancha y de cuerda más plana: menos lente), a gris 6 (10 en armónica). Con más ganancia la
+  pleura del núcleo reaparece: con 0 dB, en gris 25–40; con −10, 6–18 (sin el hueso esponjoso, que dispersa, una costilla
+  real quizá la apague más). El preajuste pulmonar no satura la línea pleural (−21 dB de ganancia, decisión 20): toda la
+  imagen baja lo mismo, la pared queda gris oscura y, sin tocar la TGC, las líneas A se ven hasta ≈ 5 cm y el campo lejano
+  es negro, sin suelo de ruido; se sube con la TGC del usuario (el consenso pide ganancia creciente hacia el campo lejano sin
+  fijar la pendiente).
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.

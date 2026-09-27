@@ -40,7 +40,8 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
   gainDb: {
     value: -21,
     unit: 'dB',
-    evidence: 'derivado',
+    range: [-24, -18],
+    evidence: 'estimado',
     sources: ['demi-guias-2023', 'volpicelli-actualizacion-2026'],
     note:
       'Sin saturar la línea pleural (Demi 2023, enunciado 15; `docs/knowledge/physics.md` §2.2): la ganancia que deja el ' +
@@ -48,7 +49,9 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
       'la GPU con 0 dB (ciclo 2, decisión 20: `ribShadow`, líneas libres en apnea espiratoria), la línea pleural llega a ' +
       '+19,4, +20,1 y +19,5 dB sobre el blanco en el punto BLUE superior, el inferior y el PLAPS; con −21 dB queda a ' +
       '−0,9…−1,6 dB. La e2e de la sombra costal lo vuelve a medir. El resto de la imagen baja lo mismo: la ganancia no ' +
-      'cambia la ecogenicidad (guía §13), y la pared queda gris oscura bajo una línea pleural que aún es lo más brillante',
+      'cambia la ecogenicidad (guía §13), y la pared queda gris oscura bajo una línea pleural que aún es lo más brillante. ' +
+      'Estimado (lo halló la revisión): el nivel de la línea pleural sale del simulador (el eco de interfaz, K = 55 dB, sin ' +
+      'calibrar); rango: la línea pleural más brillante entre −3 y +3 dB del blanco',
   },
   persistence: {
     value: 0,
