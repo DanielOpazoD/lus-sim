@@ -169,9 +169,12 @@ describe('Anatomía implícita (base B)', () => {
 
   it('el peso respiratorio es 0 en la pared y 1 en las vísceras', () => {
     expect(scene.respiratoryWeight([0, 100, 0])).toBe(0);
-    expect(scene.respiratoryWeight([-60, 20, 20])).toBeCloseTo(1, 3);
+    expect(scene.respiratoryWeight([-90, -10, 20])).toBeCloseTo(1, 3);
     // la columna no respira
     expect(scene.respiratoryWeight([scene.spine.x0, scene.spine.y0, 0])).toBe(0);
+    // lus-sim (decisión 18): ni el corazón, ni el tapón de su ventana, que no se separa de él al respirar
+    expect(scene.respiratoryWeight(scene.heart.center)).toBe(0);
+    expect(scene.respiratoryWeight([-60, 20, 20])).toBeLessThan(1);
   });
 
   it('classifyWorld clasifica el punto material del mundo y da la velocidad respiratoria del tejido (sin sangre)', () => {
@@ -227,9 +230,9 @@ describe('Anatomía implícita (base B)', () => {
     const engine = new PhysiologyEngine({ ...NORMAL_ADULT, respiratoryPattern: 'deep' });
     while (engine.sample.resp.volume < 0.9) engine.step();
     const q = new AnatomyQuery(scene);
-    const m: [number, number, number] = [-60, 20, 20];
+    const m: [number, number, number] = [-90, -10, 20];
     const w = q.deformation.toWorld(m, engine.sample.resp);
-    // excursión profunda de 30 mm × volumen ≥ 0,9 × peso ≈ 1, casi toda en −z
+    // excursión profunda de 30 mm × volumen ≥ 0,9 × peso ≈ 1, casi toda en −z (lejos del corazón, que no respira)
     expect(w[2]).toBeLessThan(m[2] - 20);
     const back = q.deformation.toMaterial(w, engine.sample.resp);
     expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2])).toBeLessThan(0.05);

@@ -7,6 +7,9 @@ import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
+import { PhysiologyEngine } from '../physiology/engine';
+import { AnatomyQuery } from '../anatomy/query';
+import { HEART } from '../anatomy/organs/heart';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import { START_POINTS } from '../app/startPoints';
@@ -699,9 +702,10 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     for (const side of [-1, 1] as const) {
       atRib(at(line('midaxillary', side), 500), 10, line('midaxillary', side));
       atRib(at(line('midclavicular', side), 500), 8, line('midclavicular', side));
+      // detrás, la apófisis de T12 a la altura de su cuerpo (la regla de los tres), con el paso de la medida
       const post = at(PARAVERTEBRAL(side), 500)!;
-      expect(post).toBeLessThanOrEqual((9.5 - 12) * seg);
-      expect(post).toBeGreaterThanOrEqual((9.5 - 13.5) * seg);
+      expect(post).toBeLessThanOrEqual((9.5 - 11.5) * seg);
+      expect(post).toBeGreaterThanOrEqual((9.5 - 13) * seg);
     }
   });
 
@@ -805,10 +809,29 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     expect(check(90, 5, 1).tissue).toBe(Tissue.Lung);
   });
 
-  notYetMet('A-T16: en apnea, el pulmón junto a la ventana muestra el pulso pulmonar (hoy el corazón no late: `heart-static`)', () => {
-    // el instante de la escena no lleva la fase cardiaca: nada de la anatomía se mueve con el latido
-    expect(Object.keys(BASELINE_INSTANT)).toContain('cardiacPhase');
-  });
+  notYetMet(
+    'A-T16: en apnea, el pulmón junto a la ventana muestra el pulso pulmonar (hoy nada se mueve con el latido: `heart-simplified`)',
+    () => {
+      // el pulmón bajo la pleura, 5 mm por fuera del borde craneal de la ventana: su punto material a lo largo de dos latidos
+      // en apnea espiratoria (el pulso pulmonar lo movería con el corazón)
+      const t = scene.torso;
+      const w = scene.heart.window;
+      const phi = Math.acos(HEART.params.windowOffsetMm.value / t.a);
+      const z = w.z + w.r + 5;
+      const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
+      expect(scene.classify(p, BASELINE_INSTANT).tissue).toBe(Tissue.Lung);
+      const engine = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory' });
+      const q = new AnatomyQuery(scene);
+      const m0 = q.deformation.toMaterial(p, engine.sample.resp);
+      let moved = 0;
+      for (let i = 0; i < Math.round(2 / engine.clock.dt); i++) {
+        const s = engine.step();
+        const m = q.deformation.toMaterial(p, s.resp);
+        moved = Math.max(moved, Math.hypot(m[0] - m0[0], m[1] - m0[1], m[2] - m0[2]));
+      }
+      expect(moved).toBeGreaterThan(0.1);
+    },
+  );
 });
 
 describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {

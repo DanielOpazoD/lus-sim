@@ -38,8 +38,9 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
     sources: ['gray-anatomia-1918'],
     note:
       'El borde anterior del pulmón derecho baja tras el esternón hasta la 6.ª articulación condroesternal («Surface ' +
-      'Markings of the Thorax»): en la paraesternal, el centro del 6.º cartílago. El izquierdo se aparta en la incisura ' +
-      'cardiaca desde el 4.º (el corazón, `organs/heart.ts`)',
+      'Markings of the Thorax»): en la línea paraesternal, el centro del 6.º cartílago, y de ella a la línea media, el mismo. ' +
+      'Junto al borde del esternón el 6.º cartílago sube (≈ 15 mm más): ahí el borde queda más bajo que el de Gray, pero no ' +
+      'por debajo de la cúpula. El izquierdo se aparta en la incisura cardiaca desde el 4.º (el corazón, `organs/heart.ts`)',
   },
   borderMidclavicularRib: {
     value: 6,
@@ -61,12 +62,12 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
     value: 11,
     unit: 'vértebra',
     range: [11, 12.5],
-    evidence: 'consenso',
+    evidence: 'derivado',
     sources: ['gray-anatomia-1918', 'mirjalili-superficie-2012'],
     note:
-      'Detrás, la apófisis espinosa de T10 (Gray, espiración), cuya punta queda a la altura del cuerpo de T11: z = (9,5 − 11)' +
-      '·segmento torácico en la paravertebral. [DISCREPANCIA]: la TAC en supino y fin de inspiración corriente lo pone junto a ' +
-      'T12 (Mirjalili): el rango llega a T12–L1',
+      'Detrás, la apófisis espinosa de T10 (Gray, espiración) [CONSENSO], llevada al nivel de su punta: el cuerpo de T11 (la ' +
+      'regla de los tres: las apófisis de T7–T10 bajan un nivel), z = (9,5 − 11)·segmento torácico en la paravertebral. ' +
+      '[DISCREPANCIA]: la TAC en supino y fin de inspiración corriente lo pone junto a T12 (Mirjalili): el rango llega a T12–L1',
   },
   reflectionParasternalRib: {
     value: 7,
@@ -93,14 +94,14 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
     note: 'Reflexión pleural inferior: la 10.ª costilla en la LAM (Gray; meta A-T13)',
   },
   reflectionPosteriorVertebra: {
-    value: 13,
+    value: 12,
     unit: 'vértebra',
-    range: [12, 13.5],
-    evidence: 'consenso',
+    range: [12, 13],
+    evidence: 'derivado',
     sources: ['gray-anatomia-1918'],
     note:
-      'Detrás, la apófisis espinosa de T12 («a veces hasta L1»), cuya punta queda a la altura del cuerpo de L1 (la 13.ª ' +
-      'vértebra desde T1): z = (9,5 − 13)·segmento torácico',
+      'Detrás, la apófisis espinosa de T12 (Gray, «a veces hasta L1») [CONSENSO], llevada al nivel de su punta: el cuerpo de ' +
+      'T12 (la regla de los tres: la de T12 no baja), z = (9,5 − 12)·segmento torácico; el rango llega a L1',
   },
   zoaBelowReflectionMm: {
     value: 20,
@@ -139,7 +140,7 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
     sources: ['gray-anatomia-1918'],
     note:
       'Cúpula derecha en FRC: el 5.º EIC anterior (anatomy.md §2: Gray la pone en el 4.º cartílago tras la espiración ' +
-      'forzada; en FRC queda algo más baja), el centro del EIC5 en la paraesternal',
+      'forzada; en FRC queda algo más baja), el centro del EIC5 en la línea paraesternal',
   },
   leftDomeDropMm: {
     value: 15,
@@ -224,7 +225,8 @@ export function buildLungBorder(t: Torso, cage: RibCage, cw: ChestWall): LungBor
   const seg = RIBCAGE.params.thoracicSegmentMm.value;
   const vertebraZ = (n: number) => (9.5 - n) * seg;
   const st: LungBorderStations = {
-    parasternal: cage.stations.parasternal,
+    // la paraesternal de las líneas del tórax (la de la pared, la del EIC de la cúpula), no la de la mamaria interna
+    parasternal: ribLineArc(thoraxLinePhi('parasternal', t), t, cage),
     midclavicular: cage.stations.midclavicular,
     midaxillary: cage.stations.midaxillary,
     paravertebral: ribLineArc(thoraxLinePhi('paravertebral', t), t, cage),
@@ -335,13 +337,15 @@ export function zoaDistance(lb: Pick<LungBorder, 'table'>, m: Vec3, insideWallMm
 }
 
 /**
- * Cota de la distancia a la cara abdominal de la lámina de la ZOA para lo que queda debajo (el «resto»): |w − grosor|
- * entre la inserción y el borde del pulmón en FRC, 1e3 fuera (gemelo GLSL).
+ * Cota inferior de la distancia de un punto a la lámina de la ZOA (para lo que queda fuera de ella, el «resto»): entre la
+ * inserción y el borde del pulmón en FRC, |w − grosor|; más arriba o más abajo, la mayor de la distancia en z a su extremo
+ * y la de w a su cara (gemelo GLSL).
  */
 export function zoaGap(lb: Pick<LungBorder, 'table'>, m: Vec3, insideWallMm: number, u: number, caudalMm: number): number {
   const b = lungBorderAt(lb, u);
-  if (m[2] >= b[0] || m[2] < b[3]) return 1e3;
-  return Math.abs(insideWallMm - zoaThicknessMm(caudalMm));
+  const dz = m[2] < b[3] ? b[3] - m[2] : m[2] >= b[0] ? m[2] - b[0] : 0;
+  const dw = insideWallMm - zoaThicknessMm(caudalMm);
+  return dz > 0 ? Math.max(dz, dw, 0) : Math.abs(dw);
 }
 
 const f4 = (x: number): string => x.toFixed(4);
@@ -385,8 +389,9 @@ float zoaThicknessMm(float caudal) {
 }
 float zoaGap(vec3 m, float insideWall, float u) {
   vec4 b = lungBorderAt(u);
-  if (m.z >= b.x || m.z < b.w) return 1e3;
-  return abs(insideWall - zoaThicknessMm(uResp.x));
+  float dz = m.z < b.w ? b.w - m.z : (m.z >= b.x ? m.z - b.x : 0.0);
+  float dw = insideWall - zoaThicknessMm(uResp.x);
+  return dz > 0.0 ? max(max(dz, dw), 0.0) : abs(dw);
 }
 float zoaDistance(vec3 m, float insideWall, float u) {
   float t = zoaThicknessMm(uResp.x);

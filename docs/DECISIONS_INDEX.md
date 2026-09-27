@@ -21,3 +21,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [15](DECISIONS.md#L665) | Líneas A a múltiplos exactos de la línea pleural mostrada (F-T01) | vigente |
 | [16](DECISIONS.md#L738) | Paso C1: la parrilla costal del adulto promedio (12 costillas y 11 espacios intercostales por hemitórax) | vigente |
 | [17](DECISIONS.md#L868) | Paso C2: la pared torácica por región y por hábito | vigente |
+| [18](DECISIONS.md#L958) | Paso C3: pulmón y pleura en los dos hemitórax, bordes de la base, ZOA y ventana cardiaca | vigente |

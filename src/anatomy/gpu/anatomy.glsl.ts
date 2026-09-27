@@ -100,6 +100,7 @@ vec3 torsoNormal(vec3 p) {
 }
 
 float wallTotalMm(vec3 m);
+float heartStillWeight(vec3 m);
 float respWeight(vec3 m) {
   // lus-sim (decisión 17): más hondo que la pared más gruesa (uChestWall.w) + 25 mm el peso de la pared es 1 sin leerla
   float d = -torsoDepth(m);
@@ -107,7 +108,8 @@ float respWeight(vec3 m) {
   float wWall = smoothstep(0.0, 25.0, inside);
   float dSpine = length(m.xy - uSpine.xy);
   float wSpine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, dSpine);
-  return wWall * wSpine;
+  // lus-sim (decisión 18): el corazón y su ventana no respiran
+  return wWall * wSpine * heartStillWeight(m);
 }
 
 vec3 respDisplacement(vec3 m) {
@@ -242,7 +244,13 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   if (dHeart >= 0.0) {
     vec3 hn;
     float dHeartDome = sdDome(m, hn);
-    if (dHeartDome < 0.0) { c.tissue = blood ? T_BLOOD : T_MYOCARDIUM; c.bd = min(dHeart, -dHeartDome); c.n = tn; return c; }
+    if (dHeartDome < 0.0) {
+      // la cúpula corta el corazón: su cara inferior es pared (la cavidad no llega al diafragma)
+      float floorD = -dHeartDome - HEART_SIDE_WALL;
+      if (blood && floorD > 0.0) { c.tissue = T_BLOOD; c.bd = min(dHeart, floorD); c.n = tn; return c; }
+      c.tissue = T_MYOCARDIUM; c.bd = blood ? min(-floorD, -dHeartDome) : min(min(dHeart, -dHeartDome), abs(floorD)); c.n = tn;
+      return c;
+    }
   }
   float clear = heartClearance(m, inside, u);
   // Cortina pulmonar (módulo de órgano: anatomy/organs/lungCurtain.ts; decisión 18, los dos hemitórax)

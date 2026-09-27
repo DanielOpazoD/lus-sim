@@ -336,7 +336,9 @@ export function slidingAmplitude(h: number): number {
 /**
  * Coordenada de retícula del deslizamiento: el punto material de la pleura con la z del pulmón (que ha
  * bajado `caudalMm`: el pulmón que estaba en z + descenso en espiración) a escala del grano a lo largo de
- * la pleura, más h mm hacia dentro (−normal de la piel) a escala del grano en profundidad.
+ * la pleura, más h mm hacia dentro (−normal de la piel) a escala del grano en profundidad. lus-sim (decisión 18): `caudalMm`
+ * es el descenso del borde del pulmón, el del diafragma por `anatomy.lungBorder.curtainDescentRatio` (la GPU lo lee de
+ * `uCurtain.x`); con el cociente de 1, el del diafragma.
  */
 export function slidingLattice(pD: Vec3, outwardNormal: Vec3, caudalMm: number, h: number): Vec3 {
   const a = h / SLIDING_AX_MM;

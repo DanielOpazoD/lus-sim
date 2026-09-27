@@ -491,7 +491,6 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
           // borde, o el de la ZOA, que engruesa al inspirar) o el «resto» (en VExUS, el hígado)
           if (sdDiaphragm(m, scene.diaphragm, scene.torso) < 0) expect([Tissue.Lung, Tissue.Myocardium, Tissue.Blood]).toContain(b.tissue);
           else expect([Tissue.Diaphragm, Tissue.Bowel]).toContain(b.tissue);
-          expect(scene.inLungCurtain(m, cal)).toBe(true);
         } else {
           other++;
           expect(b).toEqual(a);

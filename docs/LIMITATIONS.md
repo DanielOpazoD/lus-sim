@@ -58,7 +58,11 @@ conservan su identificador (decisiones 10 y 11).
   miocardio que lo une a la pared en el disco de la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea
   media en el 5.º EIC; un elipsoide que tocara la pared dejaría una ventana alargada de lado a lado). No late: no hay pulso
   pulmonar (la segunda parte de A-T16) ni movimiento del corazón en la ventana; su pericardio no tiene cara propia y el
-  borde de la ventana es duro (sin el volumen parcial de la cortina). Fuera del corazón, todo el tórax sobre las cúpulas
+  borde de la ventana es duro (sin el volumen parcial de la cortina), aunque el pulmón que la rodea es una cuña fina sobre el
+  corazón (una franja de 25 mm donde el corazón llega a la lámina de la cortina [SUPUESTO]). El corazón, con su tapón y su
+  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]). En la ventana el
+  miocardio mide hasta 25 mm antes de la cavidad (el tapón; el ventrículo derecho real, ≈ 5 mm); la cara inferior, cortada
+  por la cúpula, es pared de 10 mm. Fuera del corazón, todo el tórax sobre las cúpulas
   sigue siendo pulmón: sin mediastino, grandes vasos, timo ni esófago. Largo, ancho, grosor, orientación y paredes son
   [SUPUESTO] (la base no los da).
 - **Los bordes del pulmón son una tabla por columna, la misma a los dos lados** (`lung-border-table`, decisión 18): el borde
@@ -68,7 +72,10 @@ conservan su identificador (decisiones 10 y 11).
   VExUS; bajo el borde, la ZOA es una lámina de grosor uniforme contra la pared (1,9 mm en FRC, 5 a TLC) con solo su cara
   abdominal (la pleural es la cara interna de la pared), hasta 20 mm bajo la reflexión [SUPUESTO]. La lámina de la
   cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma del modelo: 10 mm en respiración tranquila y 30 en la
-  profunda (la base: 5,3 cm en supino; A-T13 en inspiración profunda no se cumple).
+  profunda (la base: 5,3 cm en supino; A-T13 en inspiración profunda no se cumple). El borde anterior se ancla en la línea
+  paraesternal (el centro del 6.º cartílago, z 1,5) y sigue igual hasta la línea media: junto al borde del esternón, donde
+  Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba no hay vértice: la lámina y la
+  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara

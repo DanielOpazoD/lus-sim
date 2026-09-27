@@ -23,7 +23,7 @@ import {
   zoaThicknessMm,
   type LungBorder,
 } from './organs/lungBorder';
-import { buildHeart, heartAtWall, heartClearance, heartDistance, type Heart } from './organs/heart';
+import { HEART, buildHeart, heartAtWall, heartClearance, heartDistance, heartStillWeight, type Heart } from './organs/heart';
 import {
   RIBCAGE,
   RIBS_PER_SIDE,
@@ -239,7 +239,7 @@ export class AnatomyScene {
     });
     const LB = LUNG_BORDER.params;
     const ics = LB.rightDomeIcs.value;
-    const ps = cage.stations.parasternal;
+    const ps = ribLineArc(thoraxLinePhi('parasternal', walled), walled, cage);
     const rightApex = 0.5 * (ribTableZ(cage, ics - 1, ps) + ribTableZ(cage, ics, ps));
     this.diaphragm = {
       right: dome(-55, -5, 85, 92, rightApex),
@@ -307,7 +307,9 @@ export class AnatomyScene {
     const wWall = smoothstep(0, 25, inside);
     const dSpine = Math.hypot(m[0] - this.spine.x0, m[1] - this.spine.y0);
     const wSpine = smoothstep(this.spine.r + 5, this.spine.r + 35, dSpine);
-    return wWall * wSpine;
+    // lus-sim (decisión 18): el corazón y su ventana no respiran (sin cizalla entre el tapón pegado a la pared y el corazón)
+    const wHeart = heartStillWeight(this.heart, m);
+    return wWall * wSpine * wHeart;
   }
 
   /**
@@ -335,8 +337,13 @@ export class AnatomyScene {
     const heart = heartDistance(this.heart, m, inside, u);
     if (heart) {
       const dHeartDome = sdDiaphragm(m, this.diaphragm, torso);
-      if (dHeartDome < 0)
-        return { ...NONE, tissue: heart.blood ? Tissue.Blood : Tissue.Myocardium, boundaryDistance: Math.min(heart.d, -dHeartDome) };
+      if (dHeartDome < 0) {
+        // la cúpula corta el corazón: su cara inferior es pared (la cavidad no llega al diafragma)
+        const floor = -dHeartDome - HEART.params.sideWallMm.value;
+        if (heart.blood && floor > 0) return { ...NONE, tissue: Tissue.Blood, boundaryDistance: Math.min(heart.d, floor) };
+        const d = heart.blood ? Math.min(-floor, -dHeartDome) : Math.min(heart.d, -dHeartDome, Math.abs(floor));
+        return { ...NONE, tissue: Tissue.Myocardium, boundaryDistance: d };
+      }
     }
     const clearance = heartClearance(this.heart, m, inside, u);
     const curtain = withCurtain ? this.classifyLungCurtain(m, inside, u, caudal) : null;

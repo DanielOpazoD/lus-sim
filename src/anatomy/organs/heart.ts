@@ -103,7 +103,7 @@ export const HEART = defineParameters('anatomy.heart', {
     sources: [],
     note:
       'El eje largo, de la base al ápex, hacia la izquierda: el ángulo con el plano sagital [SUPUESTO]; con 60° y 30° el ' +
-      'corazón queda ≥ 4 mm por dentro de la pleura fuera de la ventana y el tapón no pasa de 20 mm',
+      'corazón queda ≥ 3,4 mm por dentro de la pleura fuera de la ventana (cabe la lámina de la cortina) y el tapón llega a 25 mm',
   },
   axisDownDeg: {
     value: 30,
@@ -132,6 +132,18 @@ export const HEART = defineParameters('anatomy.heart', {
       'Alrededor de la ventana, en esta franja sobre la piel, el pulmón que cubre el corazón es la lámina de la cortina (3 mm): ' +
       'el borde anterior del pulmón es fino sobre el corazón [SUPUESTO]. Sin ella el elipsoide queda hasta 25 mm por dentro de la ' +
       'pleura en el borde de la ventana y las líneas oblicuas salían del tapón a una bolsa de pulmón',
+  },
+  stillRampMm: {
+    value: 50,
+    unit: 'mm',
+    range: [40, 80],
+    evidence: 'estimado',
+    sources: [],
+    note:
+      'El corazón, con el tapón y la franja de la ventana, no se mueve con la respiración (se apoya en el centro tendinoso, que ' +
+      'baja poco); el campo respiratorio vuelve a su valor en esta distancia a su cara [SUPUESTO]. Con el corazón bajando con ' +
+      'las vísceras y el tapón pegado a la pared, la cizalla dejaba bolsas de pulmón en la ventana al respirar (9 de 96 líneas ' +
+      'en la respiración tranquila). Con 50 mm, el gradiente del desplazamiento queda < 1 en la inspiración profunda',
   },
   sideWallMm: {
     value: 10,
@@ -341,7 +353,9 @@ export function heartSkirtDepth(h: Heart, m: Vec3, insideWallMm: number, win: nu
   const r = Math.hypot(m[0], m[1]);
   const k = r > 0 ? 1 - (h.plugDepthMm - insideWallMm) / r : 0;
   const bottom = heartSd(h, [m[0] * k, m[1] * k, m[2]]);
-  return Math.max(SKIRT_TOP_MM - insideWallMm, win - h.skirtMm, bottom);
+  // junto al disco la lámina se afila (el borde del pulmón es una cuña que nace en el borde de la ventana): la franja llega
+  // hasta el tapón bajo la pleura, sin anillo de pulmón entre los dos
+  return Math.max(Math.min(SKIRT_TOP_MM, win) - insideWallMm, win - h.skirtMm, bottom);
 }
 
 /**
@@ -353,6 +367,16 @@ export function heartClearance(h: Heart, m: Vec3, insideWallMm: number, u: numbe
   if (insideWallMm >= h.plugDepthMm) return Math.max(0, heartSd(h, m));
   const win = heartWindowDistance(h, u, m[2]);
   return Math.max(0, Math.min(heartSd(h, m), win, Math.abs(heartSkirtDepth(h, m, insideWallMm, win))));
+}
+
+/**
+ * Peso del campo respiratorio junto al corazón (gemelo GLSL): 0 hasta el fondo del tapón de su elipsoide (el tapón y la
+ * franja de la ventana quedan dentro: los dos nacen a menos de esa distancia de él), 1 a `stillRampMm` más allá. Solo el
+ * elipsoide: el peso se evalúa en cada paso de `toMaterial`.
+ */
+export function heartStillWeight(h: Heart, m: Vec3): number {
+  const t = Math.min(1, Math.max(0, (heartSd(h, m) - h.plugDepthMm) / HEART.params.stillRampMm.value));
+  return t * t * (3 - 2 * t);
 }
 
 /** La pleura parietal en m (el cruce de una línea) no toca pulmón: es la ventana (el tapón) o el elipsoide (la franja
@@ -367,6 +391,7 @@ export function heartAtWall(h: Heart, m: Vec3, t: Torso): boolean {
  */
 const SKIRT_TOP_GLSL = SKIRT_TOP_MM.toFixed(4);
 export const HEART_GLSL = /* glsl */ `
+#define HEART_SIDE_WALL ${HEART.params.sideWallMm.value.toFixed(4)}
 float heartEllipsoidSd(vec3 q, vec3 r) {
   vec3 k = q / r;
   float k1 = length(k);
@@ -382,7 +407,7 @@ float heartSkirtDepth(vec3 m, float insideWall, float win) {
   float r = length(m.xy);
   float k = r > 0.0 ? 1.0 - (uHeartC.w - insideWall) / r : 0.0;
   float bottom = heartSd(vec3(m.xy * k, m.z));
-  return max(max(${SKIRT_TOP_GLSL} - insideWall, win - uHeartWin.w), bottom);
+  return max(max(min(${SKIRT_TOP_GLSL}, win) - insideWall, win - uHeartWin.w), bottom);
 }
 float heartDistance(vec3 m, float insideWall, float u, out bool blood) {
   blood = false;
@@ -402,6 +427,9 @@ float heartClearance(vec3 m, float insideWall, float u) {
   if (insideWall >= uHeartC.w) return max(0.0, heartSd(m));
   float win = heartWindowDistance(u, m.z);
   return max(0.0, min(min(heartSd(m), win), abs(heartSkirtDepth(m, insideWall, win))));
+}
+float heartStillWeight(vec3 m) {
+  return smoothstep(uHeartC.w, uHeartC.w + ${HEART.params.stillRampMm.value.toFixed(4)}, heartSd(m));
 }
 bool heartAtWall(vec3 m) { return heartSd(m) < 0.0 || heartWindowDistance(wallArc(m), m.z) < 0.0; }
 `;
