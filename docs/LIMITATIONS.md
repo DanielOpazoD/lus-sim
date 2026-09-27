@@ -79,6 +79,27 @@ conservan su identificador (decisiones 10 y 11).
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina; su nivel sale de K = 55 dB, que se calibra con la GPU.
+- **Bajo el centro de una costilla la línea pleural no se apaga del todo, y la línea A se ve tenue**
+  (`rib-shadow-pleura-residual`): medido en la envolvente de la GPU (`e2e/imagen.spec.ts`, meta F-T08), en la sombra
+  completa (las líneas en que todas las tomas de los conos de apertura de la pasada A cruzan hueso) la línea pleural
+  queda a −46…−67 dB del eco pleural intercostal, que en la pantalla del preajuste son −29…−50 dB bajo el blanco: una
+  línea gris sobre la sombra negra; y la línea A de orden 2, a −56…−83 dB en la pantalla, se ve tenue en dos tercios
+  de esas líneas. **No cumple la parte de F-T08 «bajo la costilla no hay línea pleural ni líneas A»**; sí la otra: la
+  intensidad media de cada sombra queda a −37…−39 dB del eco pleural intercostal (el umbral es −20; frente a la misma
+  ventana de las líneas intercostales, que lleva su línea pleural, la sombra entera queda solo 19,5–21 dB más oscura,
+  porque pesa la penumbra). Causas medidas: la pleura de la sombra recibe la transmisión con apertura de la pasada A,
+  una media de amplitudes de sus tomas en la que pesan las que cruzan el borde redondo de la costilla (un segmento de
+  hueso) y que no lleva la fase que añadiría un hueso con c = 3515 m/s (ni su refracción ni su hueso esponjoso): hasta
+  12 dB más que un rayo (−64…−79 dB ida y vuelta); la línea A de la sombra la trae el pedestal de lóbulos laterales de
+  la pasada D (`no-sidelobes`; sin él no se ve ninguna), que además sube la pleura 6–10 dB de mediana (hasta 17; en
+  alguna línea la baja), y no está claro que un pedestal que respetara la sombra fuera más físico: los lóbulos de un
+  haz tapado sí llegan en parte a la pleura intercostal por caminos que no cruzan la costilla; y el preajuste deja la
+  línea pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]). La pleura que se ve
+  cerca del borde de la sombra es la penumbra de la apertura (física: parte del cono pasa junto a la costilla) y ocupa
+  más de la mitad de cada sombra (58 de las 103 líneas con hueso del PLAPS) porque los espacios intercostales de la
+  escena son estrechos (`ribs-5-10-only`, metas A-T7 y A-T8). `e2e/imagen.spec.ts` exige el fallo con su tamaño;
+  corregirlo pide una decisión con evidencia: la transmisión coherente por el hueso, la sección y la estructura de la
+  costilla del paso C, el brillo de la línea pleural y, si se justifica, el pedestal.
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.

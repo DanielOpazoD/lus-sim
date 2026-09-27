@@ -3,7 +3,8 @@ import { AnatomyScene } from '../anatomy/scene';
 import { Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { defaultPose } from '../probe/probe';
-import { DEFAULT_BMODE, nominalTgcDbPerCm } from '../ultrasound/renderer';
+import { DEFAULT_BMODE, DISPLAY_REF_DB, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
+import { FRAG_SCANCONVERT } from '../ultrasound/shaders/passes.glsl';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
 import { A_LINE_BACKGROUND_MM } from '../app/testHooks';
@@ -49,5 +50,27 @@ describe('Preajuste pulmonar del equipo', () => {
     // entre la grasa y el músculo de la pared (IT'IS), los tejidos blandos que atraviesa el haz antes de la pleura
     expect(alpha * f).toBeGreaterThan(attenuationDbPerCm(Tissue.Fat, f));
     expect(alpha * f).toBeLessThan(attenuationDbPerCm(Tissue.Muscle, f));
+  });
+
+  it('el nivel en la pantalla (`displayLevelDb`) es el de la pasada de escaneo antes de la curva de grises', () => {
+    // gemelo de `displayGrey` (lus-sim, ciclo 1: la e2e de la sombra costal juzga con él lo que se ve)
+    for (const line of [
+      'float comp = min(uTgcCapDb, tgcAt(r) + uNominalTgcDbPerCm * (r / 10.0));',
+      'float db = 20.0 * (log(max(env, 1e-7)) / 2.302585093) + uGainDb + comp + uRefDb;',
+      'float x = clamp(r / uDepth, 0.0, 0.9999) * 7.0;',
+      'return mix(uTgc[i], uTgc[i + 1], f);',
+    ])
+      expect(FRAG_SCANCONVERT, line).toContain(line);
+    const f = CONVEX_C35_PROFILE.bEffectiveMHz;
+    // con la TGC neutra: la envolvente + la compensación nominal a r + la ganancia + la referencia
+    expect(displayLevelDb(40, 27, DEFAULT_BMODE, f)).toBeCloseTo(
+      40 + nominalTgcDbPerCm(f) * 2.7 + DEFAULT_BMODE.gainDb + DISPLAY_REF_DB,
+      9,
+    );
+    // la TGC del usuario se interpola entre sus 8 bandas (a mitad de la banda 3 y 4 de 12 cm: r = 3,5/7 · 120)
+    const tgc = { ...DEFAULT_BMODE, tgcDb: [0, 0, 0, 4, 8, 0, 0, 0] };
+    expect(displayLevelDb(40, 60, tgc, f) - displayLevelDb(40, 60, DEFAULT_BMODE, f)).toBeCloseTo(6, 9);
+    // el techo de la compensación (50 dB)
+    expect(displayLevelDb(0, 119, { ...DEFAULT_BMODE, tgcDb: [60, 60, 60, 60, 60, 60, 60, 60] }, f)).toBeCloseTo(50 + DISPLAY_REF_DB, 9);
   });
 });
