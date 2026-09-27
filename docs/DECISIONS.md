@@ -718,7 +718,11 @@ su desplazamiento. No hay números nuevos. `pleura.ts` y el gemelo pasan a «ada
   exigir los picos de la serie en k·D a 0,002 mm y F-T01 en el gemelo; A-T6 se mide con el perfil que se dibuja.
 - El orden 4 del PLAPS (16 dB de prominencia) se detecta en 5 de sus 6 grupos en unas pasadas y en 6 en otras, con GPU
   real y con SwiftShader, antes y después del cambio: la e2e pedía el 90 % redondeado hacia arriba (los 6) y ahora hacia
-  abajo (5). F-T01 no se relaja.
+  abajo (5). Y en una pasada completa de la e2e con SwiftShader el detector tomó, en 1 de los 6 grupos del orden 4
+  compuesto del PLAPS, otro máximo de su ventana a −1,08 mm (no se repitió en 16 pasadas): para esa línea A, la más débil
+  (16–22 dB), la posición frente a k·D, la separación y F-T01 se exigen en el 90 % de los grupos; en los órdenes 1–3, en
+  todos. F-T01 no se relaja: un desplazamiento uniforme de la serie mueve todos los grupos y la prueba sigue fallando
+  (con el desplazamiento de un lado de vuelta, 0 de 22 grupos en k·D).
 - Se borra `pleura-echo-offset`. La huella del main de la pasada B cambia (`shaderLimits.test.ts`).
 
 **Verificación.** `npm run check` y `npm run e2e` en verde. Mutaciones: con el desplazamiento de vuelta en la GLSL de

@@ -173,6 +173,13 @@ export interface ALineStats {
     minShownErrMm: number;
     maxShownErrMm: number;
     medianProminenceDb: number;
+    /**
+     * Por grupo donde se detecta: el error frente a k·D y, desde k = 2, el de la separación con el orden anterior y el
+     * error frente a k veces la línea pleural mostrada (mm).
+     */
+    errMm: number[];
+    spacingErrMm: number[];
+    shownErrMm: number[];
   }[];
   /** Tamaño de una muestra de la envolvente (mm) y de un píxel de la imagen mostrada (mm). */
   sampleMm: number;
@@ -588,6 +595,9 @@ export function aLineStats(sim: Simulator, source: 'look0' | 'compound' = 'look0
       minShownErrMm: e.shown.length ? Math.min(...e.shown) : Number.NaN,
       maxShownErrMm: e.shown.length ? Math.max(...e.shown) : Number.NaN,
       medianProminenceDb: median(e.prom),
+      errMm: e.err,
+      spacingErrMm: e.spacing,
+      shownErrMm: e.shown,
     }));
   return {
     lines: measured.length,
