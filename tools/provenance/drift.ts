@@ -59,8 +59,18 @@ export function originDir(repo: string, root: string, env: NodeJS.ProcessEnv = p
   return existsSync(join(dir, '.git')) ? dir : null;
 }
 
+/**
+ * El entorno de los `git` de esta herramienta y de sus pruebas, sin las variables `GIT_*`. Dentro de un hook (el pre-push de
+ * `.githooks`, que corre `npm test`) git exporta `GIT_DIR` y compañía (githooks(5)), y en un worktree `GIT_DIR` es absoluto:
+ * un `git -C <otro repo>` que lo hereda opera sobre el repo del hook. Así la prueba de `originContents` comiteó su repo de
+ * juguete en la rama de un worktree (borrándolo todo) y el push lo subió.
+ */
+export function gitEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k]) => !k.startsWith('GIT_')));
+}
+
 function git(dir: string, args: string[]): { status: number; stdout: string } {
-  const r = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: gitEnv() });
   return { status: r.status ?? -1, stdout: r.stdout ?? '' };
 }
 
@@ -78,7 +88,11 @@ export function originContent(dir: string, commit: string, path: string): string
 export function originContents(dir: string, specs: readonly string[]): Map<string, string | null> {
   const out = new Map<string, string | null>();
   if (specs.length === 0) return out;
-  const r = spawnSync('git', ['-C', dir, 'cat-file', '--batch'], { input: specs.join('\n') + '\n', maxBuffer: 256 * 1024 * 1024 });
+  const r = spawnSync('git', ['-C', dir, 'cat-file', '--batch'], {
+    input: specs.join('\n') + '\n',
+    maxBuffer: 256 * 1024 * 1024,
+    env: gitEnv(),
+  });
   const buf = r.stdout ?? Buffer.alloc(0);
   let pos = 0;
   for (const spec of specs) {
@@ -144,7 +158,7 @@ export function lineDelta(before: string, after: string): { added: number; remov
     const b = join(tmp, 'b');
     writeFileSync(a, before);
     writeFileSync(b, after);
-    const r = spawnSync('git', ['diff', '--no-index', '--numstat', '--', a, b], { encoding: 'utf8' });
+    const r = spawnSync('git', ['diff', '--no-index', '--numstat', '--', a, b], { encoding: 'utf8', env: gitEnv() });
     const m = /^(\d+)\s+(\d+)/.exec(r.stdout ?? '');
     return m ? { added: Number(m[1]), removed: Number(m[2]) } : { added: 0, removed: 0 };
   } finally {

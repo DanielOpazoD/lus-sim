@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { honestyOf, lineDelta, originContents, originDir, parseProvenance } from '../../tools/provenance/drift';
+import { gitEnv, honestyOf, lineDelta, originContents, originDir, parseProvenance } from '../../tools/provenance/drift';
 
 const ROOT = resolve(__dirname, '../..');
 const rows = parseProvenance(readFileSync(resolve(ROOT, 'docs/PROVENANCE.md'), 'utf8'));
@@ -65,8 +65,10 @@ describe('docs/PROVENANCE.md', () => {
   it('originContents lee varios objetos en un solo proceso, incluidos los que no existen', () => {
     const dir = mkdtempSync(join(tmpdir(), 'lus-origin-'));
     try {
+      // sin las variables GIT_* del hook que corra la prueba (el pre-push): con ellas, en un worktree, este repo de juguete se
+      // comitea en la rama del worktree (`gitEnv`)
       const git = (...args: string[]) =>
-        spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8' });
+        spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8', env: gitEnv() });
       git('init', '-q');
       writeFileSync(join(dir, 'a.ts'), 'línea 1\nlínea 2\n');
       writeFileSync(join(dir, 'b.ts'), '');
@@ -78,6 +80,38 @@ describe('docs/PROVENANCE.md', () => {
       expect(got.get('HEAD:b.ts')).toBe('');
       expect(originContents(dir, [])).toEqual(new Map());
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('gitEnv quita las variables GIT_* que exporta un hook: el repo de juguete no se comitea en el de GIT_DIR', () => {
+    expect(gitEnv({ PATH: '/bin', GIT_DIR: '/x/.git', GIT_WORK_TREE: '/x', GIT_INDEX_FILE: '/x/i', HOME: '/h' })).toEqual({
+      PATH: '/bin',
+      HOME: '/h',
+    });
+    // el caso del hook con un repo señuelo en GIT_DIR (y nada más heredado): con ese entorno el commit cae en el señuelo (la
+    // mutación, lo que pasó en un worktree); con gitEnv, en el repo de juguete
+    const decoy = mkdtempSync(join(tmpdir(), 'lus-decoy-'));
+    const dir = mkdtempSync(join(tmpdir(), 'lus-origin-'));
+    try {
+      spawnSync('git', ['-C', decoy, 'init', '-q'], { env: gitEnv() });
+      const hookEnv = { ...gitEnv(), GIT_DIR: join(decoy, '.git') };
+      const commitIn = (env: NodeJS.ProcessEnv) => {
+        const git = (...args: string[]) =>
+          spawnSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8', env });
+        git('init', '-q');
+        writeFileSync(join(dir, 'a.ts'), 'a\n');
+        git('add', '.');
+        git('commit', '-q', '-m', 'x');
+      };
+      const head = (repo: string) => spawnSync('git', ['-C', repo, 'rev-parse', '--verify', '-q', 'HEAD'], { env: gitEnv() }).status;
+      commitIn(gitEnv(hookEnv));
+      expect(head(dir)).toBe(0);
+      expect(head(decoy)).not.toBe(0);
+      commitIn(hookEnv);
+      expect(head(decoy)).toBe(0);
+    } finally {
+      rmSync(decoy, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
     }
   });
