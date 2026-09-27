@@ -147,7 +147,9 @@ export function frameMeasureOptions(opts: FrameCostOptions = {}): RenderMeasureO
 /**
  * Líneas A medidas en la envolvente de la GPU (lus-sim, decisión 12; meta F-T01 de la base, `docs/knowledge/physics.md`
  * §3.3). Las líneas medidas son las que tienen la pleura registrada en la CPU (`pleuraCrossingLine`, el gemelo de A0)
- * y en la GPU, con contacto y sin costilla ni cartílago en el camino. Como la métrica A1 del banco de referencia
+ * y en la GPU, con contacto, sin costilla ni cartílago en el camino y con pulmón detrás de la pleura (sobre el borde del
+ * pulmón, dz > 0: en la banda bajo él, donde la cortina se desvanece, no hay reverberación que medir; decisión 16, con la
+ * parrilla nueva el borde caudal del PLAPS cae en ella). Como la métrica A1 del banco de referencia
  * (`docs/knowledge/reference-images.md`), el perfil axial se promedia lateralmente: en grupos de `A_LINE_GROUP_LINES`
  * líneas contiguas, la envolvente de cada línea se alinea en su k·D (D, la profundidad de su pleura) y se promedia; el
  * pico del promedio en ±`A_LINE_WINDOW_MM`, con interpolación parabólica, da el error r_k − k·D del grupo (k = 1 es la
@@ -544,7 +546,7 @@ export function aLineStats(sim: Simulator, source: 'look0' | 'compound' = 'look0
       depth,
       COARSE_DEPTH,
     );
-    if (!cpu) continue;
+    if (!cpu || cpu.dz <= 0) continue;
     // sin costilla ni cartílago en el camino hasta la pleura (su sombra no tiene líneas A)
     let rib = false;
     for (let r = 0.25; r < cpu.D && !rib; r += 0.25) {

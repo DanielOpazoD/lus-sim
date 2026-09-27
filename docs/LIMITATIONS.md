@@ -12,7 +12,8 @@ conservan su identificador (decisiones 10 y 11).
   puntos de partida la llevan cerca de cada ventana). Con la imagen congelada, la FC y la respiración del HUD son las
   del instante congelado, no las del cuadro del cine que se esté viendo. En un teléfono las columnas se apilan y la
   imagen queda pequeña, con el HUD sobre el borde del sector. La anatomía del tórax con las dimensiones de la base
-  llega en el paso C (`docs/ROADMAP.md`).
+  llega en el paso C (`docs/ROADMAP.md`): la parrilla costal en C1 (decisión 16); la pared, la pleura y los puntos BLUE,
+  en C2–C4.
 
 ## Anatomía y fisiología
 
@@ -20,13 +21,19 @@ conservan su identificador (decisiones 10 y 11).
   paciente, y anterior, z craneal, en mm, con el origen en el centro del tronco a la altura del xifoides.
   Una vista que dibuje la escena en un marco dextrógiro debe espejarla (VExUS lo hace en su navegador 3D);
   la conversión a EchoTwin es deuda de la unión.
-- **Sin bazo ni costillas izquierdas** (`no-spleen-no-left-ribs`): todas las costillas son las derechas de
-  VExUS (`rightOnly`); una ventana del hemitórax izquierdo no muestra sombras costales. `anatomy.test.ts`
-  falla si se añade una costilla izquierda sin revisar esta limitación.
-- **Solo las costillas 5.ª a 10.ª** (`ribs-5-10-only`): las de VExUS, con sus extremos anteriores a 40, 20,
-  0, −25, −50 y −75 mm del xifoides (20–25 mm entre ellas) y 12 mm de ancho. Por encima de la 5.ª no hay
-  costillas: en el punto BLUE superior (EIC2) no hay signo del murciélago, y los espacios intercostales y
-  el periodo costal no son los de la base (metas A-T7 a A-T9 de `src/validation/anatomyTargets.test.ts`).
+- **La parrilla forra un tronco cilíndrico** (`thorax-cylindrical-cage`, decisión 16): el tronco es el cilindro elíptico
+  de VExUS (320 × 210 mm de piel) a todas las alturas, así que la parrilla no se estrecha hacia la abertura superior (Gray:
+  10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la
+  medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula, que no existe en la escena) y el esternón es
+  vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
+  hombres: 303 × 195 × 366); la pared del paso C2 (13 mm al lado) lleva el ancho a ≈ 303.
+- **Una sola sección para todas las costillas** (`rib-section-uniform`, decisión 16): las 24 costillas y sus cartílagos
+  tienen la misma elipse de 14 mm de alto (medido en vertical, el corte longitudinal de la ecografía: la sección
+  perpendicular de una costilla oblicua es más estrecha) y 4,7 mm de grosor, de hueso homogéneo, sin cortical ni esponjosa
+  ni surco costal; la 1.ª real es plana y horizontal, y los cartílagos se afinan hacia el esternón (Gray). Las uniones
+  condrocostales de la 1.ª–3.ª y la 6.ª–10.ª, las puntas de los cartílagos del reborde, las de la 11.ª y la 12.ª y los
+  espacios altos de las axilares son supuestos (`docs/APPROXIMATIONS.md`). La caída de las costillas 10.ª–12.ª hasta su
+  punta no baja tras la 9.ª como dice Gray: sigue los espacios laterales de Kim y cols.
 - **La pared del tórax es la del abdomen de VExUS** (`thorax-wall-abdominal-habitus`): piel 2 mm, grasa
   14 mm y músculo 12 mm, el mismo espesor (28 mm en la métrica radial) en todo el tronco. La pleura queda a
   25–28 mm de la piel, no a los 12–20 mm de la base, y la cara lateral no es más delgada que la anterior
@@ -40,7 +47,8 @@ conservan su identificador (decisiones 10 y 11).
 - **La cortina y la pleura parietal solo en el hemitórax derecho** (`lung-curtain-right-only`): la lámina
   del receso costofrénico es la de VExUS (lateral y posterior derecha) y la huella donde la imagen registra
   la pleura parietal acaba en x = 10 mm (`pleuraXMax`). En el hemitórax izquierdo el pulmón bajo la pared no
-  registra pleura: la imagen del paso B no tendría allí línea pleural ni líneas A.
+  registra pleura: desde la decisión 16 la imagen muestra allí las costillas con su sombra, pero sin línea pleural ni
+  líneas A (paso C3).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
@@ -61,7 +69,12 @@ conservan su identificador (decisiones 10 y 11).
   rigideces ni fuerza. La sonda se hunde a lo largo de su eje lo que haga falta para que apoye toda la cara,
   con un tope de presión [ESTIMADO] que depende de la blandura de la pared; la pared entera, con las
   costillas, se empuja como un bloque (no se comprime) y el tejido de debajo absorbe el empuje. Sin
-  histéresis ni viscoelasticidad.
+  histéresis ni viscoelasticidad. Lo rígido
+  se ensancha en la imagen (decisión 16): la sonda convexa se hunde ≈ 8,6 mm en el centro para apoyar sobre la piel plana
+  en z y empuja la pared con las costillas por las líneas divergentes de la cara, así que una costilla bajo el centro del
+  sector mide 16,0–16,5 mm en la imagen (la anatomía, 14) y los espacios, ×1,11–1,18 (los EIC7–9 de la axilar posterior,
+  18,4 mm frente al rango 14–18 de la base). En el corte del signo del murciélago, con las costillas a los lados del
+  centro, las sombras miden 15,1–15,6 mm. Una sonda real empuja el tejido blando, no las costillas.
 - **La compresión solo mueve el tejido a lo largo de las líneas de la cara** (`probe-compression-in-plane`):
   es radial en el plano de la cara, plana en elevación y lineal a tramos entre los 64 nodos de la cara;
   donde la pared no queda paralela a la cara con la presión máxima, la línea no acopla (los bordes de un
@@ -80,26 +93,23 @@ conservan su identificador (decisiones 10 y 11).
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina; su nivel sale de K = 55 dB, que se calibra con la GPU.
 - **Bajo el centro de una costilla la línea pleural no se apaga del todo, y la línea A se ve tenue**
-  (`rib-shadow-pleura-residual`): medido en la envolvente de la GPU (`e2e/imagen.spec.ts`, meta F-T08), en la sombra
-  completa (las líneas en que todas las tomas de los conos de apertura de la pasada A cruzan hueso) la línea pleural
-  queda a −46…−67 dB del eco pleural intercostal, que en la pantalla del preajuste son −29…−50 dB bajo el blanco: una
-  línea gris sobre la sombra negra; y la línea A de orden 2, a −56…−83 dB en la pantalla, se ve tenue en dos tercios
-  de esas líneas. **No cumple la parte de F-T08 «bajo la costilla no hay línea pleural ni líneas A»**; sí la otra: la
-  intensidad media de cada sombra queda a −37…−39 dB del eco pleural intercostal (el umbral es −20; frente a la misma
-  ventana de las líneas intercostales, que lleva su línea pleural, la sombra entera queda solo 19,5–21 dB más oscura,
-  porque pesa la penumbra). Causas medidas: la pleura de la sombra recibe la transmisión con apertura de la pasada A,
-  una media de amplitudes de sus tomas en la que pesan las que cruzan el borde redondo de la costilla (un segmento de
-  hueso) y que no lleva la fase que añadiría un hueso con c = 3515 m/s (ni su refracción ni su hueso esponjoso): hasta
-  12 dB más que un rayo (−64…−79 dB ida y vuelta); la línea A de la sombra la trae el pedestal de lóbulos laterales de
-  la pasada D (`no-sidelobes`; sin él no se ve ninguna), que además sube la pleura 6–10 dB de mediana (hasta 17; en
-  alguna línea la baja), y no está claro que un pedestal que respetara la sombra fuera más físico: los lóbulos de un
-  haz tapado sí llegan en parte a la pleura intercostal por caminos que no cruzan la costilla; y el preajuste deja la
-  línea pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]). La pleura que se ve
-  cerca del borde de la sombra es la penumbra de la apertura (física: parte del cono pasa junto a la costilla) y ocupa
-  más de la mitad de cada sombra (58 de las 103 líneas con hueso del PLAPS) porque los espacios intercostales de la
-  escena son estrechos (`ribs-5-10-only`, metas A-T7 y A-T8). `e2e/imagen.spec.ts` exige el fallo con su tamaño;
-  corregirlo pide una decisión con evidencia: la transmisión coherente por el hueso, la sección y la estructura de la
-  costilla del paso C, el brillo de la línea pleural y, si se justifica, el pedestal.
+  (`rib-shadow-pleura-residual`): medido en la envolvente de la GPU (`e2e/imagen.spec.ts`, meta F-T08) con la parrilla del
+  paso C1 (decisión 16), en el núcleo de la sombra completa (las líneas en que todas las tomas de los conos de apertura de
+  la pasada A cruzan hueso, a más de 6 líneas de su borde) la línea pleural queda a −40,8…−41,7 dB del eco pleural
+  intercostal, que en la pantalla del preajuste son −23,4…−25,6 dB bajo el blanco: una línea gris sobre la sombra negra; y
+  la línea A de orden 2, a −50,5…−52,8 dB en la pantalla, se ve tenue en más de la mitad de esas líneas. **No cumple la
+  parte de F-T08 «bajo la costilla no hay línea pleural ni líneas A»**; sí la otra: la intensidad media de cada sombra
+  queda a −34,7…−39,2 dB del eco pleural intercostal (el umbral es −20). Causas medidas: la pleura de la sombra recibe la
+  transmisión con apertura de la pasada A, una media de amplitudes de sus tomas en la que pesan las que cruzan el borde
+  redondo de la costilla (un segmento de hueso) y que no lleva la fase que añadiría un hueso con c = 3515 m/s (ni su
+  refracción ni su hueso esponjoso): hasta 12 dB más que un rayo; la línea A de la sombra la trae el pedestal de lóbulos
+  laterales de la pasada D (`no-sidelobes`; sin él no se ve ninguna), que además sube la pleura, y con los espacios
+  intercostales del adulto promedio (15–20 mm; antes 5–12) hay más pleura brillante a su alcance: antes de la parrilla el
+  núcleo quedaba a −46…−67 dB. Con la pleura 5 mm bajo la cresta (antes 7–8), la sombra completa empieza a 4–5 líneas del
+  borde de la sombra, donde la pleura aún es la cola lateral de la PSF del eco vecino (−30…−39 dB a 4–6 líneas). Y el
+  preajuste deja la línea pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]).
+  `e2e/imagen.spec.ts` exige el fallo con su tamaño; corregirlo pide una decisión con evidencia: la transmisión coherente
+  por el hueso, su sección, el brillo de la línea pleural y, si se justifica, el pedestal.
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.

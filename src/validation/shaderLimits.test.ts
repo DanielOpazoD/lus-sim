@@ -4,7 +4,9 @@ import { AnatomyScene } from '../anatomy/scene';
 import { INTERFACE_COUNT } from '../anatomy/interfaces';
 import { TISSUE_COUNT } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
-import { ANATOMY_GLSL, MAX_RIBS } from '../anatomy/gpu/anatomy.glsl';
+import { ANATOMY_GLSL, COMPRESSION_BASE, MAX_RIBS, SCENE_TEX_H, SCENE_TEX_W } from '../anatomy/gpu/anatomy.glsl';
+import { PROBE_COMPRESSION } from '../anatomy/compression';
+import { RIBS_PER_SIDE, RIB_TABLE_BASE, RIB_TABLE_COLS, RIB_TABLE_DU_MM, RIB_TABLE_TEXELS } from '../anatomy/organs/ribcage';
 import * as PASSES from '../ultrasound/shaders/passes.glsl';
 import {
   FRAG_COMPOUND,
@@ -157,11 +159,22 @@ const SLOT_GUARD = Math.floor(0.8 * WEBGL2_MIN_FRAGMENT_VECTORS);
  * guarda de tubos, nodos y segmentos de VExUS); lo que tiene un tope en el shader son las costillas (`MAX_RIBS`).
  */
 describe('Límites del shader con margen para crecer', () => {
-  it('las costillas de la escena caben en el array del shader (uRibs[MAX_RIBS])', () => {
+  it('las 24 costillas de la parrilla caben en el array del shader (uRibs[MAX_RIBS]) y su tabla en la textura de escena', () => {
+    // lus-sim (decisión 16): 12 por hemitórax; el bucle del shader recorre las del lado de la muestra
     const scene = new AnatomyScene(defaultPatient());
+    expect(MAX_RIBS).toBeGreaterThanOrEqual(24);
+    expect(scene.ribs.length).toBe(24);
     expect(scene.ribs.length).toBeLessThanOrEqual(MAX_RIBS);
     expect(ANATOMY_GLSL).toContain(`#define MAX_RIBS ${MAX_RIBS}`);
-    expect(ANATOMY_GLSL).toContain('for (int i = 0; i < MAX_RIBS; i++) {');
+    expect(ANATOMY_GLSL).toContain(`#define RIBS_PER_SIDE ${RIBS_PER_SIDE}`);
+    expect(2 * RIBS_PER_SIDE).toBeLessThanOrEqual(MAX_RIBS);
+    expect(ANATOMY_GLSL).toContain('for (int j = 0; j < RIBS_PER_SIDE; j++) {');
+    // la tabla de alturas cabe en la textura y no pisa la de la compresión
+    expect(RIB_TABLE_BASE).toBeGreaterThanOrEqual(COMPRESSION_BASE + PROBE_COMPRESSION.nodes);
+    expect(RIB_TABLE_BASE + RIB_TABLE_TEXELS).toBeLessThanOrEqual(SCENE_TEX_W * SCENE_TEX_H);
+    expect(scene.ribCage.table.length).toBe(RIB_TABLE_TEXELS * 4);
+    // y el extremo posterior de cada costilla cae dentro de sus columnas
+    for (const r of scene.ribs) expect(r.uPost).toBeLessThan((RIB_TABLE_COLS - 2) * RIB_TABLE_DU_MM);
   });
 
   it('los tamaños compartidos TS ↔ GLSL salen de las constantes, no de literales', () => {
@@ -208,9 +221,11 @@ describe('Límites del shader con margen para crecer', () => {
     // dirigido (con las caras de la pared, decisión 62), con sitio para la THI (~+14) sin pasar de 130. lus-sim
     // (decisiones 12 y 14): 85 y 87, sin los 30 de los uniforms del hígado, la vesícula, la aurícula, el gas y los riñones
     // (83 y 85 hasta que la tabla de tejidos, idéntica a la de VExUS, sumó los tres del retroperitoneo: TISSUE_VEC4 de 7
-    // a 8); si el recuento dejara de ver los arrays (44 ranuras de tejidos, caras y costillas) daría menos de 50
+    // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107. Si el
+    // recuento dejara de ver los arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
+    expect(raw.slots).toBe(105);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);
@@ -362,9 +377,12 @@ describe('Límites del shader con margen para crecer', () => {
     expect(loopBodies(g).some((b) => reaches(g, b, 'faceGradient'))).toBe(true);
   });
 
-  // El GLSL de las costillas (`sdRib`) corta en x > 15 mm sin mirar `rightOnly`: todas deben serlo
-  // hasta que el corte viaje como dato (`no-spleen-no-left-ribs`).
-  it('todas las costillas son derechas, como supone el corte del shader', () => {
-    for (const rib of new AnatomyScene(defaultPatient()).ribs) expect(rib.rightOnly).toBe(true);
+  // El lado de cada costilla es un dato (decisión 16): el shader ya no corta en x > 15 mm; la escena tiene las dos parrillas
+  it('la escena tiene costillas de los dos lados, y el shader no corta por la x', () => {
+    const ribs = new AnatomyScene(defaultPatient()).ribs;
+    expect(ribs.filter((r) => r.side === -1)).toHaveLength(12);
+    expect(ribs.filter((r) => r.side === 1)).toHaveLength(12);
+    expect(ANATOMY_GLSL).not.toContain('rightOnly');
+    expect(ANATOMY_GLSL).not.toMatch(/if \(p\.x > endX\)/);
   });
 });

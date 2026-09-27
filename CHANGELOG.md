@@ -45,6 +45,15 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   (limitación nueva `rib-shadow-pleura-residual`, la prueba exige el fallo). En TypeScript, la pleura a 7,2–8,8 mm bajo la
   cresta costal (F-T08 pide 4–6) y la línea base de las costillas y los espacios intercostales, en la anatomía y en la
   imagen, como metas del paso C.
+- Fase 1, paso C1: la parrilla costal del adulto promedio (16): 12 costillas numeradas por hemitórax, bilaterales, con sus
+  cartílagos (1–7 al esternón, 8–10 al de arriba, 11–12 libres), el esternón (manubrio, cuerpo y xifoides) y 11 espacios
+  intercostales por lado con sus anchos por nivel y región (EIC2/3/4/5 de la medioclavicular 18/14/14/15 mm; paraesternales
+  18,1 y 12,3; laterales bajos 17; posteriores bajos 16; 9,3 junto a la columna), costillas de 14 mm con la pleura 5 mm bajo
+  su cresta y la oblicuidad de la base (la 7.ª baja 101 mm; la línea de Treves). Módulos nuevos `src/anatomy/organs/ribcage.ts`
+  (TS y GLSL; la tabla de alturas en la textura de escena) y `src/anatomy/thoraxLines.ts`; el signo del murciélago aparece
+  en el punto BLUE superior. Pruebas: las cuentas por línea, los anchos en la anatomía y en la imagen, la simetría, A-T7,
+  A-T8, A-T9, A-T19 y la geometría de F-T08 pasan a cumplirse; `src/validation/ribcage.test.ts`.
+- Limitaciones nuevas `thorax-cylindrical-cage` y `rib-section-uniform` (16).
 
 ### Cambiado
 
@@ -63,11 +72,18 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - Las líneas A caen a múltiplos exactos de la línea pleural mostrada (meta F-T01) (15): la línea pleural y sus réplicas se
   dibujan centradas en su cruce, no 0,35 mm por encima. Medido en la envolvente de la GPU, el orden 4 pasa de
   +0,87…+1,13 mm a −0,19…+0,05 mm de 4 veces la línea pleural; la e2e exige la meta en los órdenes 1–4.
+- Paso C1 (16): los puntos BLUE superior (centro del EIC2 de la medioclavicular, a 95 mm de la línea media) e inferior
+  (centro del EIC4 de la axilar anterior) sobre la parrilla nueva; el cartílago costal atenúa 2,45 dB/cm/MHz (el rango alto
+  de la base; antes 0,9); F-T08 medida de nuevo en la GPU (cada sombra a −34,7…−39,2 dB del eco intercostal; en su núcleo la
+  línea pleural aún a −40,8…−41,7 dB, `rib-shadow-pleura-residual`); el moteado de la e2e, en siete vistas paraesternales;
+  las líneas A, solo con pulmón detrás de la pleura. El presupuesto del chunk principal sube a 195 kB (186,8 kB medidos).
 
 ### Quitado
 
 - La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
 - La limitación `pleura-echo-offset`: las líneas A cumplen F-T01 (15).
+- Las limitaciones `ribs-5-10-only` y `no-spleen-no-left-ribs` (el bazo sigue en `abdomen-generic-tissue`): la parrilla
+  costal del adulto promedio (16).
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

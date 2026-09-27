@@ -17,6 +17,7 @@ import {
   torsoPhi,
   torsoSkinPoint,
   tubeQuery,
+  type Rib,
   type Tube,
 } from '../anatomy/primitives';
 import { AnatomyScene } from '../anatomy/scene';
@@ -156,8 +157,17 @@ describe('primitivas del tórax', () => {
     expect(sdSpine([sp.archHalfWidth + 10, 0.5 * (sp.archY0 + sp.archY1), 0], sp)).toBeCloseTo(10, 12);
   });
 
-  it('costilla: negativa en su línea media, hueso en el flanco y cartílago a ±45° de la línea media; derechas solas', () => {
-    const rib = scene.ribs[0];
+  it('costilla de VExUS (`sdRib`, sin uso en el tórax desde la decisión 16): negativa en su línea media, hueso en el flanco y cartílago a ±45°; derechas solas', () => {
+    // la primitiva sigue en primitives.ts, idéntica a la de VExUS; la parrilla del tórax es `organs/ribcage.ts`
+    const rib: Rib = {
+      zAnterior: 40,
+      tilt: 60,
+      halfWidth: 6,
+      halfThickness: 3.2,
+      scale: 0.85,
+      cartilageFromPhi: Math.PI / 4,
+      rightOnly: true,
+    };
     const at = (phi: number): [number, number, number] => [
       rib.scale * t.a * Math.cos(phi),
       rib.scale * t.b * Math.sin(phi),
@@ -167,7 +177,7 @@ describe('primitivas del tórax', () => {
     expect(lateral.d).toBeCloseTo(-Math.min(rib.halfThickness, rib.halfWidth), 9);
     expect(lateral.cartilage).toBe(false);
     expect(sdRib(at(0.6 * Math.PI), rib, t, scene.spine).cartilage).toBe(true);
-    // `rightOnly` (limitación `no-spleen-no-left-ribs`): del lado izquierdo, más allá del esternón, no hay costilla
+    // `rightOnly`: del lado izquierdo, más allá del esternón, no hay costilla
     expect(sdRib(at(0.1 * Math.PI), rib, t, scene.spine).d).toBe(1e3);
     // el arco termina en la apófisis transversa: nada por detrás de la columna
     expect(sdRib([-10, scene.spine.y0 - 20, rib.zAnterior + rib.tilt], rib, t, scene.spine).d).toBe(1e3);

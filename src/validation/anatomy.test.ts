@@ -8,6 +8,8 @@ import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling, probeContact } from '../probe/contact';
 import { CONVEX_C35, lineDirection, pointOnLine, probeFrame, skinSoftness, type ProbePose } from '../probe/probe';
+import { ribLinePoint } from '../anatomy/organs/ribcage';
+import { ribZ } from './support/chestView';
 
 /**
  * Anatomía implícita de la escena (adaptada de `src/validation/anatomy.test.ts` de VExUS, decisión 10):
@@ -36,16 +38,22 @@ describe('Anatomía implícita (base B)', () => {
     expect(cls([0, 60, 100]).tissue).toBe(Tissue.Lung);
     // bajo el diafragma, el «resto» de VExUS donde en VExUS está el hígado (`abdomen-generic-tissue`)
     expect(cls([-60, 20, -10]).tissue).toBe(Tissue.Bowel);
-    // la 5.ª costilla en la línea axilar media es hueso; cerca del esternón, cartílago con su pericondrio
-    const rib = scene.ribs[0];
-    const onRib = (phi: number): [number, number, number] => [
-      rib.scale * scene.torso.a * Math.cos(phi),
-      rib.scale * scene.torso.b * Math.sin(phi),
-      rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi)),
-    ];
+    // la 5.ª costilla derecha en la línea axilar media es hueso; junto al esternón, cartílago con su pericondrio; el
+    // esternón, hueso en la línea media (decisión 16, `organs/ribcage.ts`)
+    const onRib = (phi: number, n = 5): [number, number, number] => {
+      const [x, y] = ribLinePoint(phi, scene.torso, scene.ribCage);
+      return [x, y, ribZ(scene, n, phi)];
+    };
     expect(cls(onRib(Math.PI)).tissue).toBe(Tissue.Bone);
-    expect(cls(onRib(0.6 * Math.PI)).tissue).toBe(Tissue.Cartilage);
-    expect(cls(onRib(0.6 * Math.PI)).interface).toBe(Interface.Perichondrium);
+    expect(cls(onRib(0.56 * Math.PI)).tissue).toBe(Tissue.Cartilage);
+    expect(cls(onRib(0.56 * Math.PI)).interface).toBe(Interface.Perichondrium);
+    // y la del lado izquierdo, igual
+    expect(cls(onRib(0)).tissue).toBe(Tissue.Bone);
+    expect(cls(onRib(0.44 * Math.PI)).tissue).toBe(Tissue.Cartilage);
+    // en la línea media anterior la métrica radial es la normal (|∇| = 1)
+    const sternumDepth = scene.wallThickness() - scene.ribCage.pleuraComplex - 0.5 * scene.ribCage.sternum.thickness;
+    expect(cls([0, scene.torso.b - sternumDepth, 60]).tissue).toBe(Tissue.Bone);
+    expect(cls([0, scene.torso.b - sternumDepth, -10]).tissue).toBe(Tissue.Cartilage); // el xifoides
     // ningún punto clasificado lleva vaso (el tórax portado no tiene vasos: la forma de VExUS, con null)
     for (const p of [
       [-55, -5, 70],
@@ -58,12 +66,19 @@ describe('Anatomía implícita (base B)', () => {
     }
   });
 
-  it('las costillas son las derechas 5.ª–10.ª de VExUS (limitaciones `no-spleen-no-left-ribs` y `ribs-5-10-only`)', () => {
-    // Guarda de las limitaciones: si el paso C añade costillas izquierdas o las 1.ª–4.ª, esta prueba falla y
-    // obliga a actualizar docs/LIMITATIONS.md y src/validation/limitations.ts en el mismo cambio
-    expect(scene.ribs).toHaveLength(6);
-    expect(scene.ribs.every((r) => r.rightOnly)).toBe(true);
-    expect(scene.ribs.map((r) => r.zAnterior)).toEqual([40, 20, 0, -25, -50, -75]);
+  it('la parrilla tiene 12 costillas numeradas en cada hemitórax, simétricas (decisión 16)', () => {
+    // Guarda del orden de la escena, el que leen la tabla de la GPU y el bucle del shader: derechas 1–12 y después
+    // izquierdas 1–12; las dos parrillas son espejo una de la otra
+    expect(scene.ribs).toHaveLength(24);
+    expect(scene.ribs.map((r) => [r.side, r.number])).toEqual([
+      ...Array.from({ length: 12 }, (_, i) => [-1, i + 1]),
+      ...Array.from({ length: 12 }, (_, i) => [1, i + 1]),
+    ]);
+    for (let i = 0; i < 12; i++) {
+      const { side: _r, ...right } = scene.ribs[i];
+      const { side: _l, ...left } = scene.ribs[12 + i];
+      expect(left).toEqual(right);
+    }
   });
 
   it('el «resto» bajo el diafragma mide su distancia a la frontera: tiende a 0 junto al diafragma', () => {
@@ -393,12 +408,13 @@ describe('Caras de interfaz en classify (decisión 57)', () => {
       expect(cls(p).interface, Tissue[t]).toBe(Interface.None);
       expect(cls(p).interfaceDistance).toBe(1e3);
     }
-    // a 20 mm bajo la piel (músculo de 16 a 25,9 mm): la cara de pared más cercana, a menos de medio músculo
-    const muscle = cls([-64, 76.8, -10]);
+    // a 20 mm bajo la piel (músculo de 16 a 25,9 mm): la cara de pared más cercana, a menos de medio músculo. Bajo el
+    // reborde costal (lus-sim, decisión 16: a z = −10 en esa línea está el cartílago de la 7.ª costilla)
+    const muscle = cls([-64, 76.8, -130]);
     expect(muscle.tissue).toBe(Tissue.Muscle);
     expect([Interface.DeepFascia, Interface.ObliquePlane, Interface.TransversusPlane, Interface.Transversalis]).toContain(muscle.interface);
     expect(muscle.interfaceDistance).toBeLessThan(5);
     // la grasa preperitoneal (2,1 mm) de la cara interna de la pared
-    expect(cls([-60, 72, -10]).tissue).toBe(Tissue.Fat);
+    expect(cls([-60, 72, -130]).tissue).toBe(Tissue.Fat);
   });
 });

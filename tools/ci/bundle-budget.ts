@@ -19,13 +19,16 @@
 // 2026-09-26 (origen c6c81ad, decisión 14): el build quita además los espacios y los saltos de línea que no separan
 // nada del texto GLSL (`tools/build/glslCompact.ts`, tercera etapa de `glslMinify.ts`, #100 de VExUS): index baja de
 // 172,5 a 163,5 kB (176 622 → 167 443 B, vite build sobre main 8ed8a6d). Los límites no cambian.
+// 2026-09-26 (paso C1, decisión 16): la parrilla costal del adulto promedio (`anatomy/organs/ribcage.ts`: su construcción,
+// sus ~40 parámetros con su evidencia y su gemelo GLSL, que entra en cada programa con la anatomía), las líneas del tórax
+// y el cartílago llevan index de 163,5 a 186,8 kB. index sube a 195 kB; el total de JS (200 kB) no cambia.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 180 * KB],
+  [/index-.*\.js$/, 195 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];

@@ -11,7 +11,8 @@ import { LUNG_CURTAIN, inLungCurtain, inLungRecess, lungCurtainDistance, lungCur
  */
 describe('Módulos de órgano', () => {
   it('el registro tiene solo los módulos del tórax, en su orden de dependencia GLSL', () => {
-    expect(ORGAN_MODULES.map((o) => o.id)).toEqual(['wall', 'lungCurtain']);
+    // lus-sim (decisión 16): la parrilla costal, propia, tras la pared (usa su `wallArc`)
+    expect(ORGAN_MODULES.map((o) => o.id)).toEqual(['wall', 'ribcage', 'lungCurtain']);
   });
 
   for (const o of ORGAN_MODULES) {

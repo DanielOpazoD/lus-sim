@@ -1,5 +1,8 @@
 import type { ParameterSet } from '../core/evidence';
 import { START_POINT_POSES } from '../app/startPoints';
+import { RIBCAGE } from '../anatomy/organs/ribcage';
+import { THORAX_LINES } from '../anatomy/thoraxLines';
+import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 
@@ -9,4 +12,12 @@ import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
  * docs/APPROXIMATIONS.md; también que ningún `defineParameters(…)` del código quede fuera de ella.
  * Un conjunto nuevo se añade aquí en el mismo cambio que lo crea.
  */
-export const PARAMETER_SETS: readonly ParameterSet[] = [BLUE_UPPER_POSE, START_POINT_POSES, LUNG_PRESET, TGC_REFERENCE];
+export const PARAMETER_SETS: readonly ParameterSet[] = [
+  RIBCAGE,
+  THORAX_LINES,
+  COSTAL_CARTILAGE,
+  BLUE_UPPER_POSE,
+  START_POINT_POSES,
+  LUNG_PRESET,
+  TGC_REFERENCE,
+];

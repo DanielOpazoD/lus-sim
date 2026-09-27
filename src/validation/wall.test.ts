@@ -18,9 +18,6 @@ import {
   WALL,
   WALL_GLSL,
   preperitonealMm,
-  ribSearchDepth,
-  ribCurvature,
-  ribTangent,
   wallArc,
   wallDepths,
   wallPerimeter,
@@ -28,15 +25,8 @@ import {
   wallPlaneGap,
   wallWave,
 } from '../anatomy/organs/wall';
-import {
-  RIB_ANTERIOR_END,
-  ribAnteriorEndX,
-  sdRib,
-  torsoDepth,
-  torsoDepthGradient,
-  torsoNormal,
-  torsoSkinPoint,
-} from '../anatomy/primitives';
+import { torsoDepth, torsoDepthGradient, torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
+import { MAX_RIBS, ribCenterDepth, ribCurvature, ribLinePoint, ribMetric, ribSd, ribTableZ, ribTangent } from '../anatomy/organs/ribcage';
 import { AnatomyScene, BASELINE_INSTANT, faceGeometryOf } from '../anatomy/scene';
 import { TISSUE_COUNT, Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
@@ -53,6 +43,7 @@ import {
   interfaceEchoField,
 } from '../ultrasound/interfaceEcho';
 import { FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED } from '../ultrasound/shaders/passes.glsl';
+import { intercostalZ } from './support/chestView';
 import {
   WALL_FACE_ECHO_GLSL,
   WALL_TEXTURE,
@@ -70,9 +61,11 @@ import {
  * GLSL en `organs/wall.ts`), la tabla de caras nuevas y la textura de la pasada B (`wallTexture.ts`). Antes la
  * pared eran tres bandas uniformes sin ninguna cara: estas pruebas fallan en `main` (no existe nada de esto).
  *
- * lus-sim (decisiones 10 y 12): la misma pared y las mismas costillas que VExUS, con la escena del tórax y el paciente
- * por omisión; la vista del flanco de VExUS pasa a un corte longitudinal del EIC5 en la línea axilar media, con
- * costillas a los dos lados de la línea central. Lo que comprueba el shader ensamblado volvió con la GPU (paso B2).
+ * lus-sim (decisiones 10 y 12): la misma pared que VExUS, con la escena del tórax y el paciente por omisión; la vista del
+ * flanco de VExUS pasa a un corte longitudinal del EIC5 en la línea axilar media, con costillas a los dos lados de la
+ * línea central. Lo que comprueba el shader ensamblado volvió con la GPU (paso B2). Desde la decisión 16 las costillas
+ * son las de la parrilla del adulto promedio (`organs/ribcage.ts`), con sus propias pruebas en `anatomyTargets.test.ts`;
+ * aquí, sus caras en la pared.
  */
 const scene = new AnatomyScene(defaultPatient());
 const t = scene.torso;
@@ -222,88 +215,51 @@ describe('capas de la pared (decisión 62)', () => {
     expect(peri).toBeGreaterThan(100);
     // la prioridad de la cortical cubre el perfil de una cara de un lado con la cota de su gradiente
     expect(WALL.ribFacePriorityMm).toBeGreaterThanOrEqual((IFACE_SHIFT_MM + IFACE_REACH_MM) * IFACE_GRADIENT_MAX);
-    // la sección elíptica de la costilla: en su cresta, halfThickness/halfWidth²; el eje, tangente a la piel
-    const r0 = scene.ribs[5];
+    // la sección elíptica de la costilla: en su cresta, halfThickness/halfWidth²; el eje, tangente a la piel (la 6.ª
+    // derecha en el flanco)
+    const cage = scene.ribCage;
+    const k = 5;
     const phi = Math.PI * 1.04;
-    const zc = r0.zAnterior + r0.tilt * (0.5 - 0.5 * Math.sin(phi));
-    const crest: Vec3 = [t.a * r0.scale * Math.cos(phi) * 1.02, t.b * r0.scale * Math.sin(phi) * 1.02, zc];
-    expect(ribCurvature(crest, r0, t)).toBeCloseTo(r0.halfThickness / r0.halfWidth ** 2, 6);
+    const hit = ribLinePoint(phi, t, cage);
+    const zc = ribTableZ(cage, k, Math.abs(wallArc(hit, t)));
+    // el mismo rayo radial que el punto de la línea media, 1,02 semigrosores (por la normal) más somero: su cresta
+    const rho = Math.hypot(hit[0] / t.a, hit[1] / t.b);
+    const R = Math.hypot(hit[0], hit[1]) / rho;
+    const k1 = (1 - (ribCenterDepth(hit, t, cage) - 1.02 * cage.halfThickness * ribMetric(hit, t)) / R) / rho;
+    const crest: Vec3 = [hit[0] * k1, hit[1] * k1, zc];
+    expect(ribCurvature(crest, k, t, cage)).toBeCloseTo(cage.halfThickness / cage.ribs[k].halfWidth ** 2, 3);
     const n = torsoNormal(crest, t);
-    const tg = ribTangent(crest, r0, t);
+    const tg = ribTangent(crest, k, t, cage);
     expect(Math.abs(n[0] * tg[0] + n[1] * tg[1])).toBeLessThan(0.1);
+    // el esternón es plano y vertical
+    expect(ribCurvature([0, 90, 50], MAX_RIBS, t, cage)).toBe(0);
+    expect(ribTangent([0, 90, 50], MAX_RIBS, t, cage)).toEqual([0, 0, 1]);
   });
 
-  it('cartílago costal solo en el arco anterior (±45°, hasta la línea medioclavicular) y las 8.ª–10.ª acaban en el reborde costal', () => {
-    const ribs = scene.ribs;
-    // 5.ª–7.ª hasta el esternón; 8.ª–10.ª hasta el reborde costal, cada una más lateral
-    expect(ribs.slice(0, 3).map((r) => ribAnteriorEndX(r))).toEqual([15, 15, 15]);
-    const ends = ribs.slice(3).map((r) => ribAnteriorEndX(r));
-    expect(ends[0]).toBeLessThan(-15);
-    expect(ends[1]).toBeLessThan(ends[0] - 30);
-    expect(ends[2]).toBeLessThan(-90);
-    for (const [i, rib] of ribs.entries()) {
-      const zAt = (phi: number) => rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi));
-      const inRib = (phi: number) => {
-        const q: Vec3 = [0.85 * t.a * Math.cos(phi), 0.85 * t.b * Math.sin(phi), zAt(phi)];
-        return sdRib(q, rib, t, scene.spine);
-      };
-      // lateral (línea axilar media, 175°) y posterior (220°): hueso
-      for (const deg of [175, 220]) {
-        const r = inRib((deg * Math.PI) / 180);
-        expect(r.d, `${i + 5}.ª a ${deg}°`).toBeLessThan(0);
-        expect(r.cartilage, `${i + 5}.ª a ${deg}°`).toBe(false);
-      }
-      // anterior, a 30° de la línea media: cartílago donde la costilla llega
-      const a = inRib((120 * Math.PI) / 180);
-      if (0.85 * t.a * Math.cos((120 * Math.PI) / 180) <= ribAnteriorEndX(rib))
-        expect(a.cartilage && a.d < 0, `${i + 5}.ª a 120°`).toBe(true);
-      else expect(a.d, `${i + 5}.ª a 120°: más allá del reborde`).toBe(1e3);
-    }
-    // la 10.ª, cuyo extremo cae en la línea medioclavicular, conserva su cartílago corto antes del extremo
-    const r10 = ribs[5];
-    const phiEnd = Math.acos(Math.max(-1, (ribAnteriorEndX(r10) - 5) / (0.85 * t.a)));
-    const qEnd: Vec3 = [
-      0.85 * t.a * Math.cos(phiEnd),
-      0.85 * t.b * Math.sin(phiEnd),
-      r10.zAnterior + r10.tilt * (0.5 - 0.5 * Math.sin(phiEnd)),
-    ];
-    expect(sdRib(qEnd, r10, t, scene.spine).d).toBeLessThan(0);
-    expect(sdRib(qEnd, r10, t, scene.spine).cartilage).toBe(true);
-    // gemelo GLSL: la misma regla del cartílago y el mismo extremo anterior
-    expect(ANATOMY_GLSL).toContain(
-      `float endX = min(${RIB_ANTERIOR_END.xMm.toFixed(4)}, ${RIB_ANTERIOR_END.xMm.toFixed(4)} + ${RIB_ANTERIOR_END.marginSlope.toFixed(4)} * rib.x);`,
-    );
-    expect(ANATOMY_GLSL).toContain(
-      `cartilage = abs(phi - 1.5707963) < 1.5707963 - uRibParams.y || (p.y > 0.0 && p.x > endX - ${RIB_ANTERIOR_END.cartilageTailMm.toFixed(4)});`,
-    );
-    expect(ANATOMY_GLSL).toContain('if (p.x > endX) return 1e3;');
-    expect(ribs.every((r) => r.cartilageFromPhi === Math.PI / 4)).toBe(true);
-  });
-
-  it('la grasa subcutánea no corta las costillas y la búsqueda de costillas empieza donde una puede llegar', () => {
-    // antes la grasa se clasificaba antes que las costillas: su cresta, donde asoma en la grasa (el arco
-    // anterior, y con la fascia ondulada también el lateral), quedaba cortada por la grasa
-    let inFat = 0;
-    for (const rib of scene.ribs)
-      for (let phiDeg = 95; phiDeg <= 250; phiDeg += 2.5)
-        for (let dz = -rib.halfWidth; dz <= rib.halfWidth; dz += 0.5)
-          for (let d = t.skinMm; d < 34; d += 0.25) {
-            const phi = (phiDeg * Math.PI) / 180;
-            const z = rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi)) + dz;
-            const p = at(phi, z, d);
-            if (sdRib(p, rib, t, scene.spine).d > -0.05) continue;
-            const c = cls(p);
-            expect([Tissue.Bone, Tissue.Cartilage], `${phiDeg}°, z ${z.toFixed(1)}, ${d} mm: ${Tissue[c.tissue]}`).toContain(c.tissue);
-            if (d < wallDepths(t, wallArc(p, t), z).fascia) inFat++;
-          }
-    expect(inFat).toBeGreaterThan(50);
-    // conservadora: ningún punto más somero que ribSearchDepth está dentro de una costilla
-    const depth0 = ribSearchDepth(t, scene.ribs[0].scale);
+  it('la grasa subcutánea no corta las costillas y la búsqueda de la parrilla empieza donde una puede llegar', () => {
+    // antes la grasa se clasificaba antes que las costillas: su cresta, donde asoma en la grasa, quedaba cortada por ella.
+    // Toda muestra dentro de la sección de una costilla (su distancia < −0,05 mm) es hueso o cartílago
+    const cage = scene.ribCage;
+    let inRib = 0;
+    for (let phiDeg = 92; phiDeg <= 268; phiDeg += 6)
+      for (let z = -150; z <= 210; z += 2)
+        for (let d = t.skinMm; d < scene.wallThickness(); d += 0.5) {
+          const p = at((phiDeg * Math.PI) / 180, z, d);
+          let inside = false;
+          for (let k = 0; k <= MAX_RIBS; k++) if (ribSd(p, k, t, cage) < -0.05) inside = true;
+          if (!inside) continue;
+          inRib++;
+          expect([Tissue.Bone, Tissue.Cartilage], `${phiDeg}°, z ${z}, ${d} mm`).toContain(cls(p).tissue);
+        }
+    expect(inRib).toBeGreaterThan(1000);
+    // conservadora: ningún punto a más del grosor del esternón (el hueso más grueso) de la pleura, por la normal (|∇| ≤ 1,2),
+    // está dentro de una costilla ni del esternón
+    const depth0 = scene.wallThickness() - 1.2 * (cage.pleuraComplex + Math.max(2 * cage.halfThickness, cage.sternum.thickness));
     expect(depth0).toBeGreaterThan(t.skinMm);
-    for (let phiDeg = 90; phiDeg <= 270; phiDeg += 1)
-      for (let z = -120; z <= 90; z += 1)
-        for (let d = 0; d < depth0; d += 0.5)
-          for (const rib of scene.ribs) expect(sdRib(at((phiDeg * Math.PI) / 180, z, d), rib, t, scene.spine).d).toBeGreaterThan(0);
+    for (let phiDeg = -60; phiDeg <= 240; phiDeg += 6)
+      for (let z = -150; z <= 210; z += 6)
+        for (let d = 0; d < depth0; d += 1)
+          for (let k = 0; k <= MAX_RIBS; k++) expect(ribSd(at((phiDeg * Math.PI) / 180, z, d), k, t, cage)).toBeGreaterThan(0);
   });
 
   it('faceGradient de las caras de la pared: la normal de la piel y |∇| ≤ 1,1 (la métrica radial de las capas)', () => {
@@ -357,8 +313,8 @@ describe('cortical costal: solo la cara que mira a la sonda (decisión 62)', () 
   // la iluminaban a medias en los bordes de la costilla, y el eco (con |cosθ|) la dibujaba como a la anterior. Con
   // SwiftShader, el flanco con y sin la regla: sin ella, los anillos inferiores; con ella, solo el arco anterior.
   it('la cara posterior no da eco (en la mirada 0 ni en las dirigidas); sin la regla, casi tanto como la anterior', () => {
-    // lus-sim: el corte longitudinal del EIC5 en la línea axilar media (costillas 5.ª a 8.ª en el plano)
-    const z5 = 0.5 * (scene.ribs[0].zAnterior + scene.ribs[0].tilt * 0.5 + scene.ribs[1].zAnterior + scene.ribs[1].tilt * 0.5);
+    // lus-sim: el corte longitudinal del EIC5 en la línea axilar media (costillas 4.ª a 7.ª en el plano)
+    const z5 = intercostalZ(scene, 5, Math.PI);
     const fr = probeFrame({ phi: Math.PI, z: z5, lift: 0, yaw: 0, rock: 0, tilt: 0 }, t, CONVEX_C35);
     const k0 = (2 * Math.PI) / (1540 / (CONVEX_C35_PROFILE.bEffectiveMHz * 1000));
     const R = CONVEX_C35.curvatureRadius;
@@ -486,23 +442,27 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     expect(WALL_GLSL).toContain(`#define WALL_SCARPA_FRACTION ${WALL.scarpaFraction.toFixed(4)}`);
     expect(WALL_GLSL).toContain(`#define WALL_RIB_PRIORITY_MM ${WALL.ribFacePriorityMm.toFixed(4)}`);
     const glsl = ANATOMY_GLSL.replace(/\s+/g, ' ');
-    // classify: capas onduladas, la cortical de la costilla ósea más cercana y el pericondrio del cartílago
+    // classify: capas onduladas, la cortical del hueso más cercano y el pericondrio del cartílago (lus-sim, decisión 16:
+    // la parrilla de `organs/ribcage.ts`)
     expect(glsl).toContain('vec4 wd = wallDepths(u, m.z);');
-    expect(glsl).toContain('if (!cart && rd < ribD) { ribD = rd; ribI = i; }');
-    expect(glsl).toContain('if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -rd;');
+    expect(glsl).toContain('if ((!c || uRibParams.z > 0.0) && rd < ribD) { ribD = rd; ribI = i; }');
+    expect(glsl).toContain('if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -inD;');
     expect(glsl).toContain('c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);');
-    // en classifyWall (el prefijo de la pared de classify, decisión 61): las costillas antes de la grasa
-    // subcutánea donde una puede llegar (la grasa no las corta), y las coordenadas de la pared solo dentro de
-    // ella (no en cada punto del tronco); con la muestra fuera de la pared, classifyWith sigue
+    // en classifyWall (el prefijo de la pared de classify, decisión 61): la parrilla antes de la grasa subcutánea donde
+    // puede llegar (la grasa no la corta), y las coordenadas de la pared solo dentro de ella (no en cada punto del
+    // tronco); con la muestra fuera de la pared, classifyWith sigue
     const cls = glsl.slice(glsl.indexOf('bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn) {'));
     expect(glsl.indexOf('Cls classifyWith(vec3 m, bool withCurtain) {')).toBeGreaterThan(glsl.indexOf('bool classifyWall('));
     expect(cls).toContain('return true; } return false; }');
-    const ribs = cls.indexOf('if (d >= ribSearchDepth()) {');
-    const inWall = cls.indexOf('if (d < wall) { // coordenadas de la pared solo dentro de ella');
-    expect(ribs).toBeGreaterThan(0);
+    const arc = cls.indexOf('float u = d < wall ? wallArc(m) : 0.0;');
+    const ribs = cls.indexOf('int ri = ribScan(m, d, u, inD, cart, ribD, ribI, ribAny);');
+    const inWall = cls.indexOf('if (d < wall) {');
+    expect(arc).toBeGreaterThan(0);
+    expect(ribs).toBeGreaterThan(arc);
     expect(inWall).toBeGreaterThan(ribs);
-    expect(cls.indexOf('float u = wallArc(m);')).toBeGreaterThan(inWall);
     expect(cls.indexOf('vec4 wd = wallDepths(u, m.z);')).toBeGreaterThan(inWall);
+    // y la parrilla no mira nada bajo la pared
+    expect(glsl).toContain('if (d >= uWall.x + uWall.y + uWall.z) return -1;');
     // faceGradient: la distancia de la capa y la de la costilla más cercana
     expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
     expect(glsl).toContain('int k = nearestRib(m);');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { START_POINTS, START_POINT_POSES, type StartPoint } from '../app/startPoints';
 import { AnatomyScene } from '../anatomy/scene';
+import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling } from '../probe/contact';
 import { BLUE_UPPER_POSE, CONVEX_C35, clampPose, defaultPose, lineAngle, type ProbePose } from '../probe/probe';
@@ -10,8 +11,8 @@ import { chestView, ribShadows, scanView } from './support/chestView';
  * Puntos de partida del tórax (decisión 12; el arnés de `startPoints.test.ts` de VExUS, que comprobaba que cada
  * ventana corta lo que promete su texto sin afinar la sonda). Con la sonda apoyada con su contacto y en fin de
  * espiración (`chestView`), cada punto BLUE deja bajo la sonda la pleura parietal y el pulmón que la toca, y los que
- * prometen costillas las tienen en el plano con su sombra y la pleura entre ellas (el signo del murciélago; en el
- * punto superior no lo hay hasta que el paso C traiga las costillas 2.ª–4.ª, limitación `ribs-5-10-only`). Las
+ * prometen costillas las tienen en el plano con su sombra y la pleura entre ellas (el signo del murciélago; desde la
+ * parrilla del paso C1, decisión 16, también el punto superior, entre la 2.ª y la 3.ª costillas). Las
  * poses son las de su evidencia (`START_POINT_POSES`, `BLUE_UPPER_POSE`) y ninguna la recorta `clampPose`.
  */
 const scene = new AnatomyScene(defaultPatient());
@@ -40,8 +41,8 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     for (const sp of START_POINTS) {
       expect(sp.yaw, sp.id).toBe(0);
       expect(clampPose(poseOf(sp)), sp.id).toEqual(poseOf(sp));
-      // de la medioclavicular (3π/4) hacia atrás, en el hemitórax derecho (φ > π/2)
-      expect(sp.phi, sp.id).toBeGreaterThanOrEqual(0.75 * Math.PI);
+      // de la medioclavicular (decisión 16, `thoraxLines.ts`) hacia atrás, en el hemitórax derecho (φ > π/2)
+      expect(sp.phi, sp.id).toBeGreaterThanOrEqual(thoraxLinePhi('midclavicular', scene.torso) - 1e-12);
     }
   });
 
@@ -61,8 +62,8 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     }
   });
 
-  it('el punto BLUE inferior y el PLAPS cortan costillas con su sombra y la pleura entre ellas (signo del murciélago)', () => {
-    for (const id of ['blueLower', 'plaps'] as const) {
+  it('los tres puntos cortan costillas con su sombra y la pleura entre ellas (signo del murciélago)', () => {
+    for (const id of ['blueUpper', 'blueLower', 'plaps'] as const) {
       const { scans, shadows } = view(id);
       const tag = `${id}: ${shadows.length} sombras, ${JSON.stringify(shadows.map((s) => s.ribTopMm.toFixed(1)))}`;
       expect(shadows.length, tag).toBeGreaterThanOrEqual(2);

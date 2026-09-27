@@ -19,3 +19,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [13](DECISIONS.md#L532) | Fase 1, paso B2b: la aplicación y una interfaz mínima del modo B | vigente |
 | [14](DECISIONS.md#L603) | Nuevo origen fijado: VExUS c6c81ad | vigente |
 | [15](DECISIONS.md#L665) | Líneas A a múltiplos exactos de la línea pleural mostrada (F-T01) | vigente |
+| [16](DECISIONS.md#L738) | Paso C1: la parrilla costal del adulto promedio (12 costillas y 11 espacios intercostales por hemitórax) | vigente |
