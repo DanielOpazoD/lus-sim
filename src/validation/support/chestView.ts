@@ -8,10 +8,10 @@
  * cuando el paso C cambie la anatomía.
  */
 import { AnatomyQuery } from '../../anatomy/query';
-import { ribLineArc, ribLinePoint, ribScan, ribTableZ, type RibSpec } from '../../anatomy/organs/ribcage';
+import { probeHitPoint, ribCenterDepth, ribLineArc, ribLinePoint, ribScan, ribTableZ, type RibSpec } from '../../anatomy/organs/ribcage';
 import { torsoDepth } from '../../anatomy/primitives';
 import { wallArc } from '../../anatomy/organs/wall';
-import type { AnatomyScene, SceneInstant } from '../../anatomy/scene';
+import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../../anatomy/scene';
 import { Tissue } from '../../anatomy/tissues';
 import type { Vec3 } from '../../core/vec3';
 import type { RespiratorySample } from '../../physiology/respiratory';
@@ -217,10 +217,12 @@ export function ribHeightMm(scene: AnatomyScene, n: number, side: -1 | 1 = -1): 
 
 /**
  * Ancho craneocaudal anatómico (mm) del espacio intercostal n (entre las costillas n y n + 1) en el ángulo del tronco φ:
- * la distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9).
+ * la distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9). Lanza
+ * si una de las dos no llega a la línea (`ribSpans`): la tabla sigue más allá de sus extremos y daría un ancho sin costilla.
  */
 export function intercostalWidthMm(scene: AnatomyScene, n: number, phi: number): number {
   const side = sideOfPhi(phi);
+  for (const k of [n, n + 1]) if (!ribSpans(scene, k, phi)) throw new Error(`la costilla ${k} no llega a la línea φ ${phi.toFixed(3)}`);
   return ribZ(scene, n, phi) - ribZ(scene, n + 1, phi) - ribOf(scene, n, side).halfWidth - ribOf(scene, n + 1, side).halfWidth;
 }
 
@@ -298,4 +300,55 @@ export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBot
     out.push(cur);
   }
   return out;
+}
+
+/**
+ * Borde inferior del pulmón (z, mm) bajo la línea de piel φ en fin de espiración (`BASELINE_INSTANT`): la z más baja del
+ * pulmón que baja sin cortes desde `zTop`, a `insideMm` por dentro de la cara interna de la pared (la pleura parietal) a lo
+ * largo de la normal de la piel; null si en `zTop` no hay pulmón. La meta A-T13 y la limitación `lung-border-above-ribcage`.
+ */
+export function lungBorderZ(scene: AnatomyScene, phi: number, insideMm = 4, zTop = 250, zBottom = -250, step = 0.5): number | null {
+  const t = scene.torso;
+  const p = probeHitPoint(phi, t.skinMm + t.fatMm + t.muscleMm + insideMm, t);
+  let border: number | null = null;
+  for (let z = zTop; z >= zBottom; z -= step) {
+    if (scene.classify([p[0], p[1], z], BASELINE_INSTANT).tissue !== Tissue.Lung) break;
+    border = z;
+  }
+  return border;
+}
+
+/**
+ * Punto (x, y) de la línea media de las costillas del lado `side` en |u| = au: en el rayo radial cuya piel tiene ese arco
+ * (`wallArc`), a la profundidad de `ribCenterDepth` (dos pasadas: la métrica cambia poco en milímetros).
+ */
+function ribMidline(scene: AnatomyScene, au: number, side: -1 | 1): [number, number] {
+  const t = scene.torso;
+  let lo = 0;
+  let hi = Math.PI;
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (wallArc([t.a * Math.sin(mid), t.b * Math.cos(mid), 0], t) < au) lo = mid;
+    else hi = mid;
+  }
+  const tau = 0.5 * (lo + hi);
+  const sx = t.a * Math.sin(tau);
+  const sy = t.b * Math.cos(tau);
+  const R = Math.hypot(sx, sy);
+  let d = t.skinMm + t.fatMm + t.muscleMm;
+  for (let i = 0; i < 3; i++) d = ribCenterDepth([sx * (1 - d / R), sy * (1 - d / R), 0], t, scene.ribCage);
+  return [side * sx * (1 - d / R), sy * (1 - d / R)];
+}
+
+/**
+ * Ángulo (°) bajo el plano transversal de la costilla n en el plano sagital, de su extremo posterior (la apófisis
+ * transversa) a su unión condrocostal: atan(caída / avance anteroposterior) de su línea media, el ángulo costal de
+ * Robinson y cols. medido contra la horizontal (anatomy.md §1.3).
+ */
+export function ribSagittalAngleDeg(scene: AnatomyScene, n: number, side: -1 | 1 = -1): number {
+  const k = ribIndex(scene, n, side);
+  const r = scene.ribs[k];
+  const drop = ribTableZ(scene.ribCage, k, r.uPost) - ribTableZ(scene.ribCage, k, r.uCc);
+  const advance = ribMidline(scene, r.uCc, side)[1] - ribMidline(scene, r.uPost, side)[1];
+  return (Math.atan2(drop, advance) * 180) / Math.PI;
 }

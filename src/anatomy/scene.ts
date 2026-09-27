@@ -4,7 +4,7 @@ import { diaphragmHeight, sdSpine, sdDiaphragm, torsoDepth, type Spine, type Dia
 import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
 import {
   buildRibCage,
-  nearestRib,
+  faceRib,
   ribCurvature,
   ribScan,
   ribSd,
@@ -124,9 +124,10 @@ export class AnatomyScene {
     // Tronco 32 × 21 cm (adulto de IMC 25): la VCI queda a ≈ 12–13 cm del xifoides
     // la grasa preperitoneal es la parte más honda del espesor muscular del hábito (decisión 62)
     this.torso = { a: 160, b: 105, zMin: -300, zMax: 300, skinMm: 2, fatMm: fat, muscleMm: muscle, preperitonealMm: preperitonealMm(fat) };
-    // Referencia craneocaudal: z = 0 en la punta del xifoides (T9–T10). Cúpula derecha
-    // en T8–T9 (+45 mm), reborde costal en la línea medioclavicular ≈ −80 mm, unión
-    // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5].
+    // Referencia craneocaudal: z = 0 en la unión xifoesternal, al nivel del disco T9–T10 (Gray; la punta del xifoides
+    // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16). De VExUS: cúpula derecha en T8–T9 (+45 mm), unión
+    // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5]; el reborde costal es ahora el de la parrilla
+    // (la medioclavicular lo cruza en el 9.º cartílago, con su línea media a −90 mm)
     this.diaphragm = {
       right: { kind: 'dome', x0: -55, y0: -5, rx: 85, ry: 92, apex: 55 },
       left: { kind: 'dome', x0: 70, y0: -5, rx: 70, ry: 85, apex: 25 },
@@ -263,7 +264,7 @@ export class AnatomyScene {
       const iface = this.classify(m, instant).interface;
       if (isWallLayerInterface(iface)) return this.numericGradient(m, (p) => wallFaceSd(p, iface, this.torso), 0);
       if (isRibInterface(iface)) {
-        const k = nearestRib(m, this.torso, this.ribCage);
+        const k = faceRib(m, this.torso, this.ribCage);
         const g = this.numericGradient(m, (p) => ribSd(p, k, this.torso, this.ribCage), ribCurvature(m, k, this.torso, this.ribCage));
         return { ...g, axis: ribTangent(m, k, this.torso, this.ribCage) };
       }

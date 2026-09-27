@@ -5,7 +5,7 @@ import { BLUE_UPPER_POSE } from '../probe/probe';
  * «Puntos de partida» (decisión 17 de VExUS): posiciones cutáneas con ángulos casi neutros hacia las que la sonda
  * se DESLIZA; la ventana hay que afinarla (guía §7: dejan la sonda cerca, no en la imagen perfecta). Los consumen la
  * consola (botones), los ganchos de prueba y el barrido de equivalencia.
- * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en el xifoides).
+ * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en la unión xifoesternal).
  *
  * lus-sim (decisión 12): los puntos del protocolo BLUE del hemitórax derecho [@lichtenstein-bluepoints-2011] en
  * lugar de las ventanas abdominales de VExUS, aproximados sobre la escena heredada; desde la decisión 16, sobre la

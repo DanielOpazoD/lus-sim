@@ -1,7 +1,7 @@
 import { chai, describe, expect, it } from 'vitest';
 import { Interface } from '../anatomy/interfaces';
-import { MAX_RIBS, RIBCAGE, ribTableZ } from '../anatomy/organs/ribcage';
-import { AnatomyScene } from '../anatomy/scene';
+import { MAX_RIBS, RIBCAGE, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
@@ -16,10 +16,12 @@ import {
   intercostalWidthMm,
   intercostalZ,
   longitudinalPose,
+  lungBorderZ,
   pleuraBelowRibCrestMm,
   ribHeightMm,
   ribImageHeightMm,
   ribOf,
+  ribSagittalAngleDeg,
   ribsAlongLine,
   ribShadows,
   ribZ,
@@ -30,7 +32,7 @@ import {
 import { median, simulate, type Scene } from './support/interfaceTwin';
 
 /**
- * Metas de anatomía (docs/KNOWLEDGE.md §4: A-T1–A-T3, A-T6–A-T11 y A-T19, de docs/knowledge/anatomy.md §3), medidas con
+ * Metas de anatomía (docs/KNOWLEDGE.md §4: A-T1–A-T3, A-T6–A-T11, A-T13 y A-T19, de docs/knowledge/anatomy.md §3), medidas con
  * el procedimiento de `support/chestView.ts`: la sonda apoyada con su contacto («presión estándar») y la respiración en
  * fin de espiración, midiendo a lo largo de sus líneas; y la parrilla costal del adulto promedio (decisión 16,
  * `anatomy/organs/ribcage.ts`): 12 costillas y 11 espacios intercostales por hemitórax con sus anchos por nivel y región.
@@ -207,14 +209,18 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
       }
   });
 
-  it('A-T7: el espacio intercostal visible mide 14–20 mm (18,7; 20,1 en el EIC2 del punto BLUE superior, el más ancho)', () => {
-    for (const b of [lateral, anterior]) {
-      expect(b.intercostalMm).toBeGreaterThanOrEqual(14);
-      expect(b.intercostalMm).toBeLessThanOrEqual(20.5);
-    }
-    // el de EIC5-LAM, en el rango de la meta sin redondeo
+  it('A-T7: el espacio intercostal visible mide 14–20 mm (18,7 en EIC5-LAM; el resto de la parrilla, abajo)', () => {
+    expect(lateral.intercostalMm).toBeGreaterThanOrEqual(14);
     expect(lateral.intercostalMm).toBeLessThanOrEqual(20);
   });
+
+  notYetMet(
+    'A-T7: el EIC2 visible del punto BLUE superior mide 14–20 mm (hoy 20,1: la compresión ensancha ×1,12 sus 18 mm de anatomía)',
+    () => {
+      expect(anterior.intercostalMm).toBeGreaterThanOrEqual(14);
+      expect(anterior.intercostalMm).toBeLessThanOrEqual(20);
+    },
+  );
 
   it('A-T8: el periodo costal en el corte longitudinal es de 28–35 mm (34,2), el de la anatomía de 30', () => {
     // la meta: en 40 mm, un EIC completo y dos sombras parciales (14 mm de costilla + 14–20 de espacio, anatomy.md §3)
@@ -313,6 +319,9 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
     ['paravertebral', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]],
   ];
 
+  /** Paso de `ribsAlongLine` (mm): el tramo libre entre dos cruces es su separación menos un paso. */
+  const ALONG_STEP_MM = 0.25;
+
   it('12 costillas y 11 espacios intercostales por hemitórax, contados a lo largo de las líneas craneocaudales, a los dos lados', () => {
     for (const side of [-1, 1] as const) {
       const seen = new Set<number>();
@@ -326,9 +335,14 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
           tag,
         ).toEqual(numbers);
         for (const c of crossings) expect(c.side, tag).toBe(side);
-        // entre dos costillas seguidas, un espacio (un tramo sin hueso ni cartílago)
+        // entre dos costillas seguidas, un espacio: ≥ 1 mm sin hueso ni cartílago en la clasificación de la parrilla y en la
+        // de la escena (dos costillas que se tocan o se solapan no son dos costillas con su espacio, aunque cambie el índice)
+        const hit = ribLinePoint(line(name, side), scene.torso, scene.ribCage);
         for (let i = 1; i < crossings.length; i++) {
-          expect(crossings[i - 1].zBottom, tag).toBeGreaterThan(crossings[i].zTop);
+          const eic = `${tag}; EIC${crossings[i - 1].number}`;
+          expect(crossings[i - 1].zBottom - crossings[i].zTop - ALONG_STEP_MM, eic).toBeGreaterThanOrEqual(1);
+          const mid = scene.classify([hit[0], hit[1], 0.5 * (crossings[i - 1].zBottom + crossings[i].zTop)], BASELINE_INSTANT);
+          expect([Tissue.Bone, Tissue.Cartilage], eic).not.toContain(mid.tissue);
           spaces.add(crossings[i - 1].number);
         }
         crossings.forEach((c) => seen.add(c.number));
@@ -426,6 +440,43 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
     }
   });
 
+  // A-T7 («EIC visibles de 14–20 mm») en los espacios de cada línea, en el corte centrado en cada uno: el ancho visible es el
+  // de la anatomía ×1,12–1,18 (la compresión cinemática). La prueba mide los extremos de cada tramo; el barrido de todos
+  // (12 s, 27-09-2026) dio: LMC EIC3–6 15,0–17,1; LAA EIC2–9 17,4–19,4; LAM EIC1–10 17,6–19,7; LAP EIC1 14,3 y EIC7–10 18,4;
+  // 1,2π EIC7–10 17,1. Fuera del rango: LMC EIC1 40,5 (el 1.er espacio bajo la medioclavicular, `thorax-cylindrical-cage`)
+  // y EIC2 20,1; LAA EIC1 25,6; LAP EIC2–6 13,8 y 1,2π EIC1–6 12,1–13,1 (los espacios altos de detrás, 11–12 mm de anatomía
+  // estimada: Gray los da más estrechos que delante y la base no los mide)
+  const visible = (phi: number, list: number[]) => list.map((n) => ({ n, img: intercostalImageWidthMm(scene, n, phi) }));
+  const visibleOk: Array<[string, ReturnType<typeof visible>]> = [
+    ['LMC', visible(LMC, [3, 6])],
+    ['LAA', visible(LAA, [2, 9])],
+    ['LAM', visible(LAM, [1, 10])],
+    ['LAP', visible(LAP, [1, 7])],
+    ['posterior', visible(POSTERIOR, [7])],
+  ];
+  const visibleHigh: Array<[string, ReturnType<typeof visible>]> = [
+    ['LMC', visible(LMC, [1, 2])],
+    ['LAA', visible(LAA, [1])],
+    ['LAP', visible(LAP, [2])],
+    ['posterior', visible(POSTERIOR, [1])],
+  ];
+  const expectVisible = (list: Array<[string, ReturnType<typeof visible>]>) => {
+    for (const [name, xs] of list)
+      for (const x of xs) {
+        expect(x.img, `EIC${x.n} ${name}`).not.toBeNull();
+        expect(x.img!, `EIC${x.n} ${name}`).toBeGreaterThanOrEqual(14);
+        expect(x.img!, `EIC${x.n} ${name}`).toBeLessThanOrEqual(20);
+      }
+  };
+
+  it('A-T7 en la parrilla: el EIC visible mide 14–20 mm en la LMC (EIC3 y 6), la LAA (2 y 9), la LAM (1 y 10), la LAP (1 y 7) y a 1,2π (7)', () => {
+    expectVisible(visibleOk);
+  });
+
+  notYetMet('A-T7 en los espacios altos: LMC EIC1–2, LAA EIC1, LAP EIC2 y 1,2π EIC1 (hoy 40,5 y 20,1; 25,6; 13,8; 13,1)', () => {
+    expectVisible(visibleHigh);
+  });
+
   notYetMet(
     'en la imagen, la costilla en el centro del sector mide 13–15 mm y los EIC7–9 de la LAP, 14–18 (hoy 16,0–16,5 y 18,4: la compresión cinemática los ensancha ×1,15)',
     () => {
@@ -453,14 +504,16 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
 describe('A-T19: oblicuidad costal', () => {
   // La base: la costilla 7 desciende 90–130 mm entre su extremo posterior y el anterior (Robinson y cols.: 61° en el plano
   // sagital; 195 × tan 30° = 113); un plano horizontal por el ángulo inferior de la escápula corta la 9.ª costilla junto a la
-  // columna y la 5.ª en la línea del pezón (Treves, citado por Gray). Medido (decisión 16): la 7.ª baja 101,3 mm de la
+  // columna y la 5.ª en la línea del pezón (Treves, citado por Gray). Medido (decisión 16): la 7.ª baja 102,9 mm de la
   // apófisis transversa a la unión condrocostal; la 9.ª junto a la columna a 11,5 mm y la 5.ª en la medioclavicular a 11,7.
   // [DISCREPANCIA] el mismo plano, según Treves, cruza el esternón entre la 4.ª y la 5.ª; con los niveles vertebrales del
-  // esternón de Gray (unión xifoesternal en T9–T10) cruza entre la 6.ª (17,0) y la 7.ª (0): se conservan los de Gray
+  // esternón de Gray (unión xifoesternal en T9–T10) cruza entre la 6.ª (17,0) y la 7.ª (0): se conservan los de Gray. La
+  // línea de Treves y los extremos en su vértebra se cumplen por construcción (la 5.ª se ancla en esa línea y cada extremo
+  // posterior en su vértebra, `buildRibCage`): esas pruebas vigilan la construcción, no la validan; la caída y los ángulos sí
   const cage = scene.ribCage;
   const zAt = (n: number, u: number) => ribTableZ(cage, n - 1, u);
 
-  it('la 7.ª costilla desciende 90–130 mm de su extremo posterior al anterior (101,3)', () => {
+  it('la 7.ª costilla desciende 90–130 mm de su extremo posterior al anterior (102,9)', () => {
     const r = ribOf(scene, 7);
     const drop = zAt(7, r.uPost) - zAt(7, r.uCc);
     expect(drop).toBeGreaterThanOrEqual(90);
@@ -481,9 +534,65 @@ describe('A-T19: oblicuidad costal', () => {
     for (let i = 1; i < drops.length; i++) expect(drops[i], `${i + 1}.ª frente a ${i}.ª`).toBeGreaterThan(drops[i - 1]);
   });
 
+  // Robinson y cols. (hombres): el ángulo sagital de la 7.ª, 61,1 ± 7,7° respecto de la línea posterior (29 ± 7,7 bajo el plano
+  // transversal), y el de la 1.ª, 58,9 ± 8,2 (31 ± 8,2). Medido (27-09-2026): la 7.ª, 36,2°; la 1.ª, 17,6: cae 47,7 mm, lo
+  // que baja la real, pero a lo largo de los 150 mm de profundidad del cilindro (`thorax-cylindrical-cage`)
+  it('la 7.ª costilla desciende 29 ± 7,7° bajo el plano transversal en el plano sagital (Robinson y cols.; 36,2)', () => {
+    const a = ribSagittalAngleDeg(scene, 7);
+    expect(a).toBeGreaterThanOrEqual(29 - 7.7);
+    expect(a).toBeLessThanOrEqual(29 + 7.7);
+  });
+
+  notYetMet('la 1.ª costilla desciende 31 ± 8,2° bajo el plano transversal (Robinson y cols.; hoy 17,6: el tronco cilíndrico)', () => {
+    const a = ribSagittalAngleDeg(scene, 1);
+    expect(a).toBeGreaterThanOrEqual(31 - 8.2);
+    expect(a).toBeLessThanOrEqual(31 + 8.2);
+  });
+
   it('cada costilla nace en su vértebra: los extremos posteriores, un segmento torácico entre sí y la 9.ª a la altura de T9', () => {
     const seg = RIBCAGE.params.thoracicSegmentMm.value;
     for (let n = 1; n <= 12; n++) expect(zAt(n, ribOf(scene, n).uPost)).toBeCloseTo((9.5 - n) * seg, 0);
+  });
+});
+
+describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
+  // La parrilla del adulto promedio (decisión 16) sigue la base; el pulmón y las cúpulas siguen siendo los heredados de VExUS
+  // (limitación `lung-border-above-ribcage`). Medido (27-09-2026) en fin de espiración, 4 mm por dentro de la pleura
+  // parietal (`lungBorderZ`): derecho z 41,5 en la LMC (la 4.ª costilla, z 40), 21 en la LAM (la 6.ª, z 24) y 42,5 en la
+  // paravertebral (entre la 7.ª y la 8.ª); izquierdo 17, 4,5 y 9. Gray (anatomy.md §1.5): la 6.ª costilla en la LMC, la 8.ª
+  // en la LAM y la apófisis espinosa de T10 detrás, cuya punta queda a la altura del cuerpo de T11 (z −35)
+  const PARAVERTEBRAL = (side: -1 | 1) => line('paravertebral', side);
+  /** El borde, «a la altura de la costilla n»: entre el centro del espacio de encima y el del de debajo. */
+  const atRib = (z: number | null, n: number, phi: number) => {
+    expect(z).not.toBeNull();
+    expect(z!).toBeLessThanOrEqual(intercostalZ(scene, n - 1, phi));
+    expect(z!).toBeGreaterThanOrEqual(intercostalZ(scene, n, phi));
+  };
+  const border = ([-1, 1] as const).map((side) => ({
+    side,
+    lmc: lungBorderZ(scene, line('midclavicular', side)),
+    lam: lungBorderZ(scene, line('midaxillary', side)),
+    post: lungBorderZ(scene, PARAVERTEBRAL(side)),
+  }));
+
+  it('hay pulmón bajo la pleura en lo alto de las tres líneas, a los dos lados', () => {
+    for (const b of border) for (const z of [b.lmc, b.lam, b.post]) expect(z, `lado ${b.side}`).not.toBeNull();
+  });
+
+  notYetMet(
+    'A-T13: en la LAM el borde del pulmón está a la altura de la 8.ª costilla en FRC (hoy la 6.ª: z 21 derecho, 4,5 izquierdo)',
+    () => {
+      for (const b of border) atRib(b.lam, 8, line('midaxillary', b.side));
+    },
+  );
+
+  notYetMet('borde del pulmón de Gray: la 6.ª costilla en la LMC y T10 detrás (hoy la 4.ª y entre la 7.ª y la 8.ª, z 41,5 y 42,5)', () => {
+    const seg = RIBCAGE.params.thoracicSegmentMm.value;
+    for (const b of border) {
+      atRib(b.lmc, 6, line('midclavicular', b.side));
+      expect(b.post!).toBeLessThanOrEqual((9.5 - 10) * seg);
+      expect(b.post!).toBeGreaterThanOrEqual((9.5 - 12) * seg);
+    }
   });
 });
 

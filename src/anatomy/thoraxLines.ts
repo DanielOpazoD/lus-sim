@@ -24,11 +24,12 @@ export const THORAX_LINES = defineParameters('anatomy.thoraxLines', {
     value: 54.5,
     unit: 'mm',
     range: [50, 60],
-    evidence: 'derivado',
+    evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
     note:
       'Línea paraesternal de Gray, «midway between the lateral sternal and the mammary» («Surface Markings of the Thorax»): ' +
-      '(14 + 95)/2, con el semiancho del cuerpo del esternón (`anatomy.ribcage.sternumBodyHalfWidthMm`) y la medioclavicular',
+      '(14 + 95)/2, con el semiancho del cuerpo del esternón (`anatomy.ribcage.sternumBodyHalfWidthMm`, estimado: hereda su ' +
+      'evidencia) y la medioclavicular',
   },
   anteriorAxillaryPhi: {
     value: 0.875 * Math.PI,
@@ -63,12 +64,13 @@ export const THORAX_LINES = defineParameters('anatomy.thoraxLines', {
     value: 60,
     unit: 'mm',
     range: [50, 60],
-    evidence: 'documentado',
+    evidence: 'estimado',
     sources: ['yoshida-intercostales-2019'],
     note:
       'Línea posterior de medida: a 50–60 mm de las apófisis espinosas, donde Yoshida y cols. midieron los intercostales ' +
-      'posteriores (Tabla 2); el extremo lateral del rango, para que la sonda, que mira por la normal de la piel, corte las ' +
-      'costillas por fuera de su articulación con la apófisis transversa. Por ella pasan las 12: la línea de las cuentas por hemitórax',
+      'posteriores (Tabla 2, documentado); el extremo lateral es una elección de diseño, para que la sonda, que mira por la ' +
+      'normal de la piel, corte las costillas por fuera de su articulación con la apófisis transversa. Por ella pasan las 12: ' +
+      'la línea de las cuentas por hemitórax',
   },
 });
 

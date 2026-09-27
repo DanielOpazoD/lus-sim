@@ -3,10 +3,12 @@ import {
   equivalenceSweep,
   interfaceShellEquivalence,
   pleuraEquivalence,
+  ribEndsEquivalence,
   volumeEquivalence,
   type EquivalencePoseReport,
   type InterfaceShellReport,
   type PleuraEquivalenceReport,
+  type RibEndsReport,
   type VolumeEquivalenceReport,
 } from './equivalenceSweep';
 import { contactCoupling } from '../probe/contact';
@@ -44,6 +46,8 @@ export interface TestHooks {
   interfaceShell: () => InterfaceShellReport;
   /** La pleura parietal de A0 frente a su gemelo de TS, línea a línea, en los puntos de partida. */
   pleuraEquivalence: () => PleuraEquivalenceReport;
+  /** Equivalencia TS ↔ GLSL en nubes alrededor de los extremos de las 24 costillas (tejido, cara y su normal). */
+  ribEnds: () => RibEndsReport;
   /**
    * Estadística del speckle en el músculo de la pared (guarda de imagen). Con `startPoint` o `pose` (lus-sim: la guarda
    * mide en poses paraesternales, donde el músculo es una sola capa), coloca antes la sonda y avanza lo justo para que
@@ -211,6 +215,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     equivalenceSweep: () => equivalenceSweep(getSim()),
     volumeEquivalence: (n) => volumeEquivalence(getSim(), n),
     interfaceShell: () => interfaceShellEquivalence(getSim()),
+    ribEnds: () => ribEndsEquivalence(getSim()),
     pleuraEquivalence: () => withCompound(getSim(), dispatch, false, () => pleuraEquivalence(getSim())),
     speckle: (opts) => {
       const sim = getSim();

@@ -463,9 +463,9 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     expect(cls.indexOf('vec4 wd = wallDepths(u, m.z);')).toBeGreaterThan(inWall);
     // y la parrilla no mira nada bajo la pared
     expect(glsl).toContain('if (d >= uWall.x + uWall.y + uWall.z) return -1;');
-    // faceGradient: la distancia de la capa y la de la costilla más cercana
+    // faceGradient: la distancia de la capa y la de la costilla cuya cara es (la de la clasificación)
     expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
-    expect(glsl).toContain('int k = nearestRib(m);');
+    expect(glsl).toContain('int k = faceRib(m);');
   });
 
   it('la pasada B aplica la textura solo a la grasa y al músculo, y el eco de las caras de pared y costilla', () => {

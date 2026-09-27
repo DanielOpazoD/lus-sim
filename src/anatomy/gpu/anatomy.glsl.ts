@@ -9,11 +9,13 @@
  * cúpulas), con el mismo orden de clasificación que `AnatomyScene.classify`: pared → costillas → columna →
  * cortina pulmonar → tórax/diafragma → el «resto» bajo el diafragma. Sin los tubos (vasos y conductos) ni su
  * lista por cuadro, la aurícula, la vesícula, los riñones, el hígado, sus ligamentos ni el gas intestinal de
- * VExUS; la textura de escena guarda solo la tabla de la compresión.
+ * VExUS. Las costillas son la parrilla costal del adulto promedio (decisión 16, `organs/ribcage.ts`).
  *
  * Disposición de la textura (índice lineal i → texel (i % SCENE_TEX_W, i / SCENE_TEX_W)):
  *   tabla de la compresión de la sonda desde COMPRESSION_BASE (decisión 63, `anatomy/compression.ts`): un téxel
- *   por nodo de la cara, (s₀ mm, s_D mm, D mm, R mm)
+ *   por nodo de la cara, (s₀ mm, s_D mm, D mm, R mm);
+ *   tabla de las alturas de las costillas desde RIB_TABLE_BASE (decisión 16): por lado y columna de |u|, tres téxeles
+ *   con las z de las líneas medias de las costillas 1–4, 5–8 y 9–12
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, TISSUE_GLSL_NAME } from '../tissues';
 import {
@@ -256,8 +258,9 @@ vec4 faceGradient(Cls c, vec3 m) {
              wallFaceSd(m + h.yxy, c.iface) - wallFaceSd(m - h.yxy, c.iface),
              wallFaceSd(m + h.yyx, c.iface) - wallFaceSd(m - h.yyx, c.iface));
   } else if (c.iface == IF_RIB || c.iface == IF_PERICHONDRIUM) {
-    // cortical o pericondrio: la distancia de la costilla (o del esternón) más cercana (ribSd, organs/ribcage.ts)
-    int k = nearestRib(m);
+    // cortical o pericondrio: la distancia de la costilla (o del esternón) cuya cara es, la de la clasificación (faceRib,
+    // organs/ribcage.ts: la que contiene el punto o el hueso más cercano)
+    int k = faceRib(m);
     g = vec3(ribSd(m + h.xyy, k) - ribSd(m - h.xyy, k),
              ribSd(m + h.yxy, k) - ribSd(m - h.yxy, k),
              ribSd(m + h.yyx, k) - ribSd(m - h.yyx, k));

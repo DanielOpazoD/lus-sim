@@ -56,7 +56,8 @@ la salida actual no protege nada.
 - **Equivalencia TS ↔ GLSL en la e2e.** La anatomía existe dos veces: en TypeScript (pruebas, medidas) y en GLSL (la
   imagen). `e2e/imagen.spec.ts` las compara con los ganchos del banco (`/?e2e=1`): los planos de los tres puntos de
   partida, 50 000 puntos del volumen del tórax (exactos en tejido y cara a ≥ 1 mm de una interfaz), la cáscara de las
-  caras de la pared, las costillas y la pleura, la pleura de A0 línea a línea (a lo sumo el paso final de su bisección),
+  caras de la pared, las costillas y la pleura, nubes alrededor de los extremos de las 24 costillas (`ribEnds`: tejido,
+  cara y normal hasta 0,05 mm de los bordes), la pleura de A0 línea a línea (a lo sumo el paso final de su bisección),
   las normales de las caras y la transmisión de la pasada A. Los umbrales llevan en su comentario lo medido con GPU
   real y con SwiftShader.
 - **La física en la imagen de la GPU, no en un gemelo.** Las líneas A se miden sobre la envolvente leída de la GPU
@@ -118,7 +119,9 @@ la salida actual no protege nada.
   (`probe-compression-kinematic`), que se mide y, donde saca la imagen del rango, va con `notYetMet`.
 - **Las cuentas salen de la clasificación.** `ribsAlongLine` recorre cada línea de arriba abajo con `ribScan` (la
   parrilla de la clasificación, la de la GPU) y la prueba exige, por línea, las costillas en su orden y del lado de la línea:
-  ninguna falta, se funde con otra ni sobra; por hemitórax, 12 costillas y 11 espacios, y las dos parrillas simétricas.
+  ninguna falta, se funde con otra ni sobra (entre dos cruces seguidos, ≥ 1 mm sin hueso ni cartílago en la clasificación:
+  que cambie el índice no basta); por hemitórax, 12 costillas y 11 espacios, y las dos parrillas simétricas. Aparte, en
+  todo |u| donde están dos costillas seguidas, su espacio es ≥ 1 mm (≥ 0 junto a la punta de un cartílago del reborde).
 - **La construcción, contra la base.** `src/validation/ribcage.test.ts`: los niveles vertebrales del esternón y de los
   extremos posteriores, los cartílagos que llegan al esternón o al de arriba, las uniones condrocostales, las puntas libres,
   la calcificación y la tabla (simétrica, suave, sin salirse de la textura).

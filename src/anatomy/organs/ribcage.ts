@@ -200,10 +200,12 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
   parasternalIcs6Mm: {
     value: 3,
     unit: 'mm',
-    range: [0, 6],
+    range: [1, 6],
     evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
-    note: 'Ídem; los cartílagos 6.º y 7.º casi se tocan junto al esternón («enlarged where their margins are in contact», «The Costal Cartilages»)',
+    note:
+      'Ídem; los cartílagos 6.º y 7.º casi se tocan junto al esternón («enlarged where their margins are in contact», «The ' +
+      'Costal Cartilages»). El rango no baja de 1 mm: en la paraesternal son dos cartílagos con su espacio (la cuenta por línea)',
   },
   midclavicularIcs1Mm: {
     value: 36,
@@ -220,9 +222,11 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     value: 18,
     unit: 'mm',
     range: [14, 22],
-    evidence: 'documentado',
+    evidence: 'derivado',
     sources: ['seong-espaciosic-2020', 'gray-anatomia-1918'],
-    note: 'EIC2 del avatar en la medioclavicular (anatomy.md §2.3), el más ancho de los anteriores (Gray)',
+    note:
+      'EIC2 del avatar en la medioclavicular (anatomy.md §2.3, derivado): el 2.º paraesternal de Seong y Woo, 18,1, llevado a la ' +
+      'medioclavicular; el más ancho de los anteriores (Gray)',
   },
   midclavicularIcs3to4Mm: {
     value: 14,
@@ -249,16 +253,19 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
     note:
-      'EIC6–7 en la medioclavicular, «comparatively narrow» (Gray): algo menos que el EIC5 de la base. Con ellos la 8.ª costilla ' +
-      'queda en la medioclavicular dos costillas bajo el borde del pulmón (la 6.ª), donde Gray pone la reflexión pleural',
+      'EIC6–7 en la medioclavicular, «comparatively narrow» (Gray): algo menos que el EIC5 de la base. Son los espacios del seno ' +
+      'costofrénico de Gray en esa línea, del borde del pulmón en espiración (la 6.ª costilla) a la reflexión pleural (el 8.º ' +
+      'cartílago); el pulmón de la escena aún acaba más arriba (limitación `lung-border-above-ribcage`)',
   },
   midclavicularIcs8Mm: {
     value: 5,
     unit: 'mm',
-    range: [0, 10],
+    range: [1, 10],
     evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
-    note: 'EIC8 en la medioclavicular: el cartílago de la 9.ª se une al de la 8.ª junto a ella (el reborde costal; «The Costal Cartilages»)',
+    note:
+      'EIC8 en la medioclavicular: el cartílago de la 9.ª se une al de la 8.ª junto a ella (el reborde costal; «The Costal ' +
+      'Cartilages»). El rango no baja de 1 mm: la punta del 9.º queda por dentro de la línea, que cruza los dos cartílagos',
   },
   midaxillaryIcs1to4Mm: {
     value: 15,
@@ -292,7 +299,9 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     range: [10, 15],
     evidence: 'estimado',
     sources: ['kimys-espaciosic-2014', 'gray-anatomia-1918'],
-    note: 'Espacios altos en la axilar posterior: sin medida; más estrechos que delante (Gray) y que los bajos de Kim',
+    note:
+      'Espacios altos en la axilar posterior: sin medida; más estrechos que delante (Gray) y que los bajos de Kim. En la imagen, ' +
+      '13,8 mm: bajo los 14–20 de A-T7',
   },
   posteriorAxillaryIcs7to11Mm: {
     value: 16,
@@ -310,7 +319,8 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     sources: ['gray-anatomia-1918'],
     note:
       'Unión condrocostal de las costillas 4.ª–5.ª a 7–8 cm de la línea media (anatomy.md §2.3): el pezón a 9–10 cm y a 2 cm de ' +
-      'ella (Gray). Es la x del hueso; la de la 4.ª y la 5.ª, 75 ∓ el paso',
+      'ella (Gray). Es anatomía de superficie: la x de la línea de piel bajo la que la sonda (por la normal) corta la unión, como ' +
+      'la medioclavicular; la de la 4.ª y la 5.ª, 75 ∓ el paso',
   },
   costochondralStepMm: {
     value: 6,
@@ -319,18 +329,21 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
     note:
-      'Los cartílagos «increase in length from the first to the seventh» (Gray): la unión condrocostal de la n-ésima (1–7) a ' +
-      '75 + (n − 4,5)·6 mm de la línea media (la 1.ª a 54, con un cartílago de ≈ 3 cm; la 7.ª a 90)',
+      'Los cartílagos «increase in length from the first to the seventh» (Gray): la unión condrocostal de la n-ésima (1–8) bajo ' +
+      'la línea de piel a 75 + (n − 4,5)·6 mm de la línea media (la 1.ª a 54, con un cartílago de ≈ 3 cm; la 7.ª a 90, por ' +
+      'dentro de la medioclavicular; la 8.ª a 96, 1 mm de piel por fuera de ella: la reflexión pleural cruza el 8.º cartílago ' +
+      'junto a su unión en la línea mamaria, Gray)',
   },
-  costochondral9Fraction: {
-    value: 0.5,
-    unit: 'fracción',
-    range: [0.2, 0.8],
+  costochondralLowStepMm: {
+    value: 12,
+    unit: 'mm',
+    range: [6, 16],
     evidence: 'estimado',
     sources: ['gray-anatomia-1918'],
     note:
-      'La 8.ª unión condrocostal está en la línea mamaria (Gray, la reflexión pleural); la 9.ª, a esta fracción del camino ' +
-      'de la medioclavicular a la axilar anterior, y la 10.ª en la axilar anterior [SUPUESTO]',
+      'Paso (x de la línea de piel) de la 8.ª unión condrocostal a la 9.ª y de esta a la 10.ª: las uniones siguen hacia fuera y ' +
+      'los cartílagos «then gradually decrease to the last» (Gray, «The Costal Cartilages»), lo que pide un paso menor que el de ' +
+      'las puntas del reborde (≈ 17 mm de piel); la 10.ª queda a 12 cm, entre la medioclavicular y la axilar anterior [SUPUESTO]',
   },
   marginTip8XMm: {
     value: 60,
@@ -592,6 +605,10 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
   const lineU = (phi: number) => Math.abs(wallArc(ribLineHit(phi, t, P.pleuraComplexMm.value + ht), t));
   const xU = (x: number, posterior = false) => arcOfTau(tauOfX(x, cd, t, posterior), t);
   const lineY = (u: number) => radialPoint(tauOfArc(u, t), cd, t)[1];
+  // |u| bajo la línea de piel a x mm de la línea media (anatomía de superficie, como la medioclavicular)
+  const skinU = (x: number) => lineU(Math.PI - Math.acos(x / t.a));
+  // x de la línea de piel de la unión condrocostal n-ésima (1–8)
+  const ccX = (n: number) => P.costochondral4to5XMm.value + (n - 4.5) * P.costochondralStepMm.value;
   const bodyHw = P.sternumBodyHalfWidthMm.value;
   const st: RibCageStations = {
     sternal: xU(bodyHw),
@@ -709,15 +726,10 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
     let uCc: number;
     if (n <= 7) {
       uEnd = xU(sternumHalfWidth(zRib(n, st.sternal), cage));
-      uCc = xU(P.costochondral4to5XMm.value + (n - 4.5) * P.costochondralStepMm.value);
+      uCc = skinU(ccX(n));
     } else if (n <= 10) {
       uEnd = tip(n);
-      uCc =
-        n === 8
-          ? st.midclavicular
-          : n === 9
-            ? st.midclavicular + P.costochondral9Fraction.value * (st.anteriorAxillary - st.midclavicular)
-            : st.anteriorAxillary;
+      uCc = skinU(ccX(8) + (n - 8) * P.costochondralLowStepMm.value);
     } else {
       uEnd = n === 11 ? st.midaxillary - P.tip11BeforeMidaxillaryMm.value : st.posteriorAxillary - P.tip12BeforePosteriorAxillaryMm.value;
       uCc = uEnd + P.floatingCapMm.value;
@@ -885,20 +897,14 @@ export function ribSd(m: Vec3, k: number, t: Torso, cage: RibCage): number {
   return ribSdAt(nP, au, m[2], ribTableZ(cage, k, au), cage.ribs[k], cage).d;
 }
 
-/** La costilla (o el esternón, `MAX_RIBS`) más cercana: las del lado de la muestra en orden y después el esternón. */
-export function nearestRib(m: Vec3, t: Torso, cage: RibCage): number {
-  const s = wallArc(m, t) < 0 ? 0 : 1;
-  let best = s * RIBS_PER_SIDE;
-  let bd = 1e9;
-  for (let j = 0; j < RIBS_PER_SIDE; j++) {
-    const d = ribSd(m, s * RIBS_PER_SIDE + j, t, cage);
-    if (d < bd) {
-      bd = d;
-      best = s * RIBS_PER_SIDE + j;
-    }
-  }
-  if (ribSd(m, MAX_RIBS, t, cage) < bd) best = MAX_RIBS;
-  return best;
+/**
+ * La costilla (o el esternón, `MAX_RIBS`) cuya cara dibuja el punto: la que lo contiene (el pericondrio de su cartílago) o,
+ * en el tejido blando, el hueso más cercano (la cortical que le da `ribScan`, `ribI`). La misma que elige la clasificación
+ * de la GPU para la tangente y la curvatura de la cara, y `faceGradient` (TS y GLSL) para su gradiente.
+ */
+export function faceRib(m: Vec3, t: Torso, cage: RibCage): number {
+  const scan = ribScan(m, -torsoDepth(m, t), wallArc(m, t), t, cage);
+  return scan.inside >= 0 ? scan.inside : scan.ribI;
 }
 
 /**
@@ -1040,16 +1046,10 @@ float ribSd(vec3 m, int k) {
   float au = abs(u);
   return ribSdAt(nP, au, m.z, ribTableZ(k, au), uRibs[k], c);
 }
-int nearestRib(vec3 m) {
-  int s = wallArc(m) < 0.0 ? 0 : 1;
-  int best = s * RIBS_PER_SIDE;
-  float bd = 1e9;
-  for (int j = 0; j < RIBS_PER_SIDE; j++) {
-    float d = ribSd(m, s * RIBS_PER_SIDE + j);
-    if (d < bd) { bd = d; best = s * RIBS_PER_SIDE + j; }
-  }
-  if (ribSd(m, MAX_RIBS) < bd) best = MAX_RIBS;
-  return best;
+int faceRib(vec3 m) {
+  float inD; bool cart; float ribD; int ribI; float ribAny;
+  int ri = ribScan(m, -torsoDepth(m), wallArc(m), inD, cart, ribD, ribI, ribAny);
+  return ri >= 0 ? ri : ribI;
 }
 vec3 ribTangent(vec3 p, int k) {
   if (k == MAX_RIBS) return vec3(0.0, 0.0, 1.0);

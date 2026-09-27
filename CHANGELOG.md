@@ -49,11 +49,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   cartílagos (1–7 al esternón, 8–10 al de arriba, 11–12 libres), el esternón (manubrio, cuerpo y xifoides) y 11 espacios
   intercostales por lado con sus anchos por nivel y región (EIC2/3/4/5 de la medioclavicular 18/14/14/15 mm; paraesternales
   18,1 y 12,3; laterales bajos 17; posteriores bajos 16; 9,3 junto a la columna), costillas de 14 mm con la pleura 5 mm bajo
-  su cresta y la oblicuidad de la base (la 7.ª baja 101 mm; la línea de Treves). Módulos nuevos `src/anatomy/organs/ribcage.ts`
-  (TS y GLSL; la tabla de alturas en la textura de escena) y `src/anatomy/thoraxLines.ts`; el signo del murciélago aparece
-  en el punto BLUE superior. Pruebas: las cuentas por línea, los anchos en la anatomía y en la imagen, la simetría, A-T7,
-  A-T8, A-T9, A-T19 y la geometría de F-T08 pasan a cumplirse; `src/validation/ribcage.test.ts`.
-- Limitaciones nuevas `thorax-cylindrical-cage` y `rib-section-uniform` (16).
+  su cresta y la oblicuidad de la base (la 7.ª baja 102,9 mm y 36,2°; la línea de Treves); las uniones condrocostales bajo
+  la línea de piel, hacia fuera de la 1.ª a la 10.ª, con los cartílagos que alargan hasta la 7.ª y acortan después.
+  Módulos nuevos `src/anatomy/organs/ribcage.ts` (TS y GLSL; la tabla de alturas en la textura de escena) y
+  `src/anatomy/thoraxLines.ts`; el signo del murciélago aparece en el punto BLUE superior. Pruebas: las cuentas por línea
+  (sin costillas fundidas), los anchos en la anatomía y en la imagen, la simetría, A-T7 en los espacios de cada línea,
+  A-T8, A-T9, A-T19 y la geometría de F-T08 pasan a cumplirse; A-T13 y los EIC visibles altos, medidos y pendientes;
+  `src/validation/ribcage.test.ts`; la equivalencia TS ↔ GLSL en los extremos de las 24 costillas (`ribEnds`).
+- Limitaciones nuevas `thorax-cylindrical-cage`, `rib-section-uniform` y `lung-border-above-ribcage` (16).
 
 ### Cambiado
 

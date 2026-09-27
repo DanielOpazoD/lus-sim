@@ -26,7 +26,9 @@ conservan su identificador (decisiones 10 y 11).
   10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la
   medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula, que no existe en la escena) y el esternón es
   vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
-  hombres: 303 × 195 × 366); la pared del paso C2 (13 mm al lado) lleva el ancho a ≈ 303.
+  hombres: 303 × 195 × 366); la pared del paso C2 (13 mm al lado) lleva el ancho a ≈ 303. La 1.ª costilla cae lo que la real
+  (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de los 150 mm de profundidad del cilindro: 17,6°
+  bajo el plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 36,2 frente a 29 ± 7,7).
 - **Una sola sección para todas las costillas** (`rib-section-uniform`, decisión 16): las 24 costillas y sus cartílagos
   tienen la misma elipse de 14 mm de alto (medido en vertical, el corte longitudinal de la ecografía: la sección
   perpendicular de una costilla oblicua es más estrecha) y 4,7 mm de grosor, de hueso homogéneo, sin cortical ni esponjosa
@@ -49,6 +51,13 @@ conservan su identificador (decisiones 10 y 11).
   la pleura parietal acaba en x = 10 mm (`pleuraXMax`). En el hemitórax izquierdo el pulmón bajo la pared no
   registra pleura: desde la decisión 16 la imagen muestra allí las costillas con su sombra, pero sin línea pleural ni
   líneas A (paso C3).
+- **El borde del pulmón es el heredado, unas dos costillas por encima del de Gray** (`lung-border-above-ribcage`, decisión
+  16): la parrilla sigue la base, pero el pulmón y las cúpulas siguen siendo los de VExUS. En fin de espiración, 4 mm por
+  dentro de la pleura, el pulmón derecho acaba en z 41,5 en la LMC (la 4.ª costilla; Gray: la 6.ª, z −17), en 21 en la LAM
+  (la 6.ª; Gray: la 8.ª, z −37) y en 42,5 junto a la columna (entre la 7.ª y la 8.ª; Gray: la apófisis espinosa de T10,
+  z ≈ −35); el izquierdo, en 17, 4,5 y 9. Bajo la pleura de los EIC4–8 de la LMC y los EIC6–10 de la LAM derechas no hay
+  pulmón sino diafragma y abdomen, y la reflexión pleural no llega a la 8.ª unión condrocostal ni a la 10.ª costilla (meta
+  A-T13, paso C3).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
@@ -106,7 +115,9 @@ conservan su identificador (decisiones 10 y 11).
   laterales de la pasada D (`no-sidelobes`; sin él no se ve ninguna), que además sube la pleura, y con los espacios
   intercostales del adulto promedio (15–20 mm; antes 5–12) hay más pleura brillante a su alcance: antes de la parrilla el
   núcleo quedaba a −46…−67 dB. Con la pleura 5 mm bajo la cresta (antes 7–8), la sombra completa empieza a 4–5 líneas del
-  borde de la sombra, donde la pleura aún es la cola lateral de la PSF del eco vecino (−30…−39 dB a 4–6 líneas). Y el
+  borde de la sombra, donde la pleura aún recibe el eco vecino por la pasada D (−30…−39 dB a 4–6 líneas): no por el lóbulo
+  principal de la PSF lateral, que cae bajo −35 dB desde 3 líneas, sino sobre todo por su pedestal (el gemelo
+  `lateralKernel` deja −30…−33 dB por energía a 4–6 líneas); las 6 líneas de la e2e son la medida. Y el
   preajuste deja la línea pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]).
   `e2e/imagen.spec.ts` exige el fallo con su tamaño; corregirlo pide una decisión con evidencia: la transmisión coherente
   por el hueso, su sección, el brillo de la línea pleural y, si se justifica, el pedestal.

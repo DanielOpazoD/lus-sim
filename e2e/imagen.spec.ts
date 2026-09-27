@@ -45,6 +45,20 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // la distancia al borde del tejido, la que funde los bordes en la pasada B (hasta 10 mm, lo que puede importar;
   // lo añadió la revisión): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
   expect(vol.boundaryDistanceMaxErr, vtag).toBeLessThan(0.02);
+  // Los extremos de las 24 costillas (lo pidió la revisión del paso C1: el volumen apenas los toca): nubes de 22 680 puntos
+  // alrededor de las uniones esternocostales, las condrocostales, las puntas y los extremos posteriores, hasta 0,05 mm de
+  // los bordes. GPU real y SwiftShader: 19 460 interiores (hueso 3658, cartílago 1936), acuerdo 1 de tejido y de cara,
+  // |Δifd| ≤ 0,014 mm y, en 2263 puntos de la banda del eco de la cortical o del pericondrio, |n_GPU·n_TS| ≥ 0,9999997
+  const ends = await page.evaluate(() => window.__lusTest!.ribEnds());
+  const etag = JSON.stringify(ends);
+  expect(ends.interiorPoints, etag).toBeGreaterThan(15_000);
+  expect(ends.byTissue.Bone ?? 0, etag).toBeGreaterThan(1000);
+  expect(ends.byTissue.Cartilage ?? 0, etag).toBeGreaterThan(1000);
+  expect(ends.tissueAgreement, etag).toBe(1);
+  expect(ends.faceAgreement, etag).toBe(1);
+  expect(ends.faceDistanceMaxErr, etag).toBeLessThan(0.02);
+  expect(ends.normalPoints, etag).toBeGreaterThan(1000);
+  expect(ends.normalMin, etag).toBeGreaterThan(0.9999);
   // Cáscara: los puntos a 0,01–0,6 mm de una cara donde se dibuja su eco, según la CPU o la GPU. En el tórax la cara
   // interna de la pared (Peritoneum en la tabla de VExUS) es la pleura parietal. Con la parrilla del paso C1, 21 501 puntos
   // (2702 de la cortical costal) y acuerdo 1
@@ -219,9 +233,12 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −34,7…−39,2 dB (F-T08 pide −20; la sombra
   //    parcial del borde del BLUE inferior, −58);
   //  - con la pleura 5 mm bajo la cresta (antes 7–8), el cono de la pasada A en la pleura es estrecho y la sombra completa
-  //    empieza a 4–5 líneas del borde de la sombra; ahí la pleura aún es la cola lateral de la PSF de la pasada D del eco
-  //    pleural intercostal vecino (+42 dB): −30, −35 y −39 dB a 4, 5 y 6 líneas del borde. Desde 7 líneas (≈ 3,7 mm a la
-  //    pleura), el núcleo de la sombra;
+  //    empieza a 4–5 líneas del borde de la sombra; ahí la pleura aún recibe el eco pleural intercostal vecino (+42 dB) por
+  //    la pasada D: −30, −35 y −39 dB a 4, 5 y 6 líneas del borde. No es el lóbulo principal de la PSF lateral (su gemelo,
+  //    `lateralKernel` sin pedestal, cae bajo −35 dB desde 3 líneas a 22–31 mm con el foco a 25) sino sobre todo el pedestal
+  //    de lóbulos laterales (`no-sidelobes`): con él, la pleura encendida desde el borde deja −30…−33 dB por energía a 4–6
+  //    líneas (−40…−61 si se sumara coherente). El 6 de `PSF_REACH_LINES` es la medida, no una derivación. Desde 7 líneas
+  //    (≈ 3,7 mm a la pleura), el núcleo de la sombra;
   //  - en el núcleo, la ventana queda ≥ 40,6 dB más oscura que la de las líneas libres;
   //  - pero la línea pleural sigue a −40,8…−41,7 dB, en pantalla a −23,4…−25,6 dB (gris sobre negro; antes de la parrilla
   //    −29…−50: las costillas de VExUS estaban 7–8 mm sobre la pleura y los espacios eran de 5–12 mm, con menos pleura
@@ -232,7 +249,7 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   //    del blanco.
   test.setTimeout(300_000);
   const errors = await openBench(page);
-  /** Líneas desde el borde de la sombra hasta las que la cola lateral de la PSF del eco pleural vecino queda bajo −40 dB. */
+  /** Líneas desde el borde de la sombra hasta las que el eco pleural vecino (por el pedestal de la pasada D) supera −40 dB: medido. */
   const PSF_REACH_LINES = 6;
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
     const s = await page.evaluate((id) => window.__lusTest!.ribShadow({ startPoint: id, respiration: 'apnea-expiratory' }), startPoint);
@@ -267,7 +284,7 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
       expect(mean - ref, `sombra ${run[0].line}–${run[run.length - 1].line} (${tag})`).toBeLessThanOrEqual(-20);
     }
     // lo que se ve de la pleura dentro de la sombra es su borde: la penumbra de la apertura (física: parte del cono pasa
-    // junto a la costilla) y la cola lateral de la PSF del eco vecino; a más de −40 dB, solo a ≤ PSF_REACH_LINES del borde
+    // junto a la costilla) y el eco vecino que trae la pasada D; a más de −40 dB, solo a ≤ PSF_REACH_LINES del borde
     for (const x of bone) if (x.pleuraDb - ref > -40) expect(x.edgeLines, `línea ${x.line} (${tag})`).toBeLessThanOrEqual(PSF_REACH_LINES);
     for (const x of core) {
       // la costilla apaga la pleura y oscurece el núcleo de la sombra (su transmisión, −64…−79 dB ida y vuelta por un rayo)

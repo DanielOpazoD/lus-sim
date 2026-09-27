@@ -10,6 +10,7 @@ import {
   RIB_TABLE_COLS,
   RIB_TABLE_DU_MM,
   pleuraNormalDepth,
+  ribLineArc,
   ribLinePoint,
   ribScan,
   ribTableZ,
@@ -120,23 +121,37 @@ describe('esternón: manubrio, cuerpo y xifoides (Gray, «The Sternum» y «Surf
 });
 
 describe('cartílagos y extremos de las costillas (Gray, «The Costal Cartilages» y «The Ribs»)', () => {
-  it('uniones condrocostales: cartílago por dentro, hueso por fuera; la 4.ª y la 5.ª a 7–8 cm de la línea media; los cartílagos alargan de la 1.ª a la 7.ª', () => {
-    let prev = 0;
-    for (let n = 1; n <= 7; n++) {
+  it('uniones condrocostales: cartílago por dentro, hueso por fuera; la 4.ª y la 5.ª bajo la piel a 7–8 cm de la línea media; hacia fuera en orden de la 1.ª a la 10.ª', () => {
+    /** |u| bajo la línea de piel a x mm de la línea media (anatomía de superficie). */
+    const skinU = (x: number) => ribLineArc(Math.PI - Math.acos(x / t.a), t, cage);
+    for (let n = 1; n <= 10; n++) {
       const r = ribOf(scene, n);
       expect(cls(onRib(n, r.uCc - 1)).tissue, `${n}.ª`).toBe(Tissue.Cartilage);
       expect(cls(onRib(n, r.uCc + 1)).tissue, `${n}.ª`).toBe(Tissue.Bone);
-      if (n === 4 || n === 5) {
-        const x = Math.abs(onRib(n, r.uCc)[0]);
-        expect(x).toBeGreaterThanOrEqual(70);
-        expect(x).toBeLessThanOrEqual(80);
-      }
-      const length = r.uCc - r.uEnd;
-      expect(length, `${n}.ª`).toBeGreaterThan(prev);
-      prev = length;
+      if (n > 1) expect(r.uCc, `${n}.ª por fuera de la ${n - 1}.ª`).toBeGreaterThan(ribOf(scene, n - 1).uCc);
     }
-    // la 8.ª unión condrocostal, en la medioclavicular (la reflexión pleural de Gray la cruza en la línea mamaria)
-    expect(ribOf(scene, 8).uCc).toBeCloseTo(cage.stations.midclavicular, 6);
+    for (const n of [4, 5]) {
+      expect(ribOf(scene, n).uCc, `${n}.ª`).toBeGreaterThanOrEqual(skinU(70));
+      expect(ribOf(scene, n).uCc, `${n}.ª`).toBeLessThanOrEqual(skinU(80));
+    }
+    // la 7.ª, por dentro de la medioclavicular; la 8.ª, en ella (la reflexión pleural de Gray cruza su unión en la línea
+    // mamaria): la sonda en la medioclavicular corta el 8.º cartílago a ≤ 3 mm de la unión
+    const mcl = cage.stations.midclavicular;
+    expect(ribOf(scene, 7).uCc).toBeLessThan(mcl);
+    expect(ribOf(scene, 8).uCc).toBeGreaterThan(mcl);
+    expect(ribOf(scene, 8).uCc - mcl).toBeLessThanOrEqual(3);
+    expect(cls(onRib(8, mcl)).tissue).toBe(Tissue.Cartilage);
+    for (let n = 1; n <= 7; n++) expect(cls(onRib(n, mcl)).tissue, `${n}.ª en la LMC`).toBe(Tissue.Bone);
+  });
+
+  it('los cartílagos alargan de la 1.ª a la 7.ª y después acortan hasta la 10.ª (Gray, «The Costal Cartilages»)', () => {
+    const length = (n: number) => ribOf(scene, n).uCc - ribOf(scene, n).uEnd;
+    for (let n = 2; n <= 7; n++) expect(length(n), `${n}.ª frente a ${n - 1}.ª`).toBeGreaterThan(length(n - 1));
+    for (let n = 8; n <= 10; n++) expect(length(n), `${n}.ª frente a ${n - 1}.ª`).toBeLessThan(length(n - 1));
+    // la 1.ª, de ≈ 3 cm; la 10.ª, todavía de ≥ 1 cm
+    expect(length(1)).toBeGreaterThanOrEqual(25);
+    expect(length(1)).toBeLessThanOrEqual(40);
+    expect(length(10)).toBeGreaterThanOrEqual(10);
   });
 
   it('los cartílagos 8.º–10.º acaban en el de arriba (se tocan en la punta) y las 11.ª y 12.ª, libres con su punta de cartílago', () => {
@@ -166,6 +181,30 @@ describe('cartílagos y extremos de las costillas (Gray, «The Costal Cartilages
       expect(Math.abs(p[0]), `${n}.ª`).toBeCloseTo(scene.spine.archHalfWidth + 6, 0);
       expect([Tissue.Bone, Tissue.Cartilage], `${n}.ª`).not.toContain(cls(onRib(n, r.uPost + 3)).tissue);
     }
+  });
+});
+
+describe('ninguna costilla se funde con la de al lado', () => {
+  it('en todo |u| donde están las dos, el espacio entre costillas seguidas es ≥ 1 mm (≥ 0 en los 10 mm junto a la punta de un cartílago del reborde) y la clasificación lo ve libre', () => {
+    for (const side of [-1, 1] as const)
+      for (let k = 1; k <= 11; k++) {
+        const a = ribOf(scene, k, side);
+        const b = ribOf(scene, k + 1, side);
+        const ka = cage.ribs.indexOf(a);
+        const kb = cage.ribs.indexOf(b);
+        // las 8.ª–10.ª acaban en el cartílago de arriba: su espacio se cierra en la punta
+        const closes = k + 1 >= 8 && k + 1 <= 10;
+        for (let u = Math.max(a.uEnd, b.uEnd); u <= Math.min(a.uPost, b.uPost); u += 1) {
+          const gap = ribTableZ(cage, ka, u) - ribTableZ(cage, kb, u) - a.halfWidth - b.halfWidth;
+          const tag = `EIC${k} ${side < 0 ? 'derecho' : 'izquierdo'} en |u| ${u.toFixed(0)}: ${gap.toFixed(2)} mm`;
+          expect(gap, tag).toBeGreaterThanOrEqual(closes && u < b.uEnd + 10 ? -0.01 : 1);
+          if (gap < 1 || u % 8 !== 0) continue;
+          // en el centro del espacio, a la profundidad de la línea media, ni hueso ni cartílago
+          const p = onRib(k, u);
+          const mid: Vec3 = [side * Math.abs(p[0]), p[1], 0.5 * (ribTableZ(cage, ka, u) + ribTableZ(cage, kb, u))];
+          expect([Tissue.Bone, Tissue.Cartilage], tag).not.toContain(cls(mid).tissue);
+        }
+      }
   });
 });
 
