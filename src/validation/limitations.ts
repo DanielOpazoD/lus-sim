@@ -24,6 +24,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'no-lung-comet-tails',
   'pleura-series-same-line',
   'interface-echo-coherent-only',
+  'rib-shadow-pleura-residual',
   'speckle-statistics-uncalibrated',
   'no-sidelobes',
   'harmonic-simplified',

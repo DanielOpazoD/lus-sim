@@ -160,3 +160,36 @@ export function intercostalZ(scene: AnatomyScene, n: number, phi: number): numbe
 export function longitudinalPose(phi: number, z: number): ProbePose {
   return { phi, z, lift: 0, yaw: 0, rock: 0, tilt: 0 };
 }
+
+/**
+ * Signo del murciélago en cualquier plano (meta F-T08, lus-sim): para cada sombra costal del plano, la línea costal (la
+ * cresta de la costilla, `RibShadow.ribTopMm`) y la pleura de la primera línea sin hueso a cada lado; devuelve, por
+ * sombra y lado, cuánto más honda está la pleura que la cresta (mm). Los lados sin línea con pleura (el borde del
+ * sector) no cuentan.
+ */
+export function pleuraBelowRibCrestMm(v: ChestView): number[] {
+  const scans = scanView(v);
+  const out: number[] = [];
+  for (const s of ribShadows(scans)) {
+    const i0 = scans.findIndex((x) => x.theta === s.theta0);
+    const i1 = scans.findIndex((x) => x.theta === s.theta1);
+    for (const j of [i0 - 1, i1 + 1]) {
+      const n = scans[j];
+      if (n && n.ribMm === null && n.pleuraMm !== null) out.push(n.pleuraMm - s.ribTopMm);
+    }
+  }
+  return out;
+}
+
+/** Alto craneocaudal de la costilla n (mm): el de su sección elíptica, 2 × `Rib.halfWidth` (constante a lo largo del arco). */
+export function ribHeightMm(scene: AnatomyScene, n: number): number {
+  return 2 * ribOf(scene, n).halfWidth;
+}
+
+/**
+ * Ancho craneocaudal (mm) del espacio intercostal n (entre las costillas n y n + 1) en el ángulo del tronco φ: la
+ * distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9).
+ */
+export function intercostalWidthMm(scene: AnatomyScene, n: number, phi: number): number {
+  return ribZ(scene, n, phi) - ribZ(scene, n + 1, phi) - ribOf(scene, n).halfWidth - ribOf(scene, n + 1).halfWidth;
+}

@@ -31,7 +31,8 @@ import { START_POINTS, type StartPoint } from './startPoints';
  *
  * lus-sim (decisión 12): el subconjunto del tórax — equivalencia (tejido en los planos de partida, volumen,
  * cáscara de las caras y, propia, la pleura parietal de A0), moteado, líneas A (propia: meta F-T01 en la
- * envolvente de la GPU), pared (normales de sus caras), coste del cuadro, paridad de la pasada A y poses. Sin los
+ * envolvente de la GPU), sombra costal (propia: meta F-T08), pared (normales de sus caras), coste del cuadro, paridad
+ * de la pasada A y poses. Sin los
  * del banco de fidelidad del hígado, el color, el PW, las tríadas portales ni el lazo cerrado de VExUS.
  */
 export interface TestHooks {
@@ -55,6 +56,11 @@ export interface TestHooks {
    * anillo de miradas lleno, y si no, en la mirada 0. Ver `ALineStats`.
    */
   aLines: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern; compound?: boolean }) => ALineStats;
+  /**
+   * Sombra costal en la envolvente de la GPU (propia de lus-sim: meta F-T08, `docs/knowledge/physics.md` §3.3): en
+   * `startPoint` con la respiración `respiration`, una mirada; ver `RibShadowStats`.
+   */
+  ribShadow: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern }) => RibShadowStats;
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -233,6 +239,20 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
           }
           sim.render();
           return aLineStats(sim);
+        });
+      } finally {
+        sim.patient.respiratoryPattern = pattern;
+      }
+    },
+    ribShadow: (opts) => {
+      const sim = getSim();
+      const pattern = sim.patient.respiratoryPattern;
+      try {
+        sim.patient.respiratoryPattern = opts.respiration;
+        return withCompound(sim, dispatch, false, () => {
+          goTo(sim, opts.startPoint);
+          sim.render();
+          return ribShadowStats(sim);
         });
       } finally {
         sim.patient.respiratoryPattern = pattern;
@@ -607,6 +627,192 @@ export function aLineStats(sim: Simulator, source: 'look0' | 'compound' = 'look0
     sampleMm: dz,
     pixelMm: 1 / sim.renderer.display.scale,
     caudalMm: sim.sample.resp.diaphragmCaudalMm,
+  };
+}
+
+/**
+ * Una línea de la imagen para la sombra costal (F-T08): lo que la CPU pone en ella (la pleura, `pleuraCrossingLine`; la
+ * primera costilla ósea antes de la pleura y su recorrido en hueso) y lo que mide la envolvente de la GPU en ella (dB
+ * re 1, la envolvente antes de la compresión logarítmica): el pico en ±`RIB_SHADOW_PEAK_MM` de la pleura y de 2·D, y la
+ * intensidad media bajo la costilla.
+ */
+export interface RibShadowLine {
+  line: number;
+  /** Acoplamiento de la línea (0–1). */
+  coupling: number;
+  /** Cruce de la pleura (mm) según la CPU; NaN si la línea no la registra. */
+  pleuraMm: number;
+  /** Profundidad del primer hueso cortical antes de la pleura (la línea costal) y recorrido en hueso (mm); NaN sin hueso. */
+  ribTopMm: number;
+  boneMm: number;
+  /** La primera costilla del camino es cartílago (no hace sombra limpia: F-T09). */
+  cartilage: boolean;
+  /** Pico de la envolvente en la pleura (±`RIB_SHADOW_PEAK_MM`) y en 2·D, en dB re 1. */
+  pleuraDb: number;
+  a2Db: number;
+  /**
+   * Fondo de cada pico: la mediana de la envolvente (dB re 1) en ±`A_LINE_BACKGROUND_MM` de D y de 2·D, como la
+   * prominencia de las líneas A (`aLineStats`): un pico es una línea si sobresale `A_LINE_MIN_PROMINENCE_DB` de su fondo.
+   */
+  pleuraBackgroundDb: number;
+  a2BackgroundDb: number;
+  /**
+   * Intensidad media (dB re 1, 10·log10 de la media de la envolvente al cuadrado) de `RIB_SHADOW_BELOW_MM` bajo el hueso
+   * (o bajo la pleura, sin hueso) hasta 2·D + `RIB_SHADOW_PEAK_MM`: la región de la línea pleural y la primera línea A.
+   */
+  belowDb: number;
+  /** Transmisión de ida y vuelta de la pasada A en la fila de la pleura: un rayo y con la apertura (dB). */
+  singleDb: number;
+  apertureDb: number;
+  /** Hueso cortical antes de la pleura en esta línea (no cartílago): la línea está en una sombra costal. */
+  bone: boolean;
+  /** Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra); −1 fuera de las sombras. */
+  edgeLines: number;
+  /**
+   * Semiancho (líneas) del cono de emisión a la profundidad de la costilla, D_tx·(1 − r_costilla/D)/2 (la penumbra de
+   * la apertura, `ultrasound/aperture.ts`); NaN fuera de las sombras.
+   */
+  coneHalfLines: number;
+  /** Todas las líneas del cono de emisión cruzan hueso: la línea está fuera de la penumbra, en la sombra completa. */
+  fullyShadowed: boolean;
+}
+
+/** Sombra costal medida en la envolvente de la GPU (`ribShadowStats`). */
+export interface RibShadowStats {
+  lines: RibShadowLine[];
+  /** Tamaño de una muestra de la envolvente (mm). */
+  sampleMm: number;
+  /**
+   * Eco pleural intercostal de referencia (dB re 1): la mediana del pico de la pleura en las líneas sin hueso ni
+   * cartílago, con la pleura registrada y el acoplamiento pleno.
+   */
+  intercostalPleuraDb: number;
+  /** Rango dinámico de la presentación (dB): lo que cabe entre el eco más brillante y el negro. */
+  dynamicRangeDb: number;
+}
+
+/** Semiventana (mm) del pico de la línea pleural y de la línea A de orden 2. */
+export const RIB_SHADOW_PEAK_MM = 1;
+/** Margen (mm) bajo el hueso (o la pleura) donde empieza la región de la sombra. */
+export const RIB_SHADOW_BELOW_MM = 1;
+
+export function ribShadowStats(sim: Simulator): RibShadowStats {
+  const tr = sim.transducer;
+  const depth = sim.bmode.depthMm;
+  const env = sim.renderer.readEnvelope();
+  const trans = sim.renderer.readTransmission();
+  const dz = depth / env.samples;
+  const scene = sim.scene;
+  const instant = sim.anatomy.instantFor(sim.sample);
+  const toMaterial = (p: readonly number[]) => sim.anatomy.deformation.toMaterial([p[0], p[1], p[2]], sim.sample.resp);
+  const db = (x: number) => 20 * Math.log10(Math.max(x, 1e-12));
+  const peak = (l: number, r: number): number => {
+    let m = 0;
+    for (
+      let s = Math.max(0, Math.floor((r - RIB_SHADOW_PEAK_MM) / dz));
+      s <= Math.min(env.samples - 1, Math.ceil((r + RIB_SHADOW_PEAK_MM) / dz));
+      s++
+    )
+      m = Math.max(m, env.data[s * env.lines + l]);
+    return m;
+  };
+  const background = (l: number, r: number): number => {
+    const v: number[] = [];
+    for (
+      let s = Math.max(0, Math.floor((r - A_LINE_BACKGROUND_MM) / dz));
+      s <= Math.min(env.samples - 1, Math.ceil((r + A_LINE_BACKGROUND_MM) / dz));
+      s++
+    )
+      v.push(env.data[s * env.lines + l]);
+    return median(v);
+  };
+  const out: RibShadowLine[] = [];
+  for (let l = 0; l < env.lines; l++) {
+    const theta = -tr.halfSector + (2 * tr.halfSector * (l + 0.5)) / env.lines;
+    const origin = pointOnLine(sim.frame, tr, theta, 0);
+    const end = pointOnLine(sim.frame, tr, theta, 1);
+    const dir: [number, number, number] = [end[0] - origin[0], end[1] - origin[1], end[2] - origin[2]];
+    const cpu = pleuraCrossingLine(
+      (p) => scene.insideWallMm(toMaterial(p)),
+      (p) => scene.lungEdgeMm(toMaterial(p), instant),
+      origin,
+      dir,
+      depth,
+      COARSE_DEPTH,
+    );
+    const D = cpu ? cpu.D : Number.NaN;
+    let ribTop = Number.NaN;
+    let bone = 0;
+    let boneEnd = Number.NaN;
+    let cartilage = false;
+    const step = 0.05;
+    for (let r = step; r < (cpu ? D : 0.5 * depth); r += step) {
+      const t = sim.anatomy.classifyWorld(pointOnLine(sim.frame, tr, theta, r), sim.sample).tissue;
+      if (t === Tissue.Bone || t === Tissue.Cartilage) {
+        if (Number.isNaN(ribTop)) {
+          ribTop = r;
+          cartilage = t === Tissue.Cartilage;
+        }
+        if (t === Tissue.Bone) {
+          bone += step;
+          boneEnd = r;
+        }
+      }
+    }
+    const from = (Number.isNaN(boneEnd) ? D : boneEnd) + RIB_SHADOW_BELOW_MM;
+    const to = 2 * D + RIB_SHADOW_PEAK_MM;
+    let sum = 0;
+    let n = 0;
+    for (let s = Math.ceil(from / dz - 0.5); (s + 0.5) * dz <= to && s < env.samples; s++) {
+      const e = env.data[s * env.lines + l];
+      sum += e * e;
+      n++;
+    }
+    const row = cpu ? Math.min(COARSE_DEPTH - 1, Math.max(0, Math.floor((D / depth) * COARSE_DEPTH) - 1)) : 0;
+    out.push({
+      line: l,
+      coupling: contactCoupling(sim.contact, theta),
+      pleuraMm: D,
+      ribTopMm: ribTop,
+      boneMm: bone,
+      cartilage,
+      pleuraDb: cpu ? db(peak(l, D)) : Number.NaN,
+      a2Db: cpu ? db(peak(l, 2 * D)) : Number.NaN,
+      pleuraBackgroundDb: cpu ? db(background(l, D)) : Number.NaN,
+      a2BackgroundDb: cpu ? db(background(l, 2 * D)) : Number.NaN,
+      belowDb: n ? 10 * Math.log10(Math.max(sum / n, 1e-24)) : Number.NaN,
+      singleDb: cpu ? db(trans.single[row * trans.lines + l]) : Number.NaN,
+      apertureDb: cpu ? db(trans.aperture[row * trans.lines + l]) : Number.NaN,
+      bone: !cartilage && bone > 0,
+      edgeLines: -1,
+      coneHalfLines: Number.NaN,
+      fullyShadowed: false,
+    });
+  }
+  // la sombra de cada línea con hueso: su distancia al borde y el cono de emisión de la apertura a la profundidad de la
+  // costilla (la misma geometría que la pasada A, `apertureTransmission`)
+  const dTheta = (2 * tr.halfSector) / env.lines;
+  // fuera del sector la sombra sigue (el borde del sector no es un borde de la sombra), como las tomas de la pasada A
+  const isBone = (i: number): boolean => i < 0 || i >= env.lines || out[i].bone;
+  for (const x of out) {
+    if (!x.bone) continue;
+    let d = 0;
+    while (d < env.lines && isBone(x.line - d - 1) && isBone(x.line + d + 1)) d++;
+    x.edgeLines = d;
+    x.coneHalfLines = (0.5 * sim.profile.beam.apertureTxMm * (1 - x.ribTopMm / x.pleuraMm)) / ((tr.curvatureRadius + x.ribTopMm) * dTheta);
+    const h = Math.ceil(x.coneHalfLines);
+    let all = true;
+    for (let k = -h; k <= h && all; k++) all = out[Math.min(env.lines - 1, Math.max(0, x.line + k))].bone;
+    x.fullyShadowed = all;
+  }
+  const ic = out.filter(
+    (x) => !x.bone && !x.cartilage && Number.isNaN(x.ribTopMm) && !Number.isNaN(x.pleuraMm) && x.coupling >= A_LINE_MIN_COUPLING,
+  );
+  return {
+    lines: out,
+    sampleMm: dz,
+    intercostalPleuraDb: median(ic.map((x) => x.pleuraDb)),
+    dynamicRangeDb: sim.bmode.dynamicRangeDb,
   };
 }
 
