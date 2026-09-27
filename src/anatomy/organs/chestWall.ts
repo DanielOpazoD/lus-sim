@@ -686,15 +686,17 @@ export function respiratoryWallBlendMm(cw: ChestWall, a: readonly [number, numbe
 }
 
 /**
- * El grosor de la pared (mm) que mira el campo respiratorio a la altura z (gemelo GLSL con el mismo nombre): el del tórax más
- * lo que le falta para el del abdomen por el paso alargado (`respiratoryWallBlendMm`, `blend`). Nunca menor que el de la pared
- * (`wallTotalOf`): el paso alargado pesa al menos lo que el de verdad, y donde el abdomen es más fino que el tórax no suma.
+ * El grosor de la pared (mm) que mira el campo respiratorio a la altura z (gemelo GLSL con el mismo nombre): donde el abdomen es
+ * más grueso que el tórax, el del tórax más lo que le falta para el del abdomen por el paso alargado (`respiratoryWallBlendMm`,
+ * `blend`), que pesa al menos lo que el de verdad; donde es más fino, la pared de verdad (`wallTotalOf`: una pared que adelgaza
+ * hacia abajo solo estira el tejido que baja junto a ella, no lo pliega). Nunca menor que la de verdad.
  */
 export function respiratoryWallOf(cw: ChestWall, a: readonly [number, number, number, number], blend: number, z: number): number {
   const A = cw.abdomen;
   const chest = mix(a[1], a[0], smoothstep(cw.zLow, cw.zHigh, z));
   const margin0 = a[2] - CHEST_WALL.params.abdomenBlendMm.value;
-  return chest + Math.max(A[0] + A[1] + A[2] - chest, 0) * (1 - smoothstep(margin0, margin0 + blend, z));
+  const d = A[0] + A[1] + A[2] - chest;
+  return chest + d * (1 - smoothstep(margin0, margin0 + (d > 0 ? blend : CHEST_WALL.params.abdomenBlendMm.value), z));
 }
 
 /** Capas de la pared (mm, métrica radial) en (u, z) (gemelo GLSL con el mismo nombre). */
@@ -775,7 +777,8 @@ float respiratoryWallBlendMm(vec4 a) {
 float respiratoryWallOf(vec4 a, float blend, float z) {
   float chest = mix(a.y, a.x, smoothstep(uChestWall.y, uChestWall.x, z));
   float m0 = a.z - CW_ABD_BLEND;
-  return chest + max(uWall.x + uWall.y + uWall.z - chest, 0.0) * (1.0 - smoothstep(m0, m0 + blend, z));
+  float d = uWall.x + uWall.y + uWall.z - chest;
+  return chest + d * (1.0 - smoothstep(m0, m0 + (d > 0.0 ? blend : CW_ABD_BLEND), z));
 }
 // capas (piel, grasa, músculo con la banda y el complejo, complejo) y extra = (banda, engrosamiento inspiratorio, peso del
 // abdomen, 0)

@@ -81,13 +81,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   tranquila y 53 en la profunda (la base en supino; 47 en la mujer; antes 10 y 30), y la cortina de la LAM con él (A-T13 pasa a
   cumplirse). El campo es caudal con la ley de altura del pulmón (1 bajo la cúpula, 0 a 147 mm por encima) y mira una pared cuyo
   paso al abdomen no engruesa más de 0,1 mm/mm (`anatomy.respiratoryWall.slopeMax`): su jacobiano es ≥ 0,57 en todo el tronco
-  con 53 mm y ≥ 0,40 con 75, con cualquier hábito (antes, con 53, negativo en ≈ 350 cm³); su inversa, una bisección de 10 pasos
+  con 53 mm y ≥ 0,39 con 75, con cualquier hábito (antes, con 53, negativo en ≈ 350 cm³); su inversa, una bisección de 10 pasos
   en la vertical, exacta a 0,026 mm en el punto material (antes, dos pasos de punto fijo que erraban hasta 15 mm con 30).
   `src/validation/respiratoryField.test.ts` (fast-check, con sus mutaciones) y la equivalencia de la e2e en inspiración profunda
   con la ventana cardiaca, el borde de la LAM izquierda y la cortina derecha. Limitación nueva `respiratory-field-vertical`
   (entre otras cosas, la cúpula izquierda baja el 35 % de la excursión: meta pendiente).
-- `gitEnv` (`tools/provenance/drift.ts`): los git de la procedencia y de su prueba no heredan las variables `GIT_*` del hook
-  pre-push, con las que la prueba comiteaba su repo de juguete en la rama de un worktree (22).
 
 ### Cambiado
 
@@ -127,7 +125,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   negro de la pantalla; la línea A, del gris al negro en toda la sombra completa. Coste del cuadro en el M4: 2,5 → 3,1 ms.
   F-T05 (la línea pleural con la anchura del pulso axial, ±20 %) se exige en el gemelo; A-T11 sigue sin cumplirse.
 - Con la excursión de la base (22), el deslizamiento en la respiración tranquila pasa a 16 mm en la base, 8,7 en el punto BLUE
-  inferior, 8,4 en el PLAPS y 6,7 en el superior (antes 10, 5,4, 5,2 y 4,2; F-T12 no cambia); el campo respiratorio baja en −z,
+  inferior, 8,4 en el PLAPS y 6,7 en el superior (antes 10, 5,4, 5,2 y 4,2; F-T12 no cambia; la media de 12 campos, 9,3 mm
+  frente a los 5,4 ± 2,5 de D5 en sanos, +1,5 DE; declarado en `sliding-linear-height`); el campo respiratorio baja en −z,
   sin la componente anterior de VExUS, y el pulmón sobre la cúpula baja menos cuanto más alto. Coste del cuadro en el M4, el
   mismo (3,2–3,3 ms).
 

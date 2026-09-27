@@ -34,18 +34,18 @@
 // llevan index de 226,6 a 235,7 kB. index sube a 240 kB y el total de JS a 245.
 // 2026-09-27 (decisión 22): el campo respiratorio invertible (la bisección y la pared que mira el campo, en TS y GLSL) y la
 // evidencia de sus parámetros (`physiology.diaphragmExcursion`, `anatomy.respiratoryWall`, las notas de los derivados de la
-// excursión) llevan index de 235,7 a 240,4 kB. index sube a 250 kB y el total de JS a 255.
+// excursión) llevan index de 235,7 a 240,4 kB. index sube a 245 kB y el total de JS a 250.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 250 * KB],
+  [/index-.*\.js$/, 245 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const TOTAL_JS_BUDGET = 255 * KB;
+const TOTAL_JS_BUDGET = 250 * KB;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

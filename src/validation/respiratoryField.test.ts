@@ -383,6 +383,26 @@ describe('Excursión por patrón, por el camino real (motor → consulta → esc
     expect(descent).toBeGreaterThanOrEqual(0.9 * E);
   });
 
+  // Con más grasa en el abdomen, la pared que mira el campo alarga su paso al abdomen (en el avatar, 228 mm con 14 mm de grasa,
+  // 393 con 25 y 543 con 35) y frena la cúpula lateral junto a la pared. Medido con 53 mm en (−120, 0): 53 mm con 5 y 14 de
+  // grasa, 43,4 con 25 y 7,6 con 35; en (−130, 0), 40,6, 40,6, 10,2 y 0 (Boussuges: la excursión crece con el IMC). La grasa del
+  // abdomen no se cambia desde la interfaz (`respiratory-field-vertical`)
+  notYetMet('con 35 mm de grasa en el abdomen la cúpula lateral baja la excursión (hoy el 14 % en (−120, 0))', () => {
+    const p = { ...patientWith({ build: 'average', sex: 'male' }, 35) };
+    const s = new AnatomyScene(p);
+    const qf = new AnatomyQuery(s);
+    const E = DIAPHRAGM_EXCURSION.params.deepMm.value;
+    const floor = (smp: PhysiologySample) => {
+      for (let z = 40; z > -250; z -= 0.1) if (qf.classifyWorld([-120, 0, z], smp).tissue !== Tissue.Lung) return z;
+      return NaN;
+    };
+    const restF = new PhysiologyEngine({ ...p, respiratoryPattern: 'apnea-expiratory' }).step();
+    const insp = new PhysiologyEngine({ ...p, respiratoryPattern: 'apnea-inspiratory' }).step();
+    // (un error que no es de aserción: si falla, la prueba cae en vez de darse por «aún no se cumple»)
+    if (insp.resp.diaphragmCaudalMm !== E) throw new Error(`descenso ${insp.resp.diaphragmCaudalMm}, no ${E}`);
+    expect(floor(restF) - floor(insp)).toBeGreaterThanOrEqual(0.9 * E);
+  });
+
   it('la ventana cardiaca no se mueve con la inspiración profunda: miocardio bajo la pleura y sin pleura registrada', () => {
     const t = scene.torso;
     const w = scene.heart.window;

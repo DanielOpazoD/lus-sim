@@ -151,7 +151,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.interfaceDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps', 'cardiacWindow', 'leftBorder', 'rightCurtain']);
-  for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.99);
+  // (decisión 22) medido con GPU real y con SwiftShader: 1 en los seis planos, en la respiración tranquila y con 53 mm; con la
+  // GLSL en dos pasos de punto fijo la GPU real da 0,992 en el peor: ≥ 0,999 la ve (con 0,99 no la veía)
+  for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.pleura.lines, itag).toBe(5 * 192);

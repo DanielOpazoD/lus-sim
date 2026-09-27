@@ -45,6 +45,10 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
   gemelos a mano; lus-sim usa ambos (decisión 8).
 - **El modelo del paciente común**: qué contrato fisiológico une presión auricular izquierda,
   presión auricular derecha, agua pulmonar extravascular y mecánica respiratoria.
+- **La respiración compartida** (decisión 22): la excursión del diafragma es de 16 mm en la respiración tranquila y 53 en la
+  profunda en lus-sim (la base en supino; 47 en la mujer), y de 10 y 30 en VExUS; el campo respiratorio de lus-sim es caudal,
+  con la ley de altura del pulmón, y su inversa, exacta (en VExUS, caudal y algo anterior, con dos pasos de punto fijo). Un
+  paciente común tendrá una sola excursión y un solo campo.
 - **La numeración de decisiones y limitaciones**: prefijo por módulo o numeración nueva.
 
 ## Pasos previstos al unir

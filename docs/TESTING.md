@@ -174,12 +174,15 @@ la salida actual no protege nada.
 - **Mutaciones en la suite.** Las mismas propiedades se corren sobre el campo de VExUS (dirección anterior, sin la ley de
   altura), sobre el caudal sin la ley de altura y sobre la inversa de dos pasos de punto fijo: la prueba exige que fast-check
   encuentre un contraejemplo que falle por su aserción (`expectPropertyFails`). El peso con la pared de verdad se pliega en una
-  banda fina junto a la pared que el azar no encuentra: se recorre en una rejilla de 3 mm. Una meta que el campo aún no cumple
-  (la cúpula izquierda baja el 35 %) va con `notYetMet`.
+  banda fina junto a la pared que el azar no encuentra: se recorre en una rejilla de 3 mm. Las metas que el campo aún no cumple
+  (la cúpula izquierda baja el 35 %; la cúpula lateral con 35 mm de grasa en el abdomen, el 14 %) van con `notYetMet`.
 - **Por el camino real.** La excursión de cada patrón en la cúpula junto a la axilar, A-T13 en el mundo (la cortina de la LAM) y
   la ventana cardiaca quieta en la inspiración profunda, con el motor, la consulta del mundo y la escena. En la e2e, la
   equivalencia en inspiración profunda suma al barrido los planos donde el campo cambia deprisa (la ventana cardiaca, el borde
-  de la LAM izquierda y la cortina derecha) y la pleura de A0 en sus cinco planos; con la GLSL en dos pasos de punto fijo, falla.
+  de la LAM izquierda y la cortina derecha), con ≥ 0,999 de acuerdo interior, y la pleura de A0 en sus cinco planos; con la GLSL
+  en dos pasos de punto fijo, falla.
+- **Una meta que cuelga de un supuesto lo dice la prueba.** A-T15 a TLC exige el EIC a ≥ 10 mm de la inserción de la ZOA, que
+  depende de su longitud estimada (`zoaBelowReflectionMm`): con 15 mm en lugar de 20 falla por su aserción.
 
 ## Invariantes previstas
 

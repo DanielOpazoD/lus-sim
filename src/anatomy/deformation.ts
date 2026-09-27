@@ -17,7 +17,7 @@ import type { AnatomyScene } from './scene';
  * que no engruesa hacia abajo más de `anatomy.respiratoryWall.slopeMax`). El mapa es un difeomorfismo por construcción: a lo
  * largo de cada vertical es z ↦ z − D·w(x, y, z), creciente mientras D·∂w/∂z < 1; el término de la pared queda ≤ 0,006·D y
  * el del corazón, pequeño por la ley de altura: el jacobiano, 1 − D·∂w/∂z, queda ≥ 0,57 con la excursión profunda de la base
- * (53 mm) y ≥ 0,40 con el máximo de su rango (75), en todas las variantes del tórax y con cualquier grasa del abdomen
+ * (53 mm) y ≥ 0,39 con el máximo de su rango (75), en todas las variantes del tórax y con cualquier grasa del abdomen
  * (`respiratoryField.test.ts`). En VExUS, con la dirección anterior y sin la ley de altura, se plegaba con 53 mm sobre el
  * corazón (que no respira) y bajo el reborde costal anterior (≈ 350 cm³ con el jacobiano negativo).
  *

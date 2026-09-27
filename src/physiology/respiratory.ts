@@ -16,9 +16,9 @@ export const DIAPHRAGM_EXCURSION = defineParameters('physiology.diaphragmExcursi
     sources: ['santana-diafragmarevision-2020', 'boussuges-excursion-2021'],
     note:
       'Respiración tranquila en supino: 1,5 cm (Gerscovich, supino, n = 23) y 1,5 ± 0,4 (Cardenas, semisentado a 45°), los ' +
-      'dos vía Santana (tabla 2); sentado, 1,7–1,9 (Boussuges, tablas 1–2): 1,6 cm. El rango, el LIN–LSN de los hombres ' +
-      'sentados de Boussuges (tabla 1). La misma en la mujer: en supino la base no la separa por sexo (sentada, 1,7 frente a ' +
-      '1,9 en el hombre, Boussuges)',
+      'dos vía Santana (tabla 2); sentado, 1,7–2,0 (Boussuges, tablas 1–2: mujeres 1,7 a los dos lados, hombres 1,9 a la ' +
+      'derecha y 2,0 a la izquierda): 1,6 cm. El rango, el LIN–LSN de los hombres sentados de Boussuges (tabla 1). La misma en ' +
+      'la mujer: en supino la base no la separa por sexo',
   },
   deepMm: {
     value: 53,
