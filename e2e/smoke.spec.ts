@@ -195,7 +195,10 @@ test('«Reiniciar paciente» vuelve a la respiración de su definición y el inf
 test('sobrevive a la pérdida del contexto WebGL, también con la imagen congelada: avisa, se recupera en vivo y el reloj sigue', async ({
   page,
 }) => {
-  test.setTimeout(240_000);
+  // lus-sim (paso C, decisiones 16–19): la parrilla, la pared por región, los bordes del pulmón y el corazón alargan los
+  // programas que el renderizador nuevo recompila y el primer cuadro con SwiftShader en el CI (12–16 min la e2e): el primer
+  // intento de C3 y los dos de C4 agotaron los 60 s de la línea pleural; en local, 1,3 min la prueba entera
+  test.setTimeout(360_000);
   const errors = await boot(page);
   await page.locator('#sector-wrap').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press(' ');
@@ -215,7 +218,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
   // el renderizador nuevo dibuja: la línea pleural vuelve a la pantalla
-  await expect.poll(async () => (await screen(page)).max, { timeout: 60_000 }).toBeGreaterThanOrEqual(250);
+  await expect.poll(async () => (await screen(page)).max, { timeout: 150_000 }).toBeGreaterThanOrEqual(250);
   // el registro de errores dice la pérdida (en la consola, con su origen), y nada más
   expect(errors).toEqual(['console: [gpu] contexto WebGL perdido']);
 });

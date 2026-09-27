@@ -589,8 +589,9 @@ describe('deslizamiento pulmonar anclado al pulmón', () => {
     const q = slidingLattice([-120, 10, 5], [-1, 0, 0], 7, 2);
     expect(q[0]).toBeCloseTo(-120 / SLIDING_LAT_MM + 2 / SLIDING_AX_MM, 12);
     expect(q[2]).toBeCloseTo((5 + 7) / SLIDING_LAT_MM, 12);
-    // lus-sim (decisión 18): el descenso del borde del pulmón viene en uCurtain.x (en VExUS, z0 − uCurtain.x)
-    expect(PLEURA_GLSL).toContain('vec3 q = (m + vec3(0.0, 0.0, uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);');
+    // lus-sim (decisión 19): lo que ha bajado el pulmón de su altura y su columna (en VExUS, z0 − uCurtain.x, el descenso de
+    // la cortina en todo el tórax)
+    expect(PLEURA_GLSL).toContain('vec3 q = (m + vec3(0.0, 0.0, lungSlideMm(m))) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);');
   });
 });
 

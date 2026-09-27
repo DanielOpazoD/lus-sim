@@ -1036,3 +1036,49 @@ tapón de miocardio que lo une a la pared en el disco de Latham.
 `notYetMet` en la excursión profunda y el pulso pulmonar), `anatomy.test.ts`, `pleura.test.ts`, `organs.test.ts`,
 `faceGradient.test.ts` y `physicsInvariants.test.ts` al día; la e2e con GPU real y con SwiftShader. Revisión adversarial
 de contexto limpio (con scripts y la GPU): la ventana cardiaca se rompía al respirar (bloqueante: la cizalla entre el tapón y el corazón); la cubeta de pulmón junto a la línea media, el vértice de la cúpula en la paraesternal de la mamaria interna, la reflexión posterior un nivel baja, la sangre sobre el diafragma y un tapón grueso; una cota de distancia que saltaba en los extremos de la ZOA; pruebas que no medían (el pulso pulmonar, una aserción que no podía fallar); cifras viejas en las notas. Aplicado, salvo el grosor del tapón (declarado).
+
+## 19. Paso C4: el deslizamiento por región
+
+**Fecha.** 2026-09-27.
+
+**Contexto.** Tras el paso C3 (decisión 18) el pulmón bajo la pleura bajaba con la inspiración lo mismo en todo el tórax: el
+descenso del diafragma (`sliding-uniform-caudal`). La base da un deslizamiento mayor en la base que en el vértice: 8,6 ± 4,3
+mm en la LAM un espacio sobre el diafragma frente a 3,6 ± 2,0 en el EIC2 de la LMC, en ventilación mecánica (Briganti; meta
+F-T12: cociente 0,42 ± 0,1, que crece con el volumen corriente); 5,4 ± 2,5 mm de media en sanos respirando tranquilos (D5);
+≈ 15 ± 5 en el punto BLUE inferior y «habitualmente nulo» en el vértice (Lichtenstein, opinión de experto); y una
+deformación menor delante que detrás (D8). El plan del paso C4 incluía además los puntos BLUE por la regla de las manos.
+
+**Opciones.** Para la forma: (a) una recta con la altura, de la base al vértice (la expansión del pulmón es proporcional a
+la distancia a su vértice), con la base en z fija o en cada columna sobre su borde; (b) una curva con rodilla que diera
+también los 15 mm del punto BLUE inferior. Para la amplitud: el descenso del borde del pulmón (que se detiene en la
+reflexión) o un parámetro propio. Para la excursión: la de VExUS (10 y 30 mm) o la de la base en supino (16 y 53).
+
+**Decisión.** (a) con la base en cada columna, la amplitud del borde (con su tope en la reflexión) y la excursión de VExUS.
+
+- **Deslizamiento por región** (`anatomy.lungSliding`, `lungSlideMm` en TS y GLSL, `organs/lungBorder.ts`): el pulmón bajo
+  la pleura baja lo que el borde de su columna (el descenso del diafragma, sin pasar de la reflexión) hasta 15,5 mm sobre el
+  borde (la base de Briganti: el EIC7 de la LAM sobre la 8.ª costilla) y en recta hasta 0 a 147 mm por encima (138 en la mujer, de parrilla más baja), calibrada
+  con el cociente de Briganti en el centro del EIC2 de la LMC. La tabla de los bordes lleva en su cuarto componente la altura
+  a la que se apaga (la inserción de la ZOA se calcula de la reflexión). La retícula del deslizamiento de la pasada B y sus
+  gemelos se anclan con ello.
+- **La excursión sigue siendo la de VExUS.** Se probó la de la base (16 y 53 mm): A-T13 en la inspiración profunda se
+  cumplía, pero con 53 mm el campo respiratorio heredado (su rampa de 25 mm bajo la pared, la del corazón y la inversión de
+  dos pasos de punto fijo) se plegaba (≈ 300–350 cm³ con el jacobiano negativo, sobre el corazón y bajo el reborde anterior) y la inversión erraba > 1 mm en el 18–21 % de las muestras a menos de 8 cm de la piel (hasta 26 mm; con los 30 mm de VExUS ya en el 9,6 %, hasta 15 mm: `respiratory-inverse-fixed-point`); la revisión adversarial midió
+  en las vistas tejidos desplazados hasta 27 mm. Rehacer el campo respiratorio es otro paso.
+- **Los puntos BLUE por la regla de las manos quedan pendientes**: la base no tiene la antropometría de la mano (ANSUR II,
+  NO ENCONTRADO; `docs/knowledge/anatomy.md` §4) ni la altura de la clavícula del avatar; siguen los reparos de Yuriditsky
+  sobre la parrilla (decisión 16).
+
+**Consecuencias.**
+
+- F-T12 pasa a `it`: cociente 0,416 en las dos vistas de Briganti (0,419 en las estaciones de la parrilla con que se calibra) (por construcción: la recta se calibra con él) en la
+  respiración tranquila y en la profunda; la amplitud crece con la excursión. En la respiración tranquila (10 mm): 10 mm en
+  la base, 5,4 en el punto BLUE inferior, 5,2 en el PLAPS y 4,2 en el superior (D5, 5,4 ± 2,5 de media; D4, ≈ 15 en el
+  inferior, no); en la profunda, junto a la columna, 23,4 (el borde se detiene en la reflexión de T12).
+- `sliding-linear-height` sustituye a `sliding-uniform-caudal` (sin modo ventilatorio, ventilación regional ni la
+  deformación menor delante, D8). A-T13 en la inspiración profunda sigue con `notYetMet` y el motivo en `lung-border-table`.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde; `anatomyTargets.test.ts` (F-T12; el deslizamiento decrece con la
+altura en cada línea, no pasa del descenso del borde y se apaga arriba), `organs.test.ts` (la función GLSL letra a letra con
+sus constantes) y `pleura.test.ts`. Revisión adversarial de contexto limpio (de la primera versión, con la excursión de la
+base): ver la PR.

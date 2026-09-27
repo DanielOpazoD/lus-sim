@@ -73,6 +73,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   pulso pulmonar de A-T16, medidos y pendientes.
 - Limitaciones nuevas `heart-simplified` y `lung-border-table`; se borran `thorax-all-lung`, `lung-curtain-right-only` y
   `lung-border-above-ribcage` (18).
+- Fase 1, paso C4: el deslizamiento por región (19): el pulmón bajo la pleura baja más en la base que en el vértice, en
+  recta con la altura sobre el borde de su columna y sin pasar de lo que baja el borde (el cociente de Briganti, F-T12).
+  Limitación `sliding-linear-height` en lugar de `sliding-uniform-caudal`. La excursión de la base en supino y los puntos
+  BLUE por la regla de las manos quedan pendientes.
 
 ### Cambiado
 

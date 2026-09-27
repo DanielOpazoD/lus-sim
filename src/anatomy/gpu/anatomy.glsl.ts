@@ -19,7 +19,8 @@
  *   tabla de la pared torácica desde CHEST_WALL_BASE (decisión 17, `organs/chestWall.ts`): por columna de |u|, tres téxeles
  *   (grosores alto y bajo, reborde costal, peso inspiratorio; y las capas altas y bajas);
  *   tabla de los bordes del pulmón desde LUNG_BORDER_BASE (decisión 18, `organs/lungBorder.ts`): por columna de |u|, un
- *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, inserción de la ZOA)
+ *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, altura a la que se apaga el
+ *   deslizamiento: decisión 19)
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, TISSUE_GLSL_NAME } from '../tissues';
 import {

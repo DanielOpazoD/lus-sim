@@ -75,17 +75,28 @@ conservan su identificador (decisiones 10 y 11).
   profunda (la base: 5,3 cm en supino; A-T13 en inspiración profunda no se cumple). El borde anterior se ancla en la línea
   paraesternal (el centro del 6.º cartílago, z 1,5) y sigue igual hasta la línea media: junto al borde del esternón, donde
   Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba no hay vértice: la lámina y la
-  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula).
+  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula). La excursión
+  de la base en supino (16 mm tranquila, 53 profunda) se probó en el paso C4 y se retiró: con 53 mm el campo respiratorio de
+  VExUS (su rampa de 25 mm bajo la pared y la del corazón, con la inversión de dos pasos de punto fijo) se pliega (≈ 300–350 cm³
+  con el jacobiano negativo) y la imagen de la inspiración profunda desplazaba tejidos hasta 27 mm.
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
   hepática en VExUS. En la imagen es un moteado sin estructura: la textura del «resto» de VExUS
   (`restTexture`) no se porta (decisión 12), y con el preajuste pulmonar queda casi negro (mediana 0–8 de gris
   bajo la cúpula). El hígado vuelve en la fase 3 como módulo portado.
-- **El deslizamiento es una traslación caudal uniforme** (`sliding-uniform-caudal`): el pulmón bajo la
-  pleura baja lo mismo que el diafragma en todo el tórax (el descenso del diafragma, 10 mm en respiración
-  tranquila y 30 en profunda), no más en las bases que en los vértices como en la base de conocimiento, y
-  no se mueve con el latido (sin pulso pulmonar).
+- **La inversión del campo respiratorio es aproximada** (`respiratory-inverse-fixed-point`, VExUS): el punto material de
+  cada muestra sale de dos pasos de punto fijo, m = q − d(m). Donde el peso respiratorio cambia deprisa (las rampas de la
+  pared, de la columna y, desde la decisión 18, del corazón) no converge: con los 30 mm de la inspiración profunda, el 9,6 %
+  de las muestras a menos de 8 cm de la piel yerra > 1 mm (hasta 15 mm, sobre todo en el pulmón y el «resto»); en la
+  respiración tranquila, nada. Con 53 mm el campo se pliega (decisión 19).
+- **El deslizamiento es una traslación caudal, lineal con la altura** (`sliding-linear-height`, decisión 19): el pulmón bajo
+  la pleura baja lo que el borde de su columna (sin pasar de la reflexión) hasta 15,5 mm sobre él y menos hacia arriba, en la
+  recta que da el cociente de Briganti entre el EIC2 de la LMC y la base (0,42), y se apaga ≈ 147 mm sobre la base (138 en la mujer). En la
+  respiración tranquila del modelo: 10 mm en la base, 5,4 en el punto BLUE inferior y 4,2 en el superior (la base de
+  conocimiento: 8,6 en la base en ventilación mecánica, Briganti; 5,4 ± 2,5 de media en sanos, D5; ≈ 15 ± 5 en el punto
+  BLUE inferior en respiración espontánea, opinión de experto). No depende del modo ventilatorio, de la ventilación
+  regional ni de la deformación (menor delante que detrás, D8), y no se mueve con el latido (sin pulso pulmonar).
 
 ## Sonda
 

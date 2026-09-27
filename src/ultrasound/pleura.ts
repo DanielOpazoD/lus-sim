@@ -336,9 +336,9 @@ export function slidingAmplitude(h: number): number {
 /**
  * Coordenada de retícula del deslizamiento: el punto material de la pleura con la z del pulmón (que ha
  * bajado `caudalMm`: el pulmón que estaba en z + descenso en espiración) a escala del grano a lo largo de
- * la pleura, más h mm hacia dentro (−normal de la piel) a escala del grano en profundidad. lus-sim (decisión 18): `caudalMm`
- * es el descenso del borde del pulmón, el del diafragma por `anatomy.lungBorder.curtainDescentRatio` (la GPU lo lee de
- * `uCurtain.x`); con el cociente de 1, el del diafragma.
+ * la pleura, más h mm hacia dentro (−normal de la piel) a escala del grano en profundidad. lus-sim (decisión 19): `caudalMm`
+ * es lo que ha bajado el pulmón bajo la pleura en pD, `lungSlideMm` (el descenso del borde de su columna por la fracción de
+ * su altura: el deslizamiento por región); la GPU lo calcula igual.
  */
 export function slidingLattice(pD: Vec3, outwardNormal: Vec3, caudalMm: number, h: number): Vec3 {
   const a = h / SLIDING_AX_MM;
@@ -419,10 +419,11 @@ float pleuraSeriesEcho(float cosI, float delta) {
   return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));
 }
 float slidingAmplitude(float h) { return SLIDING_AMP * exp(-h / SLIDING_EFOLD_MM); }
-// Deslizamiento anclado al pulmón (bajado uCurtain.x, el descenso de su borde), grano alargado a lo largo de la pleura
+// Deslizamiento anclado al pulmón (bajado lo que ha bajado el pulmón de su altura y su columna, lungSlideMm: decisión 19),
+// grano alargado a lo largo de la pleura
 vec2 slidingField(vec3 pD, float h, float salt) {
   vec3 m = toMaterial(pD);
-  vec3 q = (m + vec3(0.0, 0.0, uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
+  vec3 q = (m + vec3(0.0, 0.0, lungSlideMm(m))) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
   return scattererField(q, 1.0, uSeed + SLIDING_SALT + salt) * slidingAmplitude(h);
 }
 // Campo del medio de la imagen en p (mirada 0): clasificación (withCurtain = false bajo la pleura de la cortina:

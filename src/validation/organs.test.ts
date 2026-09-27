@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
 import { ORGAN_MODULES } from '../anatomy/organs';
 import { LUNG_CURTAIN, inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from '../anatomy/organs/lungCurtain';
-import { LUNG_BORDER, zoaThicknessMm } from '../anatomy/organs/lungBorder';
+import { LUNG_BORDER, LUNG_SLIDING, zoaThicknessMm } from '../anatomy/organs/lungBorder';
 
 /**
  * Módulos de órgano (decisión 46): gemelos TS/GLSL juntos y con el mismo nombre.
@@ -41,6 +41,12 @@ describe('Módulos de órgano', () => {
     expect(border).toContain(`#define LB_ZOA_FRC ${P.zoaFrcMm.value.toFixed(4)}`);
     expect(border).toContain(`#define LB_ZOA_TLC ${P.zoaTlcMm.value.toFixed(4)}`);
     expect(border).toContain(`#define LB_ZOA_TLC_CAUDAL ${P.zoaTlcCaudalMm.value.toFixed(4)}`);
+    expect(border).toContain(`#define LB_ZOA_BELOW ${P.zoaBelowReflectionMm.value.toFixed(4)}`);
+    expect(border).toContain(`#define LB_SLIDE_BASE ${LUNG_SLIDING.params.baseAboveBorderMm.value.toFixed(4)}`);
+    // el deslizamiento por región (decisión 19), letra a letra: la gemela TS (`lungSlideMm`) hace la misma cuenta
+    expect(border.replace(/\s+/g, ' ')).toContain(
+      'float lungSlideMm(vec3 m) { vec4 b = lungBorderAt(wallArc(m)); float base = b.x + LB_SLIDE_BASE; return min(uCurtain.x, b.x - b.y) * clamp((b.w - m.z) / (b.w - base), 0.0, 1.0); }',
+    );
     // el espesor de la lámina, del uniform (uCurtain.y = LUNG_CURTAIN.thicknessMm)
     expect(ORGAN_MODULES.find((o) => o.id === 'lungCurtain')!.glsl).toContain('if (insideWall >= uCurtain.y) return -1.0;');
   });
