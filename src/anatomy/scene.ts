@@ -39,7 +39,7 @@ import {
   type RibCageOptions,
   type RibSpec,
 } from './organs/ribcage';
-import { DEFAULT_CHEST_HABITUS, buildChestWall, setChestWallCage, type ChestWall } from './organs/chestWall';
+import { DEFAULT_CHEST_HABITUS, buildChestWall, setChestWallCage, wallColumnTexel, wallTotalOf, type ChestWall } from './organs/chestWall';
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
@@ -163,6 +163,14 @@ export class AnatomyScene {
    * arriba que ella más `LUNG_BD_CAP_MM` la clasificación no evalúa la cúpula (uCurtain.w en la GPU).
    */
   readonly domeTopZ: number;
+  /**
+   * La ley de altura del campo respiratorio (lus-sim, decisión 22): el tejido baja el descenso entero del diafragma hasta
+   * `baseZ`, la cota de la cúpula (`domeTopZ`: la cúpula y todo lo que hay bajo ella bajan con ella), y en recta hasta 0 en
+   * `topZ`, la altura del deslizamiento más arriba (`LungBorder.slideSpanMm`, decisión 19): el pulmón se expande con la
+   * distancia a su vértice, que no baja. El pulmón sobre el corazón, que no respira, apenas baja: sin la ley, bajaba entero y
+   * el campo se plegaba sobre el corazón con los 53 mm de la inspiración profunda.
+   */
+  readonly respiratoryHeight: { readonly baseZ: number; readonly topZ: number };
   readonly spine: Spine;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
@@ -251,6 +259,7 @@ export class AnatomyScene {
     this.heart = buildHeart(this.torso, cage);
     const d = this.diaphragm;
     this.domeTopZ = Math.max(d.right.apex, d.left.apex, d.edgeZ + d.edgeRise, this.lungBorder.zLMax);
+    this.respiratoryHeight = { baseZ: this.domeTopZ, topZ: this.domeTopZ + this.lungBorder.slideSpanMm };
   }
 
   /** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m (lus-sim, decisión 17: por región). */
@@ -300,16 +309,40 @@ export class AnatomyScene {
 
   /**
    * Peso del campo de desplazamiento respiratorio en un punto material: 1 en
-   * las vísceras, 0 en pared, costillas y columna (B.4, [EXTRAPOLACIÓN PROPIA]).
+   * las vísceras, 0 en pared, costillas y columna (B.4, [EXTRAPOLACIÓN PROPIA]). lus-sim (decisión 22): y por encima de la
+   * cúpula más alta, la ley de altura (`respiratoryHeight`).
    */
   respiratoryWeight(m: Vec3): number {
-    const inside = this.insideWallMm(m);
-    const wWall = smoothstep(0, 25, inside);
-    const dSpine = Math.hypot(m[0] - this.spine.x0, m[1] - this.spine.y0);
-    const wSpine = smoothstep(this.spine.r + 5, this.spine.r + 35, dSpine);
+    return this.respiratoryWeightAt(this.respiratoryColumn(m[0], m[1]), m[2]);
+  }
+
+  /**
+   * Lo que el peso respiratorio no cambia a lo largo de la vertical de (x, y) (lus-sim, decisión 22: el campo es vertical, y
+   * su inversa, una búsqueda en z): la profundidad bajo la piel, la columna de la tabla de la pared y el peso de la columna
+   * vertebral (gemelo GLSL `respColumn`).
+   */
+  respiratoryColumn(x: number, y: number): RespiratoryColumn {
+    const p: Vec3 = [x, y, 0];
+    const dSpine = Math.hypot(x - this.spine.x0, y - this.spine.y0);
+    return {
+      x,
+      y,
+      depth: torsoDepth(p, this.torso),
+      wall: wallColumnTexel(this.chestWall, wallArc(p, this.torso)),
+      spine: smoothstep(this.spine.r + 5, this.spine.r + 35, dSpine),
+    };
+  }
+
+  /** Peso respiratorio en (x, y, z) de la vertical `c` (gemelo GLSL `respWeightAt`). */
+  respiratoryWeightAt(c: RespiratoryColumn, z: number): number {
+    if (c.spine === 0) return 0;
+    const wWall = smoothstep(0, 25, -c.depth - wallTotalOf(this.chestWall, c.wall, z));
     // lus-sim (decisión 18): el corazón y su ventana no respiran (sin cizalla entre el tapón pegado a la pared y el corazón)
-    const wHeart = heartStillWeight(this.heart, m);
-    return wWall * wSpine * wHeart;
+    const wHeart = heartStillWeight(this.heart, [c.x, c.y, z]);
+    // lus-sim (decisión 22): el pulmón se expande con la distancia a su vértice
+    const h = this.respiratoryHeight;
+    const wHeight = Math.min(1, Math.max(0, (h.topZ - z) / (h.topZ - h.baseZ)));
+    return wWall * c.spine * wHeart * wHeight;
   }
 
   /**
@@ -521,6 +554,20 @@ const NONE: Classification = Object.freeze({
 export interface SceneInstant {
   /** Descenso caudal del diafragma en este instante (mm, 0 en espiración): baja la cortina pulmonar. */
   diaphragmCaudalMm: number;
+}
+
+/**
+ * La vertical del campo respiratorio en (x, y) (lus-sim, decisión 22): lo que su peso no cambia con z (`respiratoryColumn`).
+ */
+export interface RespiratoryColumn {
+  readonly x: number;
+  readonly y: number;
+  /** `torsoDepth` en (x, y) (el tronco es un cilindro: no depende de z). */
+  readonly depth: number;
+  /** El téxel de la columna de la pared torácica en su arco (`wallColumnTexel`). */
+  readonly wall: readonly [number, number, number, number];
+  /** Peso de la columna vertebral, que solo depende de (x, y). */
+  readonly spine: number;
 }
 
 /** Instante de referencia: fin de espiración (sin descenso del diafragma); el `BASELINE_CALIBER` de VExUS. */

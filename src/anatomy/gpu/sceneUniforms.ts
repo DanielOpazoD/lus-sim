@@ -1,5 +1,4 @@
 import type { ProbeCompression } from '../compression';
-import { RespiratoryDeformation } from '../deformation';
 import { CHEST_WALL } from '../organs/chestWall';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
 import { LUNG_BORDER } from '../organs/lungBorder';
@@ -19,7 +18,8 @@ import type { PhysiologySample } from '../../physiology/engine';
  * aurícula, el gas intestinal, los riñones ni los tubos, que la escena no tiene, ni la velocidad del diafragma
  * (`uRespVel`: solo la leía el color, con la velocidad del tejido). La parrilla costal (decisión 16) sube por costilla su
  * extensión y su alto (`uRibs`, las 24: derechas y después izquierdas), sus constantes (`uRibParams`) y el esternón; las
- * alturas de sus líneas medias van en la textura de escena (`organs/ribcage.ts`).
+ * alturas de sus líneas medias van en la textura de escena (`organs/ribcage.ts`). Desde la decisión 22 el campo respiratorio
+ * es vertical: `uResp` lleva, en lugar de su dirección, su ley de altura.
  */
 export { MAX_RIBS } from '../organs/ribcage';
 
@@ -127,8 +127,15 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uResp',
     type: 'vec4',
-    doc: 'descenso diafragmático (mm), dirección xyz',
-    value: (_s, c) => [c.sample.resp.diaphragmCaudalMm, ...RespiratoryDeformation.direction],
+    doc:
+      'descenso diafragmático (mm); lus-sim (decisión 22): el campo baja en −z, y en yz su ley de altura (la altura a la que ' +
+      'se apaga y la inversa de su tramo), 0',
+    value: (s, c) => [
+      c.sample.resp.diaphragmCaudalMm,
+      s.respiratoryHeight.topZ,
+      1 / (s.respiratoryHeight.topZ - s.respiratoryHeight.baseZ),
+      0,
+    ],
   },
   {
     name: 'uCompC',

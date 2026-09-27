@@ -62,16 +62,32 @@ function poseOf(sp: (typeof START_POINTS)[number]): ProbePose {
   return { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 };
 }
 
-export function equivalenceSweep(sim: Simulator): EquivalencePoseReport[] {
+/**
+ * Los planos de los tres puntos de partida y, después, los de `extra` (lus-sim, decisión 22: en la inspiración profunda, los
+ * de `inspirationSweepPoses`).
+ */
+export function equivalenceSweep(sim: Simulator, extra: ReadonlyArray<{ id: string; pose: ProbePose }> = []): EquivalencePoseReport[] {
   const tr = sim.transducer;
   const out: EquivalencePoseReport[] = [];
-  for (const sp of START_POINTS) {
+  for (const sp of [...START_POINTS.map((p) => ({ id: p.id, pose: poseOf(p) })), ...extra]) {
     // el marco efectivo (la sonda hundida) y su compresión: los del simulador en esa pose (decisión 63)
-    const k = probeContact(poseOf(sp), tr, sim.scene.torso);
+    const k = probeContact(sp.pose, tr, sim.scene.torso);
     const frame = k.frame;
     out.push(withCompression(sim, k, () => poseReport(sim, sp.id, frame, k)));
   }
   return out;
+}
+
+/**
+ * Planos que el barrido añade en la inspiración profunda (lus-sim, decisión 22), donde el campo respiratorio cambia deprisa:
+ * la ventana cardiaca (el corazón no respira y el pulmón baja a su lado), el borde del pulmón en la LAM izquierda y, en la LAM
+ * derecha, la cortina 25 mm bajo el borde de FRC (el receso por el que baja el pulmón, la ZOA y la cúpula junto a la pared).
+ */
+export function inspirationSweepPoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
+  const t = scene.torso;
+  const lam = thoraxLinePhi('midaxillary', t, -1);
+  const zL = lungBorderAt(scene.lungBorder, wallArc(torsoSkinPoint(lam, 0, t), t))[0];
+  return [...extraPleuraPoses(scene), { id: 'rightCurtain', pose: { phi: lam, z: zL - 25, lift: 0, yaw: 0, rock: 0, tilt: 0 } }];
 }
 
 function poseReport(sim: Simulator, id: string, frame: ProbeFrame, k: ProbeCompression): EquivalencePoseReport {

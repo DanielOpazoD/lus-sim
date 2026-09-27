@@ -1,6 +1,7 @@
 import type { EquipmentCommand } from './equipment';
 import {
   equivalenceSweep,
+  inspirationSweepPoses,
   interfaceShellEquivalence,
   pleuraEquivalence,
   ribEndsEquivalence,
@@ -44,7 +45,11 @@ import { START_POINTS, type StartPoint } from './startPoints';
  * del banco de fidelidad del hígado, el color, el PW, las tríadas portales ni el lazo cerrado de VExUS.
  */
 export interface TestHooks {
-  equivalenceSweep: () => EquivalencePoseReport[];
+  /**
+   * Equivalencia de tejido en los planos de los puntos de partida; con `inspiration` (lus-sim, decisión 22), también en los
+   * de `inspirationSweepPoses` (la ventana cardiaca, el borde de la LAM izquierda y la cortina de la derecha).
+   */
+  equivalenceSweep: (opts?: { inspiration?: boolean }) => EquivalencePoseReport[];
   /** Equivalencia TS ↔ GLSL en `n` puntos aleatorios de todo el tórax. */
   volumeEquivalence: (n?: number) => VolumeEquivalenceReport;
   /** Equivalencia de la cara de interfaz y su distancia a 0,01–0,6 mm de cada cara, en los planos de partida. */
@@ -229,7 +234,10 @@ export const A_LINE_MIN_PROMINENCE_DB = 6;
 
 export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: EquipmentCommand) => void): TestHooks {
   const hooks: TestHooks = {
-    equivalenceSweep: () => equivalenceSweep(getSim()),
+    equivalenceSweep: (opts) => {
+      const sim = getSim();
+      return equivalenceSweep(sim, opts?.inspiration ? inspirationSweepPoses(sim.scene) : []);
+    },
     volumeEquivalence: (n) => volumeEquivalence(getSim(), n),
     interfaceShell: () => interfaceShellEquivalence(getSim()),
     ribEnds: () => ribEndsEquivalence(getSim()),

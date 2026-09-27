@@ -1,5 +1,5 @@
 import type { Vec3 } from '../core/vec3';
-import type { RespiratorySample } from '../physiology/respiratory';
+import { DIAPHRAGM_EXCURSION, type RespiratorySample } from '../physiology/respiratory';
 import { compressionElevation, compressionSample, uncompress, type ProbeCompression } from './compression';
 import type { AnatomyScene } from './scene';
 
@@ -10,21 +10,37 @@ import type { AnatomyScene } from './scene';
  * espacial anula el movimiento en pared, costillas y columna, y lo aplica
  * íntegro a diafragma, hígado, cava y vasos.
  *
- *   p_mundo = m + D(t)·w(m)·dir ;  dir = (0, 0,15, −1) normalizada (caudal, algo anterior)
+ *   p_mundo = m + D(t)·w(m)·dir
  *
- * La inversa se aproxima con w evaluado en p (w varía lentamente).
+ * lus-sim (decisión 22): dir = (0, 0, −1), caudal (en VExUS, (0, 0,15, −1) normalizada: caudal y algo anterior), y en el
+ * peso, la ley de altura del pulmón (`AnatomyScene.respiratoryHeight`). El mapa es un difeomorfismo por construcción: a lo
+ * largo de cada vertical es z ↦ z − D·w(x, y, z), creciente mientras D·∂w/∂z < 1, y el peso lo cumple con la excursión
+ * profunda de la base (53 mm): el jacobiano, 1 − D·∂w/∂z, queda ≥ 0,14 en todo el tronco y en todas las variantes del hábito
+ * (`respiratoryField.test.ts`). En VExUS, con la dirección anterior y sin la ley de altura, se plegaba con 53 mm sobre el
+ * corazón (que no respira) y bajo el reborde costal anterior (≈ 350 cm³ con el jacobiano negativo).
+ *
+ * La inversa (mundo → material) es exacta a `RESPIRATORY_INVERSE.toleranceMm`: en la vertical del punto, la raíz de
+ * z − D·w(z) = q_z, que está en [q_z, q_z + D] (0 ≤ w ≤ 1), por bisección con un número fijo de pasos (el mismo en la GLSL).
+ * VExUS la aproxima con dos pasos de punto fijo, m = q − d(m), que no convergen donde el peso cambia deprisa (con los 30 mm
+ * de VExUS erraban > 1 mm en el 9,6 % de las muestras a menos de 8 cm de la piel, hasta 15 mm: `respiratory-inverse-fixed-point`).
  *
  * Encima, la compresión de la sonda (decisión 63, `compression.ts`): la sonda aprieta el tejido que la
  * respiración ha llevado bajo ella, así que mundo → material deshace primero la compresión y después la
  * respiración (el mismo orden que `toMaterial` en la GLSL). `compression` es el estado del contacto del cuadro
  * (null: sin sonda, el tronco rígido); lo pone el simulador con cada pose.
  */
-const DIR: Vec3 = normalizeDir([0, 0.15, -1]);
+const DIR: Vec3 = [0, 0, -1];
 
-function normalizeDir(v: Vec3): Vec3 {
-  const l = Math.hypot(v[0], v[1], v[2]);
-  return [v[0] / l, v[1] / l, v[2] / l];
-}
+/**
+ * La inversa del campo respiratorio (lus-sim, decisión 22): bisección en z con `steps` pasos. El intervalo inicial mide D (la
+ * excursión del instante), así que tras los pasos el punto medio queda a ≤ D/2^(steps + 1) de la raíz: con la excursión
+ * profunda (53 mm), ≤ 0,026 mm, bajo la tolerancia declarada. Una bisección y no Newton: el error queda acotado con un número
+ * fijo de pasos sin derivadas del peso (sus rampas son C¹ a trozos: la ley de altura tiene esquinas) y, con el campo
+ * vertical, cada paso solo relee la tabla de la pared en la columna del punto y el corazón (lo demás no depende de z).
+ */
+export const RESPIRATORY_INVERSE = Object.freeze({ steps: 10, toleranceMm: 0.05 });
+if (DIAPHRAGM_EXCURSION.params.deepMm.range![1] / 2 ** (RESPIRATORY_INVERSE.steps + 1) > RESPIRATORY_INVERSE.toleranceMm)
+  throw new Error('la bisección del campo respiratorio no alcanza su tolerancia con la mayor excursión');
 
 export class RespiratoryDeformation {
   /** Contacto de la sonda del cuadro (decisión 63); null sin compresión. */
@@ -44,14 +60,8 @@ export class RespiratoryDeformation {
   }
 
   toMaterial(p: Vec3, resp: RespiratorySample): Vec3 {
-    // la compresión de la sonda y después dos iteraciones de punto fijo de la respiración: m = q − d(m)
-    const q = uncompress(p, this.compression);
-    let m: Vec3 = q;
-    for (let i = 0; i < 2; i++) {
-      const d = this.displacement(m, resp);
-      m = [q[0] - d[0], q[1] - d[1], q[2] - d[2]];
-    }
-    return m;
+    // la compresión de la sonda y después la respiración (decisión 22: la bisección en la vertical, gemelo GLSL `toMaterial`)
+    return respiratoryInverse(this.scene, uncompress(p, this.compression), resp.diaphragmCaudalMm);
   }
 
   /** Velocidad del tejido (mm/s) en un punto material. */
@@ -63,6 +73,27 @@ export class RespiratoryDeformation {
   static get direction(): Vec3 {
     return DIR;
   }
+}
+
+/**
+ * El punto material m del punto q (sin la compresión de la sonda) con el diafragma bajado `caudalMm` (lus-sim, decisión 22;
+ * gemelo GLSL `toMaterial`): m = (q_x, q_y, z) con z − D·w(q_x, q_y, z) = q_z. Sin peso en q (la pared, la columna, el corazón
+ * o el pulmón alto) es q; con el peso entero en q + D (las vísceras bajo la cúpula), q + D; si no, la bisección.
+ */
+export function respiratoryInverse(scene: AnatomyScene, q: Vec3, caudalMm: number): Vec3 {
+  const D = caudalMm;
+  if (!(D > 0)) return q;
+  const c = scene.respiratoryColumn(q[0], q[1]);
+  if (scene.respiratoryWeightAt(c, q[2]) === 0) return q;
+  let lo = q[2];
+  let hi = q[2] + D;
+  if (scene.respiratoryWeightAt(c, hi) === 1) return [q[0], q[1], hi];
+  for (let i = 0; i < RESPIRATORY_INVERSE.steps; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (mid - D * scene.respiratoryWeightAt(c, mid) < q[2]) lo = mid;
+    else hi = mid;
+  }
+  return [q[0], q[1], 0.5 * (lo + hi)];
 }
 
 /**

@@ -1,5 +1,35 @@
+import { defineParameters } from '../core/evidence';
 import { cmH2OToMmHg } from '../core/units';
 import type { PatientState } from './patientState';
+
+/**
+ * Excursión craneocaudal del diafragma en supino (lus-sim, decisión 22): la de la base (`docs/knowledge/anatomy.md` §2, meta
+ * A-T13) en lugar de los 10 y 30 mm de VExUS, que el paso C4 (decisión 19) había dejado porque su campo respiratorio se
+ * plegaba con 53 mm (`anatomy/deformation.ts`).
+ */
+export const DIAPHRAGM_EXCURSION = defineParameters('physiology.diaphragmExcursion', {
+  quietMm: {
+    value: 16,
+    unit: 'mm',
+    range: [9, 28],
+    evidence: 'derivado',
+    sources: ['santana-diafragmarevision-2020', 'boussuges-excursion-2021'],
+    note:
+      'Respiración tranquila en supino: 1,5 cm (Gerscovich, supino, n = 23) y 1,5 ± 0,4 (Cardenas, semisentado a 45°), los ' +
+      'dos vía Santana (tabla 2); sentado, 1,7–1,9 (Boussuges, tablas 1–2): 1,6 cm. El rango, el LIN–LSN de los hombres ' +
+      'sentados de Boussuges (tabla 1)',
+  },
+  deepMm: {
+    value: 53,
+    unit: 'mm',
+    range: [31, 75],
+    evidence: 'documentado',
+    sources: ['santana-diafragmarevision-2020', 'boussuges-excursion-2021'],
+    note:
+      'Inspiración profunda en supino, hombres: 5,3 ± 1,1 cm (Kantarci, n = 160, vía Santana, tabla 2; mujeres 4,7 ± 1,0). El ' +
+      'rango, la media ± 2 DE. Sentado es mayor: 6,6 ± 1,3 (Boussuges, tabla 1)',
+  },
+});
 
 /**
  * Modelo respiratorio (guía §15; base B.4 y D.6): una fase compartida que
@@ -50,14 +80,17 @@ export class RespiratoryModel {
     this.peepCmH2O = patient.peepCmH2O;
   }
 
-  /** Excursión craneocaudal del diafragma para el patrón (B.6: 10 mm tranquila). */
+  /**
+   * Excursión craneocaudal del diafragma para el patrón (lus-sim, decisión 22: la de la base en supino, `DIAPHRAGM_EXCURSION`;
+   * en VExUS, B.6: 10 mm tranquila y 30 profunda).
+   */
   excursionMm(): number {
     switch (this.patient.respiratoryPattern) {
       case 'deep':
       case 'apnea-inspiratory':
-        return 30;
+        return DIAPHRAGM_EXCURSION.params.deepMm.value;
       default:
-        return 10;
+        return DIAPHRAGM_EXCURSION.params.quietMm.value;
     }
   }
 

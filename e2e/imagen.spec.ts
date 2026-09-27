@@ -126,19 +126,23 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(bc.lines, JSON.stringify(bc)).toBeGreaterThan(5);
   expect(bc.mismatched, JSON.stringify(bc)).toBe(0);
   expect(bc.maxErrMm, JSON.stringify(bc)).toBeLessThanOrEqual(bc.quantumMm + 1e-5);
-  // Lo mismo en inspiración máxima: el diafragma 30 mm más abajo (la deformación respiratoria entra en los dos
-  // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar)
+  // Lo mismo en inspiración máxima: el diafragma 53 mm más abajo (la deformación respiratoria entra en los dos
+  // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar). Desde la decisión 22 la
+  // excursión es la de la base y la inversa del campo, una bisección en la vertical (TS y GLSL): el barrido suma los planos
+  // donde el campo cambia deprisa (la ventana cardiaca, el borde de la LAM izquierda y la cortina de la derecha) y la pleura
+  // de A0 en los cinco planos de la equivalencia de la pleura
   const caudal = await page.evaluate(() => {
     const sim = window.__lusTest!.sim();
     sim.patient.respiratoryPattern = 'apnea-inspiratory';
     window.__lusTest!.advance(4);
     return sim.sample.resp.diaphragmCaudalMm;
   });
-  expect(caudal).toBeGreaterThan(25);
+  expect(caudal).toBeGreaterThan(50);
   const insp = await page.evaluate(() => ({
     vol: window.__lusTest!.volumeEquivalence(20_000),
-    sweep: window.__lusTest!.equivalenceSweep(),
+    sweep: window.__lusTest!.equivalenceSweep({ inspiration: true }),
     shell: window.__lusTest!.interfaceShell(),
+    pleura: window.__lusTest!.pleuraEquivalence(),
   }));
   const itag = JSON.stringify({ caudal, ...insp });
   expect(insp.vol.interiorPoints, itag).toBeGreaterThan(15_000);
@@ -146,9 +150,15 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.interfaceAgreement, itag).toBe(1);
   expect(insp.vol.interfaceDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps', 'cardiacWindow', 'leftBorder', 'rightCurtain']);
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.99);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.pleura.lines, itag).toBe(5 * 192);
+  expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
+  expect(insp.pleura.registrationMismatch, itag).toBe(0);
+  expect(insp.pleura.depthMaxErrMm, itag).toBeLessThanOrEqual(insp.pleura.quantumMm + 1e-5);
+  expect(insp.pleura.edgeMaxErrMm, itag).toBeLessThan(0.1);
   expect(errors).toEqual([]);
 });
 

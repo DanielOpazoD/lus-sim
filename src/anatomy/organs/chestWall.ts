@@ -1,5 +1,6 @@
 import { defineParameters } from '../../core/evidence';
 import type { ChestHabitus } from '../../physiology/patientState';
+import { DIAPHRAGM_EXCURSION } from '../../physiology/respiratory';
 import { torsoDepthGradient, torsoSkinPoint, type ChestWallLookup, type Torso, type WallLayersAt } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
@@ -180,15 +181,15 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
       'posteriores, sin cambio. En el modelo, proporcional al descenso del diafragma sobre el de la inspiración profunda',
   },
   inspirationReferenceMm: {
-    value: 30,
+    value: DIAPHRAGM_EXCURSION.params.deepMm.value,
     unit: 'mm',
-    range: [25, 55],
-    evidence: 'estimado',
-    sources: ['boussuges-excursion-2021'],
+    range: [31, 75],
+    evidence: 'derivado',
+    sources: ['santana-diafragmarevision-2020', 'yoshida-intercostales-2019'],
     note:
-      'Descenso del diafragma de la inspiración profunda del modelo respiratorio (`RespiratoryModel.excursionMm`, 30 mm; la ' +
-      'base da 5,3 cm en supino): el engrosamiento de Yoshida (inspiración máxima) se reparte en él. `chestWall.test.ts` ' +
-      'comprueba que es el del modelo',
+      'Descenso del diafragma de la inspiración profunda del modelo respiratorio (`physiology.diaphragmExcursion.deepMm`, ' +
+      '5,3 cm en supino, Kantarci vía Santana; decisión 22): el engrosamiento de Yoshida (inspiración máxima) se reparte en él. ' +
+      '`chestWall.test.ts` comprueba que es el del modelo',
   },
   abdomenBlendMm: {
     value: 100,
@@ -632,8 +633,20 @@ function weights(cw: ChestWall, z: number, margin: number): [number, number] {
 
 /** Grosor total de la pared (mm, métrica radial) en (u, z) (gemelo GLSL con el mismo nombre). */
 export function wallTotalAt(cw: ChestWall, u: number, z: number): number {
+  return wallTotalOf(cw, wallColumnTexel(cw, u), z);
+}
+
+/**
+ * El primer téxel de la columna de |u| interpolado (grosores alto y bajo, reborde costal, peso inspiratorio; gemelo GLSL con el
+ * mismo nombre): lo que el grosor total no cambia con z (decisión 22, la inversa del campo respiratorio).
+ */
+export function wallColumnTexel(cw: ChestWall, u: number): [number, number, number, number] {
   const [j, f] = column(u);
-  const a = texelAt(cw, j, f, 0);
+  return texelAt(cw, j, f, 0);
+}
+
+/** Grosor total de la pared (mm) a la altura z con el téxel de su columna (`wallColumnTexel`; gemelo GLSL con el mismo nombre). */
+export function wallTotalOf(cw: ChestWall, a: readonly [number, number, number, number], z: number): number {
   const [hi, abd] = weights(cw, z, a[2]);
   const A = cw.abdomen;
   return mix(mix(a[1], a[0], hi), A[0] + A[1] + A[2], abd);
@@ -696,14 +709,19 @@ float cwColumn(float u, out int j) {
   j = int(floor(tc));
   return tc - float(j);
 }
-float wallTotalAt(float u, float z) {
+// el primer téxel de la columna de |u| (grosores alto y bajo, reborde costal, peso inspiratorio) y el grosor total a la altura
+// z con él (decisión 22: la inversa del campo respiratorio lee la columna una vez y recorre z)
+vec4 wallColumnTexel(float u) {
   int j;
   float f = cwColumn(u, j);
-  vec4 a = cwTexel(j, f, 0);
+  return cwTexel(j, f, 0);
+}
+float wallTotalOf(vec4 a, float z) {
   float hi = smoothstep(uChestWall.y, uChestWall.x, z);
   float abd = 1.0 - smoothstep(a.z - CW_ABD_BLEND, a.z, z);
   return mix(mix(a.y, a.x, hi), uWall.x + uWall.y + uWall.z, abd);
 }
+float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z); }
 // capas (piel, grasa, músculo con la banda y el complejo, complejo) y extra = (banda, engrosamiento inspiratorio, peso del
 // abdomen, 0)
 vec4 wallLayersAt(float u, float z, out vec4 extra) {

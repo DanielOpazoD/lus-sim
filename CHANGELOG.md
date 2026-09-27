@@ -77,6 +77,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   recta con la altura sobre el borde de su columna y sin pasar de lo que baja el borde (el cociente de Briganti, F-T12).
   Limitación `sliding-linear-height` en lugar de `sliding-uniform-caudal`. La excursión de la base en supino y los puntos
   BLUE por la regla de las manos quedan pendientes.
+- El campo respiratorio invertible por construcción y la excursión de la base (22): el diafragma baja 16 mm en la respiración
+  tranquila y 53 en la profunda (la base en supino; antes 10 y 30), y la cortina de la LAM con él (A-T13 pasa a cumplirse). El
+  campo es caudal con la ley de altura del pulmón (1 bajo la cúpula, 0 a 147 mm por encima): su jacobiano es ≥ 0,14 en todo el
+  tronco con 53 mm (antes, con 53, negativo en ≈ 350 cm³); su inversa, una bisección de 10 pasos en la vertical, exacta a 0,026
+  mm (antes, dos pasos de punto fijo que erraban hasta 15 mm con 30). `src/validation/respiratoryField.test.ts` (fast-check, con
+  sus mutaciones) y la equivalencia de la e2e en inspiración profunda con la ventana cardiaca, el borde de la LAM izquierda y
+  la cortina derecha. Limitación nueva `respiratory-field-vertical`.
 
 ### Cambiado
 
@@ -115,6 +122,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   −40). En el núcleo de la sombra la línea pleural pasa de −40,6…−62,7 a −68,7…−86,1 dB del eco intercostal y de gris 57–137 al
   negro de la pantalla; la línea A, del gris al negro en toda la sombra completa. Coste del cuadro en el M4: 2,5 → 3,1 ms.
   F-T05 (la línea pleural con la anchura del pulso axial, ±20 %) se exige en el gemelo; A-T11 sigue sin cumplirse.
+- Con la excursión de la base (22), el deslizamiento en la respiración tranquila pasa a 16 mm en la base, 8,7 en el punto BLUE
+  inferior, 8,4 en el PLAPS y 6,7 en el superior (antes 10, 5,4, 5,2 y 4,2; F-T12 no cambia); el campo respiratorio baja en −z,
+  sin la componente anterior de VExUS, y el pulmón sobre la cúpula baja menos cuanto más alto. Coste del cuadro en el M4, el
+  mismo (3,2–3,3 ms).
 
 ### Quitado
 
@@ -125,6 +136,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - La limitación `thorax-wall-abdominal-habitus`: la pared torácica por región (17).
 - La limitación `rib-shadow-pleura-residual`: bajo la costilla no se ven la línea pleural ni las líneas A (20); la sustituye
   `rib-acoustics-simplified`, lo que el modelo de la costilla aún simplifica.
+- La limitación `respiratory-inverse-fixed-point`: la inversa del campo respiratorio es exacta (22); la sustituye
+  `respiratory-field-vertical`, lo que el campo aún simplifica.
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

@@ -3,6 +3,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { PhysiologyEngine, nonFiniteFields } from '../physiology/engine';
 import { defaultPatient, validatePatient, type PatientState } from '../physiology/patientState';
+import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 
 /**
  * Propiedades del motor fisiológico sobre TODO el dominio que acepta `validatePatient`
@@ -11,7 +12,7 @@ import { defaultPatient, validatePatient, type PatientState } from '../physiolog
  * Semilla fija: los fallos son reproducibles (fast-check imprime el contraejemplo).
  *
  * lus-sim (decisión 10): el motor recortado (reloj, ritmo y respiración) sobre el dominio del paciente
- * núcleo; las cotas son las del modelo respiratorio (volumen 0–1, excursión ≤ 30 mm) y del ritmo.
+ * núcleo; las cotas son las del modelo respiratorio (volumen 0–1, la excursión de su patrón) y del ritmo.
  */
 const SEED = 20260922;
 
@@ -54,9 +55,13 @@ describe('Propiedades del motor fisiológico (fast-check)', () => {
           expect(s.rr).toBeGreaterThan(0);
           expect(s.resp.volume).toBeGreaterThanOrEqual(0);
           expect(s.resp.volume).toBeLessThanOrEqual(1);
-          // la excursión del diafragma es 10 mm (tranquila) o 30 mm (profunda o apnea inspiratoria)
+          // la excursión del diafragma es la de su patrón (lus-sim, decisión 22: 16 mm tranquila y 53 profunda o en apnea
+          // inspiratoria, la base en supino; en VExUS, 10 y 30)
+          const E = DIAPHRAGM_EXCURSION.params;
+          const max = p.respiratoryPattern === 'deep' || p.respiratoryPattern === 'apnea-inspiratory' ? E.deepMm.value : E.quietMm.value;
           expect(s.resp.diaphragmCaudalMm).toBeGreaterThanOrEqual(0);
-          expect(s.resp.diaphragmCaudalMm).toBeLessThanOrEqual(30);
+          expect(s.resp.diaphragmCaudalMm).toBeLessThanOrEqual(max);
+          expect(s.resp.diaphragmCaudalMm).toBeCloseTo(max * s.resp.volume, 9);
         }
       }),
       { seed: SEED, numRuns: 40 },

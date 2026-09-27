@@ -32,6 +32,7 @@ import {
   LAST_WALL_INTERFACE,
 } from '../interfaces';
 import { COMPRESSION_GLSL, PROBE_COMPRESSION } from '../compression';
+import { RESPIRATORY_INVERSE } from '../deformation';
 import { ORGAN_MODULES } from '../organs';
 import { RIB_TABLE_BASE } from '../organs/ribcage';
 import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from '../organs/lungBorder';
@@ -100,30 +101,56 @@ vec3 torsoNormal(vec3 p) {
   return l > 0.0 ? vec3(n / l, 0.0) : vec3(0.0, 1.0, 0.0);
 }
 
-float wallTotalMm(vec3 m);
+float wallArc(vec3 m);
+vec4 wallColumnTexel(float u);
+float wallTotalOf(vec4 a, float z);
 float heartStillWeight(vec3 m);
-float respWeight(vec3 m) {
-  // lus-sim (decisión 17): más hondo que la pared más gruesa (uChestWall.w) + 25 mm el peso de la pared es 1 sin leerla
-  float d = -torsoDepth(m);
-  float inside = d >= uChestWall.w + 25.0 ? 25.0 : d - wallTotalMm(m);
-  float wWall = smoothstep(0.0, 25.0, inside);
-  float dSpine = length(m.xy - uSpine.xy);
-  float wSpine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, dSpine);
-  // lus-sim (decisión 18): el corazón y su ventana no respiran
-  return wWall * wSpine * heartStillWeight(m);
+// lus-sim (decisión 22): el campo es vertical; lo que su peso no cambia a lo largo de la vertical de (x, y): la profundidad bajo
+// la piel, el téxel de la columna de la pared torácica y el peso de la columna vertebral. Gemelo: AnatomyScene.respiratoryColumn
+struct RespCol {
+  float d;      // −torsoDepth
+  bool far;     // más hondo que la pared más gruesa (uChestWall.w) + 25 mm: el peso de la pared es 1 sin leerla (decisión 17)
+  vec4 wall;    // téxel de la columna de la pared (sin leer si far)
+  float spine;  // peso de la columna vertebral
+};
+RespCol respColumn(vec3 m) {
+  RespCol c;
+  c.d = -torsoDepth(m);
+  c.far = c.d >= uChestWall.w + 25.0;
+  c.wall = c.far ? vec4(0.0) : wallColumnTexel(wallArc(m));
+  c.spine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, length(m.xy - uSpine.xy));
+  return c;
 }
-
-vec3 respDisplacement(vec3 m) {
-  return uResp.yzw * (uResp.x * respWeight(m));
+// Peso en m, de la vertical c. Gemelo: AnatomyScene.respiratoryWeightAt
+float respWeightAt(RespCol c, vec3 m) {
+  if (c.spine == 0.0) return 0.0;
+  float wWall = c.far ? 1.0 : smoothstep(0.0, 25.0, c.d - wallTotalOf(c.wall, m.z));
+  // lus-sim (decisión 18): el corazón y su ventana no respiran; (decisión 22) el pulmón se expande con la distancia a su
+  // vértice: la ley de altura, 1 hasta la cúpula y 0 en uResp.y (su inversa del tramo, uResp.z)
+  float wHeight = clamp((uResp.y - m.z) * uResp.z, 0.0, 1.0);
+  return wWall * c.spine * heartStillWeight(m) * wHeight;
 }
 
 ${COMPRESSION_GLSL}
-// Mundo → material: la compresión de la sonda (decisión 63) y después la respiración (deformation.ts)
+// Mundo → material: la compresión de la sonda (decisión 63) y después la respiración (deformation.ts). lus-sim (decisión
+// 22): el campo baja D·w(m) en −z; su inversa, la raíz de z − D·w(x, y, z) = q.z en [q.z, q.z + D], por bisección con
+// RESP_INVERSE_STEPS pasos (gemelo: respiratoryInverse). Sin peso en q, q; con el peso entero en q + D, q + D
+#define RESP_INVERSE_STEPS ${RESPIRATORY_INVERSE.steps}
 vec3 toMaterial(vec3 p) {
   vec3 q = uncompress(p);
-  vec3 m = q;
-  for (int i = 0; i < 2; i++) m = q - respDisplacement(m);
-  return m;
+  float D = uResp.x;
+  if (D <= 0.0) return q;
+  RespCol c = respColumn(q);
+  if (respWeightAt(c, q) == 0.0) return q;
+  vec3 top = vec3(q.xy, q.z + D);
+  if (respWeightAt(c, top) == 1.0) return top;
+  float lo = q.z;
+  float hi = q.z + D;
+  for (int i = 0; i < RESP_INVERSE_STEPS; i++) {
+    float mid = 0.5 * (lo + hi);
+    if (mid - D * respWeightAt(c, vec3(q.xy, mid)) < q.z) lo = mid; else hi = mid;
+  }
+  return vec3(q.xy, 0.5 * (lo + hi));
 }
 
 float domeLift(float x, float y, vec4 dome) {

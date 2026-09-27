@@ -713,7 +713,7 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  it('A-T13: en la respiración tranquila la cortina baja 0,9–2,8 cm (10 mm, lo que el diafragma del modelo)', () => {
+  it('A-T13: en la respiración tranquila la cortina baja 0,9–2,8 cm (16 mm, lo que el diafragma: la base en supino)', () => {
     const quiet = new RespiratoryModel(defaultPatient()).excursionMm();
     for (const side of [-1, 1] as const) {
       const phi = line('midaxillary', side);
@@ -723,16 +723,17 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  notYetMet(
-    'A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm (hoy 3,0: el diafragma del modelo, el de VExUS, baja 30 mm; con los 53 de la base el campo respiratorio se pliega, `lung-border-table`)',
-    () => {
-      const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
-      const phi = line('midaxillary');
+  // lus-sim (decisión 22): con la excursión de la base, 53 mm (en VExUS y hasta el paso C4, 30: con 53 su campo respiratorio
+  // se plegaba). Medido: 53 a los dos lados (la reflexión de la LAM queda 62 mm bajo el borde de FRC)
+  it('A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm en la LAM, a los dos lados (53 mm)', () => {
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    for (const side of [-1, 1] as const) {
+      const phi = line('midaxillary', side);
       const d = at(phi)! - at(phi, deep)!;
       expect(d).toBeGreaterThanOrEqual(31);
       expect(d).toBeLessThanOrEqual(75);
-    },
-  );
+    }
+  });
 
   it('A-T14: en la inspiración profunda la cortina izquierda tapa el espacio intercostal por el que se ve la cúpula', () => {
     // el primer EIC entero bajo el borde del pulmón en FRC en la LAM y la LAP izquierdas (el 8.º y el 9.º): en FRC, a 1,5 mm de
@@ -768,8 +769,13 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     for (const side of [-1, 1] as const)
       for (const l of ['anteriorAxillary', 'midaxillary'] as const) {
         const phi = line(l, side);
-        // el EIC 9 (el 8 de la LAM lo tapa la cortina a TLC: debajo de ella quedan 2 mm)
-        const z = intercostalZ(scene, 9, phi);
+        // el primer EIC desde el 8.º que la cortina no tapa a TLC (tapado, bajo la lámina quedan 2 mm de la ZOA): el 9.º en la
+        // LAA y, con los 53 mm de la base (decisión 22), el 10.º en la LAM (Boon mide en el 8.º–9.º por delante de la LAA)
+        const tlcBorder = at(phi, deep)!;
+        let n = 8;
+        while (intercostalZ(scene, n, phi) > tlcBorder - 5) n++;
+        expect(n, `${l} ${side}`).toBeLessThanOrEqual(l === 'anteriorAxillary' ? 9 : 10);
+        const z = intercostalZ(scene, n, phi);
         const frc = thickness(phi, z, 0);
         const tlc = thickness(phi, z, deep);
         expect(frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.1);

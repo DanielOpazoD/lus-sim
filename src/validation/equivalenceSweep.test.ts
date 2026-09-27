@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { equivalenceSweep, interfaceShellEquivalence, pleuraEquivalence, volumeEquivalence } from '../app/equivalenceSweep';
+import {
+  equivalenceSweep,
+  inspirationSweepPoses,
+  interfaceShellEquivalence,
+  pleuraEquivalence,
+  volumeEquivalence,
+} from '../app/equivalenceSweep';
 import type { Simulator } from '../app/simulator';
 import { START_POINTS } from '../app/startPoints';
 import { Interface, isRibInterface, isWallLayerInterface } from '../anatomy/interfaces';
@@ -28,11 +34,10 @@ const WALL_FACES = ['SkinFat', 'Scarpa', 'DeepFascia', 'ObliquePlane', 'Transver
  * (sin el acuerdo de vaso ni el error de velocidad de VExUS); los defectos inyectados son del tórax (pulmón, pared,
  * costillas) y se añade la pleura parietal de A0 frente a su gemelo (`pleuraEquivalence`).
  */
-function fakeSim(corrupt?: Corruption, pleuraShiftMm = 0): Simulator {
+function fakeSim(corrupt?: Corruption, pleuraShiftMm = 0, sample = new PhysiologyEngine(defaultPatient()).step()): Simulator {
   const patient = defaultPatient();
   const scene = new AnatomyScene(patient);
   const anatomy = new AnatomyQuery(scene);
-  const sample = new PhysiologyEngine(patient).step();
   const gpuQuery = (pts: Float32Array): GpuPointQuery => {
     const n = pts.length / 3;
     const tissue = new Int32Array(n);
@@ -215,5 +220,38 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(shifted.depthMaxErrMm).toBeCloseTo(0.05, 5);
     expect(shifted.depthMaxErrMm).toBeGreaterThan(shifted.quantumMm);
     expect(shifted.worst).toMatch(/D CPU/);
+  });
+
+  it('en la inspiración profunda, el barrido y el volumen ven una «GPU» con la inversa de VExUS (dos pasos de punto fijo)', () => {
+    // lus-sim (decisión 22): la muestra con el diafragma bajado los 53 mm de la base (apnea inspiratoria)
+    const deep = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-inspiratory' }).step();
+    expect(deep.resp.diaphragmCaudalMm).toBe(53);
+    const ok = fakeSim(undefined, 0, deep);
+    const poses = inspirationSweepPoses(ok.scene);
+    expect(poses.map((p) => p.id)).toEqual(['cardiacWindow', 'leftBorder', 'rightCurtain']);
+    const good = equivalenceSweep(ok, poses);
+    expect(good.map((r) => r.id)).toEqual([...START_POINTS.map((s) => s.id), 'cardiacWindow', 'leftBorder', 'rightCurtain']);
+    for (const r of good) expect(r.interiorAgreement, r.id).toBe(1);
+    // la «GPU» clasifica el punto de los dos pasos de punto fijo desde el mismo punto sin la compresión de la sonda
+    const scene = ok.scene;
+    const D = deep.resp.diaphragmCaudalMm;
+    const instant = { diaphragmCaudalMm: D };
+    const bad = fakeSim(
+      (_p, q) => {
+        const m = q.material;
+        const z0 = m[2] - D * scene.respiratoryWeight(m);
+        let f: P = [m[0], m[1], z0];
+        for (let i = 0; i < 2; i++) f = [m[0], m[1], z0 + D * scene.respiratoryWeight(f)];
+        return { tissue: scene.classify(f, instant).tissue };
+      },
+      0,
+      deep,
+    );
+    // los planos la ven (su acuerdo interior baja de 1: 0,992 en el peor; la e2e exige ≥ 0,99 en ellos) y el volumen, que
+    // exige el acuerdo exacto lejos de las interfaces, la rechaza
+    const reps = equivalenceSweep(bad, poses);
+    expect(Math.min(...reps.map((r) => r.interiorAgreement))).toBeLessThan(1);
+    const v = volumeEquivalence(bad, 3000);
+    expect(v.tissueAgreement).toBeLessThan(1);
   });
 });

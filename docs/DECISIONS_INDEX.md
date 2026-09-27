@@ -24,3 +24,5 @@ Generado por `npm run docs:index` — no editar a mano.
 | [18](DECISIONS.md#L958) | Paso C3: pulmón y pleura en los dos hemitórax, bordes de la base, ZOA y ventana cardiaca | vigente |
 | [19](DECISIONS.md#L1040) | Paso C4: el deslizamiento por región | vigente |
 | [20](DECISIONS.md#L1086) | La costilla apaga la pleura: lente de fase, lóbulos laterales por su apertura y el preajuste sin saturar (F-T08) | vigente |
+| [21](DECISIONS.md#L1201) | Reservada para la PR paralela que la usa | reservada |
+| [22](DECISIONS.md#L1208) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
