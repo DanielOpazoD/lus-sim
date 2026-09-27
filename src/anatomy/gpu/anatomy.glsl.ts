@@ -103,7 +103,8 @@ vec3 torsoNormal(vec3 p) {
 
 float wallArc(vec3 m);
 vec4 wallColumnTexel(float u);
-float wallTotalOf(vec4 a, float z);
+float respiratoryWallBlendMm(vec4 a);
+float respiratoryWallOf(vec4 a, float blend, float z);
 float heartStillWeight(vec3 m);
 // lus-sim (decisión 22): el campo es vertical; lo que su peso no cambia a lo largo de la vertical de (x, y): la profundidad bajo
 // la piel, el téxel de la columna de la pared torácica y el peso de la columna vertebral. Gemelo: AnatomyScene.respiratoryColumn
@@ -111,6 +112,7 @@ struct RespCol {
   float d;      // −torsoDepth
   bool far;     // más hondo que la pared más gruesa (uChestWall.w) + 25 mm: el peso de la pared es 1 sin leerla (decisión 17)
   vec4 wall;    // téxel de la columna de la pared (sin leer si far)
+  float blend;  // largo del paso al abdomen de la pared que mira el campo (respiratoryWallBlendMm)
   float spine;  // peso de la columna vertebral
 };
 RespCol respColumn(vec3 m) {
@@ -118,13 +120,15 @@ RespCol respColumn(vec3 m) {
   c.d = -torsoDepth(m);
   c.far = c.d >= uChestWall.w + 25.0;
   c.wall = c.far ? vec4(0.0) : wallColumnTexel(wallArc(m));
+  c.blend = c.far ? 0.0 : respiratoryWallBlendMm(c.wall);
   c.spine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, length(m.xy - uSpine.xy));
   return c;
 }
 // Peso en m, de la vertical c. Gemelo: AnatomyScene.respiratoryWeightAt
 float respWeightAt(RespCol c, vec3 m) {
   if (c.spine == 0.0) return 0.0;
-  float wWall = c.far ? 1.0 : smoothstep(0.0, 25.0, c.d - wallTotalOf(c.wall, m.z));
+  // la pared que mira el campo: el paso al abdomen alargado hasta la pendiente CW_RESP_SLOPE (organs/chestWall.ts)
+  float wWall = c.far ? 1.0 : smoothstep(0.0, 25.0, c.d - respiratoryWallOf(c.wall, c.blend, m.z));
   // lus-sim (decisión 18): el corazón y su ventana no respiran; (decisión 22) el pulmón se expande con la distancia a su
   // vértice: la ley de altura, 1 hasta la cúpula y 0 en uResp.y (su inversa del tramo, uResp.z)
   float wHeight = clamp((uResp.y - m.z) * uResp.z, 0.0, 1.0);

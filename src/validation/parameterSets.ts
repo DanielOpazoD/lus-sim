@@ -1,6 +1,6 @@
 import type { ParameterSet } from '../core/evidence';
 import { START_POINT_POSES } from '../app/startPoints';
-import { CHEST_WALL } from '../anatomy/organs/chestWall';
+import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { RIBCAGE } from '../anatomy/organs/ribcage';
@@ -31,4 +31,5 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   TGC_REFERENCE,
   BONE_TRANSMISSION,
   DIAPHRAGM_EXCURSION,
+  RESPIRATORY_WALL,
 ];

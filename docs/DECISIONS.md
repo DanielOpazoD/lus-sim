@@ -1234,55 +1234,89 @@ una bisección), regula falsi o ITP (la misma cota en el peor caso, más código
   VExUS era la del hígado bajo la pared del abdomen. Sin ella, el término de la pared baja de 1,17 a 0,72 con 53 mm.
 - **Ley de altura** (`AnatomyScene.respiratoryHeight` y `respiratoryWeightAt`; GLSL `respWeightAt` con `uResp.yz`): el peso
   se multiplica por 1 hasta la cota de la cúpula (`domeTopZ`, 13,7 mm en el avatar: la cúpula y todo lo que hay debajo bajan
-  D) y por una recta hasta 0 a `slideSpanMm` más arriba (147 mm), la altura en que se apaga el deslizamiento (decisión 19): el
-  pulmón se expande con la distancia a su vértice, que no baja. La ley crece hacia abajo, así que solo estira (jacobiano ≥ 1),
-  y el pulmón sobre el corazón ya casi no baja: el pliegue desaparece sin tocar la rampa del corazón.
+  D) y por una recta hasta 0 a `slideSpanMm` (147 mm) más arriba [SUPUESTO]: el tramo del deslizamiento (decisión 19), llevado
+  de la base de cada columna a la cota de la cúpula (el deslizamiento se apaga a 128–145 mm; esta ley, a 161). El pulmón se
+  expande con la distancia a su vértice, que no baja. La ley crece hacia abajo, así que solo estira (jacobiano ≥ 1), y el
+  pulmón sobre el corazón ya casi no baja: el pliegue desaparece sin tocar la rampa del corazón.
+- **La pared que mira el campo** (`respiratoryWallOf` y `respiratoryWallBlendMm` en `src/anatomy/organs/chestWall.ts`, TS y
+  GLSL; `anatomy.respiratoryWall.slopeMax`, 0,1 mm/mm, estimado). Lo que baja junto a una pared que engruesa hacia abajo se
+  comprime, y bajo el reborde costal la pared del tórax pasa a la del abdomen (de 13 a 28 mm en 100 mm, 0,23 mm/mm; 0,27 en la
+  delgada; más con más grasa en el abdomen): con ella el campo se plegaba con 62 mm en la delgada, 73 en el avatar o 53 con 25 mm
+  de grasa en el abdomen (lo halló la revisión). El peso mira la pared con ese paso alargado hasta que no engruese más deprisa
+  que 0,1 mm/mm (228 mm en lugar de 100 en el avatar), nunca más fina que la de verdad: la anatomía no cambia, solo dónde
+  empieza a bajar el tejido de dentro (hasta 6 mm más hondo junto a la reflexión de la LAM). El término de la pared en el
+  jacobiano queda así ≤ 1,5·0,1/25·D por construcción, con cualquier hábito.
 - **Invertible por construcción.** A lo largo de cada vertical el mapa es z ↦ z − D·w(x, y, z), y su jacobiano, 1 − D·∂w/∂z,
-  es afín en D: positivo con la mayor excursión lo es en toda fase de todo patrón. Medido (rejilla de 4 mm, las seis variantes
-  del hábito, 53 mm): mínimo 0,278 en el avatar y la mujer, 0,142 en la delgada y 0,58–0,63 en la obesa, siempre bajo el
-  reborde costal del flanco, donde la pared del tórax pasa a la del abdomen (de 13 a 28 mm); máximo 2,51, bajo el corazón.
+  es afín en D: positivo con una excursión lo es en toda fase de todo patrón que no la pase. Sus dos términos: la pared, ≤
+  0,006·D por construcción, y el corazón, que la ley de altura hace pequeño (el pulmón de encima baja poco). Medido (rejilla de
+  4 mm y paso de 0,25 mm en z, las seis variantes del tórax con 5, 14 y 35 mm de grasa en el abdomen): mínimo 0,574–0,631 con
+  53 mm y 0,397–0,478 con 75, siempre sobre el corazón; el campo se plegaría con más de 124 mm. Máximo 2,51, bajo el corazón.
 - **Inversa exacta** (`respiratoryInverse`; GLSL `toMaterial`): la raíz de z − D·w(z) = q_z está en [q_z, q_z + D] (0 ≤ w ≤ 1);
-  una bisección de `RESPIRATORY_INVERSE.steps` = 10 pasos la deja a ≤ D/2¹¹, 0,026 mm con 53 (la tolerancia declarada, 0,05
-  mm, la comprueba el módulo con la mayor excursión del rango de la base, 75 mm). Sin peso en q (la pared, la columna, el
-  corazón, el pulmón alto) devuelve q; con el peso entero en q + D (las vísceras), q + D. Una bisección y no Newton: la cota
-  sale con un número fijo de pasos y sin derivadas; y con el campo vertical, lo que el peso no cambia con z se lee una vez por
-  muestra (`respiratoryColumn`, GLSL `RespCol`: la profundidad, el téxel de la columna de la pared, `wallColumnTexel`, y la
-  columna vertebral), así que cada paso solo mezcla dos alturas de la pared (`wallTotalOf`), el corazón y la recta.
+  una bisección de `RESPIRATORY_INVERSE.steps` = 10 pasos deja el punto material a ≤ D/2¹¹, 0,026 mm con 53 (la tolerancia
+  declarada, 0,05 mm, la comprueba el módulo con la mayor excursión del rango de la base, 75 mm); en el mundo el residuo es ese
+  error por la jacobiana, ≤ 0,068 mm. Sin peso en q (la pared, la columna, el corazón, el pulmón alto) devuelve q; con el peso
+  entero en q + D (las vísceras), q + D. Una bisección y no Newton: la cota sale con un número fijo de pasos y sin derivadas; y
+  con el campo vertical, lo que el peso no cambia con z se lee una vez por muestra (`respiratoryColumn`, GLSL `RespCol`: la
+  profundidad, el téxel de la columna de la pared, `wallColumnTexel`, el largo de su paso al abdomen y la columna vertebral), así
+  que cada paso solo mezcla dos alturas de la pared, el corazón y la recta.
 - **La excursión de la base** (`physiology.diaphragmExcursion`, `src/physiology/respiratory.ts`): 16 mm (derivado:
-  Gerscovich y Cardenas vía Santana, Boussuges) y 53 (Kantarci vía Santana), en lugar de 10 y 30. El descenso que se toma
-  por TLC (`anatomy.lungBorder.zoaTlcCaudalMm`, el engrosamiento de la ZOA) y el de la inspiración máxima de Yoshida
-  (`anatomy.chestWall.inspirationReferenceMm`) pasan a ser la excursión profunda (derivados; salen de `docs/APPROXIMATIONS.md`).
+  Gerscovich y Cardenas vía Santana, Boussuges) y 53 (Kantarci vía Santana), en lugar de 10 y 30; en la mujer (`habitus.chest`),
+  47 en la profunda (Kantarci), y la tranquila, la misma (la base no la separa en supino). El descenso que se toma por TLC
+  (`anatomy.lungBorder.zoaTlcCaudalMm`, el engrosamiento de la ZOA) y el de la inspiración máxima de Yoshida
+  (`anatomy.chestWall.inspirationReferenceMm`) pasan a ser la excursión profunda del hombre (derivados; salen de
+  `docs/APPROXIMATIONS.md`).
 
 **Consecuencias.**
 
-- A-T13 se cumple: la cortina de la LAM baja 16 mm en la respiración tranquila y 53 en la profunda (medido en el mundo por el
-  camino del motor, 16,15 y 53,50: la lámina, 1,5 mm bajo la pleura, baja además lo que la mueve la rampa de la pared); junto a
-  la columna se detiene en la reflexión (23 mm). La cúpula junto a la axilar, con el peso entero, baja la excursión de cada
-  patrón (0, 16, 53 y 53 mm). A-T15 a TLC se mide en el primer EIC que la cortina no tapa: el 9.º en la LAA, el 10.º en la LAM
-  (con 53 mm la cortina tapa el 9.º). La ZOA en la respiración tranquila, 2,84 mm (antes 2,93).
-- La inversa yerra ≤ 0,026 mm en todo el tronco (antes, 26 mm con 53); los dos pasos de punto fijo sobre el campo nuevo
-  yerran hasta 28 mm (> 1 mm en el 8,2 % de las muestras a menos de 8 cm de la piel).
+- A-T13 se cumple: la cortina de la LAM baja 16 mm en la respiración tranquila y 53 en la profunda, a los dos lados (medido en
+  el mundo por el camino del motor: la lámina queda dentro de la pared que mira el campo); junto a la columna se detiene en la
+  reflexión (23 mm). La cúpula derecha junto a la axilar, con el peso entero, baja la excursión de cada patrón (0, 16, 53 y 53
+  mm; 47 en la mujer). A-T15 a TLC se mide en el primer EIC que la cortina no tapa: el 9.º en la LAA, el 10.º en la LAM (con 53
+  mm la cortina tapa el 9.º; la meta los admite, 8.º–10.º). La ZOA en la respiración tranquila, 2,84 mm (antes 2,93).
+- La inversa yerra ≤ 0,026 mm en el punto material en todo el tronco (antes, 26 mm con 53); los dos pasos de punto fijo sobre el
+  campo nuevo yerran hasta 28 mm (> 1 mm en el 8,2 % de las muestras a menos de 8 cm de la piel).
+- **La cúpula junto al corazón baja menos que la excursión** (la rampa del corazón quieto, decisión 18, alcanza la cúpula de
+  debajo; medido con 53 mm en el suelo del pulmón en el mundo): la derecha, el 100 % junto a la axilar y el 52 % en su vértice;
+  la izquierda, el 35 % junto a la axilar (110, 0) y el 4 % en su vértice. La base da la misma excursión a los dos lados
+  (Boussuges): queda como meta pendiente (`notYetMet` en `respiratoryField.test.ts`) y en `respiratory-field-vertical`. Hoy no
+  se ve (el abdomen es negro y la cortina tapa la cúpula, A-T14), pero una excursión asimétrica es el signo de una parálisis
+  hemidiafragmática: se verá con el hígado y el bazo. Junto a la pared del flanco la cúpula también baja menos (la rampa de
+  la pared: el 66 % en (±110, −40)).
 - El deslizamiento (decisión 19) sigue al borde, que ahora baja la excursión de la base: en la respiración tranquila, 16 mm en
   la base, 8,7 en el punto BLUE inferior, 8,4 en el PLAPS y 6,7 en el superior (antes 10, 5,4, 5,2 y 4,2); el cociente de
   F-T12 no cambia (0,416).
 - Lo que se mueve distinto: el pulmón sobre la cúpula baja menos (a media altura de la ley, la mitad) y nada baja ya hacia
-  delante (con 53 mm la componente anterior habría sido 8 mm). La cúpula junto al corazón sigue bajando lo que deja su rampa (la
-  decisión 18): el vértice derecho, el 51 % de la excursión; el izquierdo, el 4 % (`respiratory-field-vertical`).
+  delante (con 53 mm la componente anterior habría sido 8 mm). La ventana cardiaca no se achica al inspirar (el pulmón no se
+  interpone: el corazón y la lámina junto a la ventana no se mueven), y la e2e lo exige; en el paciente real el pulmón la tapa
+  en parte (`heart-simplified`).
 - Coste en el M4 (intercalado con main, en la inspiración profunda): la pasada A0, 0,45 → 0,55 ms en el BLUE superior y 0,53 →
   0,53 en el PLAPS; la B, 1,36 → 1,39 y 1,23 → 1,29; el cuadro, 3,2–3,3 ms antes y después (en espiración, algo menos: sin
-  descenso la inversa no evalúa el peso). Muy lejos de O6 (≥ 30 FPS).
+  descenso la inversa no evalúa el peso). Muy lejos de O6 (≥ 30 FPS). El chunk principal pasa de 235,7 a 240,4 kB (la GLSL y
+  las notas de evidencia de los parámetros nuevos): su presupuesto sube a 250 y el total de JS a 255.
 - Limitaciones: se borra `respiratory-inverse-fixed-point`; `lung-border-table` ya no habla de la excursión; nueva
   `respiratory-field-vertical` (una traslación caudal con pesos, sin movimiento anterior ni cizalla en la pleura).
 - Mejora para ofrecer a VExUS: su inversa es la misma de dos pasos de punto fijo; la bisección sirve a lo largo de su
   dirección.
+- De paso, la prueba de la procedencia (`originContents`) comiteaba su repo de juguete en la rama de un worktree cuando la
+  corría el hook pre-push (git exporta `GIT_DIR`): `gitEnv` en `tools/provenance/drift.ts` quita las variables `GIT_*`.
 
 **Verificación.** `npm run check` y `npm run e2e` en verde. `src/validation/respiratoryField.test.ts` (fast-check, 20 000
-puntos en las seis variantes): el jacobiano ≥ 0,1 con 53 mm; cada vertical estrictamente creciente en una rejilla de 6 mm con
-paso de 0,5 mm; material → mundo → material ≤ 0,05 mm y ≤ D/2¹¹ con toda excursión; el residuo de la vertical; y, por el camino
-del motor, la excursión por patrón en la cúpula, A-T13 en el mundo y la ventana cardiaca quieta en la inspiración profunda. Con
-sus mutaciones, que fast-check encuentra: el campo de VExUS y el caudal sin la ley de altura se pliegan con 53 mm, y los dos
-pasos de punto fijo yerran más que la tolerancia. `anatomyTargets.test.ts` (A-T13 en la inspiración profunda pasa a `it`),
-`anatomy.test.ts`, `physiologyUnits.test.ts`, `properties.test.ts`, `chestWall.test.ts` y `equivalenceSweep.test.ts` (una
-«GPU» con la inversa de VExUS la ven el barrido y el volumen). En la e2e, la equivalencia en la inspiración profunda (53 mm)
+puntos en las seis variantes del tórax con tres grasas del abdomen): el jacobiano ≥ 0,5 con 53 mm y ≥ 0,35 con 75; cada vertical
+estrictamente creciente con 75 mm en una rejilla de 6–8 mm con paso de 0,5; la pared que mira el campo, nunca más fina que la de
+verdad ni más gruesa que la cota de la GLSL, y sin engrosar hacia abajo más deprisa que su pendiente; material → mundo → material
+≤ 0,05 mm y ≤ D/2¹¹ con toda excursión hasta 75 mm; el residuo en el mundo; y, por el camino del motor, la excursión por patrón en
+la cúpula (también en la mujer), A-T13 en el mundo, la ventana cardiaca quieta en la inspiración profunda y, pendiente
+(`notYetMet`), la cúpula izquierda. Con sus mutaciones: el campo de VExUS y el caudal sin la ley de altura se pliegan con 53 mm
+(fast-check los encuentra), el peso con la pared de verdad se pliega bajo el reborde (la delgada con 75 mm, el avatar con 53 y 35
+mm de grasa: la banda es fina y se recorre en una rejilla de 3 mm) y los dos pasos de punto fijo yerran más que la tolerancia.
+`anatomyTargets.test.ts` (A-T13 en la inspiración profunda pasa a `it`), `anatomy.test.ts` (el peso contra la cuenta con la
+pared de la clasificación), `physiologyUnits.test.ts`, `properties.test.ts`, `chestWall.test.ts` y `equivalenceSweep.test.ts`
+(una «GPU» con la inversa de VExUS la ven el barrido y el volumen). En la e2e, la equivalencia en la inspiración profunda (53 mm)
 suma la ventana cardiaca, el borde de la LAM izquierda y la cortina derecha al barrido de planos, y la pleura de A0 en sus cinco
-planos; con la GLSL en dos pasos de punto fijo falla (la cáscara de las caras, 0,998, ya en la respiración tranquila).
+planos; con la GLSL en dos pasos de punto fijo falla (la cáscara de las caras, 0,998, ya en la respiración tranquila). Revisión
+adversarial de contexto limpio (midió con scripts, la GPU real y SwiftShader, y corrió mutaciones de la TS y de la GLSL): sin
+bloqueantes; halló que la invertibilidad dependía de la excursión (62 mm en la delgada) y de la grasa del abdomen (lo resuelve la
+pared que mira el campo), la cúpula izquierda casi quieta sin declarar, un signo en la mejora para VExUS, la tolerancia que es la
+del punto material, una prueba tautológica del peso, la excursión de la mujer y la ley de altura que no es la del deslizamiento;
+aplicado. Sus cifras: la inversa, 0,0258 mm en 1,2 M muestras (también con la compresión y en float32 emulado); las mutaciones
+de la GLSL sin la ley de altura o con 5 pasos fallan en la e2e.

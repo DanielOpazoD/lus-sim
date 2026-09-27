@@ -39,7 +39,15 @@ import {
   type RibCageOptions,
   type RibSpec,
 } from './organs/ribcage';
-import { DEFAULT_CHEST_HABITUS, buildChestWall, setChestWallCage, wallColumnTexel, wallTotalOf, type ChestWall } from './organs/chestWall';
+import {
+  DEFAULT_CHEST_HABITUS,
+  buildChestWall,
+  respiratoryWallBlendMm,
+  respiratoryWallOf,
+  setChestWallCage,
+  wallColumnTexel,
+  type ChestWall,
+} from './organs/chestWall';
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
@@ -324,11 +332,13 @@ export class AnatomyScene {
   respiratoryColumn(x: number, y: number): RespiratoryColumn {
     const p: Vec3 = [x, y, 0];
     const dSpine = Math.hypot(x - this.spine.x0, y - this.spine.y0);
+    const wall = wallColumnTexel(this.chestWall, wallArc(p, this.torso));
     return {
       x,
       y,
       depth: torsoDepth(p, this.torso),
-      wall: wallColumnTexel(this.chestWall, wallArc(p, this.torso)),
+      wall,
+      wallBlendMm: respiratoryWallBlendMm(this.chestWall, wall),
       spine: smoothstep(this.spine.r + 5, this.spine.r + 35, dSpine),
     };
   }
@@ -336,7 +346,9 @@ export class AnatomyScene {
   /** Peso respiratorio en (x, y, z) de la vertical `c` (gemelo GLSL `respWeightAt`). */
   respiratoryWeightAt(c: RespiratoryColumn, z: number): number {
     if (c.spine === 0) return 0;
-    const wWall = smoothstep(0, 25, -c.depth - wallTotalOf(this.chestWall, c.wall, z));
+    // la pared que mira el campo (decisión 22): nunca más fina que la de verdad, y sin engrosar hacia abajo más deprisa que
+    // `anatomy.respiratoryWall.slopeMax` (el paso al abdomen bajo el reborde costal, alargado)
+    const wWall = smoothstep(0, 25, -c.depth - respiratoryWallOf(this.chestWall, c.wall, c.wallBlendMm, z));
     // lus-sim (decisión 18): el corazón y su ventana no respiran (sin cizalla entre el tapón pegado a la pared y el corazón)
     const wHeart = heartStillWeight(this.heart, [c.x, c.y, z]);
     // lus-sim (decisión 22): el pulmón se expande con la distancia a su vértice
@@ -566,6 +578,8 @@ export interface RespiratoryColumn {
   readonly depth: number;
   /** El téxel de la columna de la pared torácica en su arco (`wallColumnTexel`). */
   readonly wall: readonly [number, number, number, number];
+  /** El largo del paso al abdomen de la pared que mira el campo (`respiratoryWallBlendMm`). */
+  readonly wallBlendMm: number;
   /** Peso de la columna vertebral, que solo depende de (x, y). */
   readonly spine: number;
 }

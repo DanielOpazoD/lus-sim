@@ -252,6 +252,26 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
   },
 });
 
+/**
+ * La pared que mira el campo respiratorio (lus-sim, decisión 22; `respiratoryWallOf`). No cambia la anatomía: solo dónde
+ * empieza a moverse el tejido de dentro.
+ */
+export const RESPIRATORY_WALL = defineParameters('anatomy.respiratoryWall', {
+  slopeMax: {
+    value: 0.1,
+    unit: 'mm/mm',
+    range: [0.05, 0.15],
+    evidence: 'estimado',
+    sources: [],
+    note:
+      'Pendiente máxima con que la pared que mira el peso respiratorio engruesa hacia abajo (el paso del tórax al abdomen bajo ' +
+      'el reborde costal, alargado lo que haga falta) [SUPUESTO de diseño]. Con la rampa de 25 mm del peso, el término de la ' +
+      'pared en el jacobiano queda ≤ 1,5·0,1/25·D: 0,32 con 53 mm y 0,45 con 75 (el máximo del rango de la excursión profunda), ' +
+      'con cualquier grasa del abdomen. Con la pared de verdad (0,23 en el avatar, 0,27 en la delgada, más con más grasa) el ' +
+      'campo se plegaba con 62–73 mm, o con 53 y 25 mm de grasa en el abdomen',
+  },
+});
+
 /** Paso de la tabla en |u| (mm de piel) y columnas: de la línea media anterior a la posterior (≈ 421 mm). */
 export const CHEST_WALL_DU_MM = 8;
 export const CHEST_WALL_COLS = 56;
@@ -652,6 +672,31 @@ export function wallTotalOf(cw: ChestWall, a: readonly [number, number, number, 
   return mix(mix(a[1], a[0], hi), A[0] + A[1] + A[2], abd);
 }
 
+/**
+ * La pared como la ve el campo respiratorio (lus-sim, decisión 22): el tejido que baja junto a una pared que engruesa hacia
+ * abajo se comprime, y bajo el reborde costal la pared del tórax pasa a la del abdomen (de 13 a 28 mm en 100 mm: 0,23 mm por
+ * mm; más con más grasa en el abdomen). El peso del campo la mira con ese paso alargado hasta que su pendiente no pase de
+ * `anatomy.respiratoryWall.slopeMax`: su largo, en la columna del téxel `a` (gemelo GLSL con el mismo nombre). La cota del
+ * jacobiano sale así de la construcción, con cualquier hábito del abdomen.
+ */
+export function respiratoryWallBlendMm(cw: ChestWall, a: readonly [number, number, number, number]): number {
+  const A = cw.abdomen;
+  const excess = Math.max(A[0] + A[1] + A[2] - Math.min(a[0], a[1]), 0);
+  return Math.max(CHEST_WALL.params.abdomenBlendMm.value, (1.5 * excess) / RESPIRATORY_WALL.params.slopeMax.value);
+}
+
+/**
+ * El grosor de la pared (mm) que mira el campo respiratorio a la altura z (gemelo GLSL con el mismo nombre): el del tórax más
+ * lo que le falta para el del abdomen por el paso alargado (`respiratoryWallBlendMm`, `blend`). Nunca menor que el de la pared
+ * (`wallTotalOf`): el paso alargado pesa al menos lo que el de verdad, y donde el abdomen es más fino que el tórax no suma.
+ */
+export function respiratoryWallOf(cw: ChestWall, a: readonly [number, number, number, number], blend: number, z: number): number {
+  const A = cw.abdomen;
+  const chest = mix(a[1], a[0], smoothstep(cw.zLow, cw.zHigh, z));
+  const margin0 = a[2] - CHEST_WALL.params.abdomenBlendMm.value;
+  return chest + Math.max(A[0] + A[1] + A[2] - chest, 0) * (1 - smoothstep(margin0, margin0 + blend, z));
+}
+
 /** Capas de la pared (mm, métrica radial) en (u, z) (gemelo GLSL con el mismo nombre). */
 export function wallLayersAt(cw: ChestWall, u: number, z: number): WallLayersAt {
   const [j, f] = column(u);
@@ -700,6 +745,7 @@ export const CHEST_WALL_GLSL = /* glsl */ `
 #define CW_DU ${f4(CHEST_WALL_DU_MM)}
 #define CW_ABD_BLEND ${f4(PW.abdomenBlendMm.value)}
 #define CW_INSP_MM ${f4(PW.intercostalInspirationMm.value)}
+#define CW_RESP_SLOPE ${f4(RESPIRATORY_WALL.params.slopeMax.value)}
 vec4 cwTexel(int j, float f, int k) {
   int a = CW_BASE + j * ${CHEST_WALL_TEXELS_PER_COL} + k;
   return mix(sceneTexel(a), sceneTexel(a + ${CHEST_WALL_TEXELS_PER_COL}), f);
@@ -722,6 +768,15 @@ float wallTotalOf(vec4 a, float z) {
   return mix(mix(a.y, a.x, hi), uWall.x + uWall.y + uWall.z, abd);
 }
 float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z); }
+// la pared que mira el campo respiratorio (decisión 22): el paso al abdomen alargado hasta la pendiente CW_RESP_SLOPE
+float respiratoryWallBlendMm(vec4 a) {
+  return max(CW_ABD_BLEND, 1.5 * max(uWall.x + uWall.y + uWall.z - min(a.x, a.y), 0.0) / CW_RESP_SLOPE);
+}
+float respiratoryWallOf(vec4 a, float blend, float z) {
+  float chest = mix(a.y, a.x, smoothstep(uChestWall.y, uChestWall.x, z));
+  float m0 = a.z - CW_ABD_BLEND;
+  return chest + max(uWall.x + uWall.y + uWall.z - chest, 0.0) * (1.0 - smoothstep(m0, m0 + blend, z));
+}
 // capas (piel, grasa, músculo con la banda y el complejo, complejo) y extra = (banda, engrosamiento inspiratorio, peso del
 // abdomen, 0)
 vec4 wallLayersAt(float u, float z, out vec4 extra) {

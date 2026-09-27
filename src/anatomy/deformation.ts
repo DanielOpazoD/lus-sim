@@ -13,13 +13,15 @@ import type { AnatomyScene } from './scene';
  *   p_mundo = m + D(t)·w(m)·dir
  *
  * lus-sim (decisión 22): dir = (0, 0, −1), caudal (en VExUS, (0, 0,15, −1) normalizada: caudal y algo anterior), y en el
- * peso, la ley de altura del pulmón (`AnatomyScene.respiratoryHeight`). El mapa es un difeomorfismo por construcción: a lo
- * largo de cada vertical es z ↦ z − D·w(x, y, z), creciente mientras D·∂w/∂z < 1, y el peso lo cumple con la excursión
- * profunda de la base (53 mm): el jacobiano, 1 − D·∂w/∂z, queda ≥ 0,14 en todo el tronco y en todas las variantes del hábito
+ * peso, la ley de altura del pulmón (`AnatomyScene.respiratoryHeight`) y la pared que mira el campo (`respiratoryWallOf`,
+ * que no engruesa hacia abajo más de `anatomy.respiratoryWall.slopeMax`). El mapa es un difeomorfismo por construcción: a lo
+ * largo de cada vertical es z ↦ z − D·w(x, y, z), creciente mientras D·∂w/∂z < 1; el término de la pared queda ≤ 0,006·D y
+ * el del corazón, pequeño por la ley de altura: el jacobiano, 1 − D·∂w/∂z, queda ≥ 0,57 con la excursión profunda de la base
+ * (53 mm) y ≥ 0,40 con el máximo de su rango (75), en todas las variantes del tórax y con cualquier grasa del abdomen
  * (`respiratoryField.test.ts`). En VExUS, con la dirección anterior y sin la ley de altura, se plegaba con 53 mm sobre el
  * corazón (que no respira) y bajo el reborde costal anterior (≈ 350 cm³ con el jacobiano negativo).
  *
- * La inversa (mundo → material) es exacta a `RESPIRATORY_INVERSE.toleranceMm`: en la vertical del punto, la raíz de
+ * La inversa (mundo → material) es exacta a `RESPIRATORY_INVERSE.toleranceMm` en el punto material: en la vertical del punto, la raíz de
  * z − D·w(z) = q_z, que está en [q_z, q_z + D] (0 ≤ w ≤ 1), por bisección con un número fijo de pasos (el mismo en la GLSL).
  * VExUS la aproxima con dos pasos de punto fijo, m = q − d(m), que no convergen donde el peso cambia deprisa (con los 30 mm
  * de VExUS erraban > 1 mm en el 9,6 % de las muestras a menos de 8 cm de la piel, hasta 15 mm: `respiratory-inverse-fixed-point`).

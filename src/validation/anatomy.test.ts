@@ -3,6 +3,9 @@ import { RESPIRATORY_INVERSE, RespiratoryDeformation } from '../anatomy/deformat
 import { AnatomyQuery } from '../anatomy/query';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { lungBorderAt, zoaThicknessMm } from '../anatomy/organs/lungBorder';
+import { respiratoryWallOf, wallTotalOf } from '../anatomy/organs/chestWall';
+import { heartStillWeight } from '../anatomy/organs/heart';
+import { smoothstep } from '../core/vec3';
 import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
@@ -187,19 +190,28 @@ describe('Anatomía implícita (base B)', () => {
     expect(at(topZ + 50)).toBe(0);
   });
 
-  it('el peso a lo largo de una vertical (la de la inversa) es el de cada punto', () => {
-    for (const [x, y] of [
-      [-90, -10],
-      [40, 30],
-      [-120, 20],
-      [10, -40],
-      [60, 60],
-    ])
-      for (let z = -200; z <= 200; z += 7) {
+  it('el peso es el producto de la pared, la columna, el corazón y la ley de altura (decisión 22), con la pared de la clasificación', () => {
+    // contra una cuenta independiente: la profundidad bajo la pared de la clasificación (`insideWallMm`) donde la pared que mira
+    // el campo es la de verdad (fuera del paso al abdomen alargado), y cada factor con sus números
+    const { baseZ, topZ } = scene.respiratoryHeight;
+    let n = 0;
+    for (let x = -155; x <= 155; x += 11)
+      for (let y = -100; y <= 100; y += 11) {
+        if (torsoDepth([x, y, 0], scene.torso) > 0) continue;
         const c = scene.respiratoryColumn(x, y);
-        expect(scene.respiratoryWeightAt(c, z)).toBe(scene.respiratoryWeight([x, y, z]));
-        expect(c.depth).toBe(torsoDepth([x, y, z], scene.torso));
+        for (let z = -280; z <= 280; z += 13) {
+          const m: [number, number, number] = [x, y, z];
+          if (respiratoryWallOf(scene.chestWall, c.wall, c.wallBlendMm, z) !== wallTotalOf(scene.chestWall, c.wall, z)) continue;
+          n++;
+          const spine = smoothstep(scene.spine.r + 5, scene.spine.r + 35, Math.hypot(x - scene.spine.x0, y - scene.spine.y0));
+          const height = Math.min(1, Math.max(0, (topZ - z) / (topZ - baseZ)));
+          const expected = smoothstep(0, 25, scene.insideWallMm(m)) * spine * heartStillWeight(scene.heart, m) * height;
+          expect(scene.respiratoryWeight(m)).toBeCloseTo(expected, 12);
+          // y por su vertical, lo mismo
+          expect(scene.respiratoryWeightAt(c, z)).toBe(scene.respiratoryWeight(m));
+        }
       }
+    expect(n).toBeGreaterThan(5000);
   });
 
   it('classifyWorld clasifica el punto material del mundo y da la velocidad respiratoria del tejido (sin sangre)', () => {

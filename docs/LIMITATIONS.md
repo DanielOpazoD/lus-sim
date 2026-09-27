@@ -60,7 +60,8 @@ conservan su identificador (decisiones 10 y 11).
   pulmonar (la segunda parte de A-T16) ni movimiento del corazón en la ventana; su pericardio no tiene cara propia y el
   borde de la ventana es duro (sin el volumen parcial de la cortina), aunque el pulmón que la rodea es una cuña fina sobre el
   corazón (una franja de 25 mm donde el corazón llega a la lámina de la cortina [SUPUESTO]). El corazón, con su tapón y su
-  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]). En la ventana el
+  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]), y la ventana no se
+  achica al inspirar (en el paciente real el pulmón se interpone y la tapa en parte; la e2e exige hoy que no cambie). En la ventana el
   miocardio mide hasta 25 mm antes de la cavidad (el tapón; el ventrículo derecho real, ≈ 5 mm); la cara inferior, cortada
   por la cúpula, es pared de 10 mm. Fuera del corazón, todo el tórax sobre las cúpulas
   sigue siendo pulmón: sin mediastino, grandes vasos, timo ni esófago. Largo, ancho, grosor, orientación y paredes son
@@ -85,13 +86,19 @@ conservan su identificador (decisiones 10 y 11).
 - **El campo respiratorio es una traslación caudal con pesos** (`respiratory-field-vertical`, decisión 22): el tejido baja el
   descenso del diafragma por un peso que es 0 en la pared, la columna y el corazón con su ventana, sube en sus rampas (25, 30
   y 50 mm; la de la pared y la de la columna, [EXTRAPOLACIÓN PROPIA] de VExUS) y, por encima de la cúpula más alta, baja en
-  recta hasta 0 a 147 mm (la ley de altura del deslizamiento: el pulmón se expande con la distancia a su vértice). No hay
-  movimiento anterior ni lateral (la pared del abdomen no sale al inspirar y la parrilla no se expande: la piel es fija) ni
-  cizalla en la pleura: el pulmón junto a la pared baja con la rampa de la pared, sin deslizar (el deslizamiento de la imagen
-  es un modelo aparte, `sliding-linear-height`). Lo que baja junto a la pared bajo el reborde costal del flanco, donde la pared
-  del tórax pasa a la del abdomen, se comprime (jacobiano 0,28 con 53 mm; 0,14 en la variante delgada). La cúpula junto al
-  corazón, que no respira, baja menos que la excursión: su vértice derecho, el 51 %, y el izquierdo, el 4 % (la cúpula junto a
-  la axilar, entera). La inversa (mundo → material) es exacta a 0,026 mm: una bisección de 10 pasos en la vertical.
+  recta hasta 0 a 147 mm [SUPUESTO: el tramo del deslizamiento llevado a la cúpula; el deslizamiento se apaga más abajo, a
+  128–145 mm, y el vértice del pulmón real está más arriba]. No hay movimiento anterior ni lateral (la pared del abdomen no
+  sale al inspirar y la parrilla no se expande: la piel es fija) ni cizalla en la pleura: el pulmón junto a la pared baja con la
+  rampa de la pared, sin deslizar (el deslizamiento de la imagen es un modelo aparte, `sliding-linear-height`). La rampa de la
+  pared no mira la pared de verdad sino una cuyo paso al abdomen bajo el reborde costal se alarga hasta no engrosar hacia abajo
+  más de 0,1 mm/mm (`anatomy.respiratoryWall.slopeMax`): así el campo no se pliega con ningún hábito del abdomen, pero el
+  tejido junto a la pared en los 2 dm sobre el reborde empieza a bajar hasta 6–9 mm más hondo. El jacobiano queda ≥ 0,57 con
+  53 mm y ≥ 0,40 con 75 (sobre el corazón) y llega a 2,51 bajo él: el campo no conserva el volumen. La cúpula junto al corazón,
+  que no respira, baja menos que la excursión (con 53 mm): la derecha, entera junto a la axilar y el 52 % en su vértice; la
+  izquierda, el 35 % junto a la axilar y el 4 % en su vértice, cuando la base da la misma a los dos lados (meta pendiente en
+  `respiratoryField.test.ts`); junto a la pared del flanco, el 66 %. La excursión es la del avatar en supino y no depende del
+  hábito del abdomen; la mujer, 47 mm en la profunda y la misma tranquila. La inversa (mundo → material) es exacta a 0,026 mm
+  en el punto material (en el mundo, ≤ 0,068): una bisección de 10 pasos en la vertical.
 - **El deslizamiento es una traslación caudal, lineal con la altura** (`sliding-linear-height`, decisión 19): el pulmón bajo
   la pleura baja lo que el borde de su columna (sin pasar de la reflexión) hasta 15,5 mm sobre él y menos hacia arriba, en la
   recta que da el cociente de Briganti entre el EIC2 de la LMC y la base (0,42), y se apaga ≈ 147 mm sobre la base (138 en la mujer). En la

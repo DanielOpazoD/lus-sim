@@ -17,7 +17,8 @@ export const DIAPHRAGM_EXCURSION = defineParameters('physiology.diaphragmExcursi
     note:
       'Respiración tranquila en supino: 1,5 cm (Gerscovich, supino, n = 23) y 1,5 ± 0,4 (Cardenas, semisentado a 45°), los ' +
       'dos vía Santana (tabla 2); sentado, 1,7–1,9 (Boussuges, tablas 1–2): 1,6 cm. El rango, el LIN–LSN de los hombres ' +
-      'sentados de Boussuges (tabla 1)',
+      'sentados de Boussuges (tabla 1). La misma en la mujer: en supino la base no la separa por sexo (sentada, 1,7 frente a ' +
+      '1,9 en el hombre, Boussuges)',
   },
   deepMm: {
     value: 53,
@@ -26,8 +27,18 @@ export const DIAPHRAGM_EXCURSION = defineParameters('physiology.diaphragmExcursi
     evidence: 'documentado',
     sources: ['santana-diafragmarevision-2020', 'boussuges-excursion-2021'],
     note:
-      'Inspiración profunda en supino, hombres: 5,3 ± 1,1 cm (Kantarci, n = 160, vía Santana, tabla 2; mujeres 4,7 ± 1,0). El ' +
-      'rango, la media ± 2 DE. Sentado es mayor: 6,6 ± 1,3 (Boussuges, tabla 1)',
+      'Inspiración profunda en supino, hombres: 5,3 ± 1,1 cm (Kantarci, n = 160, vía Santana, tabla 2). El rango, la media ± 2 ' +
+      'DE. Sentado es mayor: 6,6 ± 1,3 (Boussuges, tabla 1)',
+  },
+  deepFemaleMm: {
+    value: 47,
+    unit: 'mm',
+    range: [27, 67],
+    evidence: 'documentado',
+    sources: ['santana-diafragmarevision-2020', 'boussuges-excursion-2021'],
+    note:
+      'Inspiración profunda en supino, mujeres: 4,7 ± 1,0 cm (Kantarci, vía Santana, tabla 2); el rango, la media ± 2 DE. El ' +
+      'sexo cambia la excursión en todas las maniobras (Boussuges, tabla 3). La variante de mujer del tórax (`habitus.chest`)',
   },
 });
 
@@ -81,14 +92,16 @@ export class RespiratoryModel {
   }
 
   /**
-   * Excursión craneocaudal del diafragma para el patrón (lus-sim, decisión 22: la de la base en supino, `DIAPHRAGM_EXCURSION`;
-   * en VExUS, B.6: 10 mm tranquila y 30 profunda).
+   * Excursión craneocaudal del diafragma para el patrón (lus-sim, decisión 22: la de la base en supino, `DIAPHRAGM_EXCURSION`:
+   * 16 mm tranquila, 53 profunda y 47 profunda en la mujer; en VExUS, B.6: 10 mm tranquila y 30 profunda).
    */
   excursionMm(): number {
     switch (this.patient.respiratoryPattern) {
       case 'deep':
       case 'apnea-inspiratory':
-        return DIAPHRAGM_EXCURSION.params.deepMm.value;
+        return this.patient.habitus.chest?.sex === 'female'
+          ? DIAPHRAGM_EXCURSION.params.deepFemaleMm.value
+          : DIAPHRAGM_EXCURSION.params.deepMm.value;
       default:
         return DIAPHRAGM_EXCURSION.params.quietMm.value;
     }

@@ -78,12 +78,16 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   Limitación `sliding-linear-height` en lugar de `sliding-uniform-caudal`. La excursión de la base en supino y los puntos
   BLUE por la regla de las manos quedan pendientes.
 - El campo respiratorio invertible por construcción y la excursión de la base (22): el diafragma baja 16 mm en la respiración
-  tranquila y 53 en la profunda (la base en supino; antes 10 y 30), y la cortina de la LAM con él (A-T13 pasa a cumplirse). El
-  campo es caudal con la ley de altura del pulmón (1 bajo la cúpula, 0 a 147 mm por encima): su jacobiano es ≥ 0,14 en todo el
-  tronco con 53 mm (antes, con 53, negativo en ≈ 350 cm³); su inversa, una bisección de 10 pasos en la vertical, exacta a 0,026
-  mm (antes, dos pasos de punto fijo que erraban hasta 15 mm con 30). `src/validation/respiratoryField.test.ts` (fast-check, con
-  sus mutaciones) y la equivalencia de la e2e en inspiración profunda con la ventana cardiaca, el borde de la LAM izquierda y
-  la cortina derecha. Limitación nueva `respiratory-field-vertical`.
+  tranquila y 53 en la profunda (la base en supino; 47 en la mujer; antes 10 y 30), y la cortina de la LAM con él (A-T13 pasa a
+  cumplirse). El campo es caudal con la ley de altura del pulmón (1 bajo la cúpula, 0 a 147 mm por encima) y mira una pared cuyo
+  paso al abdomen no engruesa más de 0,1 mm/mm (`anatomy.respiratoryWall.slopeMax`): su jacobiano es ≥ 0,57 en todo el tronco
+  con 53 mm y ≥ 0,40 con 75, con cualquier hábito (antes, con 53, negativo en ≈ 350 cm³); su inversa, una bisección de 10 pasos
+  en la vertical, exacta a 0,026 mm en el punto material (antes, dos pasos de punto fijo que erraban hasta 15 mm con 30).
+  `src/validation/respiratoryField.test.ts` (fast-check, con sus mutaciones) y la equivalencia de la e2e en inspiración profunda
+  con la ventana cardiaca, el borde de la LAM izquierda y la cortina derecha. Limitación nueva `respiratory-field-vertical`
+  (entre otras cosas, la cúpula izquierda baja el 35 % de la excursión: meta pendiente).
+- `gitEnv` (`tools/provenance/drift.ts`): los git de la procedencia y de su prueba no heredan las variables `GIT_*` del hook
+  pre-push, con las que la prueba comiteaba su repo de juguete en la rama de un worktree (22).
 
 ### Cambiado
 

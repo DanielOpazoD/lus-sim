@@ -166,13 +166,16 @@ la salida actual no protege nada.
 ## Campo respiratorio (decisión 22)
 
 - **Invertible por construcción, y comprobado.** `src/validation/respiratoryField.test.ts` exige, con fast-check (20 000
-  puntos del tronco en las seis variantes del hábito) y con la mayor excursión de la base (53 mm), el jacobiano del mapa
-  directo ≥ 0,1 (1 − D·∂w/∂z, afín en D: con la mayor excursión cubre toda fase de todo patrón), y en una rejilla densa que cada
-  vertical se aplique en sí misma de forma estrictamente creciente. La inversa (la bisección en la vertical, TS y GLSL) vuelve
-  al punto material a ≤ 0,05 mm y a ≤ D/2^(pasos + 1) con toda excursión.
+  puntos del tronco en las seis variantes del tórax con tres grasas del abdomen), el jacobiano del mapa directo (1 − D·∂w/∂z,
+  afín en D: con una excursión cubre toda fase de todo patrón que no la pase) ≥ 0,5 con la excursión profunda (53 mm) y ≥ 0,35
+  con el máximo de su rango (75), y en una rejilla densa que cada vertical se aplique en sí misma de forma estrictamente
+  creciente. La pared que mira el campo nunca es más fina que la de verdad ni engruesa hacia abajo más que su pendiente. La
+  inversa (la bisección en la vertical, TS y GLSL) vuelve al punto material a ≤ 0,05 mm y a ≤ D/2^(pasos + 1) con toda excursión.
 - **Mutaciones en la suite.** Las mismas propiedades se corren sobre el campo de VExUS (dirección anterior, sin la ley de
   altura), sobre el caudal sin la ley de altura y sobre la inversa de dos pasos de punto fijo: la prueba exige que fast-check
-  encuentre un contraejemplo que falle por su aserción (`expectPropertyFails`).
+  encuentre un contraejemplo que falle por su aserción (`expectPropertyFails`). El peso con la pared de verdad se pliega en una
+  banda fina junto a la pared que el azar no encuentra: se recorre en una rejilla de 3 mm. Una meta que el campo aún no cumple
+  (la cúpula izquierda baja el 35 %) va con `notYetMet`.
 - **Por el camino real.** La excursión de cada patrón en la cúpula junto a la axilar, A-T13 en el mundo (la cortina de la LAM) y
   la ventana cardiaca quieta en la inspiración profunda, con el motor, la consulta del mundo y la escena. En la e2e, la
   equivalencia en inspiración profunda suma al barrido los planos donde el campo cambia deprisa (la ventana cardiaca, el borde
