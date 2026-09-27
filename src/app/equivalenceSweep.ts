@@ -1,6 +1,9 @@
 import { START_POINTS } from './startPoints';
 import type { Simulator } from './simulator';
-import { Interface } from '../anatomy/interfaces';
+import { Interface, isRibInterface } from '../anatomy/interfaces';
+import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
+import { wallArc } from '../anatomy/organs/wall';
+import type { Vec3 } from '../core/vec3';
 import { Tissue } from '../anatomy/tissues';
 import type { ProbeCompression } from '../anatomy/compression';
 import { probeContact } from '../probe/contact';
@@ -127,10 +130,11 @@ export interface VolumeEquivalenceReport {
 }
 
 /**
- * Altura del volumen (mm, marco material; z = 0 en el xifoides): del hemidiafragma bajo al vértice de la escena
- * heredada, con las costillas 5.ª–10.ª (extremo anterior de la 10.ª a −75 mm y arco posterior de la 5.ª a +100 mm),
- * la cortina, las cúpulas y el pulmón, y la ventana del punto BLUE superior (z 97 ± 89 mm a 10 cm de profundidad).
- * VExUS muestrea de −160 a +120 (el abdomen alto); los 280 mm de altura son los mismos.
+ * Altura del volumen (mm, marco material; z = 0 en la unión xifoesternal): de −100 (bajo las cúpulas heredadas) a +180
+ * (sobre la escotadura yugular, a 163), con la cortina, las cúpulas, el pulmón, la parrilla del paso C1 salvo las puntas
+ * de la 10.ª–12.ª (hasta −140) y los extremos posteriores de la 1.ª (198), y la ventana del punto BLUE superior. VExUS
+ * muestrea de −160 a +120 (el abdomen alto); los 280 mm de altura son los mismos. Los extremos de las 24 costillas, dentro
+ * y fuera de este tramo, los mira `ribEndsEquivalence`.
  */
 export const VOLUME_Z_MM = [-100, 180] as const;
 
@@ -435,5 +439,121 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
     quantumMm,
     centralDepthMm,
     worst,
+  };
+}
+
+/**
+ * Los extremos de la parrilla (lus-sim, decisión 16; lo pidió la revisión del paso C1): nubes de puntos alrededor de los
+ * tres extremos de cada una de las 24 costillas (el medial —la unión esternocostal, la punta del cartílago del reborde o la
+ * libre—, la unión condrocostal y el posterior), donde cambian el tejido (hueso, cartílago, esternón), la cara y la
+ * costilla que la dibuja. El volumen aleatorio apenas los toca (60 puntos de cartílago en 50 000). Se comparan como en el
+ * volumen, pero hasta 0,05 mm de los bordes: el tejido, la cara y su distancia; y, en los puntos con la misma cara de
+ * costilla (cortical o pericondrio) en las dos y en la banda donde se dibuja su eco (`SHELL_BAND_MM`), la normal de
+ * `faceGradient` (la de la costilla que elige `faceRib`).
+ */
+export interface RibEndsReport {
+  points: number;
+  interiorPoints: number;
+  tissueAgreement: number;
+  worst: string;
+  /** Puntos interiores por tejido (en la CPU), para ver que la prueba tiene dientes. */
+  byTissue: Record<string, number>;
+  facePoints: number;
+  faceAgreement: number;
+  faceDistanceMaxErr: number;
+  faceWorst: string;
+  /** Puntos con la misma cara de costilla en las dos; |n_GPU·n_TS|: percentil 5 y mínimo. */
+  normalPoints: number;
+  normalP05: number;
+  normalMin: number;
+  normalWorst: string;
+}
+
+/** Desplazamientos de las nubes (mm): a lo largo de la costilla (|u|), en altura y en profundidad radial. */
+const RIB_END_DU = [-3, -1, 0, 1, 3];
+const RIB_END_DZ = [-9, -7.4, -6, -3, 0, 3, 6, 7.4, 9];
+const RIB_END_DD = [-3.5, -2.2, -1, 0, 1, 2.2, 3.5];
+/** Distancia mínima al borde del tejido (mm) de los puntos que se comparan: lejos del redondeo de float32. */
+const RIB_END_MARGIN_MM = 0.05;
+
+export function ribEndsEquivalence(sim: Simulator): RibEndsReport {
+  const scene = sim.scene;
+  const t = scene.torso;
+  const cage = scene.ribCage;
+  /** τ ≥ 0 del arco de piel |u| (la inversa de `wallArc` en el lado izquierdo). */
+  const tauOf = (au: number): number => {
+    let lo = 0;
+    let hi = Math.PI;
+    for (let i = 0; i < 50; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (wallArc([t.a * Math.sin(mid), t.b * Math.cos(mid), 0], t) < au) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  };
+  const pts: Vec3[] = [];
+  cage.ribs.forEach((r, k) => {
+    for (const end of [r.uEnd, r.uCc, r.uPost])
+      for (const du of RIB_END_DU) {
+        const au = end + du;
+        if (au < 0) continue;
+        const tau = tauOf(au);
+        const sx = r.side * t.a * Math.sin(tau);
+        const sy = t.b * Math.cos(tau);
+        const R = Math.hypot(sx, sy);
+        const zc = ribTableZ(cage, k, au);
+        let dc = t.skinMm + t.fatMm + t.muscleMm;
+        for (let i = 0; i < 3; i++) dc = ribCenterDepth([sx * (1 - dc / R), sy * (1 - dc / R), zc], t, cage);
+        for (const dz of RIB_END_DZ) for (const dd of RIB_END_DD) pts.push([sx * (1 - (dc + dd) / R), sy * (1 - (dc + dd) / R), zc + dz]);
+      }
+  });
+  const flat = new Float32Array(pts.length * 3);
+  pts.forEach((p, i) => flat.set(p, i * 3));
+  const gpu = sim.gpuQuery(flat, sim.frame, false, { normals: true });
+  const instant = sim.anatomy.instantFor(sim.sample);
+  let interior = 0;
+  let same = 0;
+  const pairs = new Map<string, number>();
+  const byTissue: Record<string, number> = {};
+  const face = new FaceTally();
+  const dots: { dot: number; at: string }[] = [];
+  pts.forEach((p, i) => {
+    // los puntos se leen en float32, como los recibe la GPU
+    const q32: [number, number, number] = [flat[i * 3], flat[i * 3 + 1], flat[i * 3 + 2]];
+    const q = sim.anatomy.classifyWorld(q32, sim.sample);
+    if (q.boundaryDistance < RIB_END_MARGIN_MM || !faceStable(sim, q32, q.interface)) return;
+    interior++;
+    byTissue[Tissue[q.tissue]] = (byTissue[Tissue[q.tissue]] ?? 0) + 1;
+    const cpuTissue: number = q.tissue;
+    if (cpuTissue === gpu.tissue[i]) same++;
+    else {
+      const key = `${Tissue[q.tissue]}→${Tissue[gpu.tissue[i]]}`;
+      pairs.set(key, (pairs.get(key) ?? 0) + 1);
+    }
+    if (!face.add(q.interface, q.interfaceDistance, gpu.iface[i], gpu.ifd[i]) || !isRibInterface(q.interface)) return;
+    // la normal solo importa donde la cara dibuja su eco (la banda de la cáscara); hacia el centro de la sección elíptica
+    // el gradiente de su distancia se anula y su dirección no está definida
+    if (q.interfaceDistance < SHELL_BAND_MM[0] || q.interfaceDistance > SHELL_BAND_MM[1]) return;
+    const g = scene.faceGradient(q.material, instant);
+    const n = gpu.normal!;
+    if (!g) return;
+    const dot = Math.abs(n[i * 3] * g.normal[0] + n[i * 3 + 1] * g.normal[1] + n[i * 3 + 2] * g.normal[2]);
+    dots.push({ dot, at: `${Interface[q.interface]} en (${q32.map((x) => x.toFixed(2)).join(', ')})` });
+  });
+  dots.sort((a, b) => a.dot - b.dot);
+  return {
+    points: pts.length,
+    interiorPoints: interior,
+    tissueAgreement: interior ? same / interior : 1,
+    worst: topPairs(pairs),
+    byTissue,
+    facePoints: face.withFace,
+    faceAgreement: face.points ? face.same / face.points : 1,
+    faceDistanceMaxErr: face.maxErr,
+    faceWorst: [topPairs(face.pairs), face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`].filter(Boolean).join('; '),
+    normalPoints: dots.length,
+    normalP05: dots.length ? dots[Math.floor(0.05 * dots.length)].dot : Number.NaN,
+    normalMin: dots.length ? dots[0].dot : Number.NaN,
+    normalWorst: dots.length ? `${dots[0].at}: ${dots[0].dot.toFixed(5)}` : '',
   };
 }

@@ -1,3 +1,25 @@
+import { defineParameters } from '../core/evidence';
+
+/**
+ * Atenuación del cartílago costal (lus-sim, decisión 16): la base da una [DISCREPANCIA] entre IT'IS (0,038 dB/cm/MHz,
+ * cartílago genérico) y el cartílago articular porcino (2,45 ± 0,23 dB/mm a 10 MHz), y el costal «mayor velocidad y mayor
+ * atenuación que los tejidos vecinos», con sombra incompleta (`docs/knowledge/physics.md` §2.10, P6–P8): se usa el rango
+ * alto, como recomienda la base (§5). VExUS usaba 0,9.
+ */
+export const COSTAL_CARTILAGE = defineParameters('physics.costalCartilage', {
+  attenuationDbPerCmMHz: {
+    value: 2.45,
+    unit: 'dB/cm/MHz',
+    range: [0.038, 2.68],
+    evidence: 'derivado',
+    sources: ['niu-cartilago-2011', 'bonhof-cartilago-1985', 'itis-base-2024'],
+    note:
+      'Niu y cols.: 2,45 ± 0,23 dB/mm a 10 MHz en cartílago articular porcino (24,5 dB/cm), pasado a 1 MHz con dependencia ' +
+      'lineal (b = 1): 2,45 dB/cm/MHz. El costal atenúa más que los tejidos vecinos y da sombra incompleta (Bönhof y Linhart). ' +
+      "El rango va de IT'IS (0,038) al de Niu más una desviación típica",
+  },
+});
+
 /**
  * Propiedades acústicas por tejido (base E.2, tabla IT'IS V5.0 redondeada;
  * atenuación α(1 MHz) en dB/cm y exponente b; c en m/s; ρ en kg/m³). Las
@@ -159,8 +181,18 @@ export const TISSUES: TissueProps[] = [
   { name: 'gas intestinal', c: 343, rho: 1.16, alpha1: 0.0034, b: 2, backscatter: 0, gas: true, bone: false },
   { name: 'líquido (bilis/ascitis)', c: 1482, rho: 994, alpha1: 0.0022, b: 1, backscatter: 0.002, gas: false, bone: false },
   { name: 'pared arterial', c: 1586, rho: 1079, alpha1: 0.7, b: 1, backscatter: 1.8, gas: false, bone: false },
-  // cartílago hialino: homogéneo e hipoecoico (≈ 0,15), con el pericondrio como cara (decisión 62)
-  { name: 'cartílago costal', c: 1640, rho: 1100, alpha1: 0.9, b: 1, backscatter: 0.15, gas: false, bone: false },
+  // cartílago hialino: homogéneo e hipoecoico (≈ 0,15), con el pericondrio como cara (decisión 62); su atenuación, la
+  // del rango alto de la base (lus-sim, decisión 16: `COSTAL_CARTILAGE`; VExUS, 0,9)
+  {
+    name: 'cartílago costal',
+    c: 1640,
+    rho: 1100,
+    alpha1: COSTAL_CARTILAGE.params.attenuationDbPerCmMHz.value,
+    b: 1,
+    backscatter: 0.15,
+    gas: false,
+    bone: false,
+  },
   // Riñón (IT'IS: c 1560, ρ 1066, α 0,7·f^1,0). Corteza iso/ligeramente hipoecoica al hígado;
   // médula (pirámides) hipoecoica pero no negra, tenue en el adulto (−4,6 dB bajo la corteza; decisión 68); seno =
   // grasa + vasos, marcadamente ecogénico (E.3, B.5).

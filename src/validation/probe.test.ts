@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AnatomyScene, BASELINE_INSTANT, ribTiltMm } from '../anatomy/scene';
+import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
+import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
@@ -14,7 +15,7 @@ import {
   skinSoftness,
   type ProbePose,
 } from '../probe/probe';
-import { chestView, hasRib, intercostalZ, ribOf, scanLine } from './support/chestView';
+import { chestView, intercostalZ, scanLine } from './support/chestView';
 
 /**
  * Lo que lus-sim cambia de la sonda de VExUS (decisión 10): la pose por omisión en el punto BLUE superior
@@ -45,19 +46,12 @@ describe('pose por omisión: el punto BLUE superior derecho aproximado', () => {
     expect(skinSoftness(p)).toBeCloseTo(0.15, 12);
   });
 
-  it('la altura de la pose es el EIC2 de la línea medioclavicular con la ley costal de la escena (a ≤ 0,5 mm)', () => {
-    // Con las costillas 2.ª y 3.ª en la escena (paso C), su espacio real; hoy, el extrapolado con la ley de sdRib
-    // (extremo anterior + ribTiltMm·(0,5 − 0,5·sen φ)) y los extremos anteriores 20 mm por costilla hacia arriba,
-    // el paso de la 5.ª a la 6.ª. Con la ley sin el término de la subida (z = 90) la sonda caía sobre la 3.ª
+  it('la pose está en la línea medioclavicular, a la altura del centro de su EIC2 en la parrilla (a ≤ 0,5 mm)', () => {
+    // decisión 16: la medioclavicular de `thoraxLines.ts` y el EIC2 entre la 2.ª y la 3.ª costillas de la parrilla del
+    // adulto promedio, bajo la sonda. Con la escena heredada (sin costillas sobre la 5.ª) era una extrapolación
     const phi = defaultPose().phi;
-    let eic2: number;
-    if (hasRib(scene, 2) && hasRib(scene, 3)) eic2 = intercostalZ(scene, 2, phi);
-    else {
-      const step = ribOf(scene, 5).zAnterior - ribOf(scene, 6).zAnterior;
-      const z = (n: number) => ribOf(scene, 5).zAnterior + step * (5 - n) + ribTiltMm(n) * (0.5 - 0.5 * Math.sin(phi));
-      eic2 = 0.5 * (z(2) + z(3));
-    }
-    expect(Math.abs(defaultPose().z - eic2)).toBeLessThanOrEqual(0.5);
+    expect(phi).toBeCloseTo(thoraxLinePhi('midclavicular', scene.torso), 12);
+    expect(Math.abs(defaultPose().z - intercostalZ(scene, 2, phi))).toBeLessThanOrEqual(0.5);
   });
 
   it('el contacto por omisión apoya toda la cara (ninguna línea sin acoplar en el punto BLUE)', () => {
@@ -77,7 +71,7 @@ describe('clampPose: la sonda recorre los dos hemitórax', () => {
     expect(Math.PI / 2 - lo).toBeCloseTo(hi - Math.PI / 2, 12);
     // el punto BLUE superior izquierdo (el simétrico del derecho) está dentro del recorrido
     const left = clampPose({ ...defaultPose(), phi: Math.PI - defaultPose().phi });
-    expect(left.phi).toBeCloseTo(0.25 * Math.PI, 12);
+    expect(left.phi).toBeCloseTo(thoraxLinePhi('midclavicular', scene.torso, 1), 12);
     // el resto de límites, los de VExUS
     const c = clampPose({ phi: 1, z: 900, lift: -50, yaw: 2.5 * Math.PI, rock: 2, tilt: -2 });
     expect(c.z).toBe(200);

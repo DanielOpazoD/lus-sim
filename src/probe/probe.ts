@@ -176,36 +176,36 @@ export function clampPose(p: ProbePose): ProbePose {
  * Punto BLUE superior derecho aproximado (lus-sim, decisión 10): la pose por omisión. La regla de las manos
  * (centro de la mano superior) no tiene correspondencia medida con los espacios intercostales ni con las
  * líneas (docs/knowledge/anatomy.md §4, NO ENCONTRADO): se supone el EIC2 en la línea medioclavicular, el
- * sitio de la meta A-T1. Números nuevos, así que con su evidencia (docs/APPROXIMATIONS.md).
+ * sitio de la meta A-T1. Desde la decisión 16, sobre la parrilla del adulto promedio (`anatomy/organs/ribcage.ts`) y la
+ * medioclavicular de `anatomy/thoraxLines.ts`. Números nuevos, así que con su evidencia (docs/APPROXIMATIONS.md).
  */
 export const BLUE_UPPER_POSE = defineParameters('probe.blueUpperPose', {
   phi: {
-    value: 0.75 * Math.PI,
+    value: Math.PI - Math.acos(95 / 160),
     unit: 'rad',
-    range: [0.7 * Math.PI, 0.8 * Math.PI],
+    range: [0.65 * Math.PI, 0.8 * Math.PI],
     evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011'],
+    sources: ['lichtenstein-bluepoints-2011', 'gray-anatomia-1918'],
     note:
-      'Línea medioclavicular derecha de la escena de VExUS: la unión costocondral a 45° de la línea media anterior ' +
-      '(cartilageFromPhi = π/4, decisión 62 de VExUS), φ = π/2 + π/4. Calibrar con la regla de las manos y la antropometría de la mano',
+      'Línea medioclavicular derecha (decisión 16, `anatomy.thoraxLines.midclavicularXMm`): 95 mm de la línea media en la ' +
+      'piel del tronco de 160 mm de semiancho, φ = π − acos(95/160) = 0,702π. Que el punto BLUE caiga en ella es el ' +
+      'supuesto; calibrar con la regla de las manos y la antropometría de la mano',
   },
   z: {
-    value: 97,
+    value: 83.7,
     unit: 'mm',
-    range: [77, 116],
-    evidence: 'extrapolacion',
-    sources: ['lichtenstein-bluepoints-2011'],
+    range: [53.7, 124.7],
+    evidence: 'estimado',
+    sources: ['lichtenstein-bluepoints-2011', 'seong-espaciosic-2020'],
     note:
-      'EIC2 en la línea medioclavicular con la ley costal de la escena (la de sdRib): z = zAnterior + ' +
-      'ribTiltMm(n)·(0,5 − 0,5·sen φ), con φ = 3π/4 (factor 0,146) y los extremos anteriores de VExUS extrapolados ' +
-      '20 mm por costilla hacia arriba (5.ª a 7.ª a 40, 20 y 0 mm). La 2.ª queda a 100 + 42·0,146 = 106,1 mm y la ' +
-      '3.ª a 80 + 48·0,146 = 87,0: el EIC2, a 96,6. El rango va del EIC3 (77,5) al EIC1 (115,7). La escena heredada ' +
-      'no tiene costillas por encima de la 5.ª (ribs-5-10-only): calibrar en el paso C con las costillas 2–4',
+      'Centro del EIC2 en la línea medioclavicular con la parrilla del adulto promedio (decisión 16): la 2.ª costilla a 99,7 ' +
+      'mm y la 3.ª a 67,7 (el EIC2 de 18 mm de la base). El rango va del centro del EIC3 (53,7) al del EIC1 (124,7): la ' +
+      'regla de las manos no dice en qué espacio cae (anatomy.md §4)',
   },
 });
 
 /** Pose inicial: el punto BLUE superior derecho aproximado (`BLUE_UPPER_POSE`), marcador craneal (corte longitudinal). */
 export function defaultPose(): ProbePose {
-  // φ = 3π/4 → línea medioclavicular derecha (−x, +y); yaw 0: el marcador hacia la cabeza.
+  // φ ≈ 0,70π → línea medioclavicular derecha (−x, +y); yaw 0: el marcador hacia la cabeza.
   return { phi: BLUE_UPPER_POSE.params.phi.value, z: BLUE_UPPER_POSE.params.z.value, lift: 0, yaw: 0, rock: 0, tilt: 0 };
 }

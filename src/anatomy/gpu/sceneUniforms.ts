@@ -1,6 +1,7 @@
 import type { ProbeCompression } from '../compression';
 import { RespiratoryDeformation } from '../deformation';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
+import { MAX_RIBS, RIBS_PER_SIDE } from '../organs/ribcage';
 import type { AnatomyScene } from '../scene';
 import type { PhysiologySample } from '../../physiology/engine';
 
@@ -14,9 +15,11 @@ import type { PhysiologySample } from '../../physiology/engine';
  * lus-sim (decisión 12): los uniforms del tórax de la escena (tronco, pared, cúpulas, columna, costillas,
  * respiración, compresión de la sonda y cortina), en el orden de VExUS; sin los del hígado, la vesícula, la
  * aurícula, el gas intestinal, los riñones ni los tubos, que la escena no tiene, ni la velocidad del diafragma
- * (`uRespVel`: solo la leía el color, con la velocidad del tejido).
+ * (`uRespVel`: solo la leía el color, con la velocidad del tejido). La parrilla costal (decisión 16) sube por costilla su
+ * extensión y su alto (`uRibs`, las 24: derechas y después izquierdas), sus constantes (`uRibParams`) y el esternón; las
+ * alturas de sus líneas medias van en la textura de escena (`organs/ribcage.ts`).
  */
-export const MAX_RIBS = 6;
+export { MAX_RIBS } from '../organs/ribcage';
 
 type GlslType = 'float' | 'int' | 'vec2' | 'vec3' | 'vec4';
 const SIZE: Record<GlslType, number> = { float: 1, int: 1, vec2: 2, vec3: 3, vec4: 4 };
@@ -76,19 +79,37 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     name: 'uRibs',
     type: 'vec4',
     count: MAX_RIBS,
-    doc: 'costillas: zAnterior, tilt, halfWidth, halfThickness',
-    value: (s) =>
-      pad(
-        s.ribs.slice(0, MAX_RIBS).map((r) => [r.zAnterior, r.tilt, r.halfWidth, r.halfThickness]),
+    doc: 'costillas (derechas 1–12, izquierdas 1–12): |u| del extremo medial, de la unión condrocostal y del posterior, semialto',
+    value: (s) => {
+      // el orden es el de la tabla y el del bucle del shader: el lado por bloques de 12, el número dentro del bloque
+      s.ribs.forEach((r, i) => {
+        if (r.side !== (i < RIBS_PER_SIDE ? -1 : 1) || r.number !== (i % RIBS_PER_SIDE) + 1)
+          throw new Error(`uRibs: la costilla ${i} es la ${r.number}.ª del lado ${r.side}, fuera del orden del shader`);
+      });
+      return pad(
+        s.ribs.slice(0, MAX_RIBS).map((r) => [r.uEnd, r.uCc, r.uPost, r.halfWidth]),
         MAX_RIBS,
-        [9999, 0, 1, 1],
-      ),
+        [1e4, 1e4, -1, 1],
+      );
+    },
   },
   {
     name: 'uRibParams',
-    type: 'vec2',
-    doc: 'escala, cartilageFromPhi',
-    value: (s) => [s.ribs[0]?.scale ?? 0.85, s.ribs[0]?.cartilageFromPhi ?? 9],
+    type: 'vec4',
+    doc: 'semigrosor radial de la costilla, complejo pleural, cáscara calcificada del cartílago, 0',
+    value: (s) => [s.ribCage.halfThickness, s.ribCage.pleuraComplex, s.ribCage.calcifiedRim, 0],
+  },
+  {
+    name: 'uSternum',
+    type: 'vec4',
+    doc: 'esternón: z de la escotadura yugular, del ángulo esternal y de la punta del xifoides, grosor',
+    value: (s) => [s.ribCage.sternum.zTop, s.ribCage.sternum.zAngle, s.ribCage.sternum.zTip, s.ribCage.sternum.thickness],
+  },
+  {
+    name: 'uSternumW',
+    type: 'vec4',
+    doc: 'esternón: semiancho del manubrio en la escotadura, del cuerpo y del xifoides en su base, 0',
+    value: (s) => [s.ribCage.sternum.halfWidthTop, s.ribCage.sternum.halfWidthBody, s.ribCage.sternum.halfWidthXiphoid, 0],
   },
   {
     name: 'uResp',
@@ -125,7 +146,7 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
 /** Declaraciones GLSL generadas del esquema (más el sampler de la textura de escena). */
 export const SCENE_UNIFORMS_GLSL = [
   ...SCENE_UNIFORMS.map((u) => `uniform ${u.type} ${u.name}${u.count ? `[${u.count}]` : ''}; // ${u.doc}`),
-  'uniform sampler2D uSceneTex; // tabla de la compresión de la sonda (lus-sim: sin tubos)',
+  'uniform sampler2D uSceneTex; // tablas de la compresión de la sonda y de las alturas costales (lus-sim: sin tubos)',
 ].join('\n');
 
 /** Valores de un cuadro, evaluados UNA vez y subidos a cada programa que usa la anatomía. */

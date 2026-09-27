@@ -64,18 +64,30 @@ describe('Esquema de uniforms de la escena', () => {
     }
   });
 
-  it('las costillas de la escena caben en el array del shader y el relleno queda lejos', () => {
+  it('las costillas de la escena caben en el array del shader, en su orden, y el relleno no clasifica nada', () => {
     const scene = new AnatomyScene(defaultPatient());
     const ribs = SCENE_UNIFORMS.find((u) => u.name === 'uRibs')!;
     const ctx = { sample: new PhysiologyEngine(defaultPatient()).sample, compression: null };
     const data = Array.from(ribs.value(scene, ctx));
     expect(scene.ribs.length).toBeLessThanOrEqual(ribs.count!);
-    // cada costilla de la escena, con sus cuatro valores
-    scene.ribs.forEach((r, i) => expect(data.slice(i * 4, i * 4 + 4)).toEqual([r.zAnterior, r.tilt, r.halfWidth, r.halfThickness]));
-    // la escena del tórax llena las 6 ranuras: el relleno (a 9999 mm, lejos de todo) se prueba con una escena de dos
-    // costillas (lus-sim: en VExUS el bucle del relleno sí corría)
+    // cada costilla de la escena (decisión 16), con su extensión y su alto
+    scene.ribs.forEach((r, i) => expect(data.slice(i * 4, i * 4 + 4)).toEqual([r.uEnd, r.uCc, r.uPost, r.halfWidth]));
+    // la parrilla llena las 24 ranuras: el relleno (extremo medial más allá del posterior: ninguna muestra cae en él) se
+    // prueba con una escena de dos costillas
     const two = Array.from(ribs.value({ ...scene, ribs: scene.ribs.slice(0, 2) } as unknown as AnatomyScene, ctx));
     expect(two).toHaveLength(ribs.count! * 4);
-    for (let i = 2; i < ribs.count!; i++) expect(two.slice(i * 4, i * 4 + 4)).toEqual([9999, 0, 1, 1]);
+    for (let i = 2; i < ribs.count!; i++) {
+      const [uEnd, , uPost] = two.slice(i * 4, i * 4 + 4);
+      expect(uEnd).toBeGreaterThan(uPost);
+    }
+    // el orden de la escena es el del shader (el lado por bloques de 12, el número dentro): otro orden no sube
+    const swapped = [scene.ribs[1], scene.ribs[0], ...scene.ribs.slice(2)];
+    expect(() => ribs.value({ ...scene, ribs: swapped } as unknown as AnatomyScene, ctx)).toThrow(/fuera del orden del shader/);
+    // y la parrilla, sus constantes y el esternón
+    const P = (name: string) => Array.from(SCENE_UNIFORMS.find((u) => u.name === name)!.value(scene, ctx));
+    expect(P('uRibParams')).toEqual([scene.ribCage.halfThickness, scene.ribCage.pleuraComplex, scene.ribCage.calcifiedRim, 0]);
+    const st = scene.ribCage.sternum;
+    expect(P('uSternum')).toEqual([st.zTop, st.zAngle, st.zTip, st.thickness]);
+    expect(P('uSternumW')).toEqual([st.halfWidthTop, st.halfWidthBody, st.halfWidthXiphoid, 0]);
   });
 });

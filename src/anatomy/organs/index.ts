@@ -1,4 +1,5 @@
 import * as lungCurtain from './lungCurtain';
+import * as ribcage from './ribcage';
 import * as wall from './wall';
 
 /**
@@ -10,7 +11,8 @@ import * as wall from './wall';
  * (árbol vascular en textura de datos) y las primitivas genéricas siguen en `primitives.ts`.
  *
  * lus-sim (decisión 10): solo los módulos del tórax, la pared y la cortina pulmonar; el hígado, el riñón,
- * la vesícula y los ligamentos de VExUS no se portan (el hígado vuelve en la fase 3).
+ * la vesícula y los ligamentos de VExUS no se portan (el hígado vuelve en la fase 3). La parrilla costal (decisión 16)
+ * es propia: usa `wallArc` de la pared, así que va tras ella.
  */
 export interface OrganModule {
   id: string;
@@ -23,5 +25,6 @@ export interface OrganModule {
 
 export const ORGAN_MODULES: readonly OrganModule[] = [
   { id: 'wall', exports: wall, glsl: wall.WALL_GLSL },
+  { id: 'ribcage', exports: ribcage, glsl: ribcage.RIBCAGE_GLSL },
   { id: 'lungCurtain', exports: lungCurtain, glsl: lungCurtain.LUNG_CURTAIN_GLSL },
 ];

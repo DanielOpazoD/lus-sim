@@ -5,10 +5,11 @@ import { BLUE_UPPER_POSE } from '../probe/probe';
  * «Puntos de partida» (decisión 17 de VExUS): posiciones cutáneas con ángulos casi neutros hacia las que la sonda
  * se DESLIZA; la ventana hay que afinarla (guía §7: dejan la sonda cerca, no en la imagen perfecta). Los consumen la
  * consola (botones), los ganchos de prueba y el barrido de equivalencia.
- * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en el xifoides).
+ * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en la unión xifoesternal).
  *
  * lus-sim (decisión 12): los puntos del protocolo BLUE del hemitórax derecho [@lichtenstein-bluepoints-2011] en
- * lugar de las ventanas abdominales de VExUS, aproximados sobre la escena heredada. Ninguna fuente mapea los puntos
+ * lugar de las ventanas abdominales de VExUS, aproximados sobre la escena heredada; desde la decisión 16, sobre la
+ * parrilla del adulto promedio y las líneas de `anatomy/thoraxLines.ts`. Ninguna fuente mapea los puntos
  * BLUE a un espacio intercostal ni a una línea (`docs/knowledge/anatomy.md` §4, NO ENCONTRADO): el superior es la
  * pose del paso A (`BLUE_UPPER_POSE`) y el inferior y el PLAPS se estiman con los reparos simplificados de Yuriditsky
  * y cols. (`docs/knowledge/clinical.md` §3.1), con su rango en `docs/APPROXIMATIONS.md`. Marcador craneal (yaw 0):
@@ -38,23 +39,20 @@ export const START_POINT_POSES = defineParameters('app.startPointPoses', {
     evidence: 'estimado',
     sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021'],
     note:
-      'Línea axilar anterior (Yuriditsky y cols.: el punto inferior en la axilar anterior, justo por encima del pezón), ' +
-      'tomada a mitad de camino entre la medioclavicular de la escena (3π/4) y la axilar media (π). Calibrar con la ' +
-      'regla de las manos y las líneas anatómicas del paso C',
+      'Línea axilar anterior (Yuriditsky y cols.: el punto inferior en la axilar anterior, justo por encima del pezón), la de ' +
+      '`anatomy.thoraxLines.anteriorAxillaryPhi` (decisión 16). Calibrar con la regla de las manos',
   },
   blueLowerZ: {
-    value: 68,
+    value: 50.6,
     unit: 'mm',
-    range: [12, 86],
-    evidence: 'extrapolacion',
+    range: [21.2, 79.4],
+    evidence: 'estimado',
     sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021', 'gray-anatomia-1918'],
     note:
-      'EIC4 en la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, Gray) con la ' +
-      'ley costal de la escena (`sdRib`: zAnterior + ribTiltMm(n)·(0,5 − 0,5·sen φ), factor 0,309 en φ = 0,875π) y la ' +
-      '4.ª costilla extrapolada 20 mm sobre la 5.ª, como el paso A: la 4.ª a 60 + 54·0,309 = 76,7 mm y la 5.ª a ' +
-      '40 + 60·0,309 = 58,5; el EIC4, a 67,6. El rango va del EIC3 (85,7) a una mano por debajo del punto superior, lo ' +
-      'que da la regla de las manos, con una mano de ≈ 85 mm [SUPUESTO: la antropometría de la mano está NO ENCONTRADO ' +
-      'en `docs/knowledge/anatomy.md` §4]. La escena heredada no tiene la 4.ª costilla (ribs-5-10-only)',
+      'Centro del EIC4 en la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, Gray) ' +
+      'con la parrilla del adulto promedio (decisión 16): la 4.ª costilla a 65,0 mm y la 5.ª a 36,1. El rango va del centro ' +
+      'del EIC5 (21,2) al del EIC3 (79,4) en esa línea: sin antropometría de la mano no se sabe en qué espacio cae la palma ' +
+      '(`docs/knowledge/anatomy.md` §4)',
   },
   plapsPhi: {
     value: 1.15 * Math.PI,
@@ -78,7 +76,7 @@ export const START_POINTS: readonly StartPoint[] = [
     yaw: 0,
     hint:
       'Punto BLUE superior derecho aproximado (línea medioclavicular, 2.º espacio intercostal), marcador craneal: corte ' +
-      'longitudinal de la pared y de la pleura bajo ella.',
+      'longitudinal que cruza las costillas y el espacio intercostal entre ellas.',
   },
   {
     id: 'blueLower',

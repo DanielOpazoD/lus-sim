@@ -108,18 +108,19 @@ describe('la pleura de A0 es el cambio de tejido de la clasificación', () => {
     // la clasificación, y lo registra sobre el borde del pulmón (dz > 0) o hasta `CURTAIN_RECORD_MM` bajo él (la
     // banda donde la cortina se desvanece). La clasificación pone tras la pared el pulmón sobre el borde y el
     // abdomen bajo él. Línea a línea: la profundidad del primer tejido que no es pared con la de A0, y el tejido con
-    // el lado del borde. Vistas con las dos cosas: el punto BLUE, el EIC5 en la medioclavicular (su parte caudal
-    // cae en la banda) y en la axilar media, el EIC7 en la axilar posterior y en la medioclavicular. Umbral: la
+    // el lado del borde. Vistas con las dos cosas: el punto BLUE, el EIC4 en la medioclavicular (su parte caudal
+    // cae en la banda), el EIC5 en la axilar media, el EIC7 a 1,2π y el EIC3 en la medioclavicular (con la parrilla del
+    // paso C1, decisión 16: el EIC5 y el EIC7 de la medioclavicular caen ya bajo el borde del pulmón heredado). Umbral: la
     // bisección (0,5 mm / 2⁷ ≈ 0,004 mm) más el paso fino del barrido (0,002 mm)
     let lung = 0;
     let band = 0;
     const lmc = defaultPose().phi;
     for (const pose of [
       defaultPose(),
-      longitudinalPose(lmc, intercostalZ(scene, 5, lmc)),
+      longitudinalPose(lmc, intercostalZ(scene, 4, lmc)),
       longitudinalPose(Math.PI, intercostalZ(scene, 5, Math.PI)),
       longitudinalPose(1.2 * Math.PI, intercostalZ(scene, 7, 1.2 * Math.PI)),
-      longitudinalPose(lmc, intercostalZ(scene, 7, lmc)),
+      longitudinalPose(lmc, intercostalZ(scene, 3, lmc)),
     ]) {
       const v = chestView(scene, pose);
       for (let i = 0; i < CONVEX_C35.lines; i += 8) {
@@ -137,7 +138,8 @@ describe('la pleura de A0 es el cambio de tejido de la clasificación', () => {
         else band++;
       }
     }
-    // Que no pase vacía: el 26-09-2026 se compararon 82 líneas con pulmón detrás y 14 en la banda; los umbrales
+    // Que no pase vacía: el 26-09-2026 se compararon 82 líneas con pulmón detrás y 14 en la banda (con la parrilla del
+    // paso C1, 78 y 22); los umbrales
     // solo fallan si una de las vistas deja de registrar la pleura o de cruzar el borde
     expect(lung).toBeGreaterThan(60);
     expect(band).toBeGreaterThan(10);

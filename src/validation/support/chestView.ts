@@ -8,8 +8,10 @@
  * cuando el paso C cambie la anatomía.
  */
 import { AnatomyQuery } from '../../anatomy/query';
-import type { Rib } from '../../anatomy/primitives';
-import type { AnatomyScene, SceneInstant } from '../../anatomy/scene';
+import { probeHitPoint, ribCenterDepth, ribLineArc, ribLinePoint, ribScan, ribTableZ, type RibSpec } from '../../anatomy/organs/ribcage';
+import { torsoDepth } from '../../anatomy/primitives';
+import { wallArc } from '../../anatomy/organs/wall';
+import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../../anatomy/scene';
 import { Tissue } from '../../anatomy/tissues';
 import type { Vec3 } from '../../core/vec3';
 import type { RespiratorySample } from '../../physiology/respiratory';
@@ -133,22 +135,47 @@ export function arcMm(tr: Transducer, dTheta: number, r: number): number {
   return (tr.curvatureRadius + r) * dTheta;
 }
 
-/** ¿Tiene la escena la costilla de número n? */
-export function hasRib(scene: AnatomyScene, n: number): boolean {
-  return scene.ribNumbers.includes(n);
+/** ¿Tiene la escena la costilla de número n (del lado derecho, −1, o izquierdo, +1)? */
+export function hasRib(scene: AnatomyScene, n: number, side: -1 | 1 = -1): boolean {
+  return scene.ribs.some((r) => r.number === n && r.side === side);
 }
 
-/** La costilla de número n (por su número, `AnatomyScene.ribNumbers`); lanza si la escena no la tiene. */
-export function ribOf(scene: AnatomyScene, n: number): Rib {
-  const i = scene.ribNumbers.indexOf(n);
-  if (i < 0) throw new Error(`la escena no tiene la costilla ${n} (tiene ${scene.ribNumbers.join(', ')})`);
-  return scene.ribs[i];
+/** Índice en `scene.ribs` de la costilla n del lado `side`; lanza si la escena no la tiene. */
+export function ribIndex(scene: AnatomyScene, n: number, side: -1 | 1 = -1): number {
+  const i = scene.ribs.findIndex((r) => r.number === n && r.side === side);
+  if (i < 0) throw new Error(`la escena no tiene la costilla ${n} del lado ${side}`);
+  return i;
 }
 
-/** Altura z (mm) de la línea media de la costilla n en el ángulo del tronco φ (la ley de `sdRib`); lanza si falta. */
+/** La costilla de número n del lado `side` (derecho por omisión); lanza si la escena no la tiene. */
+export function ribOf(scene: AnatomyScene, n: number, side: -1 | 1 = -1): RibSpec {
+  return scene.ribs[ribIndex(scene, n, side)];
+}
+
+/** Lado de la línea de piel φ: derecho (x < 0) o izquierdo. */
+export const sideOfPhi = (phi: number): -1 | 1 => (Math.cos(phi) < 0 ? -1 : 1);
+
+/**
+ * |u| (mm de piel) donde la sonda apoyada en la línea φ, marcador craneal, corta la parrilla: el punto de su línea media a
+ * lo largo de la normal de la piel (el que miden las ecografías de la base).
+ */
+export function lineRibArc(scene: AnatomyScene, phi: number): number {
+  return ribLineArc(phi, scene.torso, scene.ribCage);
+}
+
+/**
+ * Altura z (mm) de la línea media de la costilla n bajo la línea de piel φ (su tabla, la que ve la GPU); lanza si falta.
+ * No comprueba que la costilla llegue a esa línea (`ribSpans`).
+ */
 export function ribZ(scene: AnatomyScene, n: number, phi: number): number {
-  const rib = ribOf(scene, n);
-  return rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi));
+  return ribTableZ(scene.ribCage, ribIndex(scene, n, sideOfPhi(phi)), lineRibArc(scene, phi));
+}
+
+/** ¿Llega la costilla n a la línea φ (su extensión en |u| contiene el corte de la sonda)? */
+export function ribSpans(scene: AnatomyScene, n: number, phi: number): boolean {
+  const r = ribOf(scene, n, sideOfPhi(phi));
+  const au = lineRibArc(scene, phi);
+  return au >= r.uEnd && au <= r.uPost;
 }
 
 /** Altura z (mm) del centro del espacio intercostal n (entre las costillas n y n + 1) en φ; lanza si falta una. */
@@ -164,35 +191,39 @@ export function longitudinalPose(phi: number, z: number): ProbePose {
 /**
  * Signo del murciélago en cualquier plano (meta F-T08, lus-sim): para cada sombra costal entera del plano (las que tocan
  * el borde del sector no cuentan: su cresta puede quedar fuera de la imagen), la línea costal (la cresta de la costilla,
- * `RibShadow.ribTopMm`) y la pleura de la primera línea sin hueso a cada lado; devuelve, por sombra y lado, cuánto más
- * honda está la pleura que la cresta (mm).
+ * `RibShadow.ribTopMm`) y la pleura de la primera línea sin hueso a cada lado; devuelve, por sombra, cuánto más honda está
+ * la pleura que la cresta a cada lado (mm): [antes, después] en el orden de las líneas. En una sombra fuera del centro del
+ * convexo, el lado de fuera mira la pared más oblicua que el de dentro (su pleura cae ≈ 1,7 mm más honda, y la cresta, la
+ * mínima de la sombra, es la del lado de dentro): la media de los dos lados es la separación sin ese sesgo (decisión 16).
  */
-export function pleuraBelowRibCrestMm(v: ChestView): number[] {
+export function pleuraBelowRibCrestMm(v: ChestView): Array<[number, number]> {
   const scans = scanView(v);
-  const out: number[] = [];
+  const out: Array<[number, number]> = [];
   for (const s of ribShadows(scans)) {
     const i0 = scans.findIndex((x) => x.theta === s.theta0);
     const i1 = scans.findIndex((x) => x.theta === s.theta1);
     if (i0 === 0 || i1 === scans.length - 1) continue;
-    for (const j of [i0 - 1, i1 + 1]) {
-      const n = scans[j];
-      if (n.ribMm === null && n.pleuraMm !== null) out.push(n.pleuraMm - s.ribTopMm);
-    }
+    const [a, b] = [scans[i0 - 1], scans[i1 + 1]];
+    if (a.ribMm === null && a.pleuraMm !== null && b.ribMm === null && b.pleuraMm !== null)
+      out.push([a.pleuraMm - s.ribTopMm, b.pleuraMm - s.ribTopMm]);
   }
   return out;
 }
 
-/** Alto craneocaudal anatómico de la costilla n (mm): el de su sección elíptica, 2 × `Rib.halfWidth`. */
-export function ribHeightMm(scene: AnatomyScene, n: number): number {
-  return 2 * ribOf(scene, n).halfWidth;
+/** Alto craneocaudal anatómico de la costilla n del lado `side` (mm): el de su sección elíptica, 2 × `halfWidth`. */
+export function ribHeightMm(scene: AnatomyScene, n: number, side: -1 | 1 = -1): number {
+  return 2 * ribOf(scene, n, side).halfWidth;
 }
 
 /**
  * Ancho craneocaudal anatómico (mm) del espacio intercostal n (entre las costillas n y n + 1) en el ángulo del tronco φ:
- * la distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9).
+ * la distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9). Lanza
+ * si una de las dos no llega a la línea (`ribSpans`): la tabla sigue más allá de sus extremos y daría un ancho sin costilla.
  */
 export function intercostalWidthMm(scene: AnatomyScene, n: number, phi: number): number {
-  return ribZ(scene, n, phi) - ribZ(scene, n + 1, phi) - ribOf(scene, n).halfWidth - ribOf(scene, n + 1).halfWidth;
+  const side = sideOfPhi(phi);
+  for (const k of [n, n + 1]) if (!ribSpans(scene, k, phi)) throw new Error(`la costilla ${k} no llega a la línea φ ${phi.toFixed(3)}`);
+  return ribZ(scene, n, phi) - ribZ(scene, n + 1, phi) - ribOf(scene, n, side).halfWidth - ribOf(scene, n + 1, side).halfWidth;
 }
 
 /** Arco (mm) de `lines` líneas contiguas de la sonda a la profundidad r (el ancho de su tramo en la imagen). */
@@ -228,4 +259,96 @@ export function intercostalImageWidthMm(scene: AnatomyScene, n: number, phi: num
   if (!left || !right) return null;
   const gap = scans.findIndex((x) => x.theta === right.theta0) - scans.findIndex((x) => x.theta === left.theta1) - 1;
   return linesArcMm(v, gap, 0.5 * (left.ribTopMm + right.ribTopMm));
+}
+
+/** Un cruce de la línea craneocaudal con la parrilla: la costilla (o el esternón), su tramo en z y si es cartílago. */
+export interface RibCrossing {
+  /** Índice en `scene.ribs`, o `MAX_RIBS` para el esternón. */
+  index: number;
+  number: number;
+  side: -1 | 1 | 0;
+  zTop: number;
+  zBottom: number;
+  cartilage: boolean;
+}
+
+/**
+ * Lo que encuentra, de arriba abajo, una línea craneocaudal de la piel (φ) a la profundidad de la línea media de las
+ * costillas bajo ella (por la normal de la piel, como la sonda apoyada): cada costilla que cruza, en orden, con su número.
+ * La cuenta de costillas y de espacios intercostales por línea (decisión 16) sale de aquí, de la clasificación de la
+ * parrilla (`ribScan`, la de la GPU), no de la tabla.
+ */
+export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBottom = -220, step = 0.25): RibCrossing[] {
+  const t = scene.torso;
+  const hit = ribLinePoint(phi, t, scene.ribCage);
+  const out: RibCrossing[] = [];
+  let cur: RibCrossing | null = null;
+  for (let z = zTop; z >= zBottom; z -= step) {
+    const m: Vec3 = [hit[0], hit[1], z];
+    const d = -torsoDepth(m, t);
+    const scan = ribScan(m, d, wallArc(m, t), t, scene.ribCage);
+    const i = scan.inside;
+    if (cur && cur.index === i) {
+      cur.zBottom = z;
+      cur.cartilage ||= scan.cartilage;
+      continue;
+    }
+    cur = null;
+    if (i < 0) continue;
+    const rib = scene.ribs[i] as RibSpec | undefined;
+    cur = { index: i, number: rib?.number ?? 0, side: rib?.side ?? 0, zTop: z, zBottom: z, cartilage: scan.cartilage };
+    out.push(cur);
+  }
+  return out;
+}
+
+/**
+ * Borde inferior del pulmón (z, mm) bajo la línea de piel φ en fin de espiración (`BASELINE_INSTANT`): la z más baja del
+ * pulmón que baja sin cortes desde `zTop`, a `insideMm` por dentro de la cara interna de la pared (la pleura parietal) a lo
+ * largo de la normal de la piel; null si en `zTop` no hay pulmón. La meta A-T13 y la limitación `lung-border-above-ribcage`.
+ */
+export function lungBorderZ(scene: AnatomyScene, phi: number, insideMm = 4, zTop = 250, zBottom = -250, step = 0.5): number | null {
+  const t = scene.torso;
+  const p = probeHitPoint(phi, t.skinMm + t.fatMm + t.muscleMm + insideMm, t);
+  let border: number | null = null;
+  for (let z = zTop; z >= zBottom; z -= step) {
+    if (scene.classify([p[0], p[1], z], BASELINE_INSTANT).tissue !== Tissue.Lung) break;
+    border = z;
+  }
+  return border;
+}
+
+/**
+ * Punto (x, y) de la línea media de las costillas del lado `side` en |u| = au: en el rayo radial cuya piel tiene ese arco
+ * (`wallArc`), a la profundidad de `ribCenterDepth` (dos pasadas: la métrica cambia poco en milímetros).
+ */
+function ribMidline(scene: AnatomyScene, au: number, side: -1 | 1): [number, number] {
+  const t = scene.torso;
+  let lo = 0;
+  let hi = Math.PI;
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (wallArc([t.a * Math.sin(mid), t.b * Math.cos(mid), 0], t) < au) lo = mid;
+    else hi = mid;
+  }
+  const tau = 0.5 * (lo + hi);
+  const sx = t.a * Math.sin(tau);
+  const sy = t.b * Math.cos(tau);
+  const R = Math.hypot(sx, sy);
+  let d = t.skinMm + t.fatMm + t.muscleMm;
+  for (let i = 0; i < 3; i++) d = ribCenterDepth([sx * (1 - d / R), sy * (1 - d / R), 0], t, scene.ribCage);
+  return [side * sx * (1 - d / R), sy * (1 - d / R)];
+}
+
+/**
+ * Ángulo (°) bajo el plano transversal de la costilla n en el plano sagital, de su extremo posterior (la apófisis
+ * transversa) a su unión condrocostal: atan(caída / avance anteroposterior) de su línea media, el ángulo costal de
+ * Robinson y cols. medido contra la horizontal (anatomy.md §1.3).
+ */
+export function ribSagittalAngleDeg(scene: AnatomyScene, n: number, side: -1 | 1 = -1): number {
+  const k = ribIndex(scene, n, side);
+  const r = scene.ribs[k];
+  const drop = ribTableZ(scene.ribCage, k, r.uPost) - ribTableZ(scene.ribCage, k, r.uCc);
+  const advance = ribMidline(scene, r.uCc, side)[1] - ribMidline(scene, r.uPost, side)[1];
+  return (Math.atan2(drop, advance) * 180) / Math.PI;
 }

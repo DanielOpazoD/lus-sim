@@ -8,12 +8,13 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'ui-minimal',
   // anatomía y fisiología
   'left-handed-anatomy-frame',
-  'no-spleen-no-left-ribs',
-  'ribs-5-10-only',
+  'thorax-cylindrical-cage',
+  'rib-section-uniform',
   'thorax-wall-abdominal-habitus',
   'wall-generic-layers',
   'thorax-all-lung',
   'lung-curtain-right-only',
+  'lung-border-above-ribcage',
   'abdomen-generic-tissue',
   'sliding-uniform-caudal',
   // sonda

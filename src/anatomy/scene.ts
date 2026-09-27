@@ -1,38 +1,28 @@
 import { smoothstep, type Vec3 } from '../core/vec3';
 import type { PatientState } from '../physiology/patientState';
-import {
-  diaphragmHeight,
-  sdSpine,
-  sdDiaphragm,
-  sdRib,
-  torsoDepth,
-  type Spine,
-  type Diaphragm,
-  type Rib,
-  type Torso,
-  type TubeHit,
-} from './primitives';
+import { diaphragmHeight, sdSpine, sdDiaphragm, torsoDepth, type Spine, type Diaphragm, type Torso, type TubeHit } from './primitives';
 import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
 import {
-  nearestRib,
-  preperitonealMm,
+  buildRibCage,
+  faceRib,
   ribCurvature,
+  ribScan,
   ribSd,
-  ribSearchDepth,
   ribTangent,
-  wallArc,
-  wallDepths,
-  wallFace,
-  wallFaceSd,
-} from './organs/wall';
+  type RibCage,
+  type RibCageOptions,
+  type RibSpec,
+} from './organs/ribcage';
+import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd } from './organs/wall';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
 
 /**
  * Escena anatómica del avatar adulto de referencia (guía §9): el tórax de la escena de VExUS
- * (lus-sim, decisión 10). Quedan el tronco, la pared en capas, las costillas (las derechas de VExUS:
- * `no-spleen-no-left-ribs`), el diafragma en dos cúpulas, la columna, la cortina pulmonar y el pulmón
- * del tórax sobre la cúpula. No se portan el hígado, la vesícula, los riñones, los ligamentos, la
+ * (lus-sim, decisión 10). Quedan el tronco, la pared en capas, el diafragma en dos cúpulas, la columna, la cortina
+ * pulmonar y el pulmón del tórax sobre la cúpula; la parrilla costal (las 12 costillas de cada lado, sus cartílagos y el
+ * esternón) es la del adulto promedio de la base (`organs/ribcage.ts`, decisión 16), no las costillas 5.ª–10.ª derechas
+ * de VExUS. No se portan el hígado, la vesícula, los riñones, los ligamentos, la
  * aurícula derecha, el árbol vascular ni el intestino: bajo el diafragma queda el tejido por defecto de
  * la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`, sin bolsas de gas), declarado como
  * `abdomen-generic-tissue`. El hígado vuelve en la fase 3 como módulo portado.
@@ -114,32 +104,30 @@ export interface FaceGradient {
   axis?: Vec3;
 }
 
-/** Ascenso posterior del arco costal (mm) según el número de costilla: 60 mm la 5.ª, +6 mm por costilla. */
-export function ribTiltMm(ribNo: number): number {
-  return 60 + 6 * (ribNo - 5);
-}
-
 export class AnatomyScene {
   readonly torso: Torso;
-  readonly ribs: Rib[];
+  /** La parrilla costal (decisión 16): costillas, cartílagos, esternón y la tabla de alturas que sube a la GPU. */
+  readonly ribCage: RibCage;
+  /** Las 24 costillas de la parrilla: derechas 1–12 y después izquierdas 1–12 (cada una con su número y su lado). */
+  readonly ribs: readonly RibSpec[];
   /**
-   * Número anatómico de cada costilla de `ribs`, en el mismo orden (lus-sim, decisión 10): la escena heredada
-   * tiene de la 5.ª a la 10.ª. Las medidas buscan una costilla por su número, nunca por su posición en la lista
-   * (si el paso C añade las 1.ª–4.ª, la 5.ª deja de ser la primera).
+   * Número anatómico de cada costilla de `ribs`, en el mismo orden. Las medidas buscan una costilla por su número y su
+   * lado, nunca por su posición en la lista.
    */
   readonly ribNumbers: number[];
   readonly diaphragm: Diaphragm;
   readonly spine: Spine;
 
-  constructor(patient: PatientState) {
+  constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
     const fat = patient.habitus.subcutaneousFatMm;
     const muscle = patient.habitus.muscleMm;
     // Tronco 32 × 21 cm (adulto de IMC 25): la VCI queda a ≈ 12–13 cm del xifoides
     // la grasa preperitoneal es la parte más honda del espesor muscular del hábito (decisión 62)
     this.torso = { a: 160, b: 105, zMin: -300, zMax: 300, skinMm: 2, fatMm: fat, muscleMm: muscle, preperitonealMm: preperitonealMm(fat) };
-    // Referencia craneocaudal: z = 0 en la punta del xifoides (T9–T10). Cúpula derecha
-    // en T8–T9 (+45 mm), reborde costal en la línea medioclavicular ≈ −80 mm, unión
-    // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5].
+    // Referencia craneocaudal: z = 0 en la unión xifoesternal, al nivel del disco T9–T10 (Gray; la punta del xifoides
+    // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16). De VExUS: cúpula derecha en T8–T9 (+45 mm), unión
+    // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5]; el reborde costal es ahora el de la parrilla
+    // (la medioclavicular lo cruza en el 9.º cartílago, con su línea media a −90 mm)
     this.diaphragm = {
       right: { kind: 'dome', x0: -55, y0: -5, rx: 85, ry: 92, apex: 55 },
       left: { kind: 'dome', x0: 70, y0: -5, rx: 70, ry: 85, apex: 25 },
@@ -150,27 +138,12 @@ export class AnatomyScene {
     // posterior queda ≈ 5 cm de la piel dorsal, como en un adulto); arco posterior con
     // apófisis transversas de 40 mm a cada lado. Las costillas terminan en ellas.
     this.spine = { kind: 'cylinderZ', x0: 0, y0: -46, r: 17, archHalfWidth: 40, archY0: -78, archY1: -58 };
-    this.ribs = [];
-    this.ribNumbers = [];
-    // Costillas derechas 5–10: el 7.º cartílago llega al esternón a la altura del xifoides (z 0).
-    // Oblicuidad creciente hacia abajo: la cabeza de la 5.ª está en T5 (≈ 6 cm sobre su
-    // extremo anterior) y la de la 10.ª en T10, a la altura del xifoides (≈ 9 cm sobre el
-    // reborde) — `ribTiltMm`, la misma ley que dibuja el navegador 3D.
-    const anterior = [40, 20, 0, -25, -50, -75];
-    for (let i = 0; i < anterior.length; i++) {
-      this.ribs.push({
-        zAnterior: anterior[i],
-        tilt: ribTiltMm(5 + i),
-        halfWidth: 6,
-        halfThickness: 3.2,
-        scale: 0.85,
-        // cartílago a ±45° de la línea media: la unión costocondral en la línea medioclavicular (x ≈ 96 mm en la
-        // elipse de la costilla, 136 × 89 mm), la del reborde costal de las costillas 7–10 (decisión 62)
-        cartilageFromPhi: Math.PI / 4,
-        rightOnly: true,
-      });
-      this.ribNumbers.push(5 + i);
-    }
+    // La parrilla del adulto promedio (decisión 16): forra la cara interna de la pared de este hábito, con z = 0 en la
+    // unión xifoesternal (el 7.º cartílago), al nivel del disco T9–T10 (Gray), y sus extremos posteriores en las
+    // apófisis transversas de la columna
+    this.ribCage = buildRibCage(this.torso, this.spine, ribOptions);
+    this.ribs = this.ribCage.ribs;
+    this.ribNumbers = this.ribs.map((r) => r.number);
   }
 
   /** Espesor total de la pared del tronco (mm). */
@@ -291,9 +264,9 @@ export class AnatomyScene {
       const iface = this.classify(m, instant).interface;
       if (isWallLayerInterface(iface)) return this.numericGradient(m, (p) => wallFaceSd(p, iface, this.torso), 0);
       if (isRibInterface(iface)) {
-        const rib = this.ribs[nearestRib(m, this.ribs, this.torso, this.spine)];
-        const g = this.numericGradient(m, (p) => ribSd(p, rib, this.torso, this.spine), ribCurvature(m, rib, this.torso));
-        return { ...g, axis: ribTangent(m, rib, this.torso) };
+        const k = faceRib(m, this.torso, this.ribCage);
+        const g = this.numericGradient(m, (p) => ribSd(p, k, this.torso, this.ribCage), ribCurvature(m, k, this.torso, this.ribCage));
+        return { ...g, axis: ribTangent(m, k, this.torso, this.ribCage) };
       }
       face = faceGeometryOf(iface);
     }
@@ -319,50 +292,47 @@ export class AnatomyScene {
   }
 
   /**
-   * Capas parietales y costillas (decisión 62, módulo `organs/wall`). `final` = el punto está en piel,
-   * grasa subcutánea, costilla/cartílago, músculo, grasa preperitoneal o columna (no hay nada más que
-   * mirar); si no, devuelve el espesor total de la pared (lo que queda debajo empieza ahí). Cada muestra de las capas
-   * dibuja la cara de la capa más cercana (`wallFace`); junto a una costilla ósea, su cortical; el cartílago,
-   * su pericondrio. El hueso no dibuja cara (su cortical la dibuja el tejido blando de fuera).
+   * Capas parietales y parrilla costal (decisión 62, módulo `organs/wall`; la parrilla, decisión 16, `organs/ribcage`).
+   * `final` = el punto está en piel, grasa subcutánea, costilla, cartílago, esternón, músculo, grasa preperitoneal o
+   * columna (no hay nada más que mirar); si no, devuelve el espesor total de la pared (lo que queda debajo empieza ahí).
+   * Cada muestra de las capas dibuja la cara de la capa más cercana (`wallFace`); junto al hueso (una costilla ósea o el
+   * esternón), su cortical; el cartílago, su pericondrio. El hueso no dibuja cara (su cortical la dibuja el tejido blando
+   * de fuera).
    */
   private classifyWall(m: Vec3, d: number): { final: true; cls: Classification } | { final: false; wallMm: number } {
     const torso = this.torso;
     const skin = torso.skinMm;
     const wall = skin + torso.fatMm + torso.muscleMm;
-    // la cara de la capa más cercana; la distancia a la frontera cuenta la costilla más cercana (|∇| ≤ 1,1)
+    // la cara de la capa más cercana; la distancia a la frontera cuenta el hueso o cartílago más cercano (|∇| ≤ 1,1)
     const layer = (tissue: Tissue, bd: number, u: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
       const [face, dist] = wallFace(d, u, m[2], ribD, torso);
       const boundaryDistance = Math.min(bd, ribAny / 1.1);
       return { final: true, cls: { ...NONE, tissue, boundaryDistance, interface: face, interfaceDistance: dist } };
     };
     if (d < skin) return layer(Tissue.Skin, skin - d, 0, 1e3, 1e3);
-    // Costillas, antes de la grasa subcutánea donde una puede llegar (la grasa no las corta): dentro de la
-    // pared o justo por debajo; la ósea más cercana da la cortical, el cartílago su pericondrio
-    let ribD = 1e3;
-    let ribAny = 1e3;
-    if (d >= ribSearchDepth(torso, this.ribs[0]?.scale ?? 1))
-      for (const rib of this.ribs) {
-        const r = sdRib(m, rib, torso, this.spine);
-        if (r.d < 0) {
-          const tissue = r.cartilage ? Tissue.Cartilage : Tissue.Bone;
-          const face = r.cartilage ? { interface: Interface.Perichondrium, interfaceDistance: -r.d } : {};
-          return { final: true, cls: { ...NONE, tissue, boundaryDistance: -r.d, ...face } };
-        }
-        ribAny = Math.min(ribAny, r.d);
-        if (!r.cartilage) ribD = Math.min(ribD, r.d);
-      }
+    // La parrilla, antes de la grasa subcutánea donde puede llegar (la grasa no la corta): el esternón y las costillas del
+    // lado de la muestra; el hueso más cercano da la cortical, el cartílago su pericondrio. Las coordenadas de la pared,
+    // solo dentro de ella (bajo la pared, `ribScan` no mira nada)
+    const u = d < wall ? wallArc(m, torso) : 0;
+    const scan = ribScan(m, d, u, torso, this.ribCage);
+    if (scan.inside >= 0) {
+      const face = scan.cartilage ? { interface: Interface.Perichondrium, interfaceDistance: -scan.inD } : {};
+      return {
+        final: true,
+        cls: { ...NONE, tissue: scan.cartilage ? Tissue.Cartilage : Tissue.Bone, boundaryDistance: -scan.inD, ...face },
+      };
+    }
     if (d >= wall) {
       const dSpine = sdSpine(m, this.spine);
       if (dSpine < 0) return { final: true, cls: { ...NONE, tissue: Tissue.Vertebra, boundaryDistance: -dSpine } };
       return { final: false, wallMm: wall };
     }
-    // las coordenadas de la pared solo dentro de ella: fascia profunda y transversalis onduladas en (u, z)
-    const u = wallArc(m, torso);
+    // las capas de la pared: fascia profunda y transversalis onduladas en (u, z)
     const w = wallDepths(torso, u, m[2]);
-    if (d < w.fascia) return layer(Tissue.Fat, Math.min(d - skin, w.fascia - d), u, ribD, ribAny);
-    if (d < w.transversalis) return layer(Tissue.Muscle, Math.min(d - w.fascia, w.transversalis - d), u, ribD, ribAny);
+    if (d < w.fascia) return layer(Tissue.Fat, Math.min(d - skin, w.fascia - d), u, scan.ribD, scan.ribAny);
+    if (d < w.transversalis) return layer(Tissue.Muscle, Math.min(d - w.fascia, w.transversalis - d), u, scan.ribD, scan.ribAny);
     // grasa preperitoneal (extraperitoneal) entre la transversalis y el peritoneo parietal
-    return layer(Tissue.Fat, Math.min(d - w.transversalis, wall - d), u, ribD, ribAny);
+    return layer(Tissue.Fat, Math.min(d - w.transversalis, wall - d), u, scan.ribD, scan.ribAny);
   }
 
   /** Lámina de pulmón en el receso costofrénico derecho (lateral y posterior), bajo la pared. */

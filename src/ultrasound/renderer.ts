@@ -36,6 +36,7 @@ import { lookWavenumber } from './steering';
 import type { SegmentGrid } from './transmission';
 import { LUNG_PRESET, TGC_REFERENCE } from './lungPreset';
 import { COMPRESSION_BASE, SCENE_TEX_H, SCENE_TEX_W } from '../anatomy/gpu/anatomy.glsl';
+import { RIB_TABLE_BASE } from '../anatomy/organs/ribcage';
 import { evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
 import {
   FRAG_AXIAL,
@@ -539,11 +540,12 @@ export class UltrasoundRenderer {
   }
 
   /**
-   * Datos estáticos de la escena: la textura (en lus-sim solo lleva la tabla de la compresión, que sube cada
-   * contacto nuevo) y las tablas por tejido.
+   * Datos estáticos de la escena: la textura (en lus-sim, la tabla de las alturas costales de la parrilla, decisión 16, y
+   * la de la compresión, que sube cada contacto nuevo) y las tablas por tejido.
    */
   private uploadSceneStatic(): void {
     const gl = this.gl;
+    this.sceneData.set(this.currentScene.ribCage.table, RIB_TABLE_BASE * 4);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {

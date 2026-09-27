@@ -734,3 +734,133 @@ peso a ambos lados de D) y las cifras a ≤ 0,02 mm; halló que la composición 
 sobre la distancia costilla–pleura de la imagen y la cara interna de la pared, la sensibilidad de las guardas, un motivo
 inexacto para descartar (b), comentarios y una entrada del CHANGELOG desfasados, y la detección del orden 4 del PLAPS, que
 fallaba con GPU real; todo está corregido o anotado arriba.
+
+## 16. Paso C1: la parrilla costal del adulto promedio (12 costillas y 11 espacios intercostales por hemitórax)
+
+**Fecha.** 2026-09-26.
+
+**Contexto.** La escena del paso A (decisión 10) conservaba las costillas de VExUS: las 5.ª–10.ª derechas (`rightOnly`, y
+un corte x > 15 mm fijo en el GLSL), de 12 mm de alto, en la elipse del tronco escalada a 0,85, con espacios de 3,2–12,1 mm
+y la pleura 7,2–8,8 mm bajo la cresta costal. La línea base de PR #14 lo medía: costillas, derecho 6 e izquierdo 0;
+espacios, 5 y 0; en el punto BLUE superior (EIC2) no había signo del murciélago. Daniel pidió fidelidad anatómica en la
+construcción de los modelos: el tamaño y el número de los espacios intercostales de un adulto promedio
+(`docs/knowledge/anatomy.md` §1.3, §2.3 y metas A-T7–A-T9 y A-T19).
+
+**Opciones.** Para la ley de las costillas: (a) seguir con una fórmula cerrada por costilla (extremo anterior + subida
+sinusoidal hacia atrás, la de VExUS): no deja fijar los anchos de los espacios por línea, que es lo que mide la base; (b)
+una tabla de alturas por costilla a lo largo del tronco, construida desde lo que la base documenta por línea (extremos
+posteriores en sus vértebras, anchos de los espacios en las estaciones de medida, una costilla de referencia con la
+oblicuidad de Robinson) y compartida por TS y GLSL. Para su profundidad: (i) una fracción de la elipse (VExUS: más honda
+al lado que delante); (ii) pegada a la cara interna de la pared, la pleura, que la parrilla forra. Para el tronco: (1)
+un tronco cónico con la caja de Robinson (303 × 195 mm y 366 de alto, estrecha arriba): rehace la pared, la compresión,
+el contacto y la cortina de VExUS; (2) conservar el cilindro elíptico de VExUS (320 × 210 mm de piel), como dice la hoja de
+ruta, y declarar lo que no reproduce. Para calibrar el alto costal (la compresión cinemática ensancha lo que queda bajo
+el centro del convexo): (α) con la imagen; (β) con la anatomía.
+
+**Decisión.** (b), (ii), (2) y (β). Un módulo de órgano propio, `src/anatomy/organs/ribcage.ts` (TS y GLSL con los mismos
+nombres), y las líneas del tórax en `src/anatomy/thoraxLines.ts`; `sdRib` de VExUS (`primitives.ts`, idéntico) queda sin
+uso en el tórax.
+
+- **Número y lado.** 24 costillas, derechas 1–12 y después izquierdas 1–12, cada una con su número y su lado (el lado es
+  un dato: la tabla va por lado y el bucle del shader recorre las 12 del lado de la muestra, por el signo de u). `MAX_RIBS`
+  = 24; por costilla, `uRibs` = (extremo medial, unión condrocostal, extremo posterior, semialto) en |u| (la longitud de
+  arco de la piel desde la línea media anterior, la coordenada de la pared); las alturas de las líneas medias, en una
+  tabla de 112 columnas de 4 mm por lado en la textura de escena, tras la de la compresión.
+- **Sección.** Elipse de 14 mm de alto craneocaudal (Kim y cols., documentado; el avatar lo extiende a todas) y 4,7 mm de
+  grosor, con su cara interna a 0,3 mm (el complejo pleural del avatar) de la pleura parietal por la normal: la pleura
+  queda 5,0 mm bajo la cresta (Lichtenstein, consenso) en todo el tórax y con cualquier pared (la métrica radial pura
+  dejaba 3,9 mm en la medioclavicular: la distancia se toma por la normal, (pared − d)/|∇torsoDepth|).
+- **Trayectoria.** Extremos posteriores en la apófisis transversa de T(n), a la altura de la mitad de su cuerpo, con 28 cm
+  / 12 por segmento torácico y z = 0 en la unión xifoesternal (disco T9–T10) (Gray). La 5.ª costilla de referencia: en la
+  medioclavicular a la altura de la 9.ª junto a la columna (línea de Treves, en Gray), plana (lineal en la coordenada
+  anteroposterior, el ángulo costal sagital de Robinson) hasta la columna, y un Hermite que sube hasta su cartílago en el
+  esternón. Las demás, sumando alto y ancho de espacio: z_{n+1} = z_n − 14 − W_n(u), con los W_n interpolados (monótonos)
+  entre estaciones: junto a la columna, un segmento menos el alto costal (9,3 mm); axilar posterior, EIC1–6 12 [SUPUESTO] y
+  EIC7–11 16 (Kim); axilar media, EIC1–4 15 y EIC5–6 16 [SUPUESTOS], EIC7–10 17 (Kim, también en la axilar anterior);
+  medioclavicular, EIC1 36 [SUPUESTO], EIC2 18, EIC3–4 14, EIC5 15 (el avatar), EIC6–7 13 y EIC8 5 [SUPUESTOS];
+  paraesternal (a 1 cm del esternón, donde miden Seong y Woo), EIC2 18,1 y EIC3 12,3 (documentados), EIC4–6 9, 6 y 3
+  [SUPUESTOS: los intervalos del esternón «diminish in length from above downward», Gray].
+- **Cartílagos y esternón.** 1–7 al esternón (manubrio, ángulo esternal para la 2.ª, unión xifoesternal para la 7.ª), con
+  la unión condrocostal bajo la línea de piel a 75 + (n − 4,5)·6 mm de la línea media (anatomía de superficie, como la
+  medioclavicular: la 4.ª y la 5.ª a 7–8 cm, la base; alargan de la 1.ª a la 7.ª, Gray); 8–10 acaban en el cartílago de
+  arriba (su espacio se cierra en la punta): la 8.ª unión sigue la serie (96 mm, 1 mm de piel por fuera de la
+  medioclavicular, que cruza el 8.º cartílago junto a su unión, donde Gray pone la reflexión pleural) y la 9.ª y la 10.ª,
+  12 mm más afuera cada una [SUPUESTO], así que las uniones van hacia fuera de la 1.ª a la 10.ª y los cartílagos acortan de
+  la 7.ª (85 mm de piel) a la 10.ª (20) (Gray); 11–12 libres, con su punta de cartílago. El esternón (hueso, 12 mm de grueso) va de la
+  escotadura yugular (borde inferior de T2) a la unión xifoesternal, con el ángulo en T4–T5 y el xifoides (cartílago, 30 mm)
+  debajo. La calcificación del cartílago (cáscara periférica de hueso) es una opción de la escena, apagada en el avatar.
+  El cartílago atenúa 2,45 dB/cm/MHz (`COSTAL_CARTILAGE`, el rango alto de la base; VExUS 0,9).
+- **Tronco.** Se conserva el cilindro elíptico de VExUS: con la pared del paso C2 (13 mm al lado) la caja de la parrilla
+  mide 303 mm de ancho, la de Robinson; con la pared heredada de 28 mm, 274 × 166 mm y 350 de alto (Robinson, 303 × 195 ×
+  366). Lo que no reproduce (una caja que no se estrecha hacia arriba, sin clavícula) es `thorax-cylindrical-cage`.
+- **Calibración del alto costal: la anatomía.** Kim y cols. miden hueso, que no se deforma bajo la sonda. En la imagen del
+  convexo, la compresión cinemática hunde la cara ≈ 8,6 mm en el centro (la flecha de la cara de 60 mm de radio sobre la
+  piel plana en z) y empuja la pared con las costillas por las líneas divergentes: lo rígido bajo el centro del sector se
+  ensancha ×1,11–1,18 (la costilla centrada mide 16,0–16,5 mm en la imagen; con las costillas a los lados, en el corte del
+  signo del murciélago, 15,1–15,6). Queda en `probe-compression-kinematic` y en una meta que aún no se cumple.
+- **Puntos de partida.** El BLUE superior pasa al centro del EIC2 de la medioclavicular (95 mm de la línea media, Gray:
+  φ 0,702π, z 83,7) y el BLUE inferior al del EIC4 de la axilar anterior (z 50,6); el PLAPS, a su altura.
+- **Pruebas.** Las `notYetMet` de las costillas y de los espacios (PR #14), A-T7 (salvo los espacios de «Sin cumplir
+  aún»), A-T8, A-T9 y la geometría de F-T08 pasan a `it`; nuevas: las cuentas (a lo largo de las líneas paraesternal, medioclavicular, axilares y paravertebral, de arriba
+  abajo, las costillas en orden y del lado de la línea: 7, 9, 10, 11, 12 y 12 costillas; 12 y 11 espacios por hemitórax),
+  la simetría, A-T19 (la 7.ª baja 102,9 mm y 36,2° bajo el plano transversal, Robinson 29 ± 7,7; la 9.ª junto a la columna
+  y la 5.ª en la medioclavicular a 0,2 mm; la caída crece de la 1.ª a la 8.ª) y `src/validation/ribcage.test.ts` (esternón,
+  cartílagos y su orden, extremos, calcificación, tabla). Una costilla que toca a la de al lado no cuenta como dos: entre dos
+  cruces seguidos de una línea, ≥ 1 mm sin hueso ni cartílago en la clasificación; y en todo |u| donde están las dos, el
+  espacio entre costillas seguidas es ≥ 1 mm salvo en los 10 mm junto a la punta de un cartílago del reborde (≥ 0). A-T7
+  («EIC visibles de 14–20 mm») se mide en los espacios de cada línea, no solo en dos cortes. La medida
+  del signo del murciélago toma los anchos a la profundidad de las crestas (a la de la pleura el convexo los abre ×(R + D)/(R +
+  d)), y la de F-T08, la media de los dos lados de cada sombra (el lado de fuera de una sombra lejos del centro mira la
+  pared más oblicua: ≈ 1,7 mm más). Las líneas A se miden donde hay pulmón detrás de la pleura (el borde caudal del PLAPS
+  cae ahora en la banda bajo el borde del pulmón heredado).
+
+**Consecuencias.**
+
+- Costillas: 6 → 24 (12 por hemitórax, numeradas). Espacios: 5 → 22 (11 por hemitórax). Alto: 12 → 14 mm. Anchos en la
+  anatomía: EIC2/3/4/5 de la medioclavicular 18/14/14/15 mm; paraesternales EIC2 18,1 y EIC3 12,3; laterales bajos 16,6–17 en
+  la axilar anterior y 17 en la media; posteriores bajos 16 en la axilar posterior y 14,8 a 1,2π; junto a la columna 9,3.
+  En la imagen (corte centrado en el espacio): EIC5 de la medioclavicular 17,1; EIC5–9 de la axilar media 18,7–19,7;
+  EIC7–9 a 1,2π 17,1. Signo del murciélago: la pleura 4,4–4,5 mm bajo la línea costal; sombras de 15,1–15,6 mm; periodo
+  34,2 mm (anatomía 30). Pleura bajo la cresta (F-T08, media por sombra): 5,1–5,5 mm (antes 7,2–8,8).
+- **Discrepancias.** El plano de Treves cruza, según Treves, el esternón entre la 4.ª y la 5.ª; con los niveles del esternón
+  de Gray (unión xifoesternal en T9–T10) lo cruza entre la 6.ª y la 7.ª: se conservan los de Gray. El EIC5 del avatar (15)
+  no es «comparatively narrow» como en Gray: manda la base. La oblicuidad de las costillas 10–12 no baja tras la 9.ª (Gray): su
+  caída hasta la punta sigue los espacios laterales de Kim.
+- **Sin cumplir aún.** A-T1–A-T3 y A-T10 (la pared, paso C2); en la imagen con la presión estándar, la costilla centrada
+  (16,0–16,5 mm frente a 13–15), los EIC7–9 de la axilar posterior (18,4 frente a 14–18) y el EIC2 del punto BLUE superior
+  (20,1 frente a 14–20: sus 18 mm de anatomía ×1,12), por el ensanchamiento de la compresión; los EIC visibles altos de
+  detrás (LAP EIC2–6 13,8; 1,2π EIC1–6 12,1–13,1: los 11–12 mm estimados de su anatomía) y los primeros de delante (LMC EIC1
+  40,5, bajo la medioclavicular por el cilindro; LAA EIC1 25,6); la 1.ª costilla, 17,6° bajo el plano transversal frente a
+  31 ± 8,2 (cae lo que la real, pero en los 150 mm de profundidad del cilindro); y A-T13: el pulmón y las cúpulas heredados
+  acaban unas dos costillas por encima de lo que dice Gray (en la LAM derecha, a la altura de la 6.ª y no de la 8.ª;
+  `lung-border-above-ribcage`, paso C3). En la GPU (F-T08): cada sombra queda a −34,7…−39,2 dB del eco pleural intercostal (cumple), pero en el núcleo
+  de la sombra la línea pleural sigue a −40,8…−41,7 dB (en pantalla −23,4…−25,6; antes −29…−50) y la línea A de orden 2,
+  tenue: con espacios más anchos, el pedestal de lóbulos laterales trae más pleura brillante (`rib-shadow-pleura-residual`).
+  Con la pleura a 5 mm de la cresta, la sombra completa empieza a 4–5 líneas de su borde, donde la pleura aún recibe el eco
+  vecino por la pasada D (−30…−39 dB a 4–6 líneas; el lóbulo principal de la PSF cae bajo −35 dB desde 3 líneas: es el
+  pedestal): la e2e juzga la pleura dentro de la sombra desde 7 líneas, un alcance medido, no derivado.
+- La equivalencia TS ↔ GLSL sigue exacta (acuerdo 1 en tejido y cara; 2·10⁻⁵ mm con GPU real, 0,014 mm con SwiftShader),
+  también en nubes de 22 680 puntos alrededor de los extremos de las 24 costillas (`ribEnds`: 19 460 interiores, acuerdo 1
+  hasta 0,05 mm de los bordes; normales de la cortical y del pericondrio a |n·n| ≥ 0,9999997). La cara de una costilla la
+  dibuja en los dos gemelos la misma costilla, `faceRib` (la que contiene el punto o el hueso más cercano, la de la
+  clasificación): la GPU ya tomaba esa para la tangente y la curvatura, y el gradiente de TS y de GLSL tomaba la más
+  cercana con cartílago incluido (difería en el 0,6 % de las muestras de la pared anterior, en las uniones esternocostales).
+  El coste del cuadro no cambia (2,1–2,2 ms en el M4, igual que en main): el bucle de 12 costillas solo corre en la banda de
+  la parrilla (antes, 6 costillas en toda la profundidad bajo 7,75 mm). Las ranuras de uniforms de la pasada B pasan de 85
+  a 105 (107 la dirigida; tope 130). El chunk principal sube de 163,5 a 186,8 kB; su presupuesto, de 180 a 195.
+- El moteado de la e2e se mide en siete vistas paraesternales (el esternón ocupa ahora la línea media): 59 parches, SNR 2,13.
+- Se borran `ribs-5-10-only` y `no-spleen-no-left-ribs` (el bazo, en `abdomen-generic-tissue`); nuevas
+  `thorax-cylindrical-cage`, `rib-section-uniform` y `lung-border-above-ribcage`. El hemitórax izquierdo tiene costillas pero no pleura
+  (`lung-curtain-right-only`, paso C3). La parrilla se ofrecerá a VExUS, que tiene las mismas costillas derechas.
+- La numeración: esta es la decisión 16 porque `main` terminaba en la 15 y `docs.test.ts` exige 1..N sin huecos.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde. `src/validation/anatomyTargets.test.ts` y
+`src/validation/ribcage.test.ts` (las cuentas por línea, los anchos por nivel y región en la anatomía y en la imagen, el
+alto, la simetría, la oblicuidad, el esternón, los cartílagos, la calcificación); `e2e/imagen.spec.ts` (equivalencia con
+las 24 costillas y el esternón y en los extremos de las costillas, moteado, líneas A y F-T08 medidos de nuevo). Revisión
+adversarial de contexto limpio (27-09-2026), aplicada: las uniones condrocostales 8.ª–10.ª iban por dentro de la 7.ª y sus
+cartílagos alargaban (Gray: acortan); el borde del pulmón heredado no seguía a la parrilla y el código decía lo contrario;
+la cuenta por línea no veía dos costillas fundidas (el índice cambiaba sin espacio) y dos rangos admitían espacios de 0 mm;
+A-T7 se había aflojado a 20,5 mm; etiquetas de evidencia (el EIC2 de la medioclavicular es derivado; la paraesternal y la
+paravertebral, estimadas); la oblicuidad sin cifra frente a Robinson; la divergencia de la costilla de la cara; la
+justificación del alcance de la PSF; comentarios viejos.

@@ -1,6 +1,6 @@
 import type { Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
-import { sdRib, torsoDepth, torsoPhi, type Rib, type Spine, type Torso } from '../primitives';
+import { torsoDepth, type Torso } from '../primitives';
 
 /**
  * Pared torácica y abdominal en capas (decisión 62) como módulo de órgano (decisión 46): la geometría de
@@ -58,21 +58,12 @@ export const WALL = {
    */
   ribFacePriorityMm: 1.3,
   /**
-   * Las costillas se buscan (y mandan sobre la grasa subcutánea) desde (1 − escala)·min(a, b) − este margen
-   * bajo la piel: la línea media de una costilla corre a (1 − 0,85)·R_local ≥ 15,75 mm y su semiespesor es
-   * 3,2 mm (en la métrica radial, ≤ 3,8), así que ningún punto más somero puede estar dentro de una.
+   * Las costillas y el esternón se buscan (y mandan sobre la grasa subcutánea) desde este margen por encima de su cara
+   * externa (lus-sim, decisión 16: `organs/ribcage.ts`, `ribSearchDepth`): cubre la prioridad de la cortical y la distancia
+   * a la frontera de la grasa que tienen encima.
    */
   ribSearchMarginMm: 8,
 } as const;
-
-/**
- * Profundidad bajo la piel (mm) desde la que se buscan las costillas: más somera, ningún punto puede estar
- * dentro de una (`ribSearchMarginMm`). Así la grasa subcutánea no corta las costillas y no se paga su bucle
- * en toda la grasa.
- */
-export function ribSearchDepth(t: Pick<Torso, 'a' | 'b'>, ribScale: number): number {
-  return (1 - ribScale) * Math.min(t.a, t.b) - WALL.ribSearchMarginMm;
-}
 
 /** Grasa preperitoneal (mm) de un hábito: una parte del espesor muscular del hábito. */
 export function preperitonealMm(fatMm: number): number {
@@ -237,60 +228,7 @@ export function wallFaceSd(m: Vec3, face: Interface, t: Torso): number {
   }
 }
 
-/** Distancia (mm, no euclídea) de `sdRib` a la costilla k: la de la clasificación. */
-export function ribSd(m: Vec3, rib: Rib, t: Torso, spine: Spine): number {
-  return sdRib(m, rib, t, spine).d;
-}
-
-/** Índice de la costilla más cercana (la menor `ribSd`; dentro de una costilla, esa). */
-export function nearestRib(m: Vec3, ribs: readonly Rib[], t: Torso, spine: Spine): number {
-  let best = 0;
-  let bd = 1e9;
-  ribs.forEach((rib, i) => {
-    const d = ribSd(m, rib, t, spine);
-    if (d < bd) {
-      bd = d;
-      best = i;
-    }
-  });
-  return best;
-}
-
-/**
- * Eje de la costilla en el punto: derivada en φ de su línea media (la elipse del tronco escalada, con la
- * altura que sube hacia atrás). Es la tangente que usa la coherencia de curvatura del eco de su cara.
- */
-export function ribTangent(p: Vec3, rib: Rib, t: Torso): Vec3 {
-  const phi = torsoPhi(p[0], p[1], t);
-  const v: Vec3 = [-rib.scale * t.a * Math.sin(phi), rib.scale * t.b * Math.cos(phi), -0.5 * rib.tilt * Math.cos(phi)];
-  const l = Math.hypot(v[0], v[1], v[2]);
-  return [v[0] / l, v[1] / l, v[2] / l];
-}
-
-/**
- * Curvatura (1/mm) de la sección elíptica de la costilla (semiejes radial `halfThickness` y craneocaudal
- * `halfWidth`) en el punto del contorno en la dirección del punto: a·b/(a²sin²t + b²cos²t)^{3/2}. En la
- * cresta que mira a la piel, halfThickness/halfWidth² (0,089/mm: radio de 11 mm).
- */
-export function ribCurvature(p: Vec3, rib: Rib, t: Torso): number {
-  const u = p[0] / (t.a * rib.scale);
-  const v = p[1] / (t.b * rib.scale);
-  const rho = Math.sqrt(u * u + v * v);
-  const localR = rho > 0 ? Math.hypot(p[0], p[1]) / rho : 1;
-  const dRadial = (rho - 1) * localR;
-  const phi = torsoPhi(p[0], p[1], t);
-  const dz = p[2] - (rib.zAnterior + rib.tilt * (0.5 - 0.5 * Math.sin(phi)));
-  const qx = Math.abs(dRadial) / rib.halfThickness;
-  const qz = Math.abs(dz) / rib.halfWidth;
-  const l = Math.hypot(qx, qz);
-  const c = l > 0 ? qx / l : 1;
-  const s = l > 0 ? qz / l : 0;
-  const a = rib.halfThickness;
-  const b = rib.halfWidth;
-  return (a * b) / Math.pow(a * a * s * s + b * b * c * c, 1.5);
-}
-
-/** Gemelo GLSL (usa uTorso, uWall = (piel, grasa, músculo, preperitoneal), uRibs, uRibParams, sdRib, torsoDepth). */
+/** Gemelo GLSL (usa uTorso, uWall = (piel, grasa, músculo, preperitoneal) y torsoDepth). lus-sim (decisión 16): las funciones de las costillas pasan a `organs/ribcage.ts`. */
 export const WALL_GLSL = /* glsl */ `
 #define WALL_SCARPA_FRACTION ${WALL.scarpaFraction.toFixed(4)}
 #define WALL_PLANE_F0 ${WALL.planeFractions[0].toFixed(4)}
@@ -303,8 +241,6 @@ export const WALL_GLSL = /* glsl */ `
 #define WALL_RECTUS_MM1 ${WALL.rectusMm[1].toFixed(4)}
 #define WALL_PLANE_MIN_MM ${WALL.planeMinMm.toFixed(4)}
 #define WALL_RIB_PRIORITY_MM ${WALL.ribFacePriorityMm.toFixed(4)}
-#define WALL_RIB_SEARCH_MARGIN_MM ${WALL.ribSearchMarginMm.toFixed(4)}
-float ribSearchDepth() { return (1.0 - uRibParams.x) * min(uTorso.x, uTorso.y) - WALL_RIB_SEARCH_MARGIN_MM; }
 float wallArc(vec3 m) {
   float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
   float a2 = uTorso.x * uTorso.x;
@@ -389,39 +325,5 @@ float wallFaceSd(vec3 m, int face) {
   if (face == IF_TRANSVERSALIS) return d - w.z;
   if (face == IF_PERITONEUM) return d - w.w;
   return d - wallPlaneDepth(u, m.z, face == IF_OBLIQUE_PLANE ? 0 : 1, w);
-}
-float ribSd(vec3 m, int k) {
-  bool cart; vec3 n;
-  return sdRib(m, uRibs[k], cart, n);
-}
-int nearestRib(vec3 m) {
-  int best = 0;
-  float bd = 1e9;
-  for (int i = 0; i < MAX_RIBS; i++) {
-    float d = ribSd(m, i);
-    if (d < bd) { bd = d; best = i; }
-  }
-  return best;
-}
-vec3 ribTangent(vec3 p, vec4 rib) {
-  float phi = atan(p.y / uTorso.y, p.x / uTorso.x);
-  float sc = uRibParams.x;
-  return normalize(vec3(-sc * uTorso.x * sin(phi), sc * uTorso.y * cos(phi), -0.5 * rib.y * cos(phi)));
-}
-float ribCurvature(vec3 p, vec4 rib) {
-  float sc = uRibParams.x;
-  float u = p.x / (uTorso.x * sc);
-  float v = p.y / (uTorso.y * sc);
-  float rho = sqrt(u * u + v * v);
-  float localR = rho > 0.0 ? length(p.xy) / rho : 1.0;
-  float dRadial = (rho - 1.0) * localR;
-  float phi = atan(p.y / uTorso.y, p.x / uTorso.x);
-  float dz = p.z - (rib.x + rib.y * (0.5 - 0.5 * sin(phi)));
-  float qx = abs(dRadial) / rib.w;
-  float qz = abs(dz) / rib.z;
-  float l = length(vec2(qx, qz));
-  float c = l > 0.0 ? qx / l : 1.0;
-  float s = l > 0.0 ? qz / l : 0.0;
-  return rib.w * rib.z / pow(rib.w * rib.w * s * s + rib.z * rib.z * c * c, 1.5);
 }
 `;
