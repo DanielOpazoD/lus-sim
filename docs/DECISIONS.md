@@ -980,12 +980,9 @@ tapón de miocardio que lo une a la pared en el disco de Latham.
 **Decisión.** (b), (ii) y (β), en dos módulos de órgano propios con sus gemelos GLSL.
 
 - **Bordes** (`src/anatomy/organs/lungBorder.ts`): por columna de |u| (las de la pared torácica), el borde del pulmón en
-  FRC (la 6.ª costilla en la paraesternal y en la LMC, la 8.ª en la LAM, T11 —la punta de la apófisis de T10— junto a la
-  columna), la reflexión pleural (el 7.º cartílago en la paraesternal, el 8.º en la LMC, la 10.ª costilla en la LAM, L1
-  —la punta de la de T12— detrás), el grosor de la pared a la altura del borde y la inserción de la ZOA (20 mm bajo la
+  FRC (la 6.ª costilla en la línea paraesternal y en la LMC, la 8.ª en la LAM, T11 —la punta de la apófisis de T10— junto a la columna), la reflexión pleural (el 7.º cartílago en la paraesternal, el 8.º en la LMC, la 10.ª costilla en la LAM, T12 —la punta de su apófisis, por la regla de los tres— detrás), el grosor de la pared a la altura del borde y la inserción de la ZOA (20 mm bajo la
   reflexión), interpolados en |u| (Fritsch–Carlson) entre los anclajes. En la textura de escena, tras la tabla de la pared.
-- **Cúpula**: la de VExUS, con sus vértices de la base en FRC (la derecha en el centro del 5.º EIC paraesternal, 27 mm; la
-  izquierda 15 mm más baja [SUPUESTO]); junto a la pared, `zL + (D − zL)·s(w)` con s(w) = 1 − (1 − w/40)² (w, la
+- **Cúpula**: la de VExUS, con sus vértices de la base en FRC (la derecha en el centro del 5.º EIC de la línea paraesternal, 13,7 mm; la izquierda 15 mm más baja [SUPUESTO]); junto a la pared, `zL + (D − zL)·s(w)` con s(w) = 1 − (1 − w/40)² (w, la
   profundidad bajo la cara interna a la altura del borde): toca la pared en el borde y sube de ella con el ángulo
   costofrénico agudo.
 - **Cortina**: la lámina de 3 mm en los dos hemitórax y alrededor de todo el tronco, desde el borde de su columna menos el
@@ -1000,7 +997,7 @@ tapón de miocardio que lo une a la pared en el disco de Latham.
   sangre y el tapón en el disco de Latham (5 cm sobre la piel, centrado a 47,5 mm en el 5.º EIC) hasta la cara del
   elipsoide (25 mm, medidos por el rayo radial de cada columna, en la métrica de la clasificación); alrededor, una franja de
   25 mm [SUPUESTO] donde el corazón llega hasta la lámina de la cortina (el borde fino del pulmón sobre el corazón: sin ella,
-  las líneas oblicuas salían del tapón a una bolsa de pulmón y dibujaban una línea vertical brillante); sobre la cúpula.
+  las líneas oblicuas salían del tapón a una bolsa de pulmón y dibujaban una línea vertical brillante), con la lámina que se afila hacia el borde del disco; sobre la cúpula, con su cara inferior de pared (la sangre no toca el diafragma). El corazón, con el tapón y la franja, no se mueve con la respiración (se apoya en el centro tendinoso): el campo respiratorio vuelve a su valor a 50 mm de su elipsoide [SUPUESTO]; bajando con las vísceras, la cizalla con el tapón pegado a la pared abría bolsas de pulmón en la ventana en cada respiración.
   Tejido nuevo: el miocardio (las propiedades del músculo de IT'IS, sin la textura de la pared).
 - **Clasificación**: pared → costillas → columna → corazón → cortina → ZOA → cúpula → «resto», igual en TS y en GLSL; la
   distancia a la frontera cuenta la cara del corazón y la de la ZOA. Por encima de la cúpula más alta más 10 mm el pulmón
@@ -1012,21 +1009,18 @@ tapón de miocardio que lo une a la pared en el disco de Latham.
 
 - El pulmón que toca la pleura (1,5 mm por dentro), en fin de espiración, a los dos lados: z −17,5 en la LMC (la 6.ª
   costilla; antes 41,5 a la derecha —la 4.ª— y 16,5 a la izquierda), −35 en la LAM (la 8.ª; antes 14 y −0,5) y −35 junto a
-  la columna (T10; antes 18 y 9). La reflexión: −72 en la LMC (el 8.º cartílago), −97 en la LAM (la 10.ª) y −81,5 detrás
-  (T12). La cortina baja 10 mm en la respiración tranquila (A-T13: 0,9–2,8 cm) y 30 en la profunda (A-T13: 3,1–7,5 cm; no
+  la columna (T10; antes 18 y 9). La reflexión: −72 en la LMC (el 8.º cartílago), −97 en la LAM (la 10.ª) y −58 detrás (T12). Tras el esternón el borde sigue el de la línea paraesternal (1,5 mm; junto al borde del esternón Gray lo pone en la 6.ª articulación condroesternal, ≈ 15 mm más arriba), sin cubeta de pulmón bajo él. La cortina baja 10 mm en la respiración tranquila (A-T13: 0,9–2,8 cm) y 30 en la profunda (A-T13: 3,1–7,5 cm; no
   se cumple: es el diafragma del modelo) en todo el tronco. En la mujer, el borde de la LAM en −31 (sus espacios, 1,5 mm
   más estrechos); en la delgada y la obesa, como en el avatar. Pasan a `it` el borde de A-T13 y el de Gray, la reflexión, la
   excursión tranquila, A-T12, A-T14, A-T15 y la ventana de A-T16; con `notYetMet`, la excursión profunda y el pulso pulmonar.
-- La ZOA: 1,9 mm en FRC y 5,0 a TLC (×2,6; A-T15 pide 1,1–2,7 y ≥ +20 %). Las cúpulas, 27 y 12 mm (antes 55 y 25).
+- La ZOA: 1,9 mm en FRC y 5,0 a TLC (×2,6; A-T15 pide 1,1–2,7 y ≥ +20 %). Las cúpulas, 13,7 y −1,3 mm (antes 55 y 25).
 - La ventana: miocardio bajo la pleura en el 5.º EIC a 30, 45 y 60 mm y en el 4.º a 50 mm de la línea media izquierda
-  (pulmón en el espejo derecho); el ápex del elipsoide en (79,5, 63, −2,8), bajo la língula (pulmón a 1,5 mm en el 5.º EIC a
-  9 cm).
+  (pulmón en el espejo derecho), 268 de 285 puntos del disco (el resto, en su borde caudal, bajo el borde del pulmón: la ZOA); igual en espiración, en la respiración tranquila y en la profunda; el ápex del elipsoide en (79,5, 63, −2,8), bajo la língula (pulmón a 1,5 mm en el 5.º EIC a 9 cm). En la ventana, el miocardio mide 12–35 mm antes de la cavidad (el tapón; `heart-simplified`).
 - En la imagen (capturas con GPU real, C2 → C3): el hemitórax izquierdo tiene línea pleural y líneas A (el signo del
   murciélago en la LMC izquierda, donde antes se veía el abdomen bajo la cúpula heredada); el signo de la cortina a los dos
   lados (el EIC8 de la LAM, abdomen en espiración y pulmón en inspiración profunda); en la ventana cardiaca, el corazón (el
   miocardio, su cavidad anecoica y su pared de detrás) sin pleura ni líneas A, con el pulmón que empieza en su borde.
-- El coste del cuadro sube de 2,27–2,33 a 2,41–2,58 ms en el M4 (+0,2 ms, medido uno tras otro con C2; C1, 2,0): muy lejos
-  de O6 (≥ 30 FPS). El chunk principal pasa de 205,3 a 222,2 kB (≈ 13 kB son las notas de evidencia de los dos conjuntos): su
+- El coste del cuadro sube ≈ 0,2 ms en el M4 (2,24–2,58 → 2,47–2,77, medido uno tras otro con C2, con la máquina cargada; C1, 2,0): muy lejos de O6 (≥ 30 FPS). El chunk principal pasa de 205,3 a 222,2 kB (≈ 13 kB son las notas de evidencia de los dos conjuntos): su
   presupuesto sube a 230 y el total de JS a 235. Ranuras de uniforms de la pasada B: 112 (+6, los del corazón); 31 tejidos
   (el miocardio cabe en los 8 vec4 de las tablas por tejido).
 - Pruebas movidas con el borde: la línea que roza el borde de la cortina (su vista 53 mm más abajo), las vistas de la
@@ -1041,4 +1035,4 @@ tapón de miocardio que lo une a la pared en el disco de Latham.
 **Verificación.** `npm run check` y `npm run e2e` en verde; `anatomyTargets.test.ts` (A-T12–A-T16 y el borde de Gray, con
 `notYetMet` en la excursión profunda y el pulso pulmonar), `anatomy.test.ts`, `pleura.test.ts`, `organs.test.ts`,
 `faceGradient.test.ts` y `physicsInvariants.test.ts` al día; la e2e con GPU real y con SwiftShader. Revisión adversarial
-de contexto limpio: REVISION.
+de contexto limpio (con scripts y la GPU): la ventana cardiaca se rompía al respirar (bloqueante: la cizalla entre el tapón y el corazón); la cubeta de pulmón junto a la línea media, el vértice de la cúpula en la paraesternal de la mamaria interna, la reflexión posterior un nivel baja, la sangre sobre el diafragma y un tapón grueso; una cota de distancia que saltaba en los extremos de la ZOA; pruebas que no medían (el pulso pulmonar, una aserción que no podía fallar); cifras viejas en las notas. Aplicado, salvo el grosor del tapón (declarado).
