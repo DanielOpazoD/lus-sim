@@ -61,7 +61,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   EIC2-LMC, 12,8 en EIC5 LAA/LAM, 18 en la axila alta, 16 infraescapular) con sus capas (piel, grasa, pectoral, serrato o
   dorsal, banda intercostal y complejo pleural), la banda intercostal que engruesa delante al inspirar y las variantes
   delgada, obesa y mujer (`habitus.chest`). Módulo nuevo `src/anatomy/organs/chestWall.ts` (TS y GLSL; la tabla en la
-  textura de escena). A-T1–A-T5, A-T10 y A-T13 pasan a cumplirse; `src/validation/chestWall.test.ts`.
+  textura de escena). Las cúpulas y la cortina siguen la cara interna de la pared y la pleura se ilumina con la normal de
+  su cara. A-T1–A-T5 y A-T10 pasan a cumplirse (A-T13 sigue pendiente, paso C3); `src/validation/chestWall.test.ts`.
 - Limitación nueva `chest-wall-regional-approx` (17).
 
 ### Cambiado

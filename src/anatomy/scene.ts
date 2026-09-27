@@ -6,13 +6,21 @@ import {
   sdDiaphragm,
   torsoDepth,
   torsoSkinPoint,
+  type Dome,
   type Spine,
   type Diaphragm,
   type Torso,
   type TubeHit,
   type WallLayersAt,
 } from './primitives';
-import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
+import {
+  LUNG_CURTAIN,
+  inLungCurtain,
+  inLungRecess,
+  lungCurtainDistance,
+  lungCurtainEdgeMm,
+  type CurtainFootprint,
+} from './organs/lungCurtain';
 import {
   RIBCAGE,
   RIBS_PER_SIDE,
@@ -138,6 +146,8 @@ export class AnatomyScene {
    */
   readonly ribNumbers: number[];
   readonly diaphragm: Diaphragm;
+  /** Huella de la lámina de la cortina (decisión 17: escalada con la cara interna de la pared, como las cúpulas). */
+  readonly curtain: CurtainFootprint;
   readonly spine: Spine;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
@@ -163,9 +173,24 @@ export class AnatomyScene {
     // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16). De VExUS: cúpula derecha en T8–T9 (+45 mm), unión
     // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5]; el reborde costal es ahora el de la parrilla
     // (la medioclavicular lo cruza en el 9.º cartílago, con su línea media a −90 mm)
+    // lus-sim (decisión 17): las cúpulas de VExUS iban con su pared de 28 mm; el diafragma se inserta en la cara interna de
+    // la parrilla, así que con la pared torácica por región sus elipses se escalan con esa cara (al lado y delante), y la
+    // relación de la cúpula con la pleura (el receso costofrénico, la cortina) es la de antes
+    const wall0 = base.skinMm + base.fatMm + base.muscleMm;
+    const sx = (base.a - this.chestWall.total(this.chestWall.stations.midaxillary, 0)) / (base.a - wall0);
+    const sy = (base.b - this.chestWall.total(0, 0)) / (base.b - wall0);
+    const dome = (x0: number, y0: number, rx: number, ry: number, apex: number): Dome => ({
+      kind: 'dome',
+      x0: x0 * sx,
+      y0: y0 * sy,
+      rx: rx * sx,
+      ry: ry * sy,
+      apex,
+    });
+    this.curtain = { xMax: LUNG_CURTAIN.xMax * sx, yMax: LUNG_CURTAIN.yMax * sy };
     this.diaphragm = {
-      right: { kind: 'dome', x0: -55, y0: -5, rx: 85, ry: 92, apex: 55 },
-      left: { kind: 'dome', x0: 70, y0: -5, rx: 70, ry: 85, apex: 25 },
+      right: dome(-55, -5, 85, 92, 55),
+      left: dome(70, -5, 70, 85, 25),
       edgeZ: -50,
       edgeRise: 50,
     };
@@ -227,7 +252,7 @@ export class AnatomyScene {
    * (decisión 61; gemelo GLSL `inLungCurtain`). Solo tiene sentido donde `classify` da pulmón.
    */
   inLungCurtain(m: Vec3, instant: SceneInstant): boolean {
-    return inLungCurtain(m, this.insideWallMm(m), instant.diaphragmCaudalMm);
+    return inLungCurtain(m, this.insideWallMm(m), instant.diaphragmCaudalMm, this.curtain);
   }
 
   /**
@@ -244,7 +269,7 @@ export class AnatomyScene {
    * `lungCurtainEdgeMm`, decisión 61).
    */
   lungEdgeMm(m: Vec3, instant: SceneInstant): number | null {
-    return lungCurtainEdgeMm(m, instant.diaphragmCaudalMm, diaphragmHeight(m[0], m[1], this.diaphragm, this.torso));
+    return lungCurtainEdgeMm(m, instant.diaphragmCaudalMm, diaphragmHeight(m[0], m[1], this.diaphragm, this.torso), this.curtain);
   }
 
   /**
@@ -404,7 +429,7 @@ export class AnatomyScene {
 
   /** Lámina de pulmón en el receso costofrénico derecho (lateral y posterior), bajo la pared. */
   private classifyLungCurtain(m: Vec3, insideWallMm: number, diaphragmCaudalMm: number): Classification | null {
-    const bd = lungCurtainDistance(m, insideWallMm, diaphragmCaudalMm);
+    const bd = lungCurtainDistance(m, insideWallMm, diaphragmCaudalMm, this.curtain);
     return bd === null ? null : { ...NONE, tissue: Tissue.Lung, boundaryDistance: bd };
   }
 }

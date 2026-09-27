@@ -465,7 +465,11 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     const cls = glsl.slice(glsl.indexOf('bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wall) {'));
     expect(glsl.indexOf('Cls classifyWith(vec3 m, bool withCurtain) {')).toBeGreaterThan(glsl.indexOf('bool classifyWall('));
     expect(cls).toContain('return true; } return false; }');
-    const arc = cls.indexOf('float u = wallArc(m); wall = wallTotalAt(u, m.z);');
+    // (más hondo que la pared más gruesa, la lámina de la cortina y el tope del «resto», la tabla no cambia nada: la
+    // salida barata toma la cota)
+    const arc = cls.indexOf(
+      'float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM); float u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
+    );
     const layers = cls.indexOf('if (d < wall) wl = wallLayersAt(u, m.z, wx);');
     const ribs = cls.indexOf('int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);');
     const inWall = cls.indexOf('if (d < wall) {');

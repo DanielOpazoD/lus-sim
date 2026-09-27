@@ -1,6 +1,6 @@
 import type { Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
-import { torsoDepth, type Torso, type WallLayersAt } from '../primitives';
+import { torsoDepth, torsoDepthGradient, type Torso, type WallLayersAt } from '../primitives';
 
 /**
  * Pared torácica y abdominal en capas (decisión 62) como módulo de órgano (decisión 46): la geometría de
@@ -134,6 +134,40 @@ export function wallLayers(t: Torso, u: number, z: number): WallLayersAt {
 export function wallTotalMm(m: Vec3, t: Torso): number {
   return t.chestWall ? t.chestWall.total(wallArc(m, t), m[2]) : t.skinMm + t.fatMm + t.muscleMm;
 }
+
+/**
+ * Normal exterior (unitaria) de la cara interna de la pared, la pleura parietal, en el punto MATERIAL m: −∇ de la
+ * profundidad bajo ella, −torsoDepth − W(u, z) (lus-sim, decisión 17: con la pared por región la pleura se inclina
+ * respecto de la piel, hasta ≈ 10° en la subida hacia la axila; sin pared torácica, la normal radial de VExUS). Analítica en
+ * ∇torsoDepth y en ∇u (la tangente de la elipse del punto sobre ρ, la escala del rayo) y con diferencias centrales de
+ * `WALL_NORMAL_STEP_MM` en la tabla (u y z): una sola `wallArc` por punto, que la pasada B la evalúa en cada muestra.
+ * Gemelo GLSL con el mismo nombre.
+ */
+export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
+  const g = torsoDepthGradient(m, t);
+  let nx = g[0];
+  let ny = g[1];
+  let nz = 0;
+  if (t.chestWall) {
+    const u = wallArc(m, t);
+    const h = WALL_NORMAL_STEP_MM;
+    const dWdu = (t.chestWall.total(u + h, m[2]) - t.chestWall.total(u - h, m[2])) / (2 * h);
+    const dWdz = (t.chestWall.total(u, m[2] + h) - t.chestWall.total(u, m[2] - h)) / (2 * h);
+    const tau = Math.atan2(m[0] / t.a, m[1] / t.b);
+    const tx = t.a * Math.cos(tau);
+    const ty = -t.b * Math.sin(tau);
+    const tl = Math.hypot(tx, ty);
+    const rho = Math.hypot(m[0] / t.a, m[1] / t.b);
+    nx += (dWdu * tx) / (tl * rho);
+    ny += (dWdu * ty) / (tl * rho);
+    nz = dWdz;
+  }
+  const l = Math.hypot(nx, ny, nz);
+  return [nx / l, ny / l, nz / l];
+}
+
+/** Paso (mm) de las diferencias de la tabla de la pared en `wallInnerNormal`. */
+const WALL_NORMAL_STEP_MM = 0.5;
 
 /**
  * Banda intercostal (mm) en (u, z) con el descenso del diafragma `caudalMm`: la de reposo más lo que engruesa delante al
@@ -297,6 +331,7 @@ export const WALL_GLSL = /* glsl */ `
 #define WALL_RIB_PRIORITY_MM ${WALL.ribFacePriorityMm.toFixed(4)}
 #define WALL_WAVE_FAT_MM ${WALL.waveFatMm.toFixed(4)}
 #define WALL_THORAX_PLANE_WAVE ${WALL.thoraxPlaneWaveFraction.toFixed(4)}
+#define WALL_NORMAL_STEP ${WALL_NORMAL_STEP_MM.toFixed(4)}
 float wallArc(vec3 m) {
   float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
   float a2 = uTorso.x * uTorso.x;
@@ -397,4 +432,19 @@ float wallFaceSd(vec3 m, int face) {
 }
 // Espesor total de la pared bajo el punto MATERIAL m (lus-sim, decisión 17). Gemelo: wallTotalMm
 float wallTotalMm(vec3 m) { return wallTotalAt(wallArc(m), m.z); }
+// Normal exterior de la cara interna de la pared (la pleura parietal): −∇ de la profundidad bajo ella, analítica en
+// ∇torsoDepth y ∇u y con diferencias de la tabla en u y z. Gemelo: wallInnerNormal
+vec3 wallInnerNormal(vec3 m) {
+  float r = length(m.xy);
+  float rho = length(m.xy / uTorso.xy);
+  vec2 g = r < 1e-6 ? vec2(0.0, 1.0) : m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy);
+  float u = wallArc(m);
+  float h = WALL_NORMAL_STEP;
+  float dWdu = (wallTotalAt(u + h, m.z) - wallTotalAt(u - h, m.z)) / (2.0 * h);
+  float dWdz = (wallTotalAt(u, m.z + h) - wallTotalAt(u, m.z - h)) / (2.0 * h);
+  float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
+  vec2 tg = vec2(uTorso.x * cos(tau), -uTorso.y * sin(tau));
+  vec3 n = vec3(g + dWdu * tg / (length(tg) * rho), dWdz);
+  return normalize(n);
+}
 `;

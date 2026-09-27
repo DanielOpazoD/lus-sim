@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RespiratoryDeformation } from '../anatomy/deformation';
 import { AnatomyQuery } from '../anatomy/query';
 import { torsoSkinPoint } from '../anatomy/primitives';
+import { LUNG_CURTAIN } from '../anatomy/organs/lungCurtain';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
 import { Tissue } from '../anatomy/tissues';
@@ -193,14 +194,12 @@ describe('Anatomía implícita (base B)', () => {
   });
 
   it('por el camino real (motor → consulta → escena) la cortina baja con la inspiración del reloj', () => {
-    // un punto 1,5 mm bajo la pared del receso posterior derecho, a z −5: el «resto» en espiración y pulmón cuando el
+    // un punto 1,5 mm bajo la pared del receso lateral derecho, a z −5: el «resto» en espiración y pulmón cuando el
     // diafragma del instante ha bajado más de 23 mm (el borde de la cortina, a 18 − descenso, pasa por debajo de
     // −5). A 1,5 mm de la pared el peso respiratorio es smoothstep(0, 25, 1,5) ≈ 0,01: el punto material sube unos
     // 0,3 mm con los 30 mm de descenso, así que se deja ±1 mm de descenso alrededor de 23 sin juzgar
-    // lus-sim (decisión 17): en el receso posterior (1,2π; en VExUS, el flanco, 0,95π) y con la pared de ese punto: con la
-    // pared torácica por región el flanco queda 15 mm más afuera, fuera de la elipse de la cúpula heredada, y allí el tórax
-    // es pulmón hasta la inserción del diafragma (−48 mm)
-    const phi = Math.PI * 1.2;
+    // lus-sim (decisión 17): el punto, exactamente a 1,5 mm de la cara interna de la pared de ese punto (por región)
+    const phi = Math.PI * 0.95;
     const p = underWall(scene, phi, -5, 1.5);
     const q = new AnatomyQuery(scene);
     const engine = new PhysiologyEngine({ ...NORMAL_ADULT, respiratoryPattern: 'deep' });
@@ -284,12 +283,10 @@ describe('Sonda (guía §8)', () => {
 describe('Cortina pulmonar (decisión 43)', () => {
   const scene = new AnatomyScene(NORMAL_ADULT);
   it('el pulmón baja por el receso lateral solo por debajo del borde que baja con la inspiración', () => {
-    // punto 1,5 mm bajo la pared, receso posterior derecho, z −5: el «resto» en espiración (borde en +18; en VExUS, el
+    // punto 1,5 mm bajo la pared, flanco derecho, z −5: el «resto» en espiración (borde en +18; en VExUS, el
     // hígado), pulmón en inspiración profunda (borde en 18 − 30 = −12)
-    // lus-sim (decisión 17): en el receso posterior (1,2π; en VExUS, el flanco, 0,95π) y con la pared de ese punto: con la
-    // pared torácica por región el flanco queda 15 mm más afuera, fuera de la elipse de la cúpula heredada, y allí el tórax
-    // es pulmón hasta la inserción del diafragma (−48 mm)
-    const phi = Math.PI * 1.2;
+    // lus-sim (decisión 17): el punto, exactamente a 1,5 mm de la cara interna de la pared de ese punto (por región)
+    const phi = Math.PI * 0.95;
     const p = underWall(scene, phi, -5, 1.5);
     const at = (caudal: number) => scene.classify(p, { ...BASELINE_INSTANT, diaphragmCaudalMm: caudal }).tissue;
     expect(at(0)).toBe(Tissue.Bowel);
@@ -307,12 +304,15 @@ describe('Cortina pulmonar (decisión 43)', () => {
   });
 
   it('el borde del pulmón que toca la pared: la inserción del diafragma delante y el de la lámina en el receso', () => {
-    // delante (fuera de la huella de la lámina), el borde es la inserción del diafragma (≈ +31 mm en x −80, y 70):
-    // a z 60, el pulmón toca la pared 29 mm por encima de su borde; nulo en el hemitórax izquierdo
-    const front: [number, number, number] = [-80, 70, 60];
+    // delante (fuera de la huella de la lámina), el borde es la inserción del diafragma (≈ +31 mm en x −80, y 70 de
+    // VExUS; lus-sim, decisión 17: el mismo punto, escalado como las cúpulas con la cara interna de la pared): a z 60, el
+    // pulmón toca la pared 29 mm por encima de su borde; nulo en el hemitórax izquierdo
+    const sx = scene.curtain.xMax / LUNG_CURTAIN.xMax;
+    const sy = scene.curtain.yMax / LUNG_CURTAIN.yMax;
+    const front: [number, number, number] = [-80 * sx, 70 * sy, 60];
     const edge = scene.lungEdgeMm(front, BASELINE_INSTANT)!;
     expect(edge).toBeGreaterThan(20);
-    expect(scene.lungEdgeMm([80, 70, 60], BASELINE_INSTANT)).toBeNull();
+    expect(scene.lungEdgeMm([80 * sx, 70 * sy, 60], BASELINE_INSTANT)).toBeNull();
     // la inspiración no mueve la inserción anterior (el borde de la lámina sí baja)
     expect(scene.lungEdgeMm(front, { diaphragmCaudalMm: 30 })).toBe(edge);
   });

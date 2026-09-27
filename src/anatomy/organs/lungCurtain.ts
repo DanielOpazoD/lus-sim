@@ -19,12 +19,21 @@ import type { Vec3 } from '../../core/vec3';
 export const LUNG_CURTAIN = { z0: 18, thicknessMm: 3, xMax: -45, yMax: 40, pleuraXMax: 10 } as const;
 
 /**
+ * Huella de la lámina (lus-sim, decisión 17): la de `LUNG_CURTAIN` o la de la escena, escalada con la cara interna de la
+ * pared torácica por región (como las cúpulas). La GLSL la recibe en `uCurtain.zw`.
+ */
+export interface CurtainFootprint {
+  xMax: number;
+  yMax: number;
+}
+
+/**
  * Distancia a la frontera si el punto está dentro de la cortina, `null` si no. `insideWallMm` es
  * la profundidad bajo la cara interna de la pared; `caudalMm`, el descenso diafragmático.
  */
-export function lungCurtainDistance(m: Vec3, insideWallMm: number, caudalMm: number): number | null {
+export function lungCurtainDistance(m: Vec3, insideWallMm: number, caudalMm: number, fp: CurtainFootprint = LUNG_CURTAIN): number | null {
   const c = LUNG_CURTAIN;
-  if (insideWallMm >= c.thicknessMm || m[0] > c.xMax || m[1] > c.yMax) return null;
+  if (insideWallMm >= c.thicknessMm || m[0] > fp.xMax || m[1] > fp.yMax) return null;
   const zEdge = c.z0 - caudalMm;
   if (m[2] < zEdge) return null;
   return Math.min(insideWallMm, c.thicknessMm - insideWallMm, m[2] - zEdge);
@@ -35,8 +44,8 @@ export function lungCurtainDistance(m: Vec3, insideWallMm: number, caudalMm: num
  * pared y no del tórax bajo la cúpula. La cortina se mira antes que la cúpula en `classify`, así que basta
  * con que el punto esté en la lámina. Solo TS (pruebas y banco): la GPU usa `inLungRecess`.
  */
-export function inLungCurtain(m: Vec3, insideWallMm: number, caudalMm: number): boolean {
-  return lungCurtainDistance(m, insideWallMm, caudalMm) !== null;
+export function inLungCurtain(m: Vec3, insideWallMm: number, caudalMm: number, fp: CurtainFootprint = LUNG_CURTAIN): boolean {
+  return lungCurtainDistance(m, insideWallMm, caudalMm, fp) !== null;
 }
 
 /**
@@ -57,11 +66,11 @@ export function inLungRecess(m: Vec3, insideWallMm: number): boolean {
  * la altura de la cúpula: por encima, el pulmón del tórax toca la pared), z − min(z_borde, domeZ). La pasada
  * A0 la evalúa en el cruce de la pleura de cada línea: el borde blando de la cortina (decisión 61) sale de ella.
  */
-export function lungCurtainEdgeMm(m: Vec3, caudalMm: number, domeZ: number): number | null {
+export function lungCurtainEdgeMm(m: Vec3, caudalMm: number, domeZ: number, fp: CurtainFootprint = LUNG_CURTAIN): number | null {
   const c = LUNG_CURTAIN;
   if (m[0] > c.pleuraXMax) return null;
   // fuera de la lámina (la pared anterior): el borde del pulmón que toca la pared es la inserción del diafragma
-  if (m[0] > c.xMax || m[1] > c.yMax) return m[2] - domeZ;
+  if (m[0] > fp.xMax || m[1] > fp.yMax) return m[2] - domeZ;
   return m[2] - Math.min(c.z0 - caudalMm, domeZ);
 }
 
