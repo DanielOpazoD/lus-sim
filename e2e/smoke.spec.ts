@@ -212,13 +212,19 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   await expect(page.locator('.banner')).toContainText('Contexto GPU perdido', { timeout: 30_000 });
   await page.evaluate(() => (window as unknown as { __lc: WEBGL_lose_context }).__lc.restoreContext());
   // la imagen congelada era del renderizador perdido: vuelve la imagen en vivo, y se dice
+  const tLost = Date.now();
   await expect(page.locator('.banner')).toContainText('GPU recuperada', { timeout: 120_000 });
+  console.log(`[medida] GPU recuperada a ${((Date.now() - tLost) / 1000).toFixed(1)} s`);
   await expect(page.locator('#live-chip')).toHaveText('LIVE');
   await expect(page.locator('.banner')).toHaveCount(0, { timeout: 30_000 });
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
   // el renderizador nuevo dibuja: la línea pleural vuelve a la pantalla
+  const tLive = Date.now();
   await expect.poll(async () => (await screen(page)).max, { timeout: 150_000 }).toBeGreaterThanOrEqual(250);
+  console.log(
+    `[medida] línea pleural en pantalla a ${((Date.now() - tLive) / 1000).toFixed(1)} s del reloj en marcha, ${((Date.now() - tLost) / 1000).toFixed(1)} s de la recuperación`,
+  );
   // el registro de errores dice la pérdida (en la consola, con su origen), y nada más
   expect(errors).toEqual(['console: [gpu] contexto WebGL perdido']);
 });

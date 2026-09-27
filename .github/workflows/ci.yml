@@ -42,9 +42,13 @@ jobs:
 
   # En paralelo con `verificar`: el tiempo total de CI es el del más lento
   e2e:
-    name: extremo a extremo (Chromium + SwiftShader)
+    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/9
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -66,12 +70,12 @@ jobs:
       - if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - run: npx vite build
-      - run: npm run e2e
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - name: Guardar el informe si falla
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report
             test-results
