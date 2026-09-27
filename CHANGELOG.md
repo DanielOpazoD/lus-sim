@@ -105,6 +105,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   de la sonda toma la pared de cada línea; la e2e exige los órdenes 1–4 de las líneas A de los 6–7 que caben y mide la sombra
   costal con el núcleo a más de 10 líneas del borde; la equivalencia del volumen compara la distancia al borde donde es
   continua. El presupuesto del chunk principal sube a 210 kB (203,4 medidos) y el del total a 215.
+- La e2e del CI en cinco fragmentos paralelos con un trabajador cada uno: de 10–14 min a unos 3 min de reloj; la prueba de
+  la pérdida del contexto WebGL espera 90 s a la línea pleural (antes 150).
 
 ### Quitado
 

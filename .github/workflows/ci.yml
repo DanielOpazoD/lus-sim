@@ -1,8 +1,8 @@
 # Integración continua: lo mismo que `npm run check` en local (formato, lint, tipos, todas las pruebas
 # con umbrales de cobertura, build y presupuesto de bundle), más la auditoría de dependencias de
 # producción, el índice de decisiones y la e2e. Ningún paso se salta en CI; si algo es lento aquí, es
-# lento también en local. El trabajo `check` agrega `verificar` y `e2e` (práctica de EchoTwin): es el
-# único que exige la protección de `main`, así que renombrar o añadir un trabajo no la deja sin efecto.
+# lento también en local. El trabajo `check` agrega `verificar` y los fragmentos de `e2e` (práctica de EchoTwin): es
+# el único que exige la protección de `main`, así que renombrar o añadir un trabajo no la deja sin efecto.
 name: CI
 
 on:
@@ -40,15 +40,19 @@ jobs:
       - name: Índice de decisiones al día
         run: npx tsx tools/docs/decisions-index.ts --check
 
-  # En paralelo con `verificar`: el tiempo total de CI es el del más lento
+  # En paralelo con `verificar`: el tiempo total de CI es el del más lento.
+  # Repartida en cinco fragmentos paralelos (`--shard`, como VExUS), con un trabajador cada uno (playwright.config.ts):
+  # con la anatomía del paso C la e2e pasó de ~1 a 10–14 min en un solo corredor, con dos trabajadores que se
+  # repartían sus 4 núcleos y SwiftShader (13,6 min). Cada prueba sola en su corredor tarda de 31 s a 1,6 min (8,5 min
+  # sumadas, 27-09-2026); en cinco fragmentos, el más lento ronda los 3 min con su arranque.
   e2e:
-    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/9
+    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/5
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -81,7 +85,8 @@ jobs:
             test-results
           retention-days: 7
 
-  # Agregador: falla si algún trabajo no terminó en verde (también si se canceló o se saltó)
+  # Agregador: falla si algún trabajo no terminó en verde (también si se canceló o se saltó); el resultado de `e2e` es
+  # el de toda su matriz (verde solo si lo están los cinco fragmentos)
   check:
     name: check
     needs: [verificar, e2e]
