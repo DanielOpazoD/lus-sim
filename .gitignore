@@ -5,6 +5,9 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# worktrees de agentes (Claude Code los crea dentro del repo): cada uno es otro checkout, nunca contenido
+.claude/worktrees/
+
 # registros y temporales
 *.log
 npm-debug.log*
