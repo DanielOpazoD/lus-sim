@@ -162,10 +162,10 @@ export function longitudinalPose(phi: number, z: number): ProbePose {
 }
 
 /**
- * Signo del murciélago en cualquier plano (meta F-T08, lus-sim): para cada sombra costal del plano, la línea costal (la
- * cresta de la costilla, `RibShadow.ribTopMm`) y la pleura de la primera línea sin hueso a cada lado; devuelve, por
- * sombra y lado, cuánto más honda está la pleura que la cresta (mm). Los lados sin línea con pleura (el borde del
- * sector) no cuentan.
+ * Signo del murciélago en cualquier plano (meta F-T08, lus-sim): para cada sombra costal entera del plano (las que tocan
+ * el borde del sector no cuentan: su cresta puede quedar fuera de la imagen), la línea costal (la cresta de la costilla,
+ * `RibShadow.ribTopMm`) y la pleura de la primera línea sin hueso a cada lado; devuelve, por sombra y lado, cuánto más
+ * honda está la pleura que la cresta (mm).
  */
 export function pleuraBelowRibCrestMm(v: ChestView): number[] {
   const scans = scanView(v);
@@ -173,23 +173,59 @@ export function pleuraBelowRibCrestMm(v: ChestView): number[] {
   for (const s of ribShadows(scans)) {
     const i0 = scans.findIndex((x) => x.theta === s.theta0);
     const i1 = scans.findIndex((x) => x.theta === s.theta1);
+    if (i0 === 0 || i1 === scans.length - 1) continue;
     for (const j of [i0 - 1, i1 + 1]) {
       const n = scans[j];
-      if (n && n.ribMm === null && n.pleuraMm !== null) out.push(n.pleuraMm - s.ribTopMm);
+      if (n.ribMm === null && n.pleuraMm !== null) out.push(n.pleuraMm - s.ribTopMm);
     }
   }
   return out;
 }
 
-/** Alto craneocaudal de la costilla n (mm): el de su sección elíptica, 2 × `Rib.halfWidth` (constante a lo largo del arco). */
+/** Alto craneocaudal anatómico de la costilla n (mm): el de su sección elíptica, 2 × `Rib.halfWidth`. */
 export function ribHeightMm(scene: AnatomyScene, n: number): number {
   return 2 * ribOf(scene, n).halfWidth;
 }
 
 /**
- * Ancho craneocaudal (mm) del espacio intercostal n (entre las costillas n y n + 1) en el ángulo del tronco φ: la
- * distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9).
+ * Ancho craneocaudal anatómico (mm) del espacio intercostal n (entre las costillas n y n + 1) en el ángulo del tronco φ:
+ * la distancia entre las líneas medias de las dos costillas (`ribZ`) menos sus dos semialtos (el método de A-T9).
  */
 export function intercostalWidthMm(scene: AnatomyScene, n: number, phi: number): number {
   return ribZ(scene, n, phi) - ribZ(scene, n + 1, phi) - ribOf(scene, n).halfWidth - ribOf(scene, n + 1).halfWidth;
+}
+
+/** Arco (mm) de `lines` líneas contiguas de la sonda a la profundidad r (el ancho de su tramo en la imagen). */
+function linesArcMm(v: ChestView, lines: number, r: number): number {
+  return arcMm(v.tr, (lines * 2 * v.tr.halfSector) / (v.tr.lines - 1), r);
+}
+
+/**
+ * Lo que mide una ecografía (la base mide así el alto de la costilla y los espacios: `docs/knowledge/anatomy.md` §1.3):
+ * en un corte longitudinal centrado en la costilla n de la línea φ, con la sonda apoyada (su compresión incluida), el
+ * ancho de su sombra en la imagen a la profundidad de su cresta (mm); null si la línea central no cruza hueso.
+ */
+export function ribImageHeightMm(scene: AnatomyScene, n: number, phi: number): number | null {
+  const v = chestView(scene, longitudinalPose(phi, ribZ(scene, n, phi)));
+  const scans = scanView(v);
+  const c = Math.floor(scans.length / 2);
+  const s = ribShadows(scans).find((x) => x.theta0 <= scans[c].theta && scans[c].theta <= x.theta1);
+  if (!s) return null;
+  const count = scans.findIndex((x) => x.theta === s.theta1) - scans.findIndex((x) => x.theta === s.theta0) + 1;
+  return linesArcMm(v, count, s.ribTopMm);
+}
+
+/**
+ * Lo mismo para el espacio intercostal n de la línea φ: en el corte longitudinal centrado en él, el hueco entre las dos
+ * sombras que lo rodean a la profundidad media de sus crestas (mm); null si no hay sombra a los dos lados.
+ */
+export function intercostalImageWidthMm(scene: AnatomyScene, n: number, phi: number): number | null {
+  const v = chestView(scene, longitudinalPose(phi, intercostalZ(scene, n, phi)));
+  const scans = scanView(v);
+  const shadows = ribShadows(scans);
+  const left = shadows.filter((x) => x.theta1 < 0).pop();
+  const right = shadows.find((x) => x.theta0 > 0);
+  if (!left || !right) return null;
+  const gap = scans.findIndex((x) => x.theta === right.theta0) - scans.findIndex((x) => x.theta === left.theta1) - 1;
+  return linesArcMm(v, gap, 0.5 * (left.ribTopMm + right.ribTopMm));
 }

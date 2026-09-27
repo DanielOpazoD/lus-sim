@@ -196,27 +196,28 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
   expect(errors).toEqual([]);
 });
 
-test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura y sin líneas A; la pleura bajo el centro de la costilla aún no se apaga (rib-shadow-pleura-residual)', async ({
+test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo el centro de la costilla la pleura (y, tenue, la línea A) aún se ven (rib-shadow-pleura-residual)', async ({
   page,
 }) => {
   // Meta F-T08 (`docs/knowledge/physics.md` §3.3): bajo la costilla no hay línea pleural ni líneas A, y la intensidad
   // media de la sombra es ≥ 20 dB menor que la del eco pleural intercostal (su primera parte, la pleura 5 ± 1 mm bajo la
   // superficie costal, es geometría: `src/validation/anatomyTargets.test.ts`, paso C). Se mide en la envolvente de la
-  // GPU (antes de la compresión y del mapa de grises), línea a línea (`ribShadow`): las líneas con hueso cortical antes
-  // de la pleura según la CPU, su distancia al borde de la sombra y el cono de emisión de la apertura a la profundidad
-  // de la costilla (la penumbra de la pasada A); una línea está en la sombra completa si todo su cono cruza hueso.
-  // Medido con GPU real (Apple M4) y con SwiftShader, en apnea espiratoria (26-09-2026), relativo al eco pleural
-  // intercostal:
-  //  - la intensidad media bajo el hueso, de −25 dB (borde) a −83 dB: F-T08 cumple su umbral de 20 dB en todas;
-  //  - la penumbra ocupa 41 de las 70 líneas con hueso del BLUE inferior y 69 de las 103 del PLAPS (el cono de la pasada
-  //    A mide 7,3–8,9 líneas de semiancho en la fila de la pleura): la pleura se ve (> −40 dB) solo ahí, a ≤ 6 líneas del
-  //    borde;
-  //  - en la sombra completa, la línea A de orden 2 a −80…−107 dB, por debajo del rango dinámico (70 dB): no se ve;
-  //  - pero la línea pleural sigue a −47…−65 dB, dentro del rango dinámico y 31–52 dB sobre el fondo de la sombra:
-  //    `rib-shadow-pleura-residual` (la transmisión de la costilla, −64…−79 dB ida y vuelta por un rayo, es coherente, y el
-  //    pedestal de lóbulos laterales de la pasada D la sube 6–10 dB de mediana y hasta 17: sin él, −51…−67). Con el
-  //    preajuste, que deja la línea pleural 15–18 dB por encima del blanco (20·log10 del pico + la compensación nominal a
-  //    27 mm − 33 dB), se ve gris (38–101) sobre la sombra negra.
+  // GPU, línea a línea (`ribShadow`), con la sombra clasificada con los datos de la pasada A: las líneas que cruzan hueso
+  // antes de la pleura, la sombra completa (todas las tomas de sus conos de apertura cruzan hueso) y las líneas libres
+  // (ninguna toma cruza hueso), cuyo eco pleural es la referencia. Lo que se ve se juzga en la pantalla, con el nivel del
+  // equipo del cuadro (`displayLevelDb`: ≥ 0 satura, ≤ −70 dB es negro). Medido con GPU real (Apple M4) y con
+  // SwiftShader, en apnea espiratoria (26-09-2026), relativo al eco pleural intercostal:
+  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −37…−39 dB (F-T08 pide −20). Frente a la misma
+  //    ventana de las líneas libres, que incluye su propia línea pleural, la sombra entera queda solo 19,5–21 dB más oscura:
+  //    la penumbra pesa;
+  //  - la penumbra (el cono de la pasada A, 6,7–8,2 líneas de semiancho, aún pasa junto a la costilla) ocupa 37 de las 69
+  //    líneas con hueso del BLUE inferior y 58 de las 103 del PLAPS: la pleura se ve (> −40 dB) solo ahí;
+  //  - en la sombra completa, la ventana queda 45–68 dB más oscura que la de las líneas libres;
+  //  - pero la línea pleural sigue a −46…−67 dB, en pantalla a −29…−50 dB (gris sobre negro), y la línea A de orden 2, a
+  //    −56…−83 dB en pantalla, se ve tenue en 22–23 de 32 y 33 de 45 líneas: `rib-shadow-pleura-residual`. La pleura recibe la
+  //    transmisión de la apertura, una media de amplitudes en la que pesan las tomas del borde redondo de la costilla (sin
+  //    la fase que añadiría el hueso), y la línea A en la sombra la trae el pedestal de lóbulos laterales de la pasada D
+  //    (sin él, 0 líneas); el preajuste deja la línea pleural 15–18 dB por encima del blanco.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
@@ -226,35 +227,54 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
     const fully = bone.filter((x) => x.fullyShadowed);
     const rel = (db: number): string => (db - ref).toFixed(1);
     const tag = `${startPoint}: ref ${ref.toFixed(1)} dB; ${bone.length} líneas con hueso, ${fully.length} en sombra completa; ${JSON.stringify(
-      bone.map((x) => [x.line, x.edgeLines, +x.coneHalfLines.toFixed(1), rel(x.pleuraDb), rel(x.a2Db), rel(x.belowDb)]),
+      bone.map((x) => [
+        x.line,
+        x.edgeLines,
+        x.fullyShadowed ? 1 : 0,
+        rel(x.pleuraDb),
+        x.pleuraDisplayDb.toFixed(1),
+        x.a2DisplayDb.toFixed(1),
+      ]),
     )}`;
     // cada punto de partida corta al menos una costilla (el BLUE superior, solo el borde de la 5.ª: `ribs-5-10-only`)
     expect(bone.length, tag).toBeGreaterThan(startPoint === 'blueUpper' ? 5 : 50);
     if (startPoint !== 'blueUpper') expect(fully.length, tag).toBeGreaterThan(20);
-    for (const x of bone) {
-      // F-T08: la intensidad media de la sombra, ≥ 20 dB bajo el eco pleural intercostal, también en el borde
-      expect(x.belowDb - ref, tag).toBeLessThanOrEqual(-20);
-      // lo que se ve de la pleura dentro de la sombra es la penumbra de la apertura (física: parte del cono de emisión
-      // pasa junto a la costilla): a más de −40 dB (a medio camino entre el borde, −8 dB, y la sombra completa, −47 dB o
-      // menos) solo donde el cono aún no cruza hueso entero
-      if (x.pleuraDb - ref > -40) expect(x.fullyShadowed, `línea ${x.line} (${tag})`).toBe(false);
+    // F-T08: la intensidad media de cada sombra (sus líneas con hueso, contiguas), ≥ 20 dB bajo el eco pleural intercostal
+    const runs: (typeof bone)[] = [];
+    for (const x of s.lines) {
+      if (!x.bone) continue;
+      const last = runs[runs.length - 1];
+      if (last && last[last.length - 1].line === x.line - 1) last.push(x);
+      else runs.push([x]);
     }
+    for (const run of runs) {
+      const mean = 10 * Math.log10(run.reduce((a, x) => a + 10 ** (x.belowDb / 10), 0) / run.length);
+      expect(mean - ref, `sombra ${run[0].line}–${run[run.length - 1].line} (${tag})`).toBeLessThanOrEqual(-20);
+    }
+    // lo que se ve de la pleura dentro de la sombra es la penumbra de la apertura (física: parte del cono pasa junto a la
+    // costilla): a más de −40 dB (a medio camino entre el borde, −8 dB, y la sombra completa) solo fuera de la completa
+    for (const x of bone) if (x.pleuraDb - ref > -40) expect(x.fullyShadowed, `línea ${x.line} (${tag})`).toBe(false);
     for (const x of fully) {
-      // F-T08, sin líneas A bajo la costilla: la de orden 2 por debajo del rango dinámico de la presentación
-      expect(x.a2Db - ref, tag).toBeLessThanOrEqual(-s.dynamicRangeDb);
-      // la costilla apaga la pleura (su transmisión ida y vuelta, −64…−79 dB por un rayo)
+      // la costilla apaga la pleura y oscurece la sombra completa (su transmisión, −64…−79 dB ida y vuelta por un rayo)
       expect(x.pleuraDb - ref, tag).toBeLessThanOrEqual(-40);
+      expect(x.belowDb - s.intercostalWindowDb, tag).toBeLessThanOrEqual(-40);
     }
     if (fully.length) {
-      // F-T08, sin línea pleural bajo la costilla: aún no. La desviación declarada (`rib-shadow-pleura-residual`), con su
-      // tamaño: la pleura de la sombra completa, a −47…−65 dB, dentro del rango dinámico. Cuando se corrija, esta prueba
-      // fallará aquí: entonces se exige la meta y se borra la limitación
+      // F-T08, sin línea pleural ni líneas A bajo la costilla: aún no. La desviación declarada
+      // (`rib-shadow-pleura-residual`), con su tamaño medido (±2,5 dB): cuando se corrija, esta prueba fallará aquí;
+      // entonces se exige la meta (nada sobre el negro de la pantalla en la sombra completa) y se borra la limitación
       const top = Math.max(...fully.map((x) => x.pleuraDb - ref));
-      expect(top, tag).toBeGreaterThan(-55);
-      expect(top, tag).toBeLessThan(-40);
+      expect(top, tag).toBeGreaterThan(-50);
+      expect(top, tag).toBeLessThan(-43.5);
+      const topShown = Math.max(...fully.map((x) => x.pleuraDisplayDb));
+      expect(topShown, tag).toBeGreaterThan(-32);
+      expect(topShown, tag).toBeLessThan(-27);
+      const a2Shown = Math.max(...fully.map((x) => x.a2DisplayDb));
+      expect(a2Shown, tag).toBeGreaterThan(-61);
+      expect(a2Shown, tag).toBeLessThan(-53);
       expect(
-        fully.every((x) => x.pleuraDb - ref <= -s.dynamicRangeDb),
-        `F-T08, la pleura bajo el centro de la costilla por debajo del rango dinámico (${tag})`,
+        fully.every((x) => x.pleuraDisplayDb <= -s.dynamicRangeDb && x.a2DisplayDb <= -s.dynamicRangeDb),
+        `F-T08: nada sobre el negro de la pantalla en la sombra completa (${tag})`,
       ).toBe(false);
     }
   }

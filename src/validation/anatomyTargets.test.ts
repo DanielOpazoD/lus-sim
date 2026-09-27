@@ -10,11 +10,13 @@ import { START_POINTS } from '../app/startPoints';
 import {
   arcMm,
   chestView,
+  intercostalImageWidthMm,
   intercostalWidthMm,
   intercostalZ,
   longitudinalPose,
   pleuraBelowRibCrestMm,
   ribHeightMm,
+  ribImageHeightMm,
   ribOf,
   ribShadows,
   ribZ,
@@ -246,39 +248,51 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
 
 describe('F-T08: la línea pleural 5 ± 1 mm bajo la superficie costal (signo del murciélago)', () => {
   // La primera parte de la meta F-T08 (`docs/knowledge/physics.md` §3.3; G4 [CONSENSO]: «≈ 0,5 cm más profunda que la
-  // línea costal»), en la anatomía por omisión: en cada punto de partida, para cada sombra costal, la pleura de la primera
-  // línea sin hueso a cada lado frente a la cresta de la costilla (`pleuraBelowRibCrestMm`). La sombra en sí (oscura, sin
-  // líneas A, con la penumbra de la apertura) se mide en la envolvente de la GPU: `e2e/imagen.spec.ts`. Medido
-  // (26-09-2026): BLUE superior 10,1 mm (solo el borde de la 5.ª costilla); BLUE inferior 7,2–8,5; PLAPS 7,6–8,8. Es la
-  // geometría heredada de VExUS (la pared del abdomen, 28 mm, con las costillas a 19–21 mm): la arregla el paso C. En la
-  // imagen la distancia es 0,35 mm mayor: la cortical costal es una cara de un lado que dibuja el tejido de fuera
-  // (decisión 15).
-  notYetMet('F-T08: la pleura a 4–6 mm bajo la cresta costal en los tres puntos de partida (hoy 7,2–10,1)', () => {
-    for (const sp of START_POINTS) {
-      const pose: ProbePose = { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 };
-      const below = pleuraBelowRibCrestMm(chestView(scene, pose));
-      expect(below.length, sp.id).toBeGreaterThan(0);
-      for (const d of below) {
-        expect(d, sp.id).toBeGreaterThanOrEqual(4);
-        expect(d, sp.id).toBeLessThanOrEqual(6);
+  // línea costal»), en la anatomía por omisión: en cada punto de partida, para cada sombra costal entera, la pleura de la
+  // primera línea sin hueso a cada lado frente a la cresta de la costilla (`pleuraBelowRibCrestMm`). La sombra en sí
+  // (oscura, con la penumbra de la apertura) se mide en la envolvente de la GPU: `e2e/imagen.spec.ts`. Medido
+  // (26-09-2026): BLUE inferior 7,2–8,5 mm y PLAPS 7,6–8,8 (el BLUE superior solo corta el borde de la 5.ª costilla, con la
+  // cresta fuera del sector: no cuenta). Es la geometría heredada de VExUS (la pared del abdomen, 28 mm, con las costillas
+  // a 19–21 mm): la arregla el paso C. En la imagen la distancia es 0,35 mm mayor: la cortical costal es una cara de un
+  // lado que dibuja el tejido de fuera (decisión 15).
+  const measured = START_POINTS.filter((sp) => sp.id !== 'blueUpper').map((sp) => {
+    const pose: ProbePose = { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 };
+    return { id: sp.id, below: pleuraBelowRibCrestMm(chestView(scene, pose)) };
+  });
+
+  it('hay qué medir: sombras costales enteras con pleura a los dos lados en el BLUE inferior y el PLAPS', () => {
+    // fuera de la notYetMet: si un punto de partida perdiera sus sombras, la notYetMet no puede pasar en falso
+    for (const m of measured) expect(m.below.length, m.id).toBeGreaterThanOrEqual(4);
+  });
+
+  notYetMet('F-T08: la pleura a 4–6 mm bajo la cresta costal en el BLUE inferior y el PLAPS (hoy 7,2–8,8)', () => {
+    for (const m of measured)
+      for (const d of m.below) {
+        expect(d, m.id).toBeGreaterThanOrEqual(4);
+        expect(d, m.id).toBeLessThanOrEqual(6);
       }
-    }
   });
 });
 
 describe('Costillas y espacios intercostales del adulto promedio (paso C): la línea base de la escena heredada', () => {
   // Lo que pide el paso C (indicación de Daniel, 26-09-2026): 12 costillas y 11 espacios intercostales por hemitórax, con
   // el alto de cada costilla y el ancho de cada espacio de un adulto promedio por nivel y región
-  // (`docs/knowledge/anatomy.md` §1.3 y §2.3). Línea base medida hoy con el método de A-T9 (`ribHeightMm`,
-  // `intercostalWidthMm`: la ley costal de `sdRib`), en la línea medioclavicular (LMC, φ del punto BLUE superior), la
-  // axilar media (LAM, π) y la posterior (1,2π):
+  // (`docs/knowledge/anatomy.md` §1.3 y §2.3). Se mide de dos maneras con `support/chestView.ts`: en la anatomía (la ley
+  // costal de `sdRib`: `ribHeightMm`, `intercostalWidthMm`, en z del material) y en la imagen, como la mide una ecografía
+  // y como están tomados los valores de la base (un corte longitudinal centrado en la costilla o en el espacio, con la
+  // sonda apoyada: `ribImageHeightMm`, `intercostalImageWidthMm`, a la profundidad de las crestas). La compresión de la
+  // sonda ensancha la imagen del corte ×1,1–1,2 (`anatomy/compression.ts`): el paso C tiene que cumplir las dos, o
+  // decidir contra cuál calibra. Línea base (26-09-2026) en la línea medioclavicular (LMC, 0,75π), la axilar media (LAM,
+  // π) y la posterior (1,2π):
   //  - costillas: hemitórax derecho 6 (de la 5.ª a la 10.ª), izquierdo 0 (`ribs-5-10-only`, `no-spleen-no-left-ribs`);
   //    espacios intercostales: derecho 5 (EIC5–EIC9), izquierdo 0;
-  //  - alto de cada costilla: 12 mm en todas y en las tres líneas (la sección elíptica de VExUS, semialto 6 mm), hueso en
-  //    las tres (el cartílago empieza a 45° de la línea media);
-  //  - ancho de los espacios EIC5, EIC6, EIC7, EIC8 y EIC9: LMC 7,1 / 7,1 / 12,1 / 12,1 / 12,1 mm; LAM 5,0 / 5,0 / 10,0 /
-  //    10,0 / 10,0; posterior 3,2 / 3,2 / 8,2 / 8,2 / 8,2 (los extremos anteriores de VExUS a 40, 20, 0, −25, −50 y −75 mm
-  //    y la inclinación de cada costilla).
+  //  - alto de cada costilla: 12 mm en la anatomía (hueso en las tres líneas); en la imagen, LMC 13,2–13,7, LAM 14,1 y
+  //    posterior 13,4–13,9 (ya en 13–15 por el ensanchamiento);
+  //  - ancho de EIC5, EIC6, EIC7, EIC8 y EIC9 en la anatomía: LMC 7,1 / 7,1 / 12,1 / 12,1 / 12,1 mm; LAM 5,0 / 5,0 / 10,0
+  //    / 10,0 / 10,0; posterior 3,2 / 3,2 / 8,2 / 8,2 / 8,2. En la imagen: LMC 7,6 / 8,0 / 13,7 / 13,3 / —; LAM 6,0 / 6,0 /
+  //    12,1 / 12,1 / 12,1; posterior — / — / 9,6 / 9,6 / 9,1 (con 3,2 mm, las sombras de las costillas 5.ª–7.ª se funden y
+  //    los EIC5–6 no se pueden medir en la imagen). Son los EIC5–6 estrechos de la LAM y de la posterior los que se ven en
+  //    el PLAPS.
   notYetMet('12 costillas y 11 espacios intercostales por hemitórax (hoy: derecho 6 y 5; izquierdo 0 y 0)', () => {
     const right = scene.ribs.length;
     const left = scene.ribs.filter((r) => !r.rightOnly).length;
@@ -287,28 +301,51 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C): la l�
     for (let n = 1; n <= 12; n++) expect(scene.ribNumbers, `la escena no tiene la costilla ${n}`).toContain(n);
   });
 
-  notYetMet('el alto de cada costilla, 13–15 mm en la LMC, la LAM y la posterior (hoy 12 mm en todas)', () => {
-    // el alto no cambia a lo largo del arco en la escena: una sola medida por costilla vale para las tres líneas
+  const lines3 = [
+    ['LMC', LMC],
+    ['LAM', LAM],
+    ['posterior', POSTERIOR],
+  ] as const;
+  // las medidas en la imagen, hechas antes de las aserciones (una notYetMet se para en la primera que falla)
+  const ribImages = scene.ribNumbers.flatMap((n) => lines3.map(([name, phi]) => ({ n, name, h: ribImageHeightMm(scene, n, phi) })));
+  // la base da el EIC5 de la LMC (§2.3), el espacio visible del EIC5 en la LAM (A-T7) y los bajos laterales (EIC7–9) y
+  // posteriores (§1.3 y §2.3); el EIC6 lateral queda entre los dos rangos, que coinciden. Los EIC5–6 posteriores no
+  // tienen rango en la base
+  const spaceTargets: Array<[string, number, number[], number, number]> = [
+    ['LMC', LMC, [5], 12, 18],
+    ['LAM', LAM, [5, 6, 7, 8, 9], 14, 20],
+    ['posterior', POSTERIOR, [7, 8, 9], 14, 18],
+  ];
+  const spaces = spaceTargets.flatMap(([name, phi, list, lo, hi]) =>
+    list.map((n) => ({ n, name, lo, hi, anat: intercostalWidthMm(scene, n, phi), img: intercostalImageWidthMm(scene, n, phi) })),
+  );
+
+  it('las medidas en la imagen encuentran cada costilla (salvo la 10.ª en la LMC, ya en el reborde) y cada espacio con meta', () => {
+    for (const r of ribImages) if (!(r.n === 10 && r.name === 'LMC')) expect(r.h, `costilla ${r.n}, ${r.name}`).not.toBeNull();
+    for (const x of spaces) expect(x.img, `EIC${x.n} ${x.name}`).not.toBeNull();
+  });
+
+  notYetMet('el alto de cada costilla, 13–15 mm en la anatomía y en la imagen (hoy 12 mm anatómicos; 13,2–14,1 en la imagen)', () => {
     for (const n of scene.ribNumbers) {
       expect(ribHeightMm(scene, n), `costilla ${n}`).toBeGreaterThanOrEqual(13);
       expect(ribHeightMm(scene, n), `costilla ${n}`).toBeLessThanOrEqual(15);
     }
+    for (const r of ribImages) {
+      if (r.h === null) continue;
+      expect(r.h, `costilla ${r.n}, ${r.name}, imagen`).toBeGreaterThanOrEqual(13);
+      expect(r.h, `costilla ${r.n}, ${r.name}, imagen`).toBeLessThanOrEqual(15);
+    }
   });
 
   notYetMet(
-    'el ancho de los espacios: EIC5 de la LMC 12–18 mm, EIC7–9 de la LAM 14–20 y de la posterior 14–18 (hoy 7,1; 10,0; 8,2)',
+    'el ancho de los espacios: EIC5 de la LMC 12–18 mm, EIC5–9 de la LAM 14–20 y EIC7–9 de la posterior 14–18 (hoy 7,1; 5,0–10,0; 8,2)',
     () => {
-      const cases: Array<[string, number, number[], number, number]> = [
-        ['LMC', LMC, [5], 12, 18],
-        ['LAM', LAM, [7, 8, 9], 14, 20],
-        ['posterior', POSTERIOR, [7, 8, 9], 14, 18],
-      ];
-      for (const [name, phi, spaces, lo, hi] of cases)
-        for (const n of spaces) {
-          const w = intercostalWidthMm(scene, n, phi);
-          expect(w, `EIC${n} ${name}`).toBeGreaterThanOrEqual(lo);
-          expect(w, `EIC${n} ${name}`).toBeLessThanOrEqual(hi);
-        }
+      for (const x of spaces) {
+        expect(x.anat, `EIC${x.n} ${x.name}`).toBeGreaterThanOrEqual(x.lo);
+        expect(x.anat, `EIC${x.n} ${x.name}`).toBeLessThanOrEqual(x.hi);
+        expect(x.img!, `EIC${x.n} ${x.name}, imagen`).toBeGreaterThanOrEqual(x.lo);
+        expect(x.img!, `EIC${x.n} ${x.name}, imagen`).toBeLessThanOrEqual(x.hi);
+      }
     },
   );
 });

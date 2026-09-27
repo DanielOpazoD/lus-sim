@@ -130,6 +130,20 @@ export const DISPLAY_MARGIN_PX = 8;
  * compensación de la pared torácica (2,5 dB/cm a 2,5 MHz) el techo llega a 20 cm, más que la profundidad del preajuste.
  */
 const TGC_CAP_DB = 50;
+
+/**
+ * Nivel en la pantalla (dB sobre el blanco: ≥ 0 satura, ≤ −rango dinámico es negro) de una envolvente de `envDb` (dB re
+ * 1) a la profundidad r (mm): la cuenta de `displayGrey` de la pasada de escaneo antes de la curva de grises (la TGC del
+ * usuario interpolada en sus 8 bandas, la compensación nominal a la frecuencia B `fMHz` con su techo, la ganancia y
+ * `DISPLAY_REF_DB`). lus-sim (ciclo 1): la e2e de la sombra costal juzga con él lo que se ve.
+ */
+export function displayLevelDb(envDb: number, r: number, b: Pick<BModeSettings, 'depthMm' | 'gainDb' | 'tgcDb'>, fMHz: number): number {
+  const x = Math.min(Math.max(r / b.depthMm, 0), 0.9999) * 7;
+  const i = Math.floor(x);
+  const tgc = b.tgcDb[i] + (b.tgcDb[i + 1] - b.tgcDb[i]) * (x - i);
+  const comp = Math.min(TGC_CAP_DB, tgc + nominalTgcDbPerCm(fMHz) * (r / 10));
+  return envDb + b.gainDb + comp + DISPLAY_REF_DB;
+}
 const FINE_DEPTH = 1024;
 /** Muestras gruesas en profundidad de la transmisión (pasada A). */
 export const COARSE_DEPTH = 160;

@@ -39,11 +39,12 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   consola (imagen, sonda, respiración y avanzado), el HUD, los atajos, congelar con el cine, el informe técnico exportable, la
   recuperación de la pérdida del contexto WebGL y el aviso de que no es un dispositivo médico.
 - e2e de humo de la aplicación (`e2e/smoke.spec.ts`) y pruebas de la interfaz sin DOM, cada guarda con su mutación.
-- Sombra costal medida en la envolvente de la GPU (meta F-T08, `e2e/imagen.spec.ts`): la intensidad media de la sombra
-  (−25…−83 dB del eco pleural intercostal) y la ausencia de líneas A cumplen; la pleura visible dentro de la sombra es la
-  penumbra de la apertura; bajo el centro de la costilla la línea pleural aún queda a −47…−65 dB (limitación nueva
-  `rib-shadow-pleura-residual`, la prueba exige el fallo). En TypeScript, la pleura a 7,2–10,1 mm bajo la cresta costal
-  (F-T08 pide 4–6) y la línea base de las costillas y los espacios intercostales de la escena, como metas del paso C.
+- Sombra costal medida en la envolvente de la GPU (meta F-T08, `e2e/imagen.spec.ts`), con la penumbra de la pasada A:
+  la intensidad media de cada sombra (−37…−39 dB del eco pleural intercostal) cumple, y la pleura visible cerca del borde
+  es la penumbra de la apertura; bajo el centro de la costilla la línea pleural aún se ve gris y la línea A, tenue
+  (limitación nueva `rib-shadow-pleura-residual`, la prueba exige el fallo). En TypeScript, la pleura a 7,2–8,8 mm bajo la
+  cresta costal (F-T08 pide 4–6) y la línea base de las costillas y los espacios intercostales, en la anatomía y en la
+  imagen, como metas del paso C.
 
 ### Cambiado
 

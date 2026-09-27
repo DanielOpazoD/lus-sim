@@ -90,20 +90,24 @@ la salida actual no protege nada.
 
 ## Sombra costal (F-T08)
 
-- **En la envolvente, línea a línea.** `ribShadow` (ganchos de la e2e) clasifica cada línea con la CPU (hueso cortical
-  antes de la pleura, su distancia al borde de la sombra y el cono de emisión de la apertura a la profundidad de la
-  costilla, la geometría de la pasada A) y mide en la envolvente de la GPU el pico de la pleura y de 2·D, su fondo
-  (mediana en ±4 mm) y la intensidad media bajo el hueso. Así se separa la penumbra (el cono aún pasa junto a la costilla:
-  física) de la sombra completa (todo el cono cruza hueso), y lo que se ve en pantalla de lo que forma la GPU.
-- **La meta por partes.** La intensidad media de la sombra (≥ 20 dB bajo el eco intercostal) y la ausencia de líneas A
-  se exigen; la pleura que se ve dentro de la sombra solo puede ser penumbra (a > −40 dB, solo donde el cono no cruza hueso
-  entero); «bajo la costilla no hay línea pleural» aún no se cumple y la prueba exige el fallo con su tamaño
-  (`rib-shadow-pleura-residual`). La geometría (la pleura 5 ± 1 mm bajo la cresta costal) se mide en TypeScript con
-  `support/chestView.ts` y es del paso C, como la línea base de las costillas y los espacios intercostales
-  (`src/validation/anatomyTargets.test.ts`).
-- **Mutaciones.** El hueso con la atenuación de IT'IS (4,74 dB/cm/MHz en lugar de 20) deja la pleura de la sombra completa a
-  −18…−21 dB y la prueba falla (penumbra); la pleura de la rama del pulmón dibujada sin la transmisión de la costilla hace
-  fallar la intensidad media (−19 dB).
+- **En la envolvente, línea a línea, con la geometría de la pasada A.** `ribShadow` (ganchos de la e2e) clasifica cada
+  línea con los datos de la propia pasada A: sus segmentos (la línea cruza hueso antes de la pleura) y las tomas de sus
+  conos de apertura en la fila de la pleura (`apertureTransmission`): sombra completa si todas cruzan hueso, línea libre
+  si ninguna. Clasificar con la CPU (paso de 0,05 mm) ponía en la sombra completa líneas que la pasada A ve en penumbra
+  (lo halló la revisión). Mide la pleura y la línea A de orden 2 en la envolvente, su nivel en la pantalla
+  (`displayLevelDb`, gemelo de la pasada de escaneo) y la intensidad media en la ventana D − 1 … 2·D + 1 mm, la misma en
+  todas las líneas.
+- **La meta por partes.** La intensidad media de cada sombra (≥ 20 dB bajo el eco intercostal) se exige; la pleura que se
+  ve dentro de la sombra solo puede ser penumbra (a > −40 dB, solo fuera de la sombra completa), y en la sombra completa
+  la pleura queda ≥ 40 dB bajo el eco intercostal y la ventana ≥ 40 dB bajo la de las líneas libres. «Bajo la costilla no
+  hay línea pleural ni líneas A» se juzga en la pantalla (nada sobre el negro) y aún no se cumple: la prueba exige el
+  fallo con su tamaño a ±2,5 dB (`rib-shadow-pleura-residual`). La geometría (la pleura 5 ± 1 mm bajo la cresta costal)
+  se mide en TypeScript con `support/chestView.ts` y es del paso C, como la línea base de las costillas y los espacios
+  intercostales, en la anatomía y en la imagen (`src/validation/anatomyTargets.test.ts`).
+- **Mutaciones.** Fallan: el hueso con la atenuación de IT'IS (4,74 dB/cm/MHz en lugar de 20: la pleura de la sombra
+  completa sube a −15…−21 dB); sin los 6 dB de la entrada al hueso de la pasada A (la pleura, a −41 dB); el pedestal de
+  lóbulos laterales de −24 a −18 dB (−43 dB); y la pleura de la rama del pulmón dibujada sin la transmisión de la costilla
+  (la media de la sombra, −19 dB).
 
 ## Invariantes previstas
 
