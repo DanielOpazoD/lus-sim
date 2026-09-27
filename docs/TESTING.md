@@ -100,7 +100,7 @@ la salida actual no protege nada.
   todas las líneas.
 - **La meta por partes.** La intensidad media de cada sombra (≥ 20 dB bajo el eco intercostal) se exige; la pleura que se
   ve dentro de la sombra solo puede ser penumbra (a > −40 dB, solo fuera de la sombra completa), y en la sombra completa
-  la pleura queda ≥ 40 dB bajo el eco intercostal y la ventana ≥ 40 dB bajo la de las líneas libres. «Bajo la costilla no
+  la pleura queda ≥ 40 dB bajo el eco intercostal y la ventana ≥ 39 dB bajo la de las líneas libres. «Bajo la costilla no
   hay línea pleural ni líneas A» se juzga en la pantalla (nada sobre el negro) y aún no se cumple: la prueba exige el
   fallo con su tamaño a ±2,5 dB (`rib-shadow-pleura-residual`). La geometría (la pleura 5 ± 1 mm bajo la cresta costal)
   se mide en TypeScript con `support/chestView.ts` y es del paso C, como la línea base de las costillas y los espacios
@@ -125,8 +125,14 @@ la salida actual no protege nada.
 - **La construcción, contra la base.** `src/validation/ribcage.test.ts`: los niveles vertebrales del esternón y de los
   extremos posteriores, los cartílagos que llegan al esternón o al de arriba, las uniones condrocostales, las puntas libres,
   la calcificación y la tabla (simétrica, suave, sin salirse de la textura).
-- **F-T08 en la GPU.** La pleura dentro de una sombra solo puede verse cerca de su borde (la penumbra de la apertura y la
-  cola lateral de la PSF del eco vecino, ≤ 6 líneas); el núcleo de la sombra se juzga aparte y lleva el residuo declarado.
+- **La pared torácica por región (paso C2, decisión 17).** `src/validation/chestWall.test.ts`: las capas de cada estación
+  son las de la base, la tabla (la de la GPU) es simétrica y continua, las caras quedan en su orden en todo el tórax, la
+  banda intercostal engruesa delante al inspirar y bajo el reborde costal vuelve la pared del abdomen de VExUS; las metas
+  medidas bajo la sonda (A-T1–A-T5, A-T10 y la variante delgada) están en `anatomyTargets.test.ts`. Las pruebas de la pared
+  en capas de VExUS (`wall.test.ts`) miran la pared del abdomen (z −280) o el tronco uniforme del hábito.
+- **F-T08 en la GPU.** La pleura dentro de una sombra solo puede verse cerca de su borde (la penumbra de la apertura y el
+  eco vecino que trae el pedestal de la pasada D, ≤ 10 líneas medidas con la pared torácica por región; 6 con la heredada);
+  el núcleo de la sombra se juzga aparte y lleva el residuo declarado.
 
 ## Invariantes previstas
 

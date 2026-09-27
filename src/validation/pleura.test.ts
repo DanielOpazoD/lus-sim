@@ -10,7 +10,7 @@ import {
 import { LUNG_CURTAIN, lungCurtainEdgeMm } from '../anatomy/organs/lungCurtain';
 import { AnatomyScene, type SceneInstant } from '../anatomy/scene';
 import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
-import { torsoNormal } from '../anatomy/primitives';
+import { torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
 import { TISSUES, Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { cross, normalize, type Vec3 } from '../core/vec3';
 import { CONVEX_C35, lineDirection, pointOnLine, probeFrame, type ProbeFrame, type ProbePose } from '../probe/probe';
@@ -480,7 +480,7 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
         if (t % 2 === 0) {
           const phi = Math.PI * (0.8 + 0.4 * rnd());
           const z = -60 + 120 * rnd();
-          const inset = scene.wallThickness() + 4 * rnd() - 0.5;
+          const inset = scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) + 4 * rnd() - 0.5;
           const k = 1 - inset / 150;
           m = [scene.torso.a * k * Math.cos(phi), scene.torso.b * k * Math.sin(phi), z];
         } else m = [-170 + 340 * rnd(), -110 + 220 * rnd(), -200 + 300 * rnd()];
@@ -504,7 +504,7 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
   it('la GLSL: classify es classifyWith(m, true) y la cortina solo se mira con withCurtain', () => {
     expect(ANATOMY_GLSL).toContain('Cls classify(vec3 m) { return classifyWith(m, true); }');
     expect(ANATOMY_GLSL).toMatch(/if \(withCurtain\) \{\n\s+float dCurtain = lungCurtainDistance\(m, -depth - wall\);/);
-    expect(ANATOMY_GLSL).toContain('float insideWallMm(vec3 m) { return -torsoDepth(m) - (uWall.x + uWall.y + uWall.z); }');
+    expect(ANATOMY_GLSL).toContain('float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }');
     // el tejido que se ve a través del borde y sus planos laterales usan la variante bajo la pleura (la muestra de
     // la imagen); la pared que copia la serie, el prefijo de la pared de classify (classifyWall: piel, costillas y
     // las capas de la decisión 62, sin órganos ni tubos), con el eco de cara plana de sus capas (wallFaceEchoFlat,
@@ -514,8 +514,8 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
     expect(FRAG_RAWFIELD).toContain('vec2 tissue = wTissue >= CURTAIN_MIN_AIR ? mediumField(p, dir, r, elevSigma(r), !under) : vec2(0.0);');
     expect(FRAG_RAWFIELD_STEERED).toContain('vec2 f1 = sampleSidePh(p + uElev * se, se, c, ph0, g, withCurtain, w);');
     expect(FRAG_RAWFIELD_STEERED).toContain('tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w)');
-    expect(ANATOMY_GLSL).toContain('if (classifyWall(m, c, depth, tn)) return c;');
-    expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn)) { c.tissue = T_FAT; c.n = tn; }');
+    expect(ANATOMY_GLSL).toContain('float wall;\n  if (classifyWall(m, c, depth, tn, wall)) return c;');
+    expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn, wallMm)) { c.tissue = T_FAT; c.n = tn; }');
     expect(PLEURA_GLSL).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
     expect(FRAG_RAWFIELD).toContain('vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);');
     expect(FRAG_RAWFIELD_STEERED).toContain(
@@ -531,8 +531,9 @@ describe('deslizamiento pulmonar anclado al pulmón', () => {
     const rnd = rng(seed);
     return Array.from({ length: n }, () => {
       const phi = Math.PI * (0.85 + 0.3 * rnd());
-      const k = 1 - scene.wallThickness() / 150;
-      return [scene.torso.a * k * Math.cos(phi), scene.torso.b * k * Math.sin(phi), -30 + 60 * rnd()] as Vec3;
+      const z = -30 + 60 * rnd();
+      const k = 1 - scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) / 150;
+      return [scene.torso.a * k * Math.cos(phi), scene.torso.b * k * Math.sin(phi), z] as Vec3;
     });
   };
   const corr = (a: number[], b: number[]) => {

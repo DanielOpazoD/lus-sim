@@ -221,11 +221,12 @@ describe('Límites del shader con margen para crecer', () => {
     // dirigido (con las caras de la pared, decisión 62), con sitio para la THI (~+14) sin pasar de 130. lus-sim
     // (decisiones 12 y 14): 85 y 87, sin los 30 de los uniforms del hígado, la vesícula, la aurícula, el gas y los riñones
     // (83 y 85 hasta que la tabla de tejidos, idéntica a la de VExUS, sumó los tres del retroperitoneo: TISSUE_VEC4 de 7
-    // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107. Si el
-    // recuento dejara de ver los arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
+    // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107; con la
+    // pared torácica por región (decisión 17: `uChestWall`), 106 y 108. Si el recuento dejara de ver los arrays (62 ranuras
+    // de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
-    expect(raw.slots).toBe(105);
+    expect(raw.slots).toBe(106);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);
@@ -295,15 +296,17 @@ describe('Límites del shader con margen para crecer', () => {
   // (uCompC.w = 0) las cuentas son las de antes. Después (1b85e5e856534fd1 → la de abajo), el transitorio lleva
   // su ganancia (`uTransientGain`, decisión 77): 1 en fundamental, el rechazo de su banda en armónica; y el eco del
   // tejido, la acumulación del armónico (`harmonicNearGain`, 1 en fundamental) antes del transitorio y del ruido.
-  // lus-sim (d2e0f2cd7f45185c → la de abajo, decisión 15): la línea pleural y sus réplicas con el perfil centrado en
-  // su cruce (`pleuraSeriesEcho`), sin el desplazamiento de la cara de un lado: la serie cae a k·D (F-T01).
+  // lus-sim (d2e0f2cd7f45185c → 98f77a1b63690b8f, decisión 15): la línea pleural y sus réplicas con el perfil centrado en
+  // su cruce (`pleuraSeriesEcho`), sin el desplazamiento de la cara de un lado: la serie cae a k·D (F-T01). Después (→ la
+  // de abajo, decisión 17), la incidencia de la pleura con la normal de la cara interna de la pared (`wallInnerNormal`),
+  // no la de la piel: con la pared torácica por región la pleura se inclina.
   it('el main de los programas de la mirada 0 es, letra a letra, el de antes de la composición', () => {
     const mainOf = (src: string): string => src.slice(src.lastIndexOf('\nvoid main() {'));
     const print = (src: string): string => createHash('sha256').update(mainOf(src)).digest('hex').slice(0, 16);
     expect(Object.fromEntries(LOOK_PAIRS.map((p) => [p.name, print(p.look0)]))).toEqual({
       FRAG_TRANS_PREFIX: 'f6b08093f699bc04',
       FRAG_TRANSMISSION: '668efb9a2b5c7008',
-      FRAG_RAWFIELD: '98f77a1b63690b8f',
+      FRAG_RAWFIELD: '8ed188a8f422812e',
     });
     // y el resto de B es el mismo texto en los dos programas: solo cambian sus entradas y su main
     const inputs0 = 'uniform sampler2D uTrans0;\nuniform sampler2D uTrans1;\n';

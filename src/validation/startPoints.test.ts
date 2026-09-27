@@ -54,10 +54,11 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
       expect(coupled.length, tag).toBeGreaterThan(0.5 * scans.length);
       const withPleura = coupled.filter((s) => s.pleuraMm !== null);
       expect(withPleura.length, tag).toBe(coupled.length);
-      // la pleura, bajo la pared heredada (piel, grasa y músculo de 28 mm en la métrica radial, sonda hundida)
+      // la pleura, bajo la pared torácica por región (decisión 17: 12,8–18 mm por la normal de la piel en estas zonas; antes
+      // la heredada, 28 mm en la métrica radial), con la sonda hundida
       for (const s of withPleura) {
-        expect(s.pleuraMm!, tag).toBeGreaterThan(15);
-        expect(s.pleuraMm!, tag).toBeLessThan(40);
+        expect(s.pleuraMm!, tag).toBeGreaterThan(8);
+        expect(s.pleuraMm!, tag).toBeLessThan(26);
       }
     }
   });
@@ -75,9 +76,15 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
         expect(s.ribMm, tag).toBeNull();
         expect(s.pleuraMm, tag).not.toBeNull();
       }
-      // la línea costal por encima de la pleura (el murciélago: las costillas, la pleura más honda entre ellas)
-      const pleura = between.map((s) => s.pleuraMm!).reduce((x, y) => x + y, 0) / between.length;
-      for (const sh of shadows) expect(sh.ribTopMm, tag).toBeLessThan(pleura);
+      // la línea costal por encima de la pleura (el murciélago: las costillas, la pleura más honda entre ellas): cada
+      // sombra frente a la pleura de las líneas libres que la rodean (decisión 17: la pared cambia de grosor a lo largo del
+      // corte, y con ella la profundidad de la pleura y de las costillas)
+      const i0 = (sh: (typeof shadows)[number]) => scans.findIndex((s) => s.theta === sh.theta0);
+      const i1 = (sh: (typeof shadows)[number]) => scans.findIndex((s) => s.theta === sh.theta1);
+      for (const sh of shadows) {
+        const near = [scans[i0(sh) - 1], scans[i1(sh) + 1]].filter((s) => s && s.ribMm === null && s.pleuraMm !== null);
+        for (const s of near) expect(sh.ribTopMm, tag).toBeLessThan(s.pleuraMm!);
+      }
     }
   });
 

@@ -527,7 +527,8 @@ vec2 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
   Cls c;
   float depth;
   vec3 tn;
-  if (!classifyWall(m, c, depth, tn)) { c.tissue = T_FAT; c.n = tn; }
+  float wallMm;
+  if (!classifyWall(m, c, depth, tn, wallMm)) { c.tissue = T_FAT; c.n = tn; }
   vec2 field = fieldForPhBase(m, se, c.tissue, ph0, g, normalize(p - uCurvC), w);
   float clump = uTissueClump4[c.tissue / 4][c.tissue % 4];
   if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);
@@ -579,10 +580,11 @@ vec2 steeredField() {
   float sCap = alongLineMm(uCurvR + pleuraCapMm(max(h2.x, 0.0), uDepth / float(ts.y)), a, uSteer.z);
   float tD = curtain ? steeredT(phiK, a, sCap) : 0.0;
   vec3 pD = elem + dirK * max(sD, 0.0);
-  // la incidencia de la pleura en el mundo: su normal material por la jacobiana de la compresión (decisión 63)
+  // la incidencia de la pleura en el mundo: su normal material (la de la cara interna de la pared, lus-sim, decisión 17)
+  // por la jacobiana de la compresión (decisión 63)
   Warp wD = noWarp();
   if (curtain) wD = warpAt(pD);
-  float cosI = curtain ? abs(dot(normalize(warpNormal(wD, torsoNormal(toMaterial(pD)))), dirK)) : 1.0;
+  float cosI = curtain ? abs(dot(normalize(warpNormal(wD, wallInnerNormal(toMaterial(pD)))), dirK)) : 1.0;
   float chi = pleuraCoherence(cosI);
   float G = pleuraRoundTrip(tD, chi);
   vec3 ser = under ? pleuraSeriesDepths(s, sD) : vec3(0.0);
@@ -803,10 +805,11 @@ void main() {
   float rCap = pleuraCapMm(max(D, 0.0), uDepth / float(ts.y));
   float tD = curtain ? texture(uTrans0, vec2(vUv.x, rCap / uDepth)).x : 0.0;
   vec3 pD = pointOnLine(dir0, max(D, 0.0));
-  // la incidencia de la pleura en el mundo: su normal material por la jacobiana de la compresión (decisión 63)
+  // la incidencia de la pleura en el mundo: su normal material (la de la cara interna de la pared, lus-sim, decisión 17)
+  // por la jacobiana de la compresión (decisión 63)
   Warp wD = noWarp();
   if (curtain) wD = warpAt(pD);
-  float cosI = curtain ? abs(dot(normalize(warpNormal(wD, torsoNormal(toMaterial(pD)))), dir0)) : 1.0;
+  float cosI = curtain ? abs(dot(normalize(warpNormal(wD, wallInnerNormal(toMaterial(pD)))), dir0)) : 1.0;
   float chi = pleuraCoherence(cosI);
   float G = pleuraRoundTrip(tD, chi);
   vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);

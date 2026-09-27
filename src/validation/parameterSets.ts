@@ -1,5 +1,6 @@
 import type { ParameterSet } from '../core/evidence';
 import { START_POINT_POSES } from '../app/startPoints';
+import { CHEST_WALL } from '../anatomy/organs/chestWall';
 import { RIBCAGE } from '../anatomy/organs/ribcage';
 import { THORAX_LINES } from '../anatomy/thoraxLines';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
@@ -15,6 +16,7 @@ import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 export const PARAMETER_SETS: readonly ParameterSet[] = [
   RIBCAGE,
   THORAX_LINES,
+  CHEST_WALL,
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,

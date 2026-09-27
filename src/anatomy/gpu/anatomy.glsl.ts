@@ -15,7 +15,9 @@
  *   tabla de la compresión de la sonda desde COMPRESSION_BASE (decisión 63, `anatomy/compression.ts`): un téxel
  *   por nodo de la cara, (s₀ mm, s_D mm, D mm, R mm);
  *   tabla de las alturas de las costillas desde RIB_TABLE_BASE (decisión 16): por lado y columna de |u|, tres téxeles
- *   con las z de las líneas medias de las costillas 1–4, 5–8 y 9–12
+ *   con las z de las líneas medias de las costillas 1–4, 5–8 y 9–12;
+ *   tabla de la pared torácica desde CHEST_WALL_BASE (decisión 17, `organs/chestWall.ts`): por columna de |u|, tres téxeles
+ *   (grosores alto y bajo, reborde costal, peso inspiratorio; y las capas altas y bajas)
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, TISSUE_GLSL_NAME } from '../tissues';
 import {
@@ -28,14 +30,15 @@ import {
 } from '../interfaces';
 import { COMPRESSION_GLSL, PROBE_COMPRESSION } from '../compression';
 import { ORGAN_MODULES } from '../organs';
-import { RIB_TABLE_BASE, RIB_TABLE_TEXELS } from '../organs/ribcage';
+import { RIB_TABLE_BASE } from '../organs/ribcage';
+import { CHEST_WALL_BASE, CHEST_WALL_TEXELS } from '../organs/chestWall';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
 export const COMPRESSION_BASE = 0;
 if (RIB_TABLE_BASE < COMPRESSION_BASE + PROBE_COMPRESSION.nodes) throw new Error('la tabla costal pisa la de la compresión');
-export const SCENE_TEX_H = Math.ceil((RIB_TABLE_BASE + RIB_TABLE_TEXELS) / SCENE_TEX_W);
+export const SCENE_TEX_H = Math.ceil((CHEST_WALL_BASE + CHEST_WALL_TEXELS) / SCENE_TEX_W);
 export { MAX_RIBS } from './sceneUniforms';
 
 const TISSUE_DEFINES = Object.entries(TISSUE_GLSL_NAME)
@@ -94,8 +97,11 @@ vec3 torsoNormal(vec3 p) {
   return l > 0.0 ? vec3(n / l, 0.0) : vec3(0.0, 1.0, 0.0);
 }
 
+float wallTotalMm(vec3 m);
 float respWeight(vec3 m) {
-  float inside = -torsoDepth(m) - (uWall.x + uWall.y + uWall.z);
+  // lus-sim (decisión 17): más hondo que la pared más gruesa (uChestWall.w) + 25 mm el peso de la pared es 1 sin leerla
+  float d = -torsoDepth(m);
+  float inside = d >= uChestWall.w + 25.0 ? 25.0 : d - wallTotalMm(m);
   float wWall = smoothstep(0.0, 25.0, inside);
   float dSpine = length(m.xy - uSpine.xy);
   float wSpine = smoothstep(uSpine.z + 5.0, uSpine.z + 35.0, dSpine);
@@ -147,30 +153,39 @@ float sdDome(vec3 p, out vec3 n) {
 ${ORGAN_MODULES.map((o) => o.glsl).join('\n')}
 
 // Profundidad bajo la cara interna de la pared (mm; 0 en la pleura parietal). Gemelo: AnatomyScene.insideWallMm
-float insideWallMm(vec3 m) { return -torsoDepth(m) - (uWall.x + uWall.y + uWall.z); }
+float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }
 
 // La pared de classify: fuera del torso (aire), piel, costillas y las capas de la pared con sus caras (grasa
 // subcutánea, músculo y grasa preperitoneal, decisión 62). true si la muestra queda decidida (en c); si no,
 // depth y tn (profundidad y normal del torso) sirven al resto de classifyWith. La serie de la pleura (decisión
 // 61) remuestrea la pared solo con ella: sin órganos ni tubos. Gemelo: la classifyWall privada de AnatomyScene
-bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn) {
+bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wall) {
   c.tissue = T_AIR; c.bd = 1e3; c.n = vec3(0.0, 1.0, 0.0); c.iface = IF_NONE; c.ifd = 1e3; c.vessel = -1;
   c.rho = 10.0; c.tangent = vec3(0.0, 0.0, 1.0); c.kc = 0.0; c.uRef = 0.0; c.rRef = 1.0; c.profN = 2.0;
   depth = torsoDepth(m);
   tn = vec3(0.0, 1.0, 0.0);
+  wall = 0.0;
   if (m.z < uTorso.z || m.z > uTorso.w || depth > 0.0) return true;
-  float skin = uWall.x;
-  float wall = skin + uWall.y + uWall.z;
+  // lus-sim (decisión 17): la pared por región en el (u, z) de la muestra (organs/chestWall.ts); sus capas, solo dentro. Más
+  // hondo que la pared más gruesa (uChestWall.w) más lo que miran la cortina (3 mm) y el «resto» (su tope) no hace falta
+  // leerla: el grosor máximo da lo mismo en todo lo que sigue (la muestra no está en la pared, ni en la lámina, y la
+  // distancia del «resto» a la pared pasa de su tope)
   float d = -depth;
+  float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM);
+  float u = d < far ? wallArc(m) : 0.0;
+  wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;
+  vec4 wx = vec4(0.0);
+  vec4 wl = vec4(0.0);
+  if (d < wall) wl = wallLayersAt(u, m.z, wx);
+  float skin = wl.x;
   tn = torsoNormal(m);
   // Capas de la pared (decisión 62, organs/wall.ts): cada muestra dibuja la cara de su capa más cercana
   if (d < skin) { c.tissue = T_SKIN; c.bd = skin - d; c.n = tn; c.iface = IF_SKIN_FAT; c.ifd = skin - d; return true; }
   // La parrilla costal (lus-sim, decisión 16, organs/ribcage.ts), antes de la grasa subcutánea donde puede llegar (la
   // grasa no la corta): el esternón y las costillas del lado de la muestra; el hueso más cercano da la cortical al tejido
-  // blando de fuera, el cartílago su pericondrio. Las coordenadas de la pared, solo dentro de ella
-  float u = d < wall ? wallArc(m) : 0.0;
+  // blando de fuera, el cartílago su pericondrio
   float inD; bool cart; float ribD; int ribI; float ribAny;
-  int ri = ribScan(m, d, u, inD, cart, ribD, ribI, ribAny);
+  int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);
   if (ri >= 0) {
     c.tissue = cart ? T_CARTILAGE : T_BONE; c.bd = -inD;
     c.n = normalize(vec3(-tn.xy * sign(d - ribCenterDepth(m)), 0.0) + vec3(0.0, 0.0, 1e-4));
@@ -179,7 +194,7 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn) {
   }
   if (d < wall) {
     // debajo de la fascia, músculo hasta la transversalis y la grasa preperitoneal hasta el peritoneo
-    vec4 wd = wallDepths(u, m.z);
+    vec4 wd = wallDepthsOf(u, m.z, wl, wx.z);
     c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);
     c.bd = d < wd.y ? min(d - skin, wd.y - d) : (d < wd.z ? min(d - wd.y, wd.z - d) : min(d - wd.z, wall - d));
     c.bd = min(c.bd, ribAny / 1.1);
@@ -197,8 +212,8 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   Cls c;
   float depth;
   vec3 tn;
-  if (classifyWall(m, c, depth, tn)) return c;
-  float wall = uWall.x + uWall.y + uWall.z;
+  float wall;
+  if (classifyWall(m, c, depth, tn, wall)) return c;
   // Columna
   float dBody = length(m.xy - uSpine.xy) - uSpine.z;
   float ax = abs(m.x - uSpine.x) - uSpineArch.x;

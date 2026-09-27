@@ -122,6 +122,33 @@ export interface Torso {
   muscleMm: number;
   /** Grasa preperitoneal (mm): la parte más honda de `muscleMm`, entre la transversalis y el peritoneo. */
   preperitonealMm: number;
+  /**
+   * Pared torácica por región (lus-sim, decisión 17: `organs/chestWall.ts`); sin ella, la pared uniforme del hábito en todo
+   * el tronco (la de VExUS). Con ella, las capas del hábito quedan como las del abdomen, bajo el reborde costal.
+   */
+  chestWall?: ChestWallLookup;
+}
+
+/** Capas de la pared en un punto (u, z), en la métrica radial (mm): las de `Torso` más la banda intercostal. */
+export interface WallLayersAt {
+  skin: number;
+  fat: number;
+  /** Músculo, con la banda intercostal y la grasa preperitoneal (o el complejo pleural) de su cara interna. */
+  muscle: number;
+  /** Grasa preperitoneal (abdomen) o complejo pleura + fascia endotorácica (tórax). */
+  pre: number;
+  /** Banda intercostal en reposo (tórax): del plano músculo–intercostal a la fascia endotorácica. */
+  band: number;
+  /** Peso de la pared del abdomen (1 bajo el reborde costal). */
+  abdomen: number;
+}
+
+/** La pared torácica por región que lee `organs/wall.ts` (u: arco de la piel con signo; z: craneocaudal). */
+export interface ChestWallLookup {
+  layers(u: number, z: number): WallLayersAt;
+  total(u: number, z: number): number;
+  /** Engrosamiento inspiratorio de la banda intercostal (mm) con el descenso del diafragma `caudalMm`. */
+  inspiration(u: number, z: number, caudalMm: number): number;
 }
 
 export interface Rib {

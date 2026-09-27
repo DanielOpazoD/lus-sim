@@ -1,19 +1,44 @@
 import { smoothstep, type Vec3 } from '../core/vec3';
 import type { PatientState } from '../physiology/patientState';
-import { diaphragmHeight, sdSpine, sdDiaphragm, torsoDepth, type Spine, type Diaphragm, type Torso, type TubeHit } from './primitives';
-import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
 import {
+  diaphragmHeight,
+  sdSpine,
+  sdDiaphragm,
+  torsoDepth,
+  torsoSkinPoint,
+  type Dome,
+  type Spine,
+  type Diaphragm,
+  type Torso,
+  type TubeHit,
+  type WallLayersAt,
+} from './primitives';
+import {
+  LUNG_CURTAIN,
+  inLungCurtain,
+  inLungRecess,
+  lungCurtainDistance,
+  lungCurtainEdgeMm,
+  type CurtainFootprint,
+} from './organs/lungCurtain';
+import {
+  RIBCAGE,
+  RIBS_PER_SIDE,
   buildRibCage,
   faceRib,
   ribCurvature,
+  ribLineArc,
   ribScan,
   ribSd,
+  ribTableZ,
   ribTangent,
   type RibCage,
   type RibCageOptions,
   type RibSpec,
 } from './organs/ribcage';
-import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd } from './organs/wall';
+import { DEFAULT_CHEST_HABITUS, buildChestWall, setChestWallCage, type ChestWall } from './organs/chestWall';
+import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
+import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
 
@@ -106,6 +131,11 @@ export interface FaceGradient {
 
 export class AnatomyScene {
   readonly torso: Torso;
+  /**
+   * La pared torácica por región (lus-sim, decisión 17: `organs/chestWall.ts`), la del hábito torácico del paciente; bajo el
+   * reborde costal, la del abdomen del hábito (VExUS). Es `torso.chestWall`.
+   */
+  readonly chestWall: ChestWall;
   /** La parrilla costal (decisión 16): costillas, cartílagos, esternón y la tabla de alturas que sube a la GPU. */
   readonly ribCage: RibCage;
   /** Las 24 costillas de la parrilla: derechas 1–12 y después izquierdas 1–12 (cada una con su número y su lado). */
@@ -116,6 +146,8 @@ export class AnatomyScene {
    */
   readonly ribNumbers: number[];
   readonly diaphragm: Diaphragm;
+  /** Huella de la lámina de la cortina (decisión 17: escalada con la cara interna de la pared, como las cúpulas). */
+  readonly curtain: CurtainFootprint;
   readonly spine: Spine;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
@@ -123,14 +155,42 @@ export class AnatomyScene {
     const muscle = patient.habitus.muscleMm;
     // Tronco 32 × 21 cm (adulto de IMC 25): la VCI queda a ≈ 12–13 cm del xifoides
     // la grasa preperitoneal es la parte más honda del espesor muscular del hábito (decisión 62)
-    this.torso = { a: 160, b: 105, zMin: -300, zMax: 300, skinMm: 2, fatMm: fat, muscleMm: muscle, preperitonealMm: preperitonealMm(fat) };
+    const base: Torso = {
+      a: 160,
+      b: 105,
+      zMin: -300,
+      zMax: 300,
+      skinMm: 2,
+      fatMm: fat,
+      muscleMm: muscle,
+      preperitonealMm: preperitonealMm(fat),
+    };
+    // lus-sim (decisión 17): la pared del tórax por región y por hábito; las capas del hábito quedan como las del abdomen
+    const chest = patient.habitus.chest ?? DEFAULT_CHEST_HABITUS;
+    this.chestWall = buildChestWall(base, chest, RIBCAGE.params.pleuraComplexMm.value);
+    this.torso = { ...base, chestWall: this.chestWall };
     // Referencia craneocaudal: z = 0 en la unión xifoesternal, al nivel del disco T9–T10 (Gray; la punta del xifoides
     // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16). De VExUS: cúpula derecha en T8–T9 (+45 mm), unión
     // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5]; el reborde costal es ahora el de la parrilla
     // (la medioclavicular lo cruza en el 9.º cartílago, con su línea media a −90 mm)
+    // lus-sim (decisión 17): las cúpulas de VExUS iban con su pared de 28 mm; el diafragma se inserta en la cara interna de
+    // la parrilla, así que con la pared torácica por región sus elipses se escalan con esa cara (al lado y delante), y la
+    // relación de la cúpula con la pleura (el receso costofrénico, la cortina) es la de antes
+    const wall0 = base.skinMm + base.fatMm + base.muscleMm;
+    const sx = (base.a - this.chestWall.total(this.chestWall.stations.midaxillary, 0)) / (base.a - wall0);
+    const sy = (base.b - this.chestWall.total(0, 0)) / (base.b - wall0);
+    const dome = (x0: number, y0: number, rx: number, ry: number, apex: number): Dome => ({
+      kind: 'dome',
+      x0: x0 * sx,
+      y0: y0 * sy,
+      rx: rx * sx,
+      ry: ry * sy,
+      apex,
+    });
+    this.curtain = { xMax: LUNG_CURTAIN.xMax * sx, yMax: LUNG_CURTAIN.yMax * sy };
     this.diaphragm = {
-      right: { kind: 'dome', x0: -55, y0: -5, rx: 85, ry: 92, apex: 55 },
-      left: { kind: 'dome', x0: 70, y0: -5, rx: 70, ry: 85, apex: 25 },
+      right: dome(-55, -5, 85, 92, 55),
+      left: dome(70, -5, 70, 85, 25),
       edgeZ: -50,
       edgeRise: 50,
     };
@@ -141,14 +201,42 @@ export class AnatomyScene {
     // La parrilla del adulto promedio (decisión 16): forra la cara interna de la pared de este hábito, con z = 0 en la
     // unión xifoesternal (el 7.º cartílago), al nivel del disco T9–T10 (Gray), y sus extremos posteriores en las
     // apófisis transversas de la columna
-    this.ribCage = buildRibCage(this.torso, this.spine, ribOptions);
+    const female = chest.sex === 'female';
+    this.ribCage = buildRibCage(this.torso, this.spine, {
+      icsDeltaMm: female ? -RIBCAGE.params.femaleIcsNarrowingMm.value : 0,
+      ...ribOptions,
+    });
     this.ribs = this.ribCage.ribs;
     this.ribNumbers = this.ribs.map((r) => r.number);
+    // las alturas de la pared: la axila alta y la baja en la axilar media, y el reborde costal por columna de |u|
+    const cage = this.ribCage;
+    const lam = ribLineArc(thoraxLinePhi('midaxillary', this.torso), this.torso, cage);
+    setChestWallCage(
+      this.chestWall,
+      (n) => ribTableZ(cage, n - 1, lam),
+      (au) => {
+        let low: number | null = null;
+        for (let k = 0; k < RIBS_PER_SIDE; k++) {
+          const r = cage.ribs[k];
+          if (au < r.uEnd || au > r.uPost) continue;
+          const z = ribTableZ(cage, k, au) - r.halfWidth;
+          low = low === null ? z : Math.min(low, z);
+        }
+        return low;
+      },
+      cage.sternum.zTip,
+    );
   }
 
-  /** Espesor total de la pared del tronco (mm). */
-  wallThickness(): number {
-    return this.torso.skinMm + this.torso.fatMm + this.torso.muscleMm;
+  /** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m (lus-sim, decisión 17: por región). */
+  wallThicknessAt(m: Vec3): number {
+    return wallTotalMm(m, this.torso);
+  }
+
+  /** Capas de la pared bajo la piel del ángulo del tronco φ a la altura z (la de la sonda apoyada ahí). */
+  wallAtSkin(phi: number, z: number): WallLayersAt {
+    const s = torsoSkinPoint(phi, z, this.torso);
+    return wallLayers(this.torso, wallArc(s, this.torso), z);
   }
 
   /**
@@ -156,7 +244,7 @@ export class AnatomyScene {
    * pleura parietal (gemelo GLSL `insideWallMm`). A0 busca en ella el cruce exacto de la pleura (decisión 61).
    */
   insideWallMm(m: Vec3): number {
-    return -torsoDepth(m, this.torso) - this.wallThickness();
+    return -torsoDepth(m, this.torso) - wallTotalMm(m, this.torso);
   }
 
   /**
@@ -164,7 +252,7 @@ export class AnatomyScene {
    * (decisión 61; gemelo GLSL `inLungCurtain`). Solo tiene sentido donde `classify` da pulmón.
    */
   inLungCurtain(m: Vec3, instant: SceneInstant): boolean {
-    return inLungCurtain(m, this.insideWallMm(m), instant.diaphragmCaudalMm);
+    return inLungCurtain(m, this.insideWallMm(m), instant.diaphragmCaudalMm, this.curtain);
   }
 
   /**
@@ -181,7 +269,7 @@ export class AnatomyScene {
    * `lungCurtainEdgeMm`, decisión 61).
    */
   lungEdgeMm(m: Vec3, instant: SceneInstant): number | null {
-    return lungCurtainEdgeMm(m, instant.diaphragmCaudalMm, diaphragmHeight(m[0], m[1], this.diaphragm, this.torso));
+    return lungCurtainEdgeMm(m, instant.diaphragmCaudalMm, diaphragmHeight(m[0], m[1], this.diaphragm, this.torso), this.curtain);
   }
 
   /**
@@ -189,7 +277,7 @@ export class AnatomyScene {
    * las vísceras, 0 en pared, costillas y columna (B.4, [EXTRAPOLACIÓN PROPIA]).
    */
   respiratoryWeight(m: Vec3): number {
-    const inside = -torsoDepth(m, this.torso) - this.wallThickness();
+    const inside = this.insideWallMm(m);
     const wWall = smoothstep(0, 25, inside);
     const dSpine = Math.hypot(m[0] - this.spine.x0, m[1] - this.spine.y0);
     const wSpine = smoothstep(this.spine.r + 5, this.spine.r + 35, dSpine);
@@ -211,7 +299,7 @@ export class AnatomyScene {
     const torso = this.torso;
     const depth = torsoDepth(m, torso);
     if (m[2] < torso.zMin || m[2] > torso.zMax || depth > 0) return NONE;
-    const wall = this.classifyWall(m, -depth);
+    const wall = this.classifyWall(m, -depth, instant.diaphragmCaudalMm);
     if (wall.final) return wall.cls;
     const curtain = withCurtain ? this.classifyLungCurtain(m, -depth - wall.wallMm, instant.diaphragmCaudalMm) : null;
     if (curtain) return curtain;
@@ -262,7 +350,8 @@ export class AnatomyScene {
     if (face === undefined) {
       // las caras de la pared y de las costillas (decisión 62) no tienen geometría de faceSdf
       const iface = this.classify(m, instant).interface;
-      if (isWallLayerInterface(iface)) return this.numericGradient(m, (p) => wallFaceSd(p, iface, this.torso), 0);
+      if (isWallLayerInterface(iface))
+        return this.numericGradient(m, (p) => wallFaceSd(p, iface, this.torso, instant.diaphragmCaudalMm), 0);
       if (isRibInterface(iface)) {
         const k = faceRib(m, this.torso, this.ribCage);
         const g = this.numericGradient(m, (p) => ribSd(p, k, this.torso, this.ribCage), ribCurvature(m, k, this.torso, this.ribCage));
@@ -299,22 +388,24 @@ export class AnatomyScene {
    * esternón), su cortical; el cartílago, su pericondrio. El hueso no dibuja cara (su cortical la dibuja el tejido blando
    * de fuera).
    */
-  private classifyWall(m: Vec3, d: number): { final: true; cls: Classification } | { final: false; wallMm: number } {
+  private classifyWall(m: Vec3, d: number, caudalMm: number): { final: true; cls: Classification } | { final: false; wallMm: number } {
     const torso = this.torso;
-    const skin = torso.skinMm;
-    const wall = skin + torso.fatMm + torso.muscleMm;
+    // lus-sim (decisión 17): la pared por región, en el (u, z) de la muestra; sus capas, solo dentro de ella
+    const u = wallArc(m, torso);
+    const wall = torso.chestWall ? torso.chestWall.total(u, m[2]) : torso.skinMm + torso.fatMm + torso.muscleMm;
+    const L = d < wall ? wallLayers(torso, u, m[2]) : null;
+    const skin = L ? L.skin : 0;
     // la cara de la capa más cercana; la distancia a la frontera cuenta el hueso o cartílago más cercano (|∇| ≤ 1,1)
-    const layer = (tissue: Tissue, bd: number, u: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
-      const [face, dist] = wallFace(d, u, m[2], ribD, torso);
+    const layer = (tissue: Tissue, bd: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
+      const [face, dist] = wallFace(d, u, m[2], ribD, torso, caudalMm);
       const boundaryDistance = Math.min(bd, ribAny / 1.1);
       return { final: true, cls: { ...NONE, tissue, boundaryDistance, interface: face, interfaceDistance: dist } };
     };
-    if (d < skin) return layer(Tissue.Skin, skin - d, 0, 1e3, 1e3);
+    if (d < skin) return layer(Tissue.Skin, skin - d, 1e3, 1e3);
     // La parrilla, antes de la grasa subcutánea donde puede llegar (la grasa no la corta): el esternón y las costillas del
-    // lado de la muestra; el hueso más cercano da la cortical, el cartílago su pericondrio. Las coordenadas de la pared,
-    // solo dentro de ella (bajo la pared, `ribScan` no mira nada)
-    const u = d < wall ? wallArc(m, torso) : 0;
-    const scan = ribScan(m, d, u, torso, this.ribCage);
+    // lado de la muestra; el hueso más cercano da la cortical, el cartílago su pericondrio (bajo la pared, `ribScan` no
+    // mira nada)
+    const scan = ribScan(m, d, u, torso, this.ribCage, wall);
     if (scan.inside >= 0) {
       const face = scan.cartilage ? { interface: Interface.Perichondrium, interfaceDistance: -scan.inD } : {};
       return {
@@ -328,16 +419,17 @@ export class AnatomyScene {
       return { final: false, wallMm: wall };
     }
     // las capas de la pared: fascia profunda y transversalis onduladas en (u, z)
-    const w = wallDepths(torso, u, m[2]);
-    if (d < w.fascia) return layer(Tissue.Fat, Math.min(d - skin, w.fascia - d), u, scan.ribD, scan.ribAny);
-    if (d < w.transversalis) return layer(Tissue.Muscle, Math.min(d - w.fascia, w.transversalis - d), u, scan.ribD, scan.ribAny);
-    // grasa preperitoneal (extraperitoneal) entre la transversalis y el peritoneo parietal
-    return layer(Tissue.Fat, Math.min(d - w.transversalis, wall - d), u, scan.ribD, scan.ribAny);
+    const w = wallDepths(torso, u, m[2], L!);
+    if (d < w.fascia) return layer(Tissue.Fat, Math.min(d - skin, w.fascia - d), scan.ribD, scan.ribAny);
+    if (d < w.transversalis) return layer(Tissue.Muscle, Math.min(d - w.fascia, w.transversalis - d), scan.ribD, scan.ribAny);
+    // grasa preperitoneal (extraperitoneal) entre la transversalis y el peritoneo parietal; en el tórax, el complejo pleura +
+    // fascia endotorácica (decisión 17)
+    return layer(Tissue.Fat, Math.min(d - w.transversalis, wall - d), scan.ribD, scan.ribAny);
   }
 
   /** Lámina de pulmón en el receso costofrénico derecho (lateral y posterior), bajo la pared. */
   private classifyLungCurtain(m: Vec3, insideWallMm: number, diaphragmCaudalMm: number): Classification | null {
-    const bd = lungCurtainDistance(m, insideWallMm, diaphragmCaudalMm);
+    const bd = lungCurtainDistance(m, insideWallMm, diaphragmCaudalMm, this.curtain);
     return bd === null ? null : { ...NONE, tissue: Tissue.Lung, boundaryDistance: bd };
   }
 }

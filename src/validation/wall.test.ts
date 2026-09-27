@@ -25,7 +25,7 @@ import {
   wallPlaneGap,
   wallWave,
 } from '../anatomy/organs/wall';
-import { torsoDepth, torsoDepthGradient, torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
+import { torsoDepth, torsoDepthGradient, torsoNormal, torsoSkinPoint, type Torso } from '../anatomy/primitives';
 import { MAX_RIBS, ribCenterDepth, ribCurvature, ribLinePoint, ribMetric, ribSd, ribTableZ, ribTangent } from '../anatomy/organs/ribcage';
 import { AnatomyScene, BASELINE_INSTANT, faceGeometryOf } from '../anatomy/scene';
 import { TISSUE_COUNT, Tissue } from '../anatomy/tissues';
@@ -77,6 +77,14 @@ const at = (phi: number, z: number, d: number): Vec3 => {
   return [skin[0] * k, skin[1] * k, z];
 };
 const FLANK = Math.PI * 1.04;
+/**
+ * lus-sim (decisión 17): el tórax tiene su pared por región (`organs/chestWall.ts`, `chestWall.test.ts`); la pared en capas
+ * de VExUS (tres músculos con sus planos, grasa de 14 mm) es la del abdomen, bajo el reborde costal. Sus pruebas miran
+ * ahí: z −280 queda bajo la transición en todo el tronco (el reborde más bajo, −132 al lado, y 100 mm de mezcla), y las
+ * funciones puras, con el tronco uniforme del hábito (sin la pared torácica).
+ */
+const ABDOMEN_Z = -280;
+const tu: Torso = { ...t, chestWall: undefined };
 const WALL_FACES = [
   Interface.SkinFat,
   Interface.Scarpa,
@@ -93,7 +101,8 @@ describe('capas de la pared (decisión 62)', () => {
     expect(preperitonealMm(5)).toBe(1.5);
     expect(preperitonealMm(40)).toBe(4);
     expect(t.preperitonealMm).toBeCloseTo(2.1, 9);
-    expect(scene.wallThickness()).toBe(t.skinMm + t.fatMm + t.muscleMm);
+    // lus-sim (decisión 17): el hábito es la pared del abdomen, bajo el reborde costal (en el tórax, la pared por región)
+    expect(scene.wallThicknessAt([0, t.b, -200])).toBeCloseTo(t.skinMm + t.fatMm + t.muscleMm, 9);
     // el esquema único sube la grasa preperitoneal en uWall.w
     const uWall = SCENE_UNIFORMS.find((u) => u.name === 'uWall')!;
     expect(uWall.type).toBe('vec4');
@@ -135,10 +144,10 @@ describe('capas de la pared (decisión 62)', () => {
 
   it('orden de las caras en la pared lateral y fusión de los planos hacia el recto', () => {
     for (const z of [-60, -14, 20]) {
-      const u = wallArc(at(FLANK, z, 0), t);
-      const w = wallDepths(t, u, z);
-      const p0 = wallPlaneDepth(u, z, 0, t);
-      const p1 = wallPlaneDepth(u, z, 1, t);
+      const u = wallArc(at(FLANK, z, 0), tu);
+      const w = wallDepths(tu, u, z);
+      const p0 = wallPlaneDepth(u, z, 0, tu);
+      const p1 = wallPlaneDepth(u, z, 1, tu);
       expect(w.skin).toBeLessThan(w.scarpa);
       expect(w.scarpa).toBeLessThan(w.fascia);
       expect(w.fascia).toBeLessThan(p0);
@@ -152,14 +161,14 @@ describe('capas de la pared (decisión 62)', () => {
     }
     // en la línea media (recto) los planos se han fundido con sus vainas
     for (const u of [-30, 0, 20]) {
-      const w = wallDepths(t, u, 0);
-      expect(wallPlaneGap(wallPlaneDepth(u, 0, 0, t), 0, w)).toBeLessThan(WALL.planeMinMm);
-      expect(wallPlaneGap(wallPlaneDepth(u, 0, 1, t), 1, w)).toBeLessThan(WALL.planeMinMm);
+      const w = wallDepths(tu, u, 0);
+      expect(wallPlaneGap(wallPlaneDepth(u, 0, 0, tu), 0, w)).toBeLessThan(WALL.planeMinMm);
+      expect(wallPlaneGap(wallPlaneDepth(u, 0, 1, tu), 1, w)).toBeLessThan(WALL.planeMinMm);
     }
   });
 
   it('classify: tejidos y caras de piel a peritoneo en el flanco, cada muestra con su capa más cercana', () => {
-    const z = -14;
+    const z = ABDOMEN_Z;
     const u = wallArc(at(FLANK, z, 0), t);
     const w = wallDepths(t, u, z);
     const planes = [wallPlaneDepth(u, z, 0, t), wallPlaneDepth(u, z, 1, t)];
@@ -243,7 +252,7 @@ describe('capas de la pared (decisión 62)', () => {
     let inRib = 0;
     for (let phiDeg = 92; phiDeg <= 268; phiDeg += 6)
       for (let z = -150; z <= 210; z += 2)
-        for (let d = t.skinMm; d < scene.wallThickness(); d += 0.5) {
+        for (let d = 1.5; d < scene.wallThicknessAt(at((phiDeg * Math.PI) / 180, z, 0)); d += 0.5) {
           const p = at((phiDeg * Math.PI) / 180, z, d);
           let inside = false;
           for (let k = 0; k <= MAX_RIBS; k++) if (ribSd(p, k, t, cage) < -0.05) inside = true;
@@ -254,17 +263,19 @@ describe('capas de la pared (decisión 62)', () => {
     expect(inRib).toBeGreaterThan(1000);
     // conservadora: ningún punto a más del grosor del esternón (el hueso más grueso) de la pleura, por la normal (|∇| ≤ 1,2),
     // está dentro de una costilla ni del esternón
-    const depth0 = scene.wallThickness() - 1.2 * (cage.pleuraComplex + Math.max(2 * cage.halfThickness, cage.sternum.thickness));
-    expect(depth0).toBeGreaterThan(t.skinMm);
+    const bone = 1.2 * (cage.pleuraComplex + Math.max(2 * cage.halfThickness, cage.sternum.thickness));
     for (let phiDeg = -60; phiDeg <= 240; phiDeg += 6)
-      for (let z = -150; z <= 210; z += 6)
+      for (let z = -150; z <= 210; z += 6) {
+        // lus-sim (decisión 17): la pared de ese punto (por región)
+        const depth0 = scene.wallThicknessAt(at((phiDeg * Math.PI) / 180, z, 0)) - bone;
         for (let d = 0; d < depth0; d += 1)
           for (let k = 0; k <= MAX_RIBS; k++) expect(ribSd(at((phiDeg * Math.PI) / 180, z, d), k, t, cage)).toBeGreaterThan(0);
+      }
   });
 
   it('faceGradient de las caras de la pared: la normal de la piel y |∇| ≤ 1,1 (la métrica radial de las capas)', () => {
     for (const d of [2.1, t.skinMm + t.fatMm - 0.2]) {
-      const m = at(FLANK, -14, d);
+      const m = at(FLANK, ABDOMEN_Z, d);
       const g = scene.faceGradient(m, BASELINE_INSTANT)!;
       const n = torsoNormal(m, t);
       expect(Math.abs(g.normal[0] * n[0] + g.normal[1] * n[1] + g.normal[2] * n[2])).toBeGreaterThan(0.99);
@@ -381,11 +392,11 @@ describe('eco de cara plana de las copias de la pared (serie de la pleura, decis
     const K0 = (2 * Math.PI) / (1540 / 2500);
     const worst = new Map<Interface, number>();
     for (const [phi, z, tiltDeg] of [
-      [Math.PI * 0.56, -20, 0],
-      [FLANK, -14, 0],
-      [FLANK, -14, 15],
-      [Math.PI * 0.88, 8, 10],
-      [Math.PI * 0.7, -30, 20],
+      [Math.PI * 0.56, ABDOMEN_Z, 0],
+      [FLANK, ABDOMEN_Z + 6, 0],
+      [FLANK, ABDOMEN_Z + 6, 15],
+      [Math.PI * 0.88, ABDOMEN_Z + 16, 10],
+      [Math.PI * 0.7, ABDOMEN_Z - 10, 20],
     ] as const) {
       const skin = torsoSkinPoint(phi, z, t);
       const n = torsoNormal(skin, t);
@@ -418,7 +429,7 @@ describe('eco de cara plana de las copias de la pared (serie de la pleura, decis
     expect(worst.get(Interface.Peritoneum)!).toBeLessThan(0.05);
     // sin la cortical ni el pericondrio (cilindros: no son planos paralelos a la piel)
     for (const f of [Interface.RibCortex, Interface.Perichondrium, Interface.LiverCapsule])
-      expect(wallFaceEchoFlat(f, 0.3, at(FLANK, -14, 10), [0, 1, 0], t, K0)).toBe(0);
+      expect(wallFaceEchoFlat(f, 0.3, at(FLANK, ABDOMEN_Z, 10), [0, 1, 0], t, K0)).toBe(0);
   });
 
   it('la GLSL: el mismo gradiente y el eco de cara plana en la pared que copia la serie, sin faceGradient', () => {
@@ -444,25 +455,32 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     const glsl = ANATOMY_GLSL.replace(/\s+/g, ' ');
     // classify: capas onduladas, la cortical del hueso más cercano y el pericondrio del cartílago (lus-sim, decisión 16:
     // la parrilla de `organs/ribcage.ts`)
-    expect(glsl).toContain('vec4 wd = wallDepths(u, m.z);');
+    expect(glsl).toContain('vec4 wd = wallDepthsOf(u, m.z, wl, wx.z);');
     expect(glsl).toContain('if ((!c || uRibParams.z > 0.0) && rd < ribD) { ribD = rd; ribI = i; }');
     expect(glsl).toContain('if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -inD;');
     expect(glsl).toContain('c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);');
     // en classifyWall (el prefijo de la pared de classify, decisión 61): la parrilla antes de la grasa subcutánea donde
-    // puede llegar (la grasa no la corta), y las coordenadas de la pared solo dentro de ella (no en cada punto del
-    // tronco); con la muestra fuera de la pared, classifyWith sigue
-    const cls = glsl.slice(glsl.indexOf('bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn) {'));
+    // puede llegar (la grasa no la corta); lus-sim (decisión 17): el grosor de la pared en el (u, z) de cada muestra y sus
+    // capas solo dentro de ella; con la muestra fuera de la pared, classifyWith sigue con ese grosor
+    const cls = glsl.slice(glsl.indexOf('bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wall) {'));
     expect(glsl.indexOf('Cls classifyWith(vec3 m, bool withCurtain) {')).toBeGreaterThan(glsl.indexOf('bool classifyWall('));
     expect(cls).toContain('return true; } return false; }');
-    const arc = cls.indexOf('float u = d < wall ? wallArc(m) : 0.0;');
-    const ribs = cls.indexOf('int ri = ribScan(m, d, u, inD, cart, ribD, ribI, ribAny);');
+    // (más hondo que la pared más gruesa, la lámina de la cortina y el tope del «resto», la tabla no cambia nada: la
+    // salida barata toma la cota)
+    const arc = cls.indexOf(
+      'float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM); float u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
+    );
+    const layers = cls.indexOf('if (d < wall) wl = wallLayersAt(u, m.z, wx);');
+    const ribs = cls.indexOf('int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);');
     const inWall = cls.indexOf('if (d < wall) {');
     expect(arc).toBeGreaterThan(0);
-    expect(ribs).toBeGreaterThan(arc);
+    expect(layers).toBeGreaterThan(arc);
+    expect(ribs).toBeGreaterThan(layers);
     expect(inWall).toBeGreaterThan(ribs);
-    expect(cls.indexOf('vec4 wd = wallDepths(u, m.z);')).toBeGreaterThan(inWall);
+    expect(cls.indexOf('vec4 wd = wallDepthsOf(u, m.z, wl, wx.z);')).toBeGreaterThan(inWall);
+    expect(glsl).toContain('float wall; if (classifyWall(m, c, depth, tn, wall)) return c;');
     // y la parrilla no mira nada bajo la pared
-    expect(glsl).toContain('if (d >= uWall.x + uWall.y + uWall.z) return -1;');
+    expect(glsl).toContain('if (d >= wall) return -1;');
     // faceGradient: la distancia de la capa y la de la costilla cuya cara es (la de la clasificación)
     expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
     expect(glsl).toContain('int k = faceRib(m);');
@@ -520,7 +538,7 @@ describe('textura de la pared (wallTexture.ts)', () => {
       // una línea a lo largo de la piel a 8 mm de hondo (grasa): tramos entre paredes de columna
       const phi = Math.PI / 2 - u / 135;
       const m = at(phi, z, 8.3);
-      const s = fatSeptum(m, t);
+      const s = fatSeptum(m, tu);
       n++;
       if (s[3] > 0.5) {
         onSeptum++;
@@ -550,10 +568,10 @@ describe('textura de la pared (wallTexture.ts)', () => {
     for (let z = -80; z <= 20; z += 5) {
       let prev = 0;
       let rising = false;
-      const u0 = wallArc(at(FLANK, z, 0), t);
-      const w = wallDepths(t, u0, z);
+      const u0 = wallArc(at(FLANK, z, 0), tu);
+      const w = wallDepths(tu, u0, z);
       for (let d = w.fascia + 0.3; d < w.transversalis - 0.3; d += 0.02) {
-        const s = muscleStriation(at(FLANK, z, d), t);
+        const s = muscleStriation(at(FLANK, z, d), tu);
         const wv = s[3];
         if (wv < prev && rising && prev > 0.3) peaks.push(d);
         rising = wv > prev;
@@ -569,7 +587,7 @@ describe('textura de la pared (wallTexture.ts)', () => {
     // pendiente ≤ 15° (peniforme): la normal de la estría se aparta ≤ 15° de la de la piel
     for (let z = -60; z <= 20; z += 10) {
       const m = at(FLANK, z, t.skinMm + t.fatMm + 3);
-      const s = muscleStriation(m, t);
+      const s = muscleStriation(m, tu);
       const n = torsoNormal(m, t);
       expect(Math.abs(s[0] * n[0] + s[1] * n[1] + s[2] * n[2])).toBeGreaterThan(Math.cos((15 * Math.PI) / 180));
     }

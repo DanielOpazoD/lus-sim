@@ -166,8 +166,9 @@ describe('paridad de la mirada dirigida: empates de redondeo (G8, decisión 58)'
           const p = compareSteeredTransmission(grid, ap, th, gpuLike(grid, ap, th, bias), 8);
           const tag = `${view}, mirada ${look}, redondeo ${bias}: ${JSON.stringify(p)}`;
           // lus-sim: bajo la pleura el gas (60 dB/cm) deja la transmisión por debajo de −60 dB en ~1 cm, así que solo
-          // cuentan las filas de la pared y del primer centímetro de pulmón (≈ 1100 muestras cada 8 líneas; VExUS, > 2000)
-          expect(p.samples, tag).toBeGreaterThan(800);
+          // cuentan las filas de la pared y del primer centímetro de pulmón (≈ 730 muestras cada 8 líneas con la pared
+          // torácica por región, decisión 17, la pleura a 13–16 mm; ≈ 1100 con la heredada; VExUS, > 2000)
+          expect(p.samples, tag).toBeGreaterThan(600);
           expect(p.maxDiffDb, tag).toBe(0);
           expect(p.apertureMaxDiffDb, tag).toBe(0);
         }

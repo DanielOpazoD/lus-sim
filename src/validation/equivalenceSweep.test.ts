@@ -160,7 +160,11 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(r.agreement).toBe(1);
     expect(r.distanceMaxErr).toBeLessThan(1e-4);
     expect(r.disagreements).toEqual([]);
-    for (const face of WALL_FACES) expect(r.byInterface[face] ?? 0, `${face}: ${JSON.stringify(r.byInterface)}`).toBeGreaterThan(10);
+    // lus-sim (decisión 17): en la pared torácica el primer plano intermuscular se funde con la fascia profunda (el
+    // oblicuo es del abdomen): los planos de partida, todos en el tórax, no lo tienen
+    for (const face of WALL_FACES.filter((f) => f !== 'ObliquePlane'))
+      expect(r.byInterface[face] ?? 0, `${face}: ${JSON.stringify(r.byInterface)}`).toBeGreaterThan(10);
+    expect(r.byInterface.ObliquePlane ?? 0).toBe(0);
   });
 
   it('la cáscara ve una GPU sin las caras de la pared, o con la ondulación de la fascia cambiada', () => {
@@ -199,7 +203,8 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     // solo el redondeo a float32 de la lectura (la GPU real da 0 en D: la bisección cae en múltiplos exactos del paso)
     expect(ok.depthMaxErrMm).toBeLessThan(1e-4);
     expect(ok.edgeMaxErrMm).toBeLessThan(1e-4);
-    for (const id of START_POINTS.map((s) => s.id)) expect(ok.centralDepthMm[id]).toBeGreaterThan(15);
+    // bajo la pared torácica por región (decisión 17: 13–16 mm en estos puntos; antes, la heredada de 28)
+    for (const id of START_POINTS.map((s) => s.id)) expect(ok.centralDepthMm[id]).toBeGreaterThan(10);
     // el paso final de la bisección con la profundidad del preajuste: 120 mm / 160 / 2⁶ (la cota de la e2e)
     expect(ok.quantumMm).toBeCloseTo(120 / 160 / 64, 12);
     const shifted = pleuraEquivalence(fakeSim(undefined, 0.05));

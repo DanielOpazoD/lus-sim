@@ -23,19 +23,19 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
     sources: ['volpicelli-actualizacion-2026'],
     note:
       'Profundidad ≤ 10–12 cm con sonda curvilínea en un adulto de complexión media (D1_1.2, comentario 2). Se toma el ' +
-      'extremo alto: con la pleura heredada a 25–28 mm caben tres réplicas (líneas A de orden 2 a 4) y es la profundidad ' +
-      'con que una línea B de edema debe llegar al borde inferior (meta F-T18)',
+      'extremo alto: es la profundidad con que una línea B de edema debe llegar al borde inferior (meta F-T18); con la ' +
+      'pleura a 16 mm (la pared torácica por región, decisión 17) caben seis réplicas (líneas A de orden 2 a 7)',
   },
   focusMm: {
-    value: 25,
+    value: 16,
     unit: 'mm',
     evidence: 'derivado',
     sources: ['volpicelli-actualizacion-2026'],
     note:
       'Un solo foco a la altura de la línea pleural (D1_1.2): la profundidad de la pleura parietal en el centro del sector ' +
       'con la sonda apoyada en el punto BLUE superior de la escena (`defaultPose`), en fin de espiración, medida con la ' +
-      'marcha de A0 (`pleuraCrossingLine`). `lungPreset.test.ts` la vuelve a medir: si la anatomía cambia (paso C), la ' +
-      'prueba falla y el foco se recalcula',
+      'marcha de A0 (`pleuraCrossingLine`): 16,0 mm con la pared torácica por región (decisión 17; 25 con la heredada). ' +
+      '`lungPreset.test.ts` la vuelve a medir: si la anatomía cambia, la prueba falla y el foco se recalcula',
   },
   persistence: {
     value: 0,

@@ -22,17 +22,20 @@
 // 2026-09-26 (paso C1, decisión 16): la parrilla costal del adulto promedio (`anatomy/organs/ribcage.ts`: su construcción,
 // sus ~40 parámetros con su evidencia y su gemelo GLSL, que entra en cada programa con la anatomía), las líneas del tórax
 // y el cartílago llevan index de 163,5 a 186,8 kB. index sube a 195 kB; el total de JS (200 kB) no cambia.
+// 2026-09-27 (paso C2, decisión 17): la pared torácica por región (`anatomy/organs/chestWall.ts`: sus ~25 parámetros con su
+// evidencia, la tabla y su gemelo GLSL) y las capas por región de la pared, el contacto y la clasificación llevan index de
+// 187,7 a 203,4 kB. index sube a 210 kB y el total de JS a 215.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 195 * KB],
+  [/index-.*\.js$/, 210 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const TOTAL_JS_BUDGET = 200 * KB;
+const TOTAL_JS_BUDGET = 215 * KB;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

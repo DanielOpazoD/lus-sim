@@ -1,6 +1,6 @@
 import type { Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
-import { torsoDepth, type Torso } from '../primitives';
+import { torsoDepth, torsoDepthGradient, type Torso, type WallLayersAt } from '../primitives';
 
 /**
  * Pared torácica y abdominal en capas (decisión 62) como módulo de órgano (decisión 46): la geometría de
@@ -63,6 +63,13 @@ export const WALL = {
    * a la frontera de la grasa que tienen encima.
    */
   ribSearchMarginMm: 8,
+  /**
+   * lus-sim (decisión 17): en la pared torácica, Scarpa y la fascia profunda ondulan en proporción a la grasa hasta este
+   * grosor (con 3,7 mm de grasa, un 37 %: las caras de una grasa fina no se cruzan ni cruzan la piel); en el abdomen, entera.
+   */
+  waveFatMm: 10,
+  /** lus-sim (decisión 17): ondulación del plano músculo–intercostal, en fracción de la de los planos del abdomen. */
+  thoraxPlaneWaveFraction: 0.25,
 } as const;
 
 /** Grasa preperitoneal (mm) de un hábito: una parte del espesor muscular del hábito. */
@@ -114,16 +121,77 @@ export function wallWave(u: number, z: number, k: number, t: Pick<Torso, 'a' | '
   );
 }
 
-export function wallDepths(t: Torso, u: number, z: number): WallDepths {
-  const peritoneum = t.skinMm + t.fatMm + t.muscleMm;
+/**
+ * Capas de la pared en (u, z) (lus-sim, decisión 17): las de la pared torácica por región del tronco
+ * (`organs/chestWall.ts`) o, sin ella, las uniformes del hábito (VExUS: todo abdomen, sin banda intercostal).
+ */
+export function wallLayers(t: Torso, u: number, z: number): WallLayersAt {
+  if (t.chestWall) return t.chestWall.layers(u, z);
+  return { skin: t.skinMm, fat: t.fatMm, muscle: t.muscleMm, pre: t.preperitonealMm, band: 0, abdomen: 1 };
+}
+
+/** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m: piel, grasa y músculo en su (u, z). */
+export function wallTotalMm(m: Vec3, t: Torso): number {
+  return t.chestWall ? t.chestWall.total(wallArc(m, t), m[2]) : t.skinMm + t.fatMm + t.muscleMm;
+}
+
+/**
+ * Normal exterior (unitaria) de la cara interna de la pared, la pleura parietal, en el punto MATERIAL m: −∇ de la
+ * profundidad bajo ella, −torsoDepth − W(u, z) (lus-sim, decisión 17: con la pared por región la pleura se inclina
+ * respecto de la piel, hasta ≈ 10° en la subida hacia la axila; sin pared torácica, la normal radial de VExUS). Analítica en
+ * ∇torsoDepth y en ∇u (la tangente de la elipse del punto sobre ρ, la escala del rayo) y con diferencias centrales de
+ * `WALL_NORMAL_STEP_MM` en la tabla (u y z): una sola `wallArc` por punto, que la pasada B la evalúa en cada muestra.
+ * Gemelo GLSL con el mismo nombre.
+ */
+export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
+  const g = torsoDepthGradient(m, t);
+  let nx = g[0];
+  let ny = g[1];
+  let nz = 0;
+  if (t.chestWall) {
+    const u = wallArc(m, t);
+    const h = WALL_NORMAL_STEP_MM;
+    const dWdu = (t.chestWall.total(u + h, m[2]) - t.chestWall.total(u - h, m[2])) / (2 * h);
+    const dWdz = (t.chestWall.total(u, m[2] + h) - t.chestWall.total(u, m[2] - h)) / (2 * h);
+    const tau = Math.atan2(m[0] / t.a, m[1] / t.b);
+    const tx = t.a * Math.cos(tau);
+    const ty = -t.b * Math.sin(tau);
+    const tl = Math.hypot(tx, ty);
+    const rho = Math.hypot(m[0] / t.a, m[1] / t.b);
+    nx += (dWdu * tx) / (tl * rho);
+    ny += (dWdu * ty) / (tl * rho);
+    nz = dWdz;
+  }
+  const l = Math.hypot(nx, ny, nz);
+  return [nx / l, ny / l, nz / l];
+}
+
+/** Paso (mm) de las diferencias de la tabla de la pared en `wallInnerNormal`. */
+const WALL_NORMAL_STEP_MM = 0.5;
+
+/**
+ * Banda intercostal (mm) en (u, z) con el descenso del diafragma `caudalMm`: la de reposo más lo que engruesa delante al
+ * inspirar (lus-sim, decisión 17); 0 sin pared torácica.
+ */
+export function wallBand(t: Torso, u: number, z: number, caudalMm: number, L: WallLayersAt = wallLayers(t, u, z)): number {
+  return t.chestWall ? L.band + t.chestWall.inspiration(u, z, caudalMm) : 0;
+}
+
+export function wallDepths(t: Torso, u: number, z: number, L: WallLayersAt = wallLayers(t, u, z)): WallDepths {
+  const peritoneum = L.skin + L.fat + L.muscle;
+  // lus-sim (decisión 17): en el tórax, las caras de la grasa ondulan con su grosor y la fascia endotorácica no ondula
+  const ws = mixN(Math.min(1, L.fat / WALL.waveFatMm), 1, L.abdomen);
   return {
-    skin: t.skinMm,
-    scarpa: t.skinMm + WALL.scarpaFraction * t.fatMm + WALL.scarpaWaveMm * wallWave(u, z, 2, t),
-    fascia: t.skinMm + t.fatMm + WALL.fasciaWaveMm * wallWave(u, z, 3, t),
-    transversalis: peritoneum - t.preperitonealMm + WALL.transversalisWaveFraction * (t.preperitonealMm - 1) * wallWave(u, z, 4, t),
+    skin: L.skin,
+    scarpa: L.skin + WALL.scarpaFraction * L.fat + ws * WALL.scarpaWaveMm * wallWave(u, z, 2, t),
+    fascia: L.skin + L.fat + ws * WALL.fasciaWaveMm * wallWave(u, z, 3, t),
+    transversalis: peritoneum - L.pre + L.abdomen * WALL.transversalisWaveFraction * (L.pre - 1) * wallWave(u, z, 4, t),
     peritoneum,
   };
 }
+
+/** mix de GLSL: a·(1 − f) + b·f. */
+const mixN = (a: number, b: number, f: number): number => a * (1 - f) + b * f;
 
 const smooth = (e0: number, e1: number, x: number): number => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
@@ -154,12 +222,26 @@ export function wallArc(m: Vec3, t: Pick<Torso, 'a' | 'b'>): number {
  * Profundidad (mm bajo la piel) del plano intermuscular `i` (0: oblicuo externo/interno, 1: interno/
  * transverso) en (u, z), continua: hacia el recto se acerca a su vaina, y donde queda a menos de
  * `planeMinMm` de ella (`wallPlaneGap`) se ha fundido con ella y no dibuja cara.
+ *
+ * lus-sim (decisión 17): en el tórax el primero se funde con la fascia profunda y el segundo es el plano músculo–intercostal,
+ * la banda intercostal (`wallBand`, que engruesa al inspirar) sobre la fascia endotorácica (la transversalis de la tabla);
+ * bajo el reborde costal pasan a los del abdomen.
  */
-export function wallPlaneDepth(u: number, z: number, i: number, t: Torso, w: WallDepths = wallDepths(t, u, z)): number {
+export function wallPlaneDepth(
+  u: number,
+  z: number,
+  i: number,
+  t: Torso,
+  w: WallDepths = wallDepths(t, u, z),
+  caudalMm = 0,
+  Lw: WallLayersAt = wallLayers(t, u, z),
+): number {
   const M = w.transversalis - w.fascia;
   const L = smooth(WALL.rectusMm[0], WALL.rectusMm[1], Math.abs(u));
   const wave = WALL.planeWaveMm * wallWave(u, z, i, t);
-  return i === 0 ? w.fascia + WALL.planeFractions[0] * L * M + wave : w.transversalis - WALL.planeFractions[1] * L * M + wave;
+  const abdomen = i === 0 ? w.fascia + WALL.planeFractions[0] * L * M + wave : w.transversalis - WALL.planeFractions[1] * L * M + wave;
+  const thorax = i === 0 ? w.fascia : w.transversalis - wallBand(t, u, z, caudalMm, Lw) + WALL.thoraxPlaneWaveFraction * wave;
+  return mixN(thorax, abdomen, Lw.abdomen);
 }
 
 /** Distancia (mm) del plano `i` a su vaina (la fascia profunda o la transversalis): < `planeMinMm`, fundido. */
@@ -172,8 +254,9 @@ export function wallPlaneGap(depth: number, i: number, w: WallDepths): number {
  * el valor de su distancia: la capa más cercana (a igualdad, la de fuera). `ribD` es la distancia a la
  * costilla ósea más cercana (1e3 si no hay): en el tejido blando bajo la fascia profunda manda la cortical.
  */
-export function wallFace(d: number, u: number, z: number, ribD: number, t: Torso): [Interface, number] {
-  const w = wallDepths(t, u, z);
+export function wallFace(d: number, u: number, z: number, ribD: number, t: Torso, caudalMm = 0): [Interface, number] {
+  const Lw = wallLayers(t, u, z);
+  const w = wallDepths(t, u, z, Lw);
   if (d < w.skin) return [Interface.SkinFat, w.skin - d];
   // el tejido blando junto a una costilla ósea dibuja su cortical, también la grasa subcutánea
   if (ribD < WALL.ribFacePriorityMm) return [Interface.RibCortex, ribD];
@@ -193,7 +276,7 @@ export function wallFace(d: number, u: number, z: number, ribD: number, t: Torso
     offer(Interface.DeepFascia, d - w.fascia);
     offer(Interface.Transversalis, w.transversalis - d);
     for (let i = 0; i < 2; i++) {
-      const wp = wallPlaneDepth(u, z, i, t, w);
+      const wp = wallPlaneDepth(u, z, i, t, w, caudalMm, Lw);
       if (wallPlaneGap(wp, i, w) >= WALL.planeMinMm) offer(i === 0 ? Interface.ObliquePlane : Interface.TransversusPlane, Math.abs(d - wp));
     }
   } else {
@@ -208,10 +291,11 @@ export function wallFace(d: number, u: number, z: number, ribD: number, t: Torso
  * menos la de la capa, continua (los planos intermusculares, sin el corte de su fusión: el gradiente de la
  * GPU es una diferencia central y un salto en la distancia lo dispararía). Gemelo de la GLSL.
  */
-export function wallFaceSd(m: Vec3, face: Interface, t: Torso): number {
+export function wallFaceSd(m: Vec3, face: Interface, t: Torso, caudalMm = 0): number {
   const d = -torsoDepth(m, t);
   const u = wallArc(m, t);
-  const w = wallDepths(t, u, m[2]);
+  const Lw = wallLayers(t, u, m[2]);
+  const w = wallDepths(t, u, m[2], Lw);
   switch (face) {
     case Interface.SkinFat:
       return d - w.skin;
@@ -224,11 +308,15 @@ export function wallFaceSd(m: Vec3, face: Interface, t: Torso): number {
     case Interface.Peritoneum:
       return d - w.peritoneum;
     default:
-      return d - wallPlaneDepth(u, m[2], face === Interface.ObliquePlane ? 0 : 1, t, w);
+      return d - wallPlaneDepth(u, m[2], face === Interface.ObliquePlane ? 0 : 1, t, w, caudalMm, Lw);
   }
 }
 
-/** Gemelo GLSL (usa uTorso, uWall = (piel, grasa, músculo, preperitoneal) y torsoDepth). lus-sim (decisión 16): las funciones de las costillas pasan a `organs/ribcage.ts`. */
+/**
+ * Gemelo GLSL (usa uTorso, torsoDepth y, lus-sim (decisión 17), las capas de `wallLayersAt`/`wallTotalAt` de
+ * `organs/chestWall.ts`, con uWall = (piel, grasa, músculo, preperitoneal) del abdomen). lus-sim (decisión 16): las funciones
+ * de las costillas pasan a `organs/ribcage.ts`.
+ */
 export const WALL_GLSL = /* glsl */ `
 #define WALL_SCARPA_FRACTION ${WALL.scarpaFraction.toFixed(4)}
 #define WALL_PLANE_F0 ${WALL.planeFractions[0].toFixed(4)}
@@ -241,6 +329,9 @@ export const WALL_GLSL = /* glsl */ `
 #define WALL_RECTUS_MM1 ${WALL.rectusMm[1].toFixed(4)}
 #define WALL_PLANE_MIN_MM ${WALL.planeMinMm.toFixed(4)}
 #define WALL_RIB_PRIORITY_MM ${WALL.ribFacePriorityMm.toFixed(4)}
+#define WALL_WAVE_FAT_MM ${WALL.waveFatMm.toFixed(4)}
+#define WALL_THORAX_PLANE_WAVE ${WALL.thoraxPlaneWaveFraction.toFixed(4)}
+#define WALL_NORMAL_STEP ${WALL_NORMAL_STEP_MM.toFixed(4)}
 float wallArc(vec3 m) {
   float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
   float a2 = uTorso.x * uTorso.x;
@@ -263,29 +354,40 @@ float wallWave(float u, float z, float k, float P) {
   return 0.6 * sin(wallWavenumber(9.0 + 4.0 * k, P) * u + 1.3 + 2.1 * k)
     + 0.4 * sin(z / (13.0 + 3.0 * k) + wallWavenumber(31.0 + 5.0 * k, P) * u + 0.7 + 1.9 * k);
 }
-// (Scarpa, fascia profunda, transversalis, peritoneo) en (u, z); la piel es uWall.x
-vec4 wallDepths(float u, float z) {
+// (Scarpa, fascia profunda, transversalis, peritoneo) en (u, z) con las capas L = (piel, grasa, músculo, preperitoneal) y
+// el peso del abdomen (lus-sim, decisión 17: la pared torácica por región, organs/chestWall.ts)
+vec4 wallDepthsOf(float u, float z, vec4 L, float abd) {
   float P = wallPerimeter();
-  float peritoneum = uWall.x + uWall.y + uWall.z;
-  return vec4(uWall.x + WALL_SCARPA_FRACTION * uWall.y + WALL_SCARPA_WAVE_MM * wallWave(u, z, 2.0, P),
-              uWall.x + uWall.y + WALL_FASCIA_WAVE_MM * wallWave(u, z, 3.0, P),
-              peritoneum - uWall.w + WALL_TR_WAVE_FRACTION * (uWall.w - 1.0) * wallWave(u, z, 4.0, P),
+  float peritoneum = L.x + L.y + L.z;
+  float ws = mix(min(1.0, L.y / WALL_WAVE_FAT_MM), 1.0, abd);
+  return vec4(L.x + WALL_SCARPA_FRACTION * L.y + ws * WALL_SCARPA_WAVE_MM * wallWave(u, z, 2.0, P),
+              L.x + L.y + ws * WALL_FASCIA_WAVE_MM * wallWave(u, z, 3.0, P),
+              peritoneum - L.w + abd * WALL_TR_WAVE_FRACTION * (L.w - 1.0) * wallWave(u, z, 4.0, P),
               peritoneum);
 }
-// plano intermuscular i con las profundidades w = wallDepths(u, z) ya calculadas
-float wallPlaneDepth(float u, float z, int i, vec4 w) {
+vec4 wallDepths(float u, float z) {
+  vec4 e;
+  vec4 L = wallLayersAt(u, z, e);
+  return wallDepthsOf(u, z, L, e.z);
+}
+// plano intermuscular i con las profundidades w y extra e = (banda, engrosamiento inspiratorio, peso del abdomen, 0)
+float wallPlaneDepth(float u, float z, int i, vec4 w, vec4 e) {
   float M = w.z - w.y;
   float L = smoothstep(WALL_RECTUS_MM0, WALL_RECTUS_MM1, abs(u));
   float wave = WALL_PLANE_WAVE_MM * wallWave(u, z, float(i), wallPerimeter());
-  return i == 0 ? w.y + WALL_PLANE_F0 * L * M + wave : w.z - WALL_PLANE_F1 * L * M + wave;
+  float abdomen = i == 0 ? w.y + WALL_PLANE_F0 * L * M + wave : w.z - WALL_PLANE_F1 * L * M + wave;
+  float thorax = i == 0 ? w.y : w.z - (e.x + e.y) + WALL_THORAX_PLANE_WAVE * wave;
+  return mix(thorax, abdomen, e.z);
 }
 float wallPlaneGap(float depth, int i, vec4 w) {
   return i == 0 ? depth - w.y : w.z - depth;
 }
 // (cara, valor de su distancia) de una muestra de la pared a la profundidad d; ribD: costilla ósea más cercana
 vec2 wallFace(float d, float u, float z, float ribD) {
-  float skin = uWall.x;
-  vec4 w = wallDepths(u, z);
+  vec4 e;
+  vec4 L = wallLayersAt(u, z, e);
+  float skin = L.x;
+  vec4 w = wallDepthsOf(u, z, L, e.z);
   if (d < skin) return vec2(float(IF_SKIN_FAT), skin - d);
   if (ribD < WALL_RIB_PRIORITY_MM) return vec2(float(IF_RIB), ribD);
   float face = float(IF_SKIN_FAT);
@@ -302,7 +404,7 @@ vec2 wallFace(float d, float u, float z, float ribD) {
     float dt = w.z - d;
     if (dt < best) { face = float(IF_TRANSVERSALIS); best = dt; }
     for (int i = 0; i < 2; i++) {
-      float wp = wallPlaneDepth(u, z, i, w);
+      float wp = wallPlaneDepth(u, z, i, w, e);
       if (wallPlaneGap(wp, i, w) < WALL_PLANE_MIN_MM) continue;
       float dp = abs(d - wp);
       if (dp < best) { face = float(i == 0 ? IF_OBLIQUE_PLANE : IF_TRANSVERSUS_PLANE); best = dp; }
@@ -318,12 +420,31 @@ vec2 wallFace(float d, float u, float z, float ribD) {
 float wallFaceSd(vec3 m, int face) {
   float d = -torsoDepth(m);
   float u = wallArc(m);
-  vec4 w = wallDepths(u, m.z);
-  if (face == IF_SKIN_FAT) return d - uWall.x;
+  vec4 e;
+  vec4 L = wallLayersAt(u, m.z, e);
+  vec4 w = wallDepthsOf(u, m.z, L, e.z);
+  if (face == IF_SKIN_FAT) return d - L.x;
   if (face == IF_SCARPA) return d - w.x;
   if (face == IF_DEEP_FASCIA) return d - w.y;
   if (face == IF_TRANSVERSALIS) return d - w.z;
   if (face == IF_PERITONEUM) return d - w.w;
-  return d - wallPlaneDepth(u, m.z, face == IF_OBLIQUE_PLANE ? 0 : 1, w);
+  return d - wallPlaneDepth(u, m.z, face == IF_OBLIQUE_PLANE ? 0 : 1, w, e);
+}
+// Espesor total de la pared bajo el punto MATERIAL m (lus-sim, decisión 17). Gemelo: wallTotalMm
+float wallTotalMm(vec3 m) { return wallTotalAt(wallArc(m), m.z); }
+// Normal exterior de la cara interna de la pared (la pleura parietal): −∇ de la profundidad bajo ella, analítica en
+// ∇torsoDepth y ∇u y con diferencias de la tabla en u y z. Gemelo: wallInnerNormal
+vec3 wallInnerNormal(vec3 m) {
+  float r = length(m.xy);
+  float rho = length(m.xy / uTorso.xy);
+  vec2 g = r < 1e-6 ? vec2(0.0, 1.0) : m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy);
+  float u = wallArc(m);
+  float h = WALL_NORMAL_STEP;
+  float dWdu = (wallTotalAt(u + h, m.z) - wallTotalAt(u - h, m.z)) / (2.0 * h);
+  float dWdz = (wallTotalAt(u, m.z + h) - wallTotalAt(u, m.z - h)) / (2.0 * h);
+  float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
+  vec2 tg = vec2(uTorso.x * cos(tau), -uTorso.y * sin(tau));
+  vec3 n = vec3(g + dWdu * tg / (length(tg) * rho), dWdz);
+  return normalize(n);
 }
 `;

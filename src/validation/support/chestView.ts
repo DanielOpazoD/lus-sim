@@ -9,7 +9,7 @@
  */
 import { AnatomyQuery } from '../../anatomy/query';
 import { probeHitPoint, ribCenterDepth, ribLineArc, ribLinePoint, ribScan, ribTableZ, type RibSpec } from '../../anatomy/organs/ribcage';
-import { torsoDepth } from '../../anatomy/primitives';
+import { torsoDepth, torsoSkinPoint } from '../../anatomy/primitives';
 import { wallArc } from '../../anatomy/organs/wall';
 import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../../anatomy/scene';
 import { Tissue } from '../../anatomy/tissues';
@@ -280,11 +280,11 @@ export interface RibCrossing {
  */
 export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBottom = -220, step = 0.25): RibCrossing[] {
   const t = scene.torso;
-  const hit = ribLinePoint(phi, t, scene.ribCage);
   const out: RibCrossing[] = [];
   let cur: RibCrossing | null = null;
   for (let z = zTop; z >= zBottom; z -= step) {
-    const m: Vec3 = [hit[0], hit[1], z];
+    // la línea media de las costillas a esa altura (decisión 17: la pared, y con ella la parrilla, cambia con z)
+    const m: Vec3 = ribLinePoint(phi, t, scene.ribCage, z);
     const d = -torsoDepth(m, t);
     const scan = ribScan(m, d, wallArc(m, t), t, scene.ribCage);
     const i = scan.inside;
@@ -309,10 +309,12 @@ export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBot
  */
 export function lungBorderZ(scene: AnatomyScene, phi: number, insideMm = 4, zTop = 250, zBottom = -250, step = 0.5): number | null {
   const t = scene.torso;
-  const p = probeHitPoint(phi, t.skinMm + t.fatMm + t.muscleMm + insideMm, t);
   let border: number | null = null;
   for (let z = zTop; z >= zBottom; z -= step) {
-    if (scene.classify([p[0], p[1], z], BASELINE_INSTANT).tissue !== Tissue.Lung) break;
+    // a esa altura, el punto de la normal de la piel `insideMm` por dentro de la pared (decisión 17: por región)
+    let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + insideMm, t, z);
+    p = probeHitPoint(phi, scene.wallThicknessAt(p) + insideMm, t, z);
+    if (scene.classify(p, BASELINE_INSTANT).tissue !== Tissue.Lung) break;
     border = z;
   }
   return border;
@@ -335,7 +337,7 @@ function ribMidline(scene: AnatomyScene, au: number, side: -1 | 1): [number, num
   const sx = t.a * Math.sin(tau);
   const sy = t.b * Math.cos(tau);
   const R = Math.hypot(sx, sy);
-  let d = t.skinMm + t.fatMm + t.muscleMm;
+  let d = scene.wallThicknessAt([sx, sy, 0]);
   for (let i = 0; i < 3; i++) d = ribCenterDepth([sx * (1 - d / R), sy * (1 - d / R), 0], t, scene.ribCage);
   return [side * sx * (1 - d / R), sy * (1 - d / R)];
 }

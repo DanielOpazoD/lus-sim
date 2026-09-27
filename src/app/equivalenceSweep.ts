@@ -2,7 +2,7 @@ import { START_POINTS } from './startPoints';
 import type { Simulator } from './simulator';
 import { Interface, isRibInterface } from '../anatomy/interfaces';
 import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
-import { wallArc } from '../anatomy/organs/wall';
+import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
 import type { Vec3 } from '../core/vec3';
 import { Tissue } from '../anatomy/tissues';
 import type { ProbeCompression } from '../anatomy/compression';
@@ -121,10 +121,13 @@ export interface VolumeEquivalenceReport {
   interfaceWorst: string;
   /**
    * Máximo de |distancia al borde del tejido de la GPU − la de la CPU| con el mismo tejido, ambas saturadas en
-   * `BOUNDARY_RELEVANT_MM` (mm; lus-sim, decisión 12): la que funde los bordes en la pasada B (`c.bd`), y dónde.
+   * `BOUNDARY_RELEVANT_MM` (mm; lus-sim, decisión 12): la que funde los bordes en la pasada B (`c.bd`), y dónde. Solo donde
+   * la de la CPU es continua (`boundaryStable`, decisión 17).
    */
   boundaryDistanceMaxErr: number;
   boundaryWorst: string;
+  /** Puntos interiores donde la distancia al borde de la CPU no es continua (`boundaryStable`) y no se compara. */
+  boundaryUnstable: number;
   /** Puntos interiores por tejido (en la CPU), para ver que la prueba tiene dientes. */
   byTissue: Record<string, number>;
 }
@@ -165,16 +168,19 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
   const face = new FaceTally();
   let bdMax = 0;
   let bdWorst = '';
+  let bdUnstable = 0;
   for (let i = 0; i < n; i++) {
     const p: [number, number, number] = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
     const q = sim.anatomy.classifyWorld(p, sim.sample);
     if (q.boundaryDistance < 1 || !faceStable(sim, p, q.interface)) continue;
+    const bdComparable = boundaryStable(sim, p, q.boundaryDistance);
+    if (!bdComparable) bdUnstable++;
     interior++;
     byTissue[Tissue[q.tissue]] = (byTissue[Tissue[q.tissue]] ?? 0) + 1;
     const cpuTissue: number = q.tissue;
     if (cpuTissue === gpu.tissue[i]) {
       same++;
-      const e = Math.abs(Math.min(gpu.bd[i], BOUNDARY_RELEVANT_MM) - Math.min(q.boundaryDistance, BOUNDARY_RELEVANT_MM));
+      const e = bdComparable ? Math.abs(Math.min(gpu.bd[i], BOUNDARY_RELEVANT_MM) - Math.min(q.boundaryDistance, BOUNDARY_RELEVANT_MM)) : 0;
       if (e > bdMax) {
         bdMax = e;
         bdWorst = `${Tissue[q.tissue]} en (${p.map((x) => x.toFixed(1)).join(', ')}): CPU ${q.boundaryDistance.toFixed(4)}, GPU ${gpu.bd[i].toFixed(4)} mm`;
@@ -196,6 +202,7 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
     interfaceWorst: [topPairs(face.pairs), face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`].filter(Boolean).join('; '),
     boundaryDistanceMaxErr: bdMax,
     boundaryWorst: bdWorst,
+    boundaryUnstable: bdUnstable,
     byTissue,
   };
 }
@@ -222,6 +229,23 @@ function faceStable(sim: Simulator, p: readonly [number, number, number], face: 
       const q: [number, number, number] = [p[0], p[1], p[2]];
       q[a] += s;
       if (sim.anatomy.classifyWorld(q, sim.sample).interface !== face) return false;
+    }
+  return true;
+}
+
+/**
+ * La distancia al borde de la CPU es continua a ±`FACE_STABLE_MM` en cada eje (varía ≤ 0,05 mm): el punto no está donde
+ * la clasificación cambia de rama sin cambiar de tejido (lus-sim, decisión 17: el pulmón de la cortina, a 3 mm de la pleura,
+ * y el del tórax detrás de ella son el mismo pulmón con distancias distintas, a su lámina y a la cúpula). Allí el redondeo
+ * de float32 elige la otra rama y la distancia salta: se compara solo lejos, como la cara (`faceStable`).
+ */
+function boundaryStable(sim: Simulator, p: readonly [number, number, number], bd: number): boolean {
+  const cap = (x: number) => Math.min(x, BOUNDARY_RELEVANT_MM);
+  for (let a = 0; a < 3; a++)
+    for (const s of [-FACE_STABLE_MM, FACE_STABLE_MM]) {
+      const q: [number, number, number] = [p[0], p[1], p[2]];
+      q[a] += s;
+      if (Math.abs(cap(sim.anatomy.classifyWorld(q, sim.sample).boundaryDistance) - cap(bd)) > 0.05) return false;
     }
   return true;
 }
@@ -502,7 +526,7 @@ export function ribEndsEquivalence(sim: Simulator): RibEndsReport {
         const sy = t.b * Math.cos(tau);
         const R = Math.hypot(sx, sy);
         const zc = ribTableZ(cage, k, au);
-        let dc = t.skinMm + t.fatMm + t.muscleMm;
+        let dc = wallTotalMm([sx, sy, zc], t);
         for (let i = 0; i < 3; i++) dc = ribCenterDepth([sx * (1 - dc / R), sy * (1 - dc / R), zc], t, cage);
         for (const dz of RIB_END_DZ) for (const dd of RIB_END_DD) pts.push([sx * (1 - (dc + dd) / R), sy * (1 - (dc + dd) / R), zc + dz]);
       }

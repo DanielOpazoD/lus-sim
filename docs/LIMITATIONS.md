@@ -12,8 +12,8 @@ conservan su identificador (decisiones 10 y 11).
   puntos de partida la llevan cerca de cada ventana). Con la imagen congelada, la FC y la respiración del HUD son las
   del instante congelado, no las del cuadro del cine que se esté viendo. En un teléfono las columnas se apilan y la
   imagen queda pequeña, con el HUD sobre el borde del sector. La anatomía del tórax con las dimensiones de la base
-  llega en el paso C (`docs/ROADMAP.md`): la parrilla costal en C1 (decisión 16); la pared, la pleura y los puntos BLUE,
-  en C2–C4.
+  llega en el paso C (`docs/ROADMAP.md`): la parrilla costal en C1 (decisión 16), la pared por región en C2 (decisión 17);
+  la pleura y los puntos BLUE, en C3–C4.
 
 ## Anatomía y fisiología
 
@@ -26,7 +26,7 @@ conservan su identificador (decisiones 10 y 11).
   10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la
   medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula, que no existe en la escena) y el esternón es
   vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
-  hombres: 303 × 195 × 366); la pared del paso C2 (13 mm al lado) lleva el ancho a ≈ 303. La 1.ª costilla cae lo que la real
+  hombres: 303 × 195 × 366); con la pared torácica por región (decisión 17: 12,8 mm al lado), 304 × 176 mm. La 1.ª costilla cae lo que la real
   (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de los 150 mm de profundidad del cilindro: 17,6°
   bajo el plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 36,2 frente a 29 ± 7,7).
 - **Una sola sección para todas las costillas** (`rib-section-uniform`, decisión 16): las 24 costillas y sus cartílagos
@@ -36,14 +36,23 @@ conservan su identificador (decisiones 10 y 11).
   condrocostales de la 1.ª–3.ª y la 6.ª–10.ª, las puntas de los cartílagos del reborde, las de la 11.ª y la 12.ª y los
   espacios altos de las axilares son supuestos (`docs/APPROXIMATIONS.md`). La caída de las costillas 10.ª–12.ª hasta su
   punta no baja tras la 9.ª como dice Gray: sigue los espacios laterales de Kim y cols.
-- **La pared del tórax es la del abdomen de VExUS** (`thorax-wall-abdominal-habitus`): piel 2 mm, grasa
-  14 mm y músculo 12 mm, el mismo espesor (28 mm en la métrica radial) en todo el tronco. La pleura queda a
-  25–28 mm de la piel, no a los 12–20 mm de la base, y la cara lateral no es más delgada que la anterior
-  (metas A-T1 a A-T3).
-- **La pared es genérica** (`wall-generic-layers`): el modelo de VExUS de tres músculos con dos planos
-  intermusculares y grasa preperitoneal en todo el tronco, sin intercostales, pectoral, serrato ni
-  paravertebrales propios; sin banda intercostal (meta A-T10) y la pared no cambia con la respiración.
-  Las texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS.
+- **La pared torácica por región, sobre una piel fija** (`chest-wall-regional-approx`, decisión 17): el grosor de la pared
+  y sus capas siguen la base por estación (16 mm en EIC2-LMC, 12,8 en EIC5 LAA/LAM, 18 en la axila alta, 16 infraescapular),
+  pero la piel es el cilindro elíptico de VExUS: lo que cambia de grosor mueve la pleura y la parrilla hacia dentro, no la
+  piel hacia fuera. La pared baja del EIC5 (Nelson) y la alta de la axila (McLean, 18 mm en el EIC4) no caben en un solo
+  espacio intercostal: la transición va del centro del EIC5 a la 4.ª costilla de la LAM y el EIC4 queda a 16,7 mm; la pleura
+  se inclina bajo la 5.ª costilla y el signo del murciélago del EIC5 lateral queda a 4,2 mm (el de F-T08 del punto BLUE
+  inferior, con un lado a 7,4). Sobre el esternón, piel y grasa presternal sobre el hueso (5,5 mm; 3,6 la delgada), sin el
+  pectoral que cubre sus bordes. El contacto de la sonda toma, en cada línea, la pared donde entra en la piel, no la de cada
+  profundidad. Sin escápula (la pared de detrás arriba es la infraescapular), sin los límites
+  craneocaudales de la mama (la variante de mujer suma sus 2 mm a toda altura, del esternón a la axilar anterior), con la
+  pared paravertebral heredada (28 mm en la línea media posterior, ≈ 21 por la normal en la paravertebral: piel → apófisis transversa,
+  NO ENCONTRADO en la base) y el paso a la pared del abdomen en 100 mm bajo el reborde costal [SUPUESTO]. La variante de
+  mujer no tiene la sección costal 20–35 % menor ni la caja más pequeña de la base.
+- **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
+  serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
+  texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
+  músculos del abdomen de VExUS.
 - **Todo el tórax sobre las cúpulas es pulmón aireado** (`thorax-all-lung`): sin corazón, mediastino,
   grandes vasos ni escotadura cardíaca; tampoco hay ventana cardíaca paraesternal izquierda.
 - **La cortina y la pleura parietal solo en el hemitórax derecho** (`lung-curtain-right-only`): la lámina
@@ -52,10 +61,11 @@ conservan su identificador (decisiones 10 y 11).
   registra pleura: desde la decisión 16 la imagen muestra allí las costillas con su sombra, pero sin línea pleural ni
   líneas A (paso C3).
 - **El borde del pulmón es el heredado, unas dos costillas por encima del de Gray** (`lung-border-above-ribcage`, decisión
-  16): la parrilla sigue la base, pero el pulmón y las cúpulas siguen siendo los de VExUS. En fin de espiración, 4 mm por
-  dentro de la pleura, el pulmón derecho acaba en z 41,5 en la LMC (la 4.ª costilla; Gray: la 6.ª, z −17), en 21 en la LAM
-  (la 6.ª; Gray: la 8.ª, z −37) y en 42,5 junto a la columna (entre la 7.ª y la 8.ª; Gray: la apófisis espinosa de T10,
-  z ≈ −35); el izquierdo, en 17, 4,5 y 9. Bajo la pleura de los EIC4–8 de la LMC y los EIC6–10 de la LAM derechas no hay
+  16): la parrilla sigue la base, pero el pulmón y las cúpulas son los de VExUS (desde la decisión 17, escaladas con la cara
+  interna de la pared torácica por región, que las mantiene respecto de la pleura como estaban). En fin de espiración, 4 mm
+  por dentro de la pleura, el pulmón derecho acaba en z 43 en la LMC (la 4.ª costilla; Gray: la 6.ª, z −17), en 20 en la LAM
+  (la 6.ª; Gray: la 8.ª, z −35) y en 45 junto a la columna (entre la 7.ª y la 8.ª; Gray: la apófisis espinosa de T10,
+  z ≈ −35); el izquierdo, en 17,5, 4 y 10,5. Bajo la pleura de los EIC4–8 de la LMC y los EIC6–10 de la LAM derechas no hay
   pulmón sino diafragma y abdomen, y la reflexión pleural no llega a la 8.ª unión condrocostal ni a la 10.ª costilla (meta
   A-T13, paso C3).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por

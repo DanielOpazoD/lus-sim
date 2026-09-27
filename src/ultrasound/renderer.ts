@@ -37,6 +37,7 @@ import type { SegmentGrid } from './transmission';
 import { LUNG_PRESET, TGC_REFERENCE } from './lungPreset';
 import { COMPRESSION_BASE, SCENE_TEX_H, SCENE_TEX_W } from '../anatomy/gpu/anatomy.glsl';
 import { RIB_TABLE_BASE } from '../anatomy/organs/ribcage';
+import { CHEST_WALL_BASE } from '../anatomy/organs/chestWall';
 import { evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
 import {
   FRAG_AXIAL,
@@ -546,6 +547,7 @@ export class UltrasoundRenderer {
   private uploadSceneStatic(): void {
     const gl = this.gl;
     this.sceneData.set(this.currentScene.ribCage.table, RIB_TABLE_BASE * 4);
+    this.sceneData.set(this.currentScene.chestWall.table, CHEST_WALL_BASE * 4);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {
@@ -1100,10 +1102,13 @@ export class UltrasoundRenderer {
     drawFullscreen(gl);
   }
 
-  /** Ecos parásitos del modo (decisión 76): de la pared del paciente de la escena y del modo de imagen. */
+  /**
+   * Ecos parásitos del modo (decisión 76): de la pared del paciente de la escena y del modo de imagen. lus-sim (decisión
+   * 17): la pared y la grasa bajo la sonda (la pared torácica por región).
+   */
   private clutterFor(inputs: FrameInputs): ClutterParams {
-    const t = this.currentScene.torso;
-    return clutterParams(this.currentScene.wallThickness(), t.fatMm, inputs.bmode.harmonic);
+    const L = this.currentScene.wallAtSkin(inputs.pose.phi, inputs.pose.z);
+    return clutterParams(L.skin + L.fat + L.muscle, L.fat, inputs.bmode.harmonic);
   }
 
   /**

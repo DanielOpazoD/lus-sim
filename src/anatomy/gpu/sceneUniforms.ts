@@ -1,5 +1,6 @@
 import type { ProbeCompression } from '../compression';
 import { RespiratoryDeformation } from '../deformation';
+import { CHEST_WALL } from '../organs/chestWall';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
 import { MAX_RIBS, RIBS_PER_SIDE } from '../organs/ribcage';
 import type { AnatomyScene } from '../scene';
@@ -47,8 +48,19 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uWall',
     type: 'vec4',
-    doc: 'piel, grasa, músculo (con la grasa preperitoneal), grasa preperitoneal (mm)',
+    doc: 'pared del abdomen (bajo el reborde costal; decisión 17): piel, grasa, músculo (con la preperitoneal), preperitoneal (mm)',
     value: (s) => [s.torso.skinMm, s.torso.fatMm, s.torso.muscleMm, s.torso.preperitonealMm],
+  },
+  {
+    name: 'uChestWall',
+    type: 'vec4',
+    doc:
+      'pared torácica por región (decisión 17, organs/chestWall.ts; la tabla va en uSceneTex, CW_BASE): z de la pared alta y ' +
+      'de la baja, engrosamiento inspiratorio de la banda intercostal por mm de descenso, grosor máximo de la pared (mm)',
+    value: (s) => {
+      const P = CHEST_WALL.params;
+      return [s.chestWall.zHigh, s.chestWall.zLow, P.intercostalInspirationMm.value / P.inspirationReferenceMm.value, s.chestWall.maxTotal];
+    },
   },
   {
     name: 'uDomeR',
@@ -138,8 +150,8 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uCurtain',
     type: 'vec4',
-    doc: 'cortina pulmonar: borde caudal z, espesor, xMax, yMax',
-    value: (_s, c) => [LUNG_CURTAIN.z0 - c.sample.resp.diaphragmCaudalMm, LUNG_CURTAIN.thicknessMm, LUNG_CURTAIN.xMax, LUNG_CURTAIN.yMax],
+    doc: 'cortina pulmonar: borde caudal z, espesor, xMax, yMax (la huella de la escena, decisión 17)',
+    value: (s, c) => [LUNG_CURTAIN.z0 - c.sample.resp.diaphragmCaudalMm, LUNG_CURTAIN.thicknessMm, s.curtain.xMax, s.curtain.yMax],
   },
 ];
 
