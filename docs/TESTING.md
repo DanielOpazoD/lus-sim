@@ -25,6 +25,9 @@ la salida actual no protege nada.
 - **Los plazos se miden con un trabajador.** La prueba de la pérdida del contexto WebGL espera 90 s a que la línea
   pleural vuelva a la pantalla: medida en el CI, 49 s desde que el reloj vuelve a andar (con dos trabajadores por corredor
   llegó a agotar 60 s y se subió a 150 en el paso C4). Un plazo nuevo se justifica con lo medido en el CI, no en local.
+- **Lo pasajero se registra, no se espera a verlo.** El aviso de la recuperación de la GPU dura 5 s y el primer cuadro del
+  renderizador nuevo puede bloquear la página más que eso con SwiftShader: la prueba registra los avisos con un
+  MutationObserver al aparecer (con un trabajador por fragmento, esperar a verlo falló en los dos intentos del CI).
 
 ## Principios
 

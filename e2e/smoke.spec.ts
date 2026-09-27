@@ -213,9 +213,26 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
     ext.loseContext();
   });
   await expect(page.locator('.banner')).toContainText('Contexto GPU perdido', { timeout: 30_000 });
+  // El aviso de la recuperación dura 5 s y el primer cuadro del renderizador nuevo (SwiftShader compila sus programas)
+  // puede bloquear la página más que eso: el temporizador que lo quita corre en cuanto la página se libera, antes de que
+  // la prueba lo vea (ciclo 2: con un trabajador por fragmento pasó en los dos intentos). Los avisos se registran al
+  // aparecer, con un MutationObserver, y se espera a que el de la recuperación haya aparecido
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __banners: string[] }).__banners = seen;
+    new MutationObserver(() => document.querySelectorAll('.banner').forEach((b) => seen.push(b.textContent ?? ''))).observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  });
   await page.evaluate(() => (window as unknown as { __lc: WEBGL_lose_context }).__lc.restoreContext());
   // la imagen congelada era del renderizador perdido: vuelve la imagen en vivo, y se dice
-  await expect(page.locator('.banner')).toContainText('GPU recuperada', { timeout: 120_000 });
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __banners: string[] }).__banners.some((t) => t.includes('GPU recuperada'))), {
+      timeout: 120_000,
+    })
+    .toBe(true);
   await expect(page.locator('#live-chip')).toHaveText('LIVE');
   await expect(page.locator('.banner')).toHaveCount(0, { timeout: 30_000 });
   const t1 = tOf(await page.locator('#status').textContent());
