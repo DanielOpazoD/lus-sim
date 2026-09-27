@@ -515,8 +515,8 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
     expect(FRAG_RAWFIELD).toContain('vec2 tissue = wTissue >= CURTAIN_MIN_AIR ? mediumField(p, dir, r, elevSigma(r), !under) : vec2(0.0);');
     expect(FRAG_RAWFIELD_STEERED).toContain('vec2 f1 = sampleSidePh(p + uElev * se, se, c, ph0, g, withCurtain, w);');
     expect(FRAG_RAWFIELD_STEERED).toContain('tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w)');
-    expect(ANATOMY_GLSL).toContain('float wall;\n  if (classifyWall(m, c, depth, tn, wall)) return c;');
-    expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn, wallMm)) { c.tissue = T_FAT; c.n = tn; }');
+    expect(ANATOMY_GLSL).toContain('float wall;\n  float u;\n  if (classifyWall(m, c, depth, tn, wall, u)) return c;');
+    expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn, wallMm, wallU)) { c.tissue = T_FAT; c.n = tn; }');
     expect(PLEURA_GLSL).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
     expect(FRAG_RAWFIELD).toContain('vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);');
     expect(FRAG_RAWFIELD_STEERED).toContain(

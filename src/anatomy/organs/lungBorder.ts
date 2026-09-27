@@ -177,6 +177,13 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
   },
 });
 
+/**
+ * Tope de la distancia a la frontera del pulmón del tórax (mm): más arriba que la cúpula más alta (`LungBorder.domeTopZ`)
+ * más este tope, la clasificación no evalúa la cúpula (su distancia pasaría del tope). La pasada B solo mira si la distancia
+ * pasa de la media anchura en elevación (≤ 3 mm).
+ */
+export const LUNG_BD_CAP_MM = 10;
+
 /** Tabla por columna de |u| (la de la pared torácica: mismas columnas y paso): (zL, zR, Wrim, zAtt), un téxel. */
 export const LUNG_BORDER_TEXELS_PER_COL = 1;
 export const LUNG_BORDER_TEXELS = CHEST_WALL_COLS * LUNG_BORDER_TEXELS_PER_COL;
@@ -197,6 +204,8 @@ export interface LungBorder extends LungBorderLookup {
   table: Float32Array;
   /** Cota de la profundidad bajo la piel desde la que la cúpula no mira la tabla: el mayor Wrim más la rampa. */
   rimFarMm: number;
+  /** El borde más alto de la tabla (la cúpula no pasa de él ni de sus vértices: la rampa va del borde a la de VExUS). */
+  zLMax: number;
   stations: LungBorderStations;
 }
 
@@ -238,17 +247,20 @@ export function buildLungBorder(t: Torso, cage: RibCage, cw: ChestWall): LungBor
   ]);
   const table = new Float32Array(LUNG_BORDER_TEXELS * 4);
   let rimMax = 0;
+  let zLMax = -Infinity;
   for (let j = 0; j < CHEST_WALL_COLS; j++) {
     const u = j * CHEST_WALL_DU_MM;
     const l = zL(u);
     const r = zR(u);
     const W = cw.total(u, l);
     rimMax = Math.max(rimMax, W);
+    zLMax = Math.max(zLMax, Math.fround(l));
     table.set([l, r, W, r - P.zoaBelowReflectionMm.value], j * LUNG_BORDER_TEXELS_PER_COL * 4);
   }
   const lb: LungBorder = {
     table,
     rimFarMm: rimMax + P.rimBlendMm.value,
+    zLMax,
     stations: st,
     at: (u) => lungBorderAt(lb, u),
     rim: (x, y, D) => diaphragmRim(lb, x, y, D, t),
@@ -342,6 +354,7 @@ const PL = LUNG_BORDER.params;
  */
 export const LUNG_BORDER_GLSL = /* glsl */ `
 #define LB_BASE ${LUNG_BORDER_BASE}
+#define LB_LUNG_CAP ${f4(LUNG_BD_CAP_MM)}
 #define LB_RIM_MM ${f4(PL.rimBlendMm.value)}
 #define LB_ZOA_FRC ${f4(PL.zoaFrcMm.value)}
 #define LB_ZOA_TLC ${f4(PL.zoaTlcMm.value)}

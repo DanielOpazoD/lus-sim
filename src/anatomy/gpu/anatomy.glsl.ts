@@ -163,12 +163,13 @@ float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }
 // subcutánea, músculo y grasa preperitoneal, decisión 62). true si la muestra queda decidida (en c); si no,
 // depth y tn (profundidad y normal del torso) sirven al resto de classifyWith. La serie de la pleura (decisión
 // 61) remuestrea la pared solo con ella: sin órganos ni tubos. Gemelo: la classifyWall privada de AnatomyScene
-bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wall) {
+bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wall, out float u) {
   c.tissue = T_AIR; c.bd = 1e3; c.n = vec3(0.0, 1.0, 0.0); c.iface = IF_NONE; c.ifd = 1e3; c.vessel = -1;
   c.rho = 10.0; c.tangent = vec3(0.0, 0.0, 1.0); c.kc = 0.0; c.uRef = 0.0; c.rRef = 1.0; c.profN = 2.0;
   depth = torsoDepth(m);
   tn = vec3(0.0, 1.0, 0.0);
   wall = 0.0;
+  u = 0.0;
   if (m.z < uTorso.z || m.z > uTorso.w || depth > 0.0) return true;
   // lus-sim (decisión 17): la pared por región en el (u, z) de la muestra (organs/chestWall.ts); sus capas, solo dentro. Más
   // hondo que la pared más gruesa (uChestWall.w) más lo que miran la cortina (3 mm), el «resto» (su tope, con la ZOA más
@@ -177,7 +178,7 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   // «resto» a la pared pasa de su tope)
   float d = -depth;
   float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);
-  float u = d < far ? wallArc(m) : 0.0;
+  u = d < far ? wallArc(m) : 0.0;
   wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;
   vec4 wx = vec4(0.0);
   vec4 wl = vec4(0.0);
@@ -218,7 +219,8 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   float depth;
   vec3 tn;
   float wall;
-  if (classifyWall(m, c, depth, tn, wall)) return c;
+  float u;
+  if (classifyWall(m, c, depth, tn, wall, u)) return c;
   // Columna
   float dBody = length(m.xy - uSpine.xy) - uSpine.z;
   float ax = abs(m.x - uSpine.x) - uSpineArch.x;
@@ -231,10 +233,9 @@ Cls classifyWith(vec3 m, bool withCurtain) {
     c.n = dBody < dArch ? normalize(vec3(m.xy - uSpine.xy, 0.0)) : (ax > ay ? vec3(sign(m.x - uSpine.x), 0.0, 0.0) : vec3(0.0, sign(m.y - acy), 0.0));
     return c;
   }
-  // lus-sim (decisión 18): el arco de la muestra donde lo miran el tapón de la ventana cardiaca, la lámina de la cortina, la
-  // ZOA y la cota de su cara para el «resto» (más hondo, ninguno depende de él)
+  // lus-sim (decisión 18): el arco de la muestra (el de classifyWall: lo calcula donde lo miran el tapón de la ventana
+  // cardiaca, la lámina de la cortina, la ZOA y la cota de su cara para el «resto»; más hondo, ninguno depende de él)
   float inside = -depth - wall;
-  float u = inside < max(uHeartC.w, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0) ? wallArc(m) : 0.0;
   // El corazón y el tapón de la ventana (organs/heart.ts), sobre la cúpula (se apoya en ella)
   bool blood;
   float dHeart = heartDistance(m, inside, u, blood);
@@ -258,10 +259,12 @@ Cls classifyWith(vec3 m, bool withCurtain) {
     if (inside > 0.5 * tz) { c.iface = IF_DIAPHRAGM_LIVER; c.ifd = tz - inside; }
     return c;
   }
-  // Tórax y diafragma (lus-sim, decisión 12: sin vasos, conductos ni aurícula de VExUS entre la cortina y la cúpula)
+  // Tórax y diafragma (lus-sim, decisión 12: sin vasos, conductos ni aurícula de VExUS entre la cortina y la cúpula); por
+  // encima de la cúpula más alta (uCurtain.w) más el tope de la distancia del pulmón, pulmón sin evaluarla (decisión 18)
+  if (m.z > uCurtain.w + LB_LUNG_CAP) { c.tissue = T_LUNG; c.bd = min(LB_LUNG_CAP, clear); c.n = vec3(0.0, 0.0, 1.0); return c; }
   vec3 dn;
   float dDome = sdDome(m, dn);
-  if (dDome < 0.0) { c.tissue = T_LUNG; c.bd = min(-dDome, clear); c.n = dn; return c; }
+  if (dDome < 0.0) { c.tissue = T_LUNG; c.bd = min(min(-dDome, LB_LUNG_CAP), clear); c.n = dn; return c; }
   if (dDome < DIAPHRAGM_MM) {
     c.tissue = T_DIAPHRAGM; c.bd = min(dDome, DIAPHRAGM_MM - dDome); c.n = dn;
     // la mitad abdominal dibuja la cara hepática; la pleural la dibuja el espejo exacto de la pasada A

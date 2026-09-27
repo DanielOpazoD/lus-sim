@@ -13,7 +13,16 @@ import {
   type WallLayersAt,
 } from './primitives';
 import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
-import { LUNG_BORDER, buildLungBorder, lungEdgeZ, zoaDistance, zoaGap, zoaThicknessMm, type LungBorder } from './organs/lungBorder';
+import {
+  LUNG_BD_CAP_MM,
+  LUNG_BORDER,
+  buildLungBorder,
+  lungEdgeZ,
+  zoaDistance,
+  zoaGap,
+  zoaThicknessMm,
+  type LungBorder,
+} from './organs/lungBorder';
 import { buildHeart, heartAtWall, heartClearance, heartDistance, type Heart } from './organs/heart';
 import {
   RIBCAGE,
@@ -149,6 +158,11 @@ export class AnatomyScene {
   readonly lungBorder: LungBorder;
   /** El corazón y la ventana cardiaca (lus-sim, decisión 18: `organs/heart.ts`). */
   readonly heart: Heart;
+  /**
+   * Cota de la altura del diafragma (mm): el mayor de sus vértices, de su inserción y del borde del pulmón de la tabla. Más
+   * arriba que ella más `LUNG_BD_CAP_MM` la clasificación no evalúa la cúpula (uCurtain.w en la GPU).
+   */
+  readonly domeTopZ: number;
   readonly spine: Spine;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
@@ -235,6 +249,8 @@ export class AnatomyScene {
     };
     // el corazón (decisión 18): su ápex donde lo pone Gray y la ventana cardiaca izquierda
     this.heart = buildHeart(this.torso, cage);
+    const d = this.diaphragm;
+    this.domeTopZ = Math.max(d.right.apex, d.left.apex, d.edgeZ + d.edgeRise, this.lungBorder.zLMax);
   }
 
   /** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m (lus-sim, decisión 17: por región). */
@@ -333,8 +349,12 @@ export class AnatomyScene {
       const face = inside > 0.5 * t ? { interface: Interface.DiaphragmLiver, interfaceDistance: t - inside } : {};
       return { ...NONE, tissue: Tissue.Diaphragm, boundaryDistance: Math.min(zoa, clearance), ...face };
     }
+    // por encima de la cúpula más alta más el tope de la distancia del pulmón, pulmón sin evaluarla (su distancia pasa del
+    // tope: la cúpula es una altura, y su pendiente ≥ 1 solo acorta la distancia)
+    if (m[2] > this.domeTopZ + LUNG_BD_CAP_MM)
+      return { ...NONE, tissue: Tissue.Lung, boundaryDistance: Math.min(LUNG_BD_CAP_MM, clearance) };
     const dDome = sdDiaphragm(m, this.diaphragm, this.torso);
-    if (dDome < 0) return { ...NONE, tissue: Tissue.Lung, boundaryDistance: Math.min(-dDome, clearance) };
+    if (dDome < 0) return { ...NONE, tissue: Tissue.Lung, boundaryDistance: Math.min(-dDome, LUNG_BD_CAP_MM, clearance) };
     if (dDome < DIAPHRAGM_THICKNESS_MM) {
       // la mitad abdominal dibuja la cara hepática; la pleural la dibuja el espejo exacto de la pasada A
       const liverFace = dDome > 0.5 * DIAPHRAGM_THICKNESS_MM;

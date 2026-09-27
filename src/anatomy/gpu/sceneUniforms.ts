@@ -153,12 +153,13 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     type: 'vec4',
     doc:
       'cortina pulmonar (decisión 18: los dos hemitórax, con los bordes de organs/lungBorder.ts): descenso del borde del ' +
-      'pulmón (mm), espesor de la lámina, cota de la rampa de la cúpula bajo la piel (rimFarMm), 0',
+      'pulmón (mm), espesor de la lámina, cota de la rampa de la cúpula bajo la piel (rimFarMm), cota de la altura de la ' +
+      'cúpula (domeTopZ)',
     value: (s, c) => [
       LUNG_BORDER.params.curtainDescentRatio.value * Math.max(c.sample.resp.diaphragmCaudalMm, 0),
       LUNG_CURTAIN.thicknessMm,
       s.lungBorder.rimFarMm,
-      0,
+      s.domeTopZ,
     ],
   },
   {
@@ -189,8 +190,8 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uHeartWin',
     type: 'vec4',
-    doc: 'ventana cardiaca sobre la piel: arco u, altura z y radio (mm), 0',
-    value: (s) => [s.heart.window.u, s.heart.window.z, s.heart.window.r, 0],
+    doc: 'ventana cardiaca sobre la piel: arco u, altura z y radio (mm), ancho de la franja que llega a la lámina de la cortina',
+    value: (s) => [s.heart.window.u, s.heart.window.z, s.heart.window.r, s.heart.skirtMm],
   },
 ];
 

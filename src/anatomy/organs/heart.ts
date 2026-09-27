@@ -1,6 +1,7 @@
 import { defineParameters } from '../../core/evidence';
 import type { Vec3 } from '../../core/vec3';
 import { torsoDepth, torsoSkinPoint, type Torso } from '../primitives';
+import { LUNG_CURTAIN } from './lungCurtain';
 import { ribTableZ, type RibCage } from './ribcage';
 import { wallArc, wallInnerNormal, wallTotalMm } from './wall';
 
@@ -121,6 +122,17 @@ export const HEART = defineParameters('anatomy.heart', {
     note: 'Pared libre del ventrículo derecho con el pericardio, la que da a la ventana [SUPUESTO]',
   },
   posteriorWallMm: { value: 11, unit: 'mm', range: [9, 13], evidence: 'estimado', sources: [], note: 'Pared de detrás [SUPUESTO]' },
+  skirtMm: {
+    value: 25,
+    unit: 'mm',
+    range: [15, 35],
+    evidence: 'estimado',
+    sources: [],
+    note:
+      'Alrededor de la ventana, en esta franja sobre la piel, el pulmón que cubre el corazón es la lámina de la cortina (3 mm): ' +
+      'el borde anterior del pulmón es fino sobre el corazón [SUPUESTO]. Sin ella el elipsoide queda hasta 25 mm por dentro de la ' +
+      'pleura en el borde de la ventana y las líneas oblicuas salían del tapón a una bolsa de pulmón',
+  },
   sideWallMm: {
     value: 10,
     unit: 'mm',
@@ -145,6 +157,8 @@ export interface Heart {
   window: { u: number; z: number; r: number };
   /** Profundidad bajo la pleura parietal del tapón de la ventana (mm). */
   plugDepthMm: number;
+  /** Ancho de la franja alrededor de la ventana donde el corazón llega a la lámina de la cortina (mm sobre la piel). */
+  skirtMm: number;
   /** Punta del elipsoide (el ápex), para las pruebas. */
   apex: Vec3;
 }
@@ -177,6 +191,19 @@ function pleuraUnderSkin(X: number, z: number, t: Torso): { p: Vec3; u: number }
   }
   const d = 0.5 * (lo + hi);
   return { p: [s[0] - (nx / l) * d, s[1] - (ny / l) * d, z], u: wallArc(s, t) };
+}
+
+/** Punto de la piel de arco u (con signo, + a la izquierda) a la altura z. */
+function skinAtArc(u: number, z: number, t: Torso): Vec3 {
+  let lo = -Math.PI;
+  let hi = Math.PI;
+  for (let i = 0; i < 60; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (wallArc([t.a * Math.sin(mid), t.b * Math.cos(mid), 0], t) < u) lo = mid;
+    else hi = mid;
+  }
+  const tau = 0.5 * (lo + hi);
+  return [t.a * Math.sin(tau), t.b * Math.cos(tau), z];
 }
 
 /**
@@ -219,18 +246,28 @@ export function buildHeart(t: Torso, cage: RibCage): Heart {
     cavityRadii: [radii[0] - side, radii[1] - side, radii[2] - 0.5 * (wallFront + wallBack)],
     window: { u: winU, z: winZ, r: 0.5 * P.windowDiameterMm.value },
     plugDepthMm: 0,
+    skirtMm: P.skirtMm.value,
     apex,
   };
-  // el tapón: hasta la cara del elipsoide más honda bajo el disco (por la normal de la pleura), más 1 mm
+  // el tapón: en la métrica de la clasificación (la profundidad radial bajo la pleura, `insideWall`, a lo largo del rayo
+  // radial de cada columna (u, z) del disco, el que da `wallArc`), hasta la cara del elipsoide más honda, más 1 mm
   let deepest = 0;
-  const X0 = P.windowOffsetMm.value;
-  for (let dx = -h.window.r; dx <= h.window.r; dx += 1)
-    for (let dz = -h.window.r; dz <= h.window.r; dz += 1) {
-      const pw = pleuraUnderSkin(X0 + dx, winZ + dz, t);
-      if (heartWindowDistance(h, pw.u, winZ + dz) > 0) continue;
-      const n = wallInnerNormal(pw.p, t);
-      let gap = 0;
-      while (gap < 80 && heartSd(h, [pw.p[0] - n[0] * gap, pw.p[1] - n[1] * gap, pw.p[2] - n[2] * gap]) >= 0) gap += 0.25;
+  const r = h.window.r;
+  for (let du = -r; du <= r; du += 1)
+    for (let dz = -r; dz <= r; dz += 1) {
+      if (Math.hypot(du, dz) >= r) continue;
+      const s = skinAtArc(winU + du, winZ + dz, t);
+      const R = Math.hypot(s[0], s[1]);
+      let gap = -1;
+      for (let d = 0; d < 120; d += 0.1) {
+        const q: Vec3 = [s[0] * (1 - d / R), s[1] * (1 - d / R), s[2]];
+        const w = insideWall(q, t);
+        if (w < 0) continue;
+        if (heartSd(h, q) < 0) {
+          gap = w;
+          break;
+        }
+      }
       deepest = Math.max(deepest, gap);
     }
   h.plugDepthMm = deepest + 1;
@@ -276,18 +313,35 @@ export function heartWindowDistance(h: Heart, u: number, z: number): number {
  */
 export function heartDistance(h: Heart, m: Vec3, insideWallMm: number, u: number): { d: number; blood: boolean } | null {
   const sd = heartSd(h, m);
-  // el tapón y la pleura solo cuentan a menos de su fondo (más hondo, el arco no hace falta: la GPU no lo calcula ahí)
+  // el tapón, su franja y la pleura solo cuentan a menos de su fondo (más hondo, el arco no hace falta: la GPU no lo calcula)
   const nearWall = insideWallMm < h.plugDepthMm;
   const win = nearWall ? heartWindowDistance(h, u, m[2]) : 1e3;
   const inPlug = nearWall && insideWallMm >= 0 && win < 0;
-  if (sd >= 0 && !inPlug) return null;
+  const skirt = nearWall && !inPlug ? heartSkirtDepth(h, m, insideWallMm, win) : 1e3;
+  if (sd >= 0 && !inPlug && skirt >= 0) return null;
   const cav = heartCavitySd(h, m);
   if (cav < 0) return { d: -cav, blood: true };
-  // del miocardio, cota de la distancia a cualquiera de sus caras: la cavidad, el elipsoide y, junto a la pared, la pleura y
-  // los bordes del tapón (el disco y su fondo, que queda dentro del elipsoide)
+  // del miocardio, cota de la distancia a cualquiera de sus caras: la cavidad, el elipsoide y, junto a la pared, la pleura, la
+  // lámina de la cortina y los bordes del tapón y de su franja
   let d = Math.min(cav, Math.abs(sd));
-  if (nearWall) d = Math.min(d, Math.abs(insideWallMm), Math.abs(win), h.plugDepthMm - insideWallMm);
+  if (nearWall) d = Math.min(d, Math.abs(insideWallMm), Math.abs(win), h.plugDepthMm - insideWallMm, Math.abs(skirt));
   return { d, blood: false };
+}
+
+/** Espesor de la lámina de la cortina sobre la franja del corazón (mm): la de `organs/lungCurtain.ts`. */
+const SKIRT_TOP_MM = LUNG_CURTAIN.thicknessMm;
+
+/**
+ * La franja alrededor de la ventana (gemelo GLSL): a menos de `skirtMm` del disco, entre la lámina de la cortina y el fondo
+ * del tapón, es corazón si el elipsoide está en el mismo rayo radial a esa profundidad (el punto llevado al fondo del
+ * tapón). Devuelve una cota con signo, negativa dentro: la del corte con la lámina, con el borde de la franja y con el
+ * elipsoide en el fondo.
+ */
+export function heartSkirtDepth(h: Heart, m: Vec3, insideWallMm: number, win: number): number {
+  const r = Math.hypot(m[0], m[1]);
+  const k = r > 0 ? 1 - (h.plugDepthMm - insideWallMm) / r : 0;
+  const bottom = heartSd(h, [m[0] * k, m[1] * k, m[2]]);
+  return Math.max(SKIRT_TOP_MM - insideWallMm, win - h.skirtMm, bottom);
 }
 
 /**
@@ -296,19 +350,22 @@ export function heartDistance(h: Heart, m: Vec3, insideWallMm: number, u: number
  */
 export function heartClearance(h: Heart, m: Vec3, insideWallMm: number, u: number): number {
   // más hondo que el tapón solo cuenta el elipsoide (el fondo del tapón queda dentro de él; y el arco no hace falta)
-  const plug = insideWallMm < h.plugDepthMm ? heartWindowDistance(h, u, m[2]) : 1e3;
-  return Math.max(0, Math.min(heartSd(h, m), plug));
+  if (insideWallMm >= h.plugDepthMm) return Math.max(0, heartSd(h, m));
+  const win = heartWindowDistance(h, u, m[2]);
+  return Math.max(0, Math.min(heartSd(h, m), win, Math.abs(heartSkirtDepth(h, m, insideWallMm, win))));
 }
 
-/** La pleura parietal en m (el cruce de una línea) no toca pulmón: es la ventana (el tapón) o el elipsoide. */
+/** La pleura parietal en m (el cruce de una línea) no toca pulmón: es la ventana (el tapón) o el elipsoide (la franja
+ * empieza bajo la lámina de la cortina). */
 export function heartAtWall(h: Heart, m: Vec3, t: Torso): boolean {
   return heartSd(h, m) < 0 || heartWindowDistance(h, wallArc(m, t), m[2]) < 0;
 }
 
 /**
  * Gemelo GLSL: uHeartC = (centro, profundidad del tapón), uHeartE1–3 = (eje, semieje), uHeartCav = (desplazamiento por e3,
- * semiejes de la cavidad), uHeartWin = (u, z, radio de la ventana, 0).
+ * semiejes de la cavidad), uHeartWin = (u, z, radio de la ventana, ancho de la franja).
  */
+const SKIRT_TOP_GLSL = SKIRT_TOP_MM.toFixed(4);
 export const HEART_GLSL = /* glsl */ `
 float heartEllipsoidSd(vec3 q, vec3 r) {
   vec3 k = q / r;
@@ -321,22 +378,30 @@ float heartSd(vec3 m) { return heartEllipsoidSd(heartLocal(m), vec3(uHeartE1.w, 
 float heartCavitySd(vec3 m) { return heartEllipsoidSd(heartLocal(m) - vec3(0.0, 0.0, uHeartCav.x), uHeartCav.yzw); }
 float heartWindowDistance(float u, float z) { return length(vec2(u - uHeartWin.x, z - uHeartWin.y)) - uHeartWin.z; }
 // distancia a la frontera (≥ 0) del corazón, −1 fuera; blood: sangre de la cavidad
+float heartSkirtDepth(vec3 m, float insideWall, float win) {
+  float r = length(m.xy);
+  float k = r > 0.0 ? 1.0 - (uHeartC.w - insideWall) / r : 0.0;
+  float bottom = heartSd(vec3(m.xy * k, m.z));
+  return max(max(${SKIRT_TOP_GLSL} - insideWall, win - uHeartWin.w), bottom);
+}
 float heartDistance(vec3 m, float insideWall, float u, out bool blood) {
   blood = false;
   float sd = heartSd(m);
   bool nearWall = insideWall < uHeartC.w;
   float win = nearWall ? heartWindowDistance(u, m.z) : 1e3;
   bool inPlug = nearWall && insideWall >= 0.0 && win < 0.0;
-  if (sd >= 0.0 && !inPlug) return -1.0;
+  float skirt = nearWall && !inPlug ? heartSkirtDepth(m, insideWall, win) : 1e3;
+  if (sd >= 0.0 && !inPlug && skirt >= 0.0) return -1.0;
   float cav = heartCavitySd(m);
   if (cav < 0.0) { blood = true; return -cav; }
   float d = min(cav, abs(sd));
-  if (nearWall) d = min(min(d, abs(insideWall)), min(abs(win), uHeartC.w - insideWall));
+  if (nearWall) d = min(min(min(d, abs(insideWall)), min(abs(win), uHeartC.w - insideWall)), abs(skirt));
   return d;
 }
 float heartClearance(vec3 m, float insideWall, float u) {
-  float plug = insideWall < uHeartC.w ? heartWindowDistance(u, m.z) : 1e3;
-  return max(0.0, min(heartSd(m), plug));
+  if (insideWall >= uHeartC.w) return max(0.0, heartSd(m));
+  float win = heartWindowDistance(u, m.z);
+  return max(0.0, min(min(heartSd(m), win), abs(heartSkirtDepth(m, insideWall, win))));
 }
 bool heartAtWall(vec3 m) { return heartSd(m) < 0.0 || heartWindowDistance(wallArc(m), m.z) < 0.0; }
 `;

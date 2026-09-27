@@ -64,6 +64,15 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   textura de escena). Las cúpulas y la cortina siguen la cara interna de la pared y la pleura se ilumina con la normal de
   su cara. A-T1–A-T5 y A-T10 pasan a cumplirse (A-T13 sigue pendiente, paso C3); `src/validation/chestWall.test.ts`.
 - Limitación nueva `chest-wall-regional-approx` (17).
+- Fase 1, paso C3: pulmón y pleura en los dos hemitórax (18): el borde del pulmón en FRC de Gray (la 6.ª costilla en la
+  LMC, la 8.ª en la LAM, T10 detrás) y la reflexión pleural (el 8.º cartílago, la 10.ª costilla, T12) por columna de la pared
+  (`src/anatomy/organs/lungBorder.ts`), con la cúpula que baja a la pared en el borde y sus vértices de la base en FRC; la
+  cortina y la pleura parietal en los dos hemitórax; la zona de aposición del diafragma (1,9 mm en FRC, 5 a TLC); el corazón
+  y la ventana cardiaca paraesternal izquierda (`src/anatomy/organs/heart.ts`, tejido nuevo: el miocardio). A-T12, A-T14,
+  A-T15, el borde y la reflexión de A-T13 y la ventana de A-T16 pasan a cumplirse; la excursión profunda de A-T13 y el
+  pulso pulmonar de A-T16, medidos y pendientes.
+- Limitaciones nuevas `heart-simplified` y `lung-border-table`; se borran `thorax-all-lung`, `lung-curtain-right-only` y
+  `lung-border-above-ribcage` (18).
 
 ### Cambiado
 
