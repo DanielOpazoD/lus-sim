@@ -78,7 +78,9 @@ export function diaphragmHeight(x: number, y: number, d: Diaphragm, torso: Torso
   const edge = diaphragmEdgeZ(torsoPhi(x, y, torso), d);
   const zr = edge + Math.max(0, d.right.apex - edge) * domeLift(x, y, d.right);
   const zl = edge + Math.max(0, d.left.apex - edge) * domeLift(x, y, d.left);
-  return Math.max(edge, zr, zl);
+  const D = Math.max(edge, zr, zl);
+  // lus-sim (decisión 18): junto a la pared, la cúpula baja al borde del pulmón (`organs/lungBorder.ts`)
+  return torso.lungBorder ? torso.lungBorder.rim(x, y, D) : D;
 }
 
 /** Distancia con signo al diafragma: negativa en el tórax (por encima). */
@@ -127,6 +129,11 @@ export interface Torso {
    * el tronco (la de VExUS). Con ella, las capas del hábito quedan como las del abdomen, bajo el reborde costal.
    */
   chestWall?: ChestWallLookup;
+  /**
+   * Bordes del pulmón y de la pleura (lus-sim, decisión 18: `organs/lungBorder.ts`); sin ellos, las cúpulas de VExUS hasta
+   * la pared. Con ellos, la cúpula baja junto a la pared al borde del pulmón en FRC.
+   */
+  lungBorder?: LungBorderLookup;
 }
 
 /** Capas de la pared en un punto (u, z), en la métrica radial (mm): las de `Torso` más la banda intercostal. */
@@ -149,6 +156,14 @@ export interface ChestWallLookup {
   total(u: number, z: number): number;
   /** Engrosamiento inspiratorio de la banda intercostal (mm) con el descenso del diafragma `caudalMm`. */
   inspiration(u: number, z: number, caudalMm: number): number;
+}
+
+/** Los bordes del pulmón que lee la cúpula (u: arco de la piel con signo). */
+export interface LungBorderLookup {
+  /** (borde del pulmón en FRC, reflexión pleural, grosor de la pared a la altura del borde, inserción de la ZOA) en |u|. */
+  at(u: number): [number, number, number, number];
+  /** Altura del diafragma en (x, y) con la rampa junto a la pared, dada la de las cúpulas D. */
+  rim(x: number, y: number, D: number): number;
 }
 
 export interface Rib {

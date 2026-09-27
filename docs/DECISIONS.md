@@ -954,3 +954,85 @@ orden de las caras, inspiración, abdomen, variantes, esternón, inclinación de
 `notYetMet`); la e2e con GPU real y con SwiftShader. Revisión adversarial de contexto limpio: la cortina lateral perdida
 (bloqueante), la pleura con la normal de la piel, el esternón en la piel, el signo del murciélago fuera de los cortes
 medidos, la axila de la obesa, etiquetas de evidencia; todo aplicado (ver la PR).
+
+## 18. Paso C3: pulmón y pleura en los dos hemitórax, bordes de la base, ZOA y ventana cardiaca
+
+**Fecha.** 2026-09-27.
+
+**Contexto.** Tras la parrilla (decisión 16) y la pared por región (decisión 17), el pulmón y las cúpulas seguían siendo
+los de VExUS: en fin de espiración, 4 mm por dentro de la pleura, el borde derecho en z 43 en la LMC (la 4.ª costilla), 20
+en la LAM (la 6.ª) y 45 junto a la columna; el izquierdo en 17,5, 4 y 10,5 (`lung-border-above-ribcage`). La cortina solo
+bajaba en el receso lateral y posterior derecho (x ≤ −50, y ≤ 45) desde z 18, la pleura parietal solo se registraba hasta
+x = 10 (decisión 71 de VExUS) y el hemitórax izquierdo mostraba costillas sin línea pleural ni líneas A
+(`lung-curtain-right-only`). Todo el tórax sobre las cúpulas era pulmón: sin corazón ni ventana cardiaca
+(`thorax-all-lung`). Las cúpulas tenían sus vértices en 55 y 25 mm (T8–T9). La base da el borde, la reflexión, la
+excursión, la ZOA, las cúpulas y la ventana (`docs/knowledge/anatomy.md` §1.5–1.6, §2 y metas A-T12–A-T16).
+
+**Opciones.** Para el borde: (a) mover y deformar las elipses de las cúpulas de VExUS hasta que toquen la pared donde dice
+Gray (su perfil 1 − ρ⁴ tiene tangente vertical en el borde: un milímetro de error en ρ mueve el borde ≈ 7 mm); (b) una
+tabla del borde por columna de |u| anclada a la parrilla, con la cúpula de VExUS lejos de la pared y una rampa que la lleva
+al borde en su cara interna. Para el seno: (i) quitar el pulmón bajo el borde con una cuña; (ii) la cúpula que toca la pared
+en el borde de FRC, la lámina de la cortina que baja desde él y, debajo, una lámina de diafragma contra la pared (la ZOA).
+Para la ventana: (α) un elipsoide que asome por la pared (con su cara casi paralela a la pared, la ventana sale alargada de
+lado a lado, 57 × 42 mm, y llega a la LMC); (β) el elipsoide del corazón con el ápex de Gray, por dentro de la pleura, y un
+tapón de miocardio que lo une a la pared en el disco de Latham.
+
+**Decisión.** (b), (ii) y (β), en dos módulos de órgano propios con sus gemelos GLSL.
+
+- **Bordes** (`src/anatomy/organs/lungBorder.ts`): por columna de |u| (las de la pared torácica), el borde del pulmón en
+  FRC (la 6.ª costilla en la línea paraesternal y en la LMC, la 8.ª en la LAM, T11 —la punta de la apófisis de T10— junto a la columna), la reflexión pleural (el 7.º cartílago en la paraesternal, el 8.º en la LMC, la 10.ª costilla en la LAM, T12 —la punta de su apófisis, por la regla de los tres— detrás), el grosor de la pared a la altura del borde y la inserción de la ZOA (20 mm bajo la
+  reflexión), interpolados en |u| (Fritsch–Carlson) entre los anclajes. En la textura de escena, tras la tabla de la pared.
+- **Cúpula**: la de VExUS, con sus vértices de la base en FRC (la derecha en el centro del 5.º EIC de la línea paraesternal, 13,7 mm; la izquierda 15 mm más baja [SUPUESTO]); junto a la pared, `zL + (D − zL)·s(w)` con s(w) = 1 − (1 − w/40)² (w, la
+  profundidad bajo la cara interna a la altura del borde): toca la pared en el borde y sube de ella con el ángulo
+  costofrénico agudo.
+- **Cortina**: la lámina de 3 mm en los dos hemitórax y alrededor de todo el tronco, desde el borde de su columna menos el
+  descenso del diafragma (`curtainDescentRatio`, 1) sin pasar de la reflexión. La pleura parietal se registra en toda la
+  pared salvo en la ventana cardiaca (`lungCurtainEdgeMm` da −1e3 donde el corazón toca la pleura). `uCurtain` pasa a ser
+  (descenso, espesor, cota de la rampa, 0).
+- **ZOA**: bajo el borde en FRC y sobre la inserción, una lámina de diafragma contra la pared de 1,9 mm en FRC que engruesa
+  hasta 5 mm a TLC (Carrillo-Esper vía Santana; Ueki, Cardenas), con su cara abdominal (la geometría de cara `zoa`, paralela
+  a la pared); la cortina la tapa donde el pulmón ha bajado.
+- **Corazón** (`src/anatomy/organs/heart.ts`): un elipsoide de miocardio (120 × 90 × 65 mm, eje largo 60° a la izquierda y
+  30° hacia abajo [SUPUESTO]) con el ápex en el 5.º EIC a 9 cm, 10 mm por dentro de la pleura (la língula), una cavidad de
+  sangre y el tapón en el disco de Latham (5 cm sobre la piel, centrado a 47,5 mm en el 5.º EIC) hasta la cara del
+  elipsoide (25 mm, medidos por el rayo radial de cada columna, en la métrica de la clasificación); alrededor, una franja de
+  25 mm [SUPUESTO] donde el corazón llega hasta la lámina de la cortina (el borde fino del pulmón sobre el corazón: sin ella,
+  las líneas oblicuas salían del tapón a una bolsa de pulmón y dibujaban una línea vertical brillante), con la lámina que se afila hacia el borde del disco; sobre la cúpula, con su cara inferior de pared (la sangre no toca el diafragma). El corazón, con el tapón y la franja, no se mueve con la respiración (se apoya en el centro tendinoso): el campo respiratorio vuelve a su valor a 50 mm de su elipsoide [SUPUESTO]; bajando con las vísceras, la cizalla con el tapón pegado a la pared abría bolsas de pulmón en la ventana en cada respiración.
+  Tejido nuevo: el miocardio (las propiedades del músculo de IT'IS, sin la textura de la pared).
+- **Clasificación**: pared → costillas → columna → corazón → cortina → ZOA → cúpula → «resto», igual en TS y en GLSL; la
+  distancia a la frontera cuenta la cara del corazón y la de la ZOA. Por encima de la cúpula más alta más 10 mm el pulmón
+  no la evalúa (su distancia a la frontera tiene ese tope); la normal del espejo del pulmón (decisión 57) sale de la cúpula
+  en la última muestra de pulmón, como en el gemelo. `classifyWall` devuelve el arco de la muestra, y su salida barata cubre
+  el tapón y la ZOA.
+
+**Consecuencias.**
+
+- El pulmón que toca la pleura (1,5 mm por dentro), en fin de espiración, a los dos lados: z −17,5 en la LMC (la 6.ª
+  costilla; antes 41,5 a la derecha —la 4.ª— y 16,5 a la izquierda), −35 en la LAM (la 8.ª; antes 14 y −0,5) y −35 junto a
+  la columna (T10; antes 18 y 9). La reflexión: −72 en la LMC (el 8.º cartílago), −97 en la LAM (la 10.ª) y −58 detrás (T12). Tras el esternón el borde sigue el de la línea paraesternal (1,5 mm; junto al borde del esternón Gray lo pone en la 6.ª articulación condroesternal, ≈ 15 mm más arriba), sin cubeta de pulmón bajo él. La cortina baja 10 mm en la respiración tranquila (A-T13: 0,9–2,8 cm) y 30 en la profunda (A-T13: 3,1–7,5 cm; no
+  se cumple: es el diafragma del modelo) en todo el tronco. En la mujer, el borde de la LAM en −31 (sus espacios, 1,5 mm
+  más estrechos); en la delgada y la obesa, como en el avatar. Pasan a `it` el borde de A-T13 y el de Gray, la reflexión, la
+  excursión tranquila, A-T12, A-T14, A-T15 y la ventana de A-T16; con `notYetMet`, la excursión profunda y el pulso pulmonar.
+- La ZOA: 1,9 mm en FRC y 5,0 a TLC (×2,6; A-T15 pide 1,1–2,7 y ≥ +20 %). Las cúpulas, 13,7 y −1,3 mm (antes 55 y 25).
+- La ventana: miocardio bajo la pleura en el 5.º EIC a 30, 45 y 60 mm y en el 4.º a 50 mm de la línea media izquierda
+  (pulmón en el espejo derecho), 268 de 285 puntos del disco (el resto, en su borde caudal, bajo el borde del pulmón: la ZOA); igual en espiración, en la respiración tranquila y en la profunda; el ápex del elipsoide en (79,5, 63, −2,8), bajo la língula (pulmón a 1,5 mm en el 5.º EIC a 9 cm). En la ventana, el miocardio mide 12–35 mm antes de la cavidad (el tapón; `heart-simplified`).
+- En la imagen (capturas con GPU real, C2 → C3): el hemitórax izquierdo tiene línea pleural y líneas A (el signo del
+  murciélago en la LMC izquierda, donde antes se veía el abdomen bajo la cúpula heredada); el signo de la cortina a los dos
+  lados (el EIC8 de la LAM, abdomen en espiración y pulmón en inspiración profunda); en la ventana cardiaca, el corazón (el
+  miocardio, su cavidad anecoica y su pared de detrás) sin pleura ni líneas A, con el pulmón que empieza en su borde.
+- El coste del cuadro sube ≈ 0,2 ms en el M4 (2,24–2,58 → 2,47–2,77, medido uno tras otro con C2, con la máquina cargada; C1, 2,0): muy lejos de O6 (≥ 30 FPS). El chunk principal pasa de 205,3 a 222,2 kB (≈ 13 kB son las notas de evidencia de los dos conjuntos): su
+  presupuesto sube a 230 y el total de JS a 235. Ranuras de uniforms de la pasada B: 112 (+6, los del corazón); 31 tejidos
+  (el miocardio cabe en los 8 vec4 de las tablas por tejido).
+- Pruebas movidas con el borde: la línea que roza el borde de la cortina (su vista 53 mm más abajo), las vistas de la
+  pleura de A0 (sobre el borde nuevo), la normal de la cúpula (a 10⁻⁴ rad: la rampa se interpola por columnas de 8 mm) y lo
+  que hay detrás de la lámina (ya no hay instante sin cortina con que compararlo: se juzga por la cúpula).
+- Se borran `thorax-all-lung`, `lung-curtain-right-only` y `lung-border-above-ribcage`; nuevas `heart-simplified` (el
+  corazón estático: sin pulso pulmonar, A-T16 en su segunda parte) y `lung-border-table` (la tabla igual a los dos lados,
+  sin receso costomediastínico, la rampa, la ZOA de grosor uniforme, la excursión profunda del modelo de 30 mm).
+- La equivalencia TS ↔ GLSL mira también la pleura en la ventana cardiaca (sin pleura en su centro) y en el borde de la LAM
+  izquierda.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde; `anatomyTargets.test.ts` (A-T12–A-T16 y el borde de Gray, con
+`notYetMet` en la excursión profunda y el pulso pulmonar), `anatomy.test.ts`, `pleura.test.ts`, `organs.test.ts`,
+`faceGradient.test.ts` y `physicsInvariants.test.ts` al día; la e2e con GPU real y con SwiftShader. Revisión adversarial
+de contexto limpio (con scripts y la GPU): la ventana cardiaca se rompía al respirar (bloqueante: la cizalla entre el tapón y el corazón); la cubeta de pulmón junto a la línea media, el vértice de la cúpula en la paraesternal de la mamaria interna, la reflexión posterior un nivel baja, la sangre sobre el diafragma y un tapón grueso; una cota de distancia que saltaba en los extremos de la ZOA; pruebas que no medían (el pulso pulmonar, una aserción que no podía fallar); cifras viejas en las notas. Aplicado, salvo el grosor del tapón (declarado).

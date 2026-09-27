@@ -130,6 +130,12 @@ la salida actual no protege nada.
   banda intercostal engruesa delante al inspirar y bajo el reborde costal vuelve la pared del abdomen de VExUS; las metas
   medidas bajo la sonda (A-T1–A-T5, A-T10 y la variante delgada) están en `anatomyTargets.test.ts`. Las pruebas de la pared
   en capas de VExUS (`wall.test.ts`) miran la pared del abdomen (z −280) o el tronco uniforme del hábito.
+- **Los bordes del pulmón, la ZOA y el corazón (paso C3, decisión 18).** En `anatomyTargets.test.ts`, el pulmón que toca
+  la pleura (1,5 mm por dentro, en la lámina de la cortina) a lo largo de las líneas del tórax, a los dos lados: el borde de
+  Gray en FRC, la reflexión pleural (con el diafragma bajado sin límite), la excursión de la cortina, la ZOA medida por la
+  normal de la piel, el EIC bajo el borde que la cortina tapa en inspiración profunda (A-T14), la ausencia de líquido (A-T12)
+  y la ventana cardiaca (A-T16: miocardio bajo la pleura y sin pleura en A0; pulmón en el lado derecho y sobre el ápex).
+  La e2e compara la pleura de A0 también en la ventana cardiaca y en el borde de la LAM izquierda.
 - **F-T08 en la GPU.** La pleura dentro de una sombra solo puede verse cerca de su borde (la penumbra de la apertura y el
   eco vecino que trae el pedestal de la pasada D, ≤ 10 líneas medidas con la pared torácica por región; 6 con la heredada);
   el núcleo de la sombra se juzga aparte y lleva el residuo declarado.

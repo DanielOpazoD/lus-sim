@@ -255,7 +255,9 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
       // (diferencias de 0,5 mm): se toman los puntos de la rejilla donde esa pendiente y la local coinciden a
       // 10⁻⁴. Umbrales: el del ángulo cubre el O(h²) de las diferencias centrales del gradiente
       // (`FACE_GRADIENT_EPS_MM`, 0,02 mm); el de la norma, ||∇| − 1| ≤ |ĝ − g|·|g|/(1 + |g|²) < 10⁻⁴ con esa
-      // coincidencia. Medido el 26-09-2026: 4070 puntos, ángulo ≤ 1,7·10⁻⁷ rad y ||∇| − 1| ≤ 6,8·10⁻⁵
+      // coincidencia. Medido el 26-09-2026: 4070 puntos, ángulo ≤ 1,7·10⁻⁷ rad y ||∇| − 1| ≤ 6,8·10⁻⁵. lus-sim (decisión 18):
+      // 3700 puntos y ángulo ≤ 7,1·10⁻⁵ rad (0,004°), en la rampa de la cúpula hacia la pared (25–31 mm bajo la piel): la
+      // tabla de los bordes del pulmón es lineal por columnas de 8 mm y su pendiente salta en ellas
       const H = (x: number, y: number): number => diaphragmHeight(x, y, scene.diaphragm, scene.torso);
       const slope = (x: number, y: number, h: number): [number, number] => [
         (H(x + h, y) - H(x - h, y)) / (2 * h),
@@ -279,7 +281,7 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
           count++;
         }
       expect(count).toBeGreaterThan(3000);
-      expect(worstAngle).toBeLessThan(1e-5);
+      expect(worstAngle).toBeLessThan(1e-4);
       expect(worstNorm).toBeLessThan(1e-4);
       // la clasificación lleva la cara hepática del diafragma a la cúpula: sin forzarla, el mismo gradiente
       let band = 0;
@@ -288,7 +290,9 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
           for (let z = -150; z <= 90; z += 7.9) {
             const m: V = [x, y, z];
             if (scene.classify(m, instant).interface !== Interface.DiaphragmLiver) continue;
-            expect(scene.faceGradient(m, instant)).toEqual(scene.faceGradient(m, instant, 'dome'));
+            // lus-sim (decisión 18): en la ZOA, la cara de su lámina
+            const geometry = scene.inZoa(m, instant) ? 'zoa' : 'dome';
+            expect(scene.faceGradient(m, instant)).toEqual(scene.faceGradient(m, instant, geometry));
             band++;
           }
       expect(band).toBeGreaterThan(200);

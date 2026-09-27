@@ -12,9 +12,8 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'rib-section-uniform',
   'chest-wall-regional-approx',
   'wall-generic-layers',
-  'thorax-all-lung',
-  'lung-curtain-right-only',
-  'lung-border-above-ribcage',
+  'heart-simplified',
+  'lung-border-table',
   'abdomen-generic-tissue',
   'sliding-uniform-caudal',
   // sonda

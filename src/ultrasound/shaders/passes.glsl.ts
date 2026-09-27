@@ -237,7 +237,7 @@ void main() {
         // (el pulmón del tórax que le sigue pegado) classifyWith sin la cortina da el mismo pulmón: ΔL 0, sin vuelta
         lungDb = segmentDb(c.tissue, step);
         curtainLast = float(s);
-        behind = lungCurtainDistance(m, insideWallMm(m)) >= 0.0;
+        behind = lungCurtainDistance(m, insideWallMm(m), wallArc(m)) >= 0.0;
         continue;
       }
       if (c.tissue == T_LUNG && mirrorSeg < 0.0) {
@@ -246,12 +246,15 @@ void main() {
         // dentro) y dejaba una costura negra entre el diafragma y su imagen especular.
         float lo = max(r - step, 0.0);
         float hi = r;
-        vec3 nn = c.n;
         for (int it = 0; it < ${MIRROR_BISECTION_STEPS}; it++) {
           float mid = 0.5 * (lo + hi);
           Cls cm = classify(toMaterial(origin + dir * mid));
-          if (cm.tissue == T_LUNG) { hi = mid; nn = cm.n; } else lo = mid;
+          if (cm.tissue == T_LUNG) hi = mid; else lo = mid;
         }
+        // la normal de la cúpula en la última muestra de pulmón (la del gemelo, faceGradient 'dome'): classify no la da
+        // por encima de la cúpula más alta (lus-sim, decisión 18) ni en la lámina de la cortina
+        vec3 nn;
+        sdDome(toMaterial(origin + dir * hi), nn);
         mirrorSeg = float(s); hitR = 0.5 * (lo + hi); hitPoint = origin + dir * hitR;
         if (dot(nn, dir) > 0.0) nn = -nn;
         dir = reflect(dir, nn);
@@ -528,7 +531,8 @@ vec2 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
   float depth;
   vec3 tn;
   float wallMm;
-  if (!classifyWall(m, c, depth, tn, wallMm)) { c.tissue = T_FAT; c.n = tn; }
+  float wallU;
+  if (!classifyWall(m, c, depth, tn, wallMm, wallU)) { c.tissue = T_FAT; c.n = tn; }
   vec2 field = fieldForPhBase(m, se, c.tissue, ph0, g, normalize(p - uCurvC), w);
   float clump = uTissueClump4[c.tissue / 4][c.tissue % 4];
   if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);

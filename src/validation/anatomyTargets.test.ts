@@ -1,11 +1,15 @@
 import { chai, describe, expect, it } from 'vitest';
 import { Interface } from '../anatomy/interfaces';
-import { MAX_RIBS, RIBCAGE, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import { MAX_RIBS, RIBCAGE, probeHitPoint, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import { torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
+import { PhysiologyEngine } from '../physiology/engine';
+import { AnatomyQuery } from '../anatomy/query';
+import { HEART } from '../anatomy/organs/heart';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import { START_POINTS } from '../app/startPoints';
@@ -650,13 +654,16 @@ describe('A-T19: oblicuidad costal', () => {
   });
 });
 
-describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
-  // La parrilla del adulto promedio (decisión 16) sigue la base; el pulmón y las cúpulas siguen siendo los heredados de VExUS
-  // (limitación `lung-border-above-ribcage`). Medido (27-09-2026, con la pared torácica por región y las cúpulas escaladas
-  // con su cara interna, decisión 17) en fin de espiración, 4 mm por dentro de la pleura parietal (`lungBorderZ`): derecho
-  // z 43 en la LMC (la 4.ª costilla), 20 en la LAM (la 6.ª) y 45 en la paravertebral (entre la 7.ª y la 8.ª); izquierdo
-  // 17,5, 4 y 10,5. Con la pared heredada: 41,5, 21 y 42,5; 17, 4,5 y 9. Gray (anatomy.md §1.5): la 6.ª costilla en la LMC, la 8.ª
-  // en la LAM y la apófisis espinosa de T10 detrás, cuya punta queda a la altura del cuerpo de T11 (z −35)
+describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemitórax (paso C3, decisión 18)', () => {
+  // El pulmón y las cúpulas de VExUS acababan unas dos costillas por encima del borde de Gray (con la pared por región,
+  // decisión 17, en fin de espiración y a 4 mm por dentro de la pleura: derecho z 43 en la LMC —la 4.ª costilla—, 20 en la
+  // LAM —la 6.ª— y 45 en la paravertebral; izquierdo 17,5, 4 y 10,5), la cortina solo bajaba en el receso lateral y
+  // posterior derecho y el hemitórax izquierdo no tenía pleura. Desde la decisión 18 (`organs/lungBorder.ts`): el borde de
+  // la base en FRC (Gray: la 6.ª costilla en la LMC, la 8.ª en la LAM y la apófisis espinosa de T10 detrás, cuya punta queda
+  // a la altura del cuerpo de T11, z −35), la reflexión pleural (el 8.º cartílago, la 10.ª costilla, T12) y la cortina en
+  // los dos lados. Se mide el pulmón que toca la pleura, a 1,5 mm por dentro de ella (la lámina de la cortina): derecho e
+  // izquierdo, z −17,5 en la LMC, −35 en la LAM y −35 en la paravertebral. A 4 mm, en la rampa de la cúpula hacia la pared,
+  // queda 6–11 mm más arriba (el ángulo costofrénico).
   const PARAVERTEBRAL = (side: -1 | 1) => line('paravertebral', side);
   /** El borde, «a la altura de la costilla n»: entre el centro del espacio de encima y el del de debajo. */
   const atRib = (z: number | null, n: number, phi: number) => {
@@ -664,25 +671,23 @@ describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
     expect(z!).toBeLessThanOrEqual(intercostalZ(scene, n - 1, phi));
     expect(z!).toBeGreaterThanOrEqual(intercostalZ(scene, n, phi));
   };
+  const at = (phi: number, caudal = 0) => lungBorderZ(scene, phi, 1.5, 250, -250, 0.5, { diaphragmCaudalMm: caudal });
   const border = ([-1, 1] as const).map((side) => ({
     side,
-    lmc: lungBorderZ(scene, line('midclavicular', side)),
-    lam: lungBorderZ(scene, line('midaxillary', side)),
-    post: lungBorderZ(scene, PARAVERTEBRAL(side)),
+    lmc: at(line('midclavicular', side)),
+    lam: at(line('midaxillary', side)),
+    post: at(PARAVERTEBRAL(side)),
   }));
 
   it('hay pulmón bajo la pleura en lo alto de las tres líneas, a los dos lados', () => {
     for (const b of border) for (const z of [b.lmc, b.lam, b.post]) expect(z, `lado ${b.side}`).not.toBeNull();
   });
 
-  notYetMet(
-    'A-T13: en la LAM el borde del pulmón está a la altura de la 8.ª costilla en FRC (hoy la 6.ª: z 20 derecho, 4 izquierdo)',
-    () => {
-      for (const b of border) atRib(b.lam, 8, line('midaxillary', b.side));
-    },
-  );
+  it('A-T13: en la LAM el borde del pulmón está a la altura de la 8.ª costilla en FRC, a los dos lados (z −35)', () => {
+    for (const b of border) atRib(b.lam, 8, line('midaxillary', b.side));
+  });
 
-  notYetMet('borde del pulmón de Gray: la 6.ª costilla en la LMC y T10 detrás (hoy la 4.ª y entre la 7.ª y la 8.ª, z 43 y 45)', () => {
+  it('borde del pulmón de Gray: la 6.ª costilla en la LMC y T10 detrás (z −17,5 y −35)', () => {
     const seg = RIBCAGE.params.thoracicSegmentMm.value;
     for (const b of border) {
       atRib(b.lmc, 6, line('midclavicular', b.side));
@@ -690,6 +695,143 @@ describe('A-T13: borde del pulmón frente a la parrilla (paso C3)', () => {
       expect(b.post!).toBeGreaterThanOrEqual((9.5 - 12) * seg);
     }
   });
+
+  it('A-T13: la reflexión pleural, a la altura de la 10.ª costilla en la LAM (8.º cartílago en la LMC, T12 detrás)', () => {
+    // el pulmón no baja de la reflexión aunque el diafragma bajara sin límite
+    const seg = RIBCAGE.params.thoracicSegmentMm.value;
+    for (const side of [-1, 1] as const) {
+      atRib(at(line('midaxillary', side), 500), 10, line('midaxillary', side));
+      atRib(at(line('midclavicular', side), 500), 8, line('midclavicular', side));
+      // detrás, la apófisis de T12 a la altura de su cuerpo (la regla de los tres), con el paso de la medida
+      const post = at(PARAVERTEBRAL(side), 500)!;
+      expect(post).toBeLessThanOrEqual((9.5 - 11.5) * seg);
+      expect(post).toBeGreaterThanOrEqual((9.5 - 13) * seg);
+    }
+  });
+
+  it('A-T13: en la respiración tranquila la cortina baja 0,9–2,8 cm (10 mm, lo que el diafragma del modelo)', () => {
+    const quiet = new RespiratoryModel(defaultPatient()).excursionMm();
+    for (const side of [-1, 1] as const) {
+      const phi = line('midaxillary', side);
+      const d = at(phi)! - at(phi, quiet)!;
+      expect(d).toBeGreaterThanOrEqual(9);
+      expect(d).toBeLessThanOrEqual(28);
+    }
+  });
+
+  notYetMet('A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm (hoy 3,0: el diafragma del modelo baja 30 mm)', () => {
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    const phi = line('midaxillary');
+    const d = at(phi)! - at(phi, deep)!;
+    expect(d).toBeGreaterThanOrEqual(31);
+    expect(d).toBeLessThanOrEqual(75);
+  });
+
+  it('A-T14: en la inspiración profunda la cortina izquierda tapa el espacio intercostal por el que se ve la cúpula', () => {
+    // el primer EIC entero bajo el borde del pulmón en FRC en la LAM y la LAP izquierdas (el 8.º y el 9.º): en FRC, a 1,5 mm de
+    // la pleura, es diafragma (la ZOA) en todo su alto; en la inspiración profunda, pulmón (la cortina)
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    for (const l of ['midaxillary', 'posteriorAxillary'] as const) {
+      const phi = line(l, 1);
+      const frc = at(phi)!;
+      let n = 1;
+      while (ribZ(scene, n, phi) - ribOf(scene, n, 1).halfWidth > frc) n++;
+      const top = ribZ(scene, n, phi) - ribOf(scene, n, 1).halfWidth;
+      const bottom = ribZ(scene, n + 1, phi) + ribOf(scene, n + 1, 1).halfWidth;
+      const expir = lungBorderZ(scene, phi, 1.5, top, bottom - 1, 0.5);
+      const insp = lungBorderZ(scene, phi, 1.5, top, bottom - 1, 0.5, { diaphragmCaudalMm: deep });
+      expect(expir, l).toBeNull();
+      expect(insp!, l).toBeLessThan(bottom);
+    }
+  });
+
+  it('A-T15: el diafragma de la ZOA (EIC 8–9, LAA y LAM) mide 1,1–2,7 mm en FRC y engruesa ≥ 20 % a TLC', () => {
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    const t = scene.torso;
+    /** Alto (mm) de la lámina de diafragma bajo la pleura, por la normal de la piel. */
+    const thickness = (phi: number, z: number, caudal: number) => {
+      let run = 0;
+      for (let d = 0.01; d < 12; d += 0.02) {
+        let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + d, t, z);
+        p = probeHitPoint(phi, scene.wallThicknessAt(p) + d, t, z);
+        if (scene.classify(p, { diaphragmCaudalMm: caudal }).tissue === Tissue.Diaphragm) run += 0.02;
+      }
+      return run;
+    };
+    for (const side of [-1, 1] as const)
+      for (const l of ['anteriorAxillary', 'midaxillary'] as const) {
+        const phi = line(l, side);
+        // el EIC 9 (el 8 de la LAM lo tapa la cortina a TLC: debajo de ella quedan 2 mm)
+        const z = intercostalZ(scene, 9, phi);
+        const frc = thickness(phi, z, 0);
+        const tlc = thickness(phi, z, deep);
+        expect(frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.1);
+        expect(frc, `${l} ${side}`).toBeLessThanOrEqual(2.7);
+        expect(tlc / frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.2);
+      }
+  });
+
+  it('A-T12: sin líquido pleural a la vista (ni en los recesos declives)', () => {
+    for (let phi = -Math.PI; phi < Math.PI; phi += Math.PI / 24)
+      for (let z = -120; z <= 150; z += 5)
+        for (const d of [0.5, 2, 5])
+          expect(
+            scene.classify(
+              probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) + d, scene.torso, z),
+              BASELINE_INSTANT,
+            ).tissue,
+          ).not.toBe(Tissue.Fluid);
+  });
+
+  it('A-T16: en la ventana cardiaca (5.º EIC a 3–6 cm y 4.º a 5 cm de la línea media, a la izquierda) no hay pulmón', () => {
+    const t = scene.torso;
+    const check = (X: number, n: number, side: 1 | -1) => {
+      const phi = Math.acos((side * X) / t.a);
+      const z = intercostalZ(scene, n, phi);
+      const pleura = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)), t, z);
+      const deep = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
+      return { tissue: scene.classify(deep, BASELINE_INSTANT).tissue, edge: scene.lungEdgeMm(pleura, BASELINE_INSTANT)! };
+    };
+    for (const [X, n] of [
+      [30, 5],
+      [45, 5],
+      [60, 5],
+      [50, 4],
+    ] as const) {
+      const left = check(X, n, 1);
+      // corazón bajo la pleura, y la pasada A0 no registra pleura (su borde, muy por debajo)
+      expect(left.tissue, `izquierda, EIC${n} a ${X} mm`).toBe(Tissue.Myocardium);
+      expect(left.edge).toBeLessThan(-100);
+      // al otro lado, pulmón
+      expect(check(X, n, -1).tissue, `derecha, EIC${n} a ${X} mm`).toBe(Tissue.Lung);
+    }
+    // el ápex, en el 5.º EIC a 9 cm, lo tapa la língula; el borde del pulmón izquierdo sigue en la 6.ª costilla de la LMC
+    expect(check(90, 5, 1).tissue).toBe(Tissue.Lung);
+  });
+
+  notYetMet(
+    'A-T16: en apnea, el pulmón junto a la ventana muestra el pulso pulmonar (hoy nada se mueve con el latido: `heart-simplified`)',
+    () => {
+      // el pulmón bajo la pleura, 5 mm por fuera del borde craneal de la ventana: su punto material a lo largo de dos latidos
+      // en apnea espiratoria (el pulso pulmonar lo movería con el corazón)
+      const t = scene.torso;
+      const w = scene.heart.window;
+      const phi = Math.acos(HEART.params.windowOffsetMm.value / t.a);
+      const z = w.z + w.r + 5;
+      const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
+      expect(scene.classify(p, BASELINE_INSTANT).tissue).toBe(Tissue.Lung);
+      const engine = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory' });
+      const q = new AnatomyQuery(scene);
+      const m0 = q.deformation.toMaterial(p, engine.sample.resp);
+      let moved = 0;
+      for (let i = 0; i < Math.round(2 / engine.clock.dt); i++) {
+        const s = engine.step();
+        const m = q.deformation.toMaterial(p, s.resp);
+        moved = Math.max(moved, Math.hypot(m[0] - m0[0], m[1] - m0[1], m[2] - m0[2]));
+      }
+      expect(moved).toBeGreaterThan(0.1);
+    },
+  );
 });
 
 describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {

@@ -308,7 +308,7 @@ export interface ChestWall extends ChestWallLookup {
 export const DEFAULT_CHEST_HABITUS: ChestHabitus = { build: 'average', sex: 'male' };
 
 /** Interpolante cúbico monótono (Fritsch–Carlson) por los puntos (x creciente); constante fuera. */
-function pchip(xs: readonly number[], ys: readonly number[]): (x: number) => number {
+export function pchip(xs: readonly number[], ys: readonly number[]): (x: number) => number {
   const n = xs.length;
   const h: number[] = [];
   const dl: number[] = [];
@@ -348,7 +348,7 @@ const smoothstep = (e0: number, e1: number, x: number): number => {
 const mix = (a: number, b: number, f: number): number => a * (1 - f) + b * f;
 
 /** |u| de la piel en el ángulo del tronco φ. */
-function skinArc(phi: number, t: Torso): number {
+export function skinArc(phi: number, t: Torso): number {
   return Math.abs(wallArc(torsoSkinPoint(phi, 0, t), t));
 }
 

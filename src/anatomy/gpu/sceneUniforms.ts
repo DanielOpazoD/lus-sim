@@ -2,6 +2,7 @@ import type { ProbeCompression } from '../compression';
 import { RespiratoryDeformation } from '../deformation';
 import { CHEST_WALL } from '../organs/chestWall';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
+import { LUNG_BORDER } from '../organs/lungBorder';
 import { MAX_RIBS, RIBS_PER_SIDE } from '../organs/ribcage';
 import type { AnatomyScene } from '../scene';
 import type { PhysiologySample } from '../../physiology/engine';
@@ -150,8 +151,47 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uCurtain',
     type: 'vec4',
-    doc: 'cortina pulmonar: borde caudal z, espesor, xMax, yMax (la huella de la escena, decisión 17)',
-    value: (s, c) => [LUNG_CURTAIN.z0 - c.sample.resp.diaphragmCaudalMm, LUNG_CURTAIN.thicknessMm, s.curtain.xMax, s.curtain.yMax],
+    doc:
+      'cortina pulmonar (decisión 18: los dos hemitórax, con los bordes de organs/lungBorder.ts): descenso del borde del ' +
+      'pulmón (mm), espesor de la lámina, cota de la rampa de la cúpula bajo la piel (rimFarMm), cota de la altura de la ' +
+      'cúpula (domeTopZ)',
+    value: (s, c) => [
+      LUNG_BORDER.params.curtainDescentRatio.value * Math.max(c.sample.resp.diaphragmCaudalMm, 0),
+      LUNG_CURTAIN.thicknessMm,
+      s.lungBorder.rimFarMm,
+      s.domeTopZ,
+    ],
+  },
+  {
+    name: 'uHeartC',
+    type: 'vec4',
+    doc: 'corazón (decisión 18, organs/heart.ts): centro del elipsoide y profundidad del tapón de la ventana',
+    value: (s) => [...s.heart.center, s.heart.plugDepthMm],
+  },
+  {
+    name: 'uHeartE1',
+    type: 'vec4',
+    doc: 'eje largo del corazón (hacia el ápex) y su semieje',
+    value: (s) => [...s.heart.e1, s.heart.radii[0]],
+  },
+  { name: 'uHeartE2', type: 'vec4', doc: 'eje ancho del corazón y su semieje', value: (s) => [...s.heart.e2, s.heart.radii[1]] },
+  {
+    name: 'uHeartE3',
+    type: 'vec4',
+    doc: 'eje corto del corazón (hacia la pared de la ventana) y su semieje',
+    value: (s) => [...s.heart.e3, s.heart.radii[2]],
+  },
+  {
+    name: 'uHeartCav',
+    type: 'vec4',
+    doc: 'cavidad del corazón: desplazamiento por el eje corto y sus semiejes',
+    value: (s) => [s.heart.cavityOffset, ...s.heart.cavityRadii],
+  },
+  {
+    name: 'uHeartWin',
+    type: 'vec4',
+    doc: 'ventana cardiaca sobre la piel: arco u, altura z y radio (mm), ancho de la franja que llega a la lámina de la cortina',
+    value: (s) => [s.heart.window.u, s.heart.window.z, s.heart.window.r, s.heart.skirtMm],
   },
 ];
 
