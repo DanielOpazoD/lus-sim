@@ -8,6 +8,7 @@ import { FRAG_SCANCONVERT } from '../ultrasound/shaders/passes.glsl';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
 import { A_LINE_BACKGROUND_MM } from '../app/testHooks';
+import { EQUIPMENT_LIMITS } from '../app/equipment';
 import { chestView, scanLine } from './support/chestView';
 
 /**
@@ -37,6 +38,15 @@ describe('Preajuste pulmonar del equipo', () => {
     expect(4 * D + A_LINE_BACKGROUND_MM + 1, `pleura a ${D.toFixed(2)} mm`).toBeLessThanOrEqual(DEFAULT_BMODE.depthMm);
     expect(DEFAULT_BMODE.tgcDb.every((db) => db === 0)).toBe(true);
     expect(LUNG_PRESET.params.depthMm.sources).toContain('volpicelli-actualizacion-2026');
+  });
+
+  it('la ganancia del preajuste es la que no satura la línea pleural (lus-sim, decisión 20), con margen del equipo hacia abajo', () => {
+    // el valor es una medida de la GPU (la e2e de la sombra costal exige la línea pleural intercostal bajo el blanco y cerca
+    // de él en los tres puntos de partida); aquí, que el equipo arranca con ella y que el alumno puede bajar y subir
+    expect(DEFAULT_BMODE.gainDb).toBe(LUNG_PRESET.params.gainDb.value);
+    expect(LUNG_PRESET.params.gainDb.sources).toContain('demi-guias-2023');
+    expect(DEFAULT_BMODE.gainDb - EQUIPMENT_LIMITS.gainDb.min).toBeGreaterThanOrEqual(15);
+    expect(EQUIPMENT_LIMITS.gainDb.max - DEFAULT_BMODE.gainDb).toBeGreaterThanOrEqual(20);
   });
 
   it('la compensación nominal crece con la profundidad con la pendiente de referencia del tórax, no la del hígado', () => {
@@ -71,6 +81,9 @@ describe('Preajuste pulmonar del equipo', () => {
     const tgc = { ...DEFAULT_BMODE, tgcDb: [0, 0, 0, 4, 8, 0, 0, 0] };
     expect(displayLevelDb(40, 60, tgc, f) - displayLevelDb(40, 60, DEFAULT_BMODE, f)).toBeCloseTo(6, 9);
     // el techo de la compensación (50 dB)
-    expect(displayLevelDb(0, 119, { ...DEFAULT_BMODE, tgcDb: [60, 60, 60, 60, 60, 60, 60, 60] }, f)).toBeCloseTo(50 + DISPLAY_REF_DB, 9);
+    expect(displayLevelDb(0, 119, { ...DEFAULT_BMODE, tgcDb: [60, 60, 60, 60, 60, 60, 60, 60] }, f)).toBeCloseTo(
+      50 + DEFAULT_BMODE.gainDb + DISPLAY_REF_DB,
+      9,
+    );
   });
 });

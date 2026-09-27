@@ -599,7 +599,7 @@ describe('deslizamiento pulmonar anclado al pulmón', () => {
  * A0 de antes de la decisión 61 (la de la decisión 57): el primer pulmón, sea el de la cortina o el del tórax,
  * es el espejo. Referencia para comprobar que el espejo del diafragma no cambia.
  */
-function hitsBefore61(q: HitsLineQuery, origin: Vec3, dir0: Vec3, depthMm: number, coarseN: number): Omit<HitsLine, 'pleura'> {
+function hitsBefore61(q: HitsLineQuery, origin: Vec3, dir0: Vec3, depthMm: number, coarseN: number): Omit<HitsLine, 'pleura' | 'bone'> {
   const step = depthMm / coarseN;
   const at = (p0: Vec3, d: Vec3, r: number): Vec3 => [p0[0] + d[0] * r, p0[1] + d[1] * r, p0[2] + d[2] * r];
   let dir: Vec3 = dir0;
@@ -947,7 +947,8 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
       'Cls c = classifyWith(m, !behind);',
       'curtainDb += lungDb - segmentDb(c.tissue, step);',
       'lungDb = segmentDb(c.tissue, step);',
-      'if (!behind) s++;',
+      // (lus-sim, decisión 20: tampoco avanza en las vueltas de la bisección de un borde del hueso)
+      'if (!behind && !bis) s++;',
       'behind = lungCurtainDistance(m, insideWallMm(m), wallArc(m)) >= 0.0;',
       'curtainLast = float(s);',
       `curtainRun = c.tissue == T_LUNG && mirrorSeg < 0.0 && (curtainRun || (pleuraD >= 0.0 && float(s) * step <= pleuraD + ${CURTAIN_CONTIGUOUS_SEGMENTS.toFixed(1)} * step && inLungRecess(m, insideWallMm(m))));`,

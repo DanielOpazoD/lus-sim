@@ -1,4 +1,4 @@
-import { steeredApertureTransmission, type ApertureGeometry } from '../ultrasound/aperture';
+import { steeredApertureTransmission, type ApertureGeometry, type BoneCoherence } from '../ultrasound/aperture';
 import { steeredPrefixDb, type SegmentGrid, type SteeredPrefix } from '../ultrasound/transmission';
 
 /**
@@ -26,8 +26,17 @@ export interface SteeredTwin {
   aperture: (l: number, k: number) => number;
 }
 
-/** `steeredPrefixDb` y `steeredApertureTransmission` sobre la rejilla, con los redondeos desplazados `roundBias`. */
-export function steeredTransmissionTwin(grid: SegmentGrid, ap: ApertureGeometry, theta: number, roundBias = 0): SteeredTwin {
+/**
+ * `steeredPrefixDb` y `steeredApertureTransmission` sobre la rejilla, con los redondeos desplazados `roundBias`. lus-sim
+ * (decisión 20): con `coherence`, la fase del hueso de cada toma (el hueso de su camino, `boneMm`), como la pasada A.
+ */
+export function steeredTransmissionTwin(
+  grid: SegmentGrid,
+  ap: ApertureGeometry,
+  theta: number,
+  roundBias = 0,
+  coherence?: BoneCoherence,
+): SteeredTwin {
   const cache = new Map<number, SteeredPrefix>();
   const pre = (l: number, k: number): SteeredPrefix => {
     const key = l * grid.rows + k;
@@ -53,6 +62,7 @@ export function steeredTransmissionTwin(grid: SegmentGrid, ap: ApertureGeometry,
           return o >= 0 ? o : Infinity;
         },
         roundBias,
+        coherence ? { mm: (m) => pre(m, k).boneMm, coherence } : undefined,
       ),
   };
 }
@@ -85,10 +95,11 @@ export function compareSteeredTransmission(
   gpu: SteeredGpuRead,
   every: number,
   tieLines = STEERED_TIE_LINES,
+  coherence?: BoneCoherence,
 ): SteeredParity {
-  const exact = steeredTransmissionTwin(grid, ap, theta);
-  const lo = steeredTransmissionTwin(grid, ap, theta, -tieLines);
-  const hi = steeredTransmissionTwin(grid, ap, theta, tieLines);
+  const exact = steeredTransmissionTwin(grid, ap, theta, 0, coherence);
+  const lo = steeredTransmissionTwin(grid, ap, theta, -tieLines, coherence);
+  const hi = steeredTransmissionTwin(grid, ap, theta, tieLines, coherence);
   const db = (x: number) => -20 * Math.log10(Math.max(x, 1e-12));
   let lines = 0;
   let samples = 0;

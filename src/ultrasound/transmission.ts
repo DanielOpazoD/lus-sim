@@ -1,4 +1,5 @@
-import { TISSUES, Tissue, attenuationDbPerCm } from '../anatomy/tissues';
+import { TISSUES, Tissue } from '../anatomy/tissues';
+import { BONE_TRANSMISSION, transmissionAlphaDbPerCm } from './boneTransmission';
 import type { Vec3 } from '../core/vec3';
 import { IFACE_REACH_MM } from './interfaceEcho';
 import { CURTAIN_CONTIGUOUS_SEGMENTS, CURTAIN_GAS_KIND, CURTAIN_RECORD_MM } from './pleura';
@@ -9,14 +10,16 @@ import { alongLineMm, steerBeta, steeredElement } from './steering';
  * Regla de atenuación ida y vuelta a lo largo de un rayo, la MISMA que aplica la
  * pasada A en GLSL (`FRAG_TRANSMISSION`): el gel previo a la piel no atenúa; el gas
  * atenúa 60 dB/cm y no suma absorción; el hueso cobra 6 dB una sola vez al entrar
- * (reflexión en la interfaz) más su absorción por paso; el resto, 2·α(f)·paso.
+ * (reflexión en la interfaz) más su absorción por paso; el resto, 2·α(f)·paso. lus-sim (decisión 20): la pérdida de las
+ * caras del hueso es la de sus cuatro cruces con las impedancias de la tabla (7,42 dB, `BONE_TRANSMISSION`).
  * La usan la puerta PW (transmisión hasta la muestra) y sus pruebas; el shader la
  * reproduce. Única diferencia deliberada: la pasada A refleja el rayo en el primer
  * pulmón del tórax (espejo diafragmático, en el cruce exacto: `mirrorCrossing`) y sigue; la puerta
  * PW no sigue rayos reflejados. El pulmón de la cortina (decisión 61) no refleja: el rayo sigue recto
- * y paga su gas, como aquí.
+ * y paga su gas, como aquí. lus-sim (decisión 20): el hueso atenúa a la frecuencia del pulso que llega a la costilla
+ * (`transmissionAlphaDbPerCm`), no a la frecuencia B efectiva del campo profundo.
  */
-export const BONE_ENTRY_DB = 6;
+export const BONE_ENTRY_DB = BONE_TRANSMISSION.params.interfaceLossDb.value;
 export const GAS_DB_PER_CM = 60;
 /** Pérdida del espejo diafragmático (dB ida y vuelta): la del segmento del espejo en A1. */
 export const MIRROR_DB = 0.5;
@@ -37,7 +40,7 @@ export function rayAttenuationDb(tissues: Iterable<Tissue>, stepMm: number, fMHz
       db += BONE_ENTRY_DB;
       boneEntered = true;
     }
-    db += 2 * attenuationDbPerCm(t, fMHz) * (stepMm / 10);
+    db += 2 * transmissionAlphaDbPerCm(t, fMHz) * (stepMm / 10);
   }
   return db;
 }
@@ -89,6 +92,12 @@ export interface HitsLine {
   /** Profundidad del espejo en el cruce exacto (mm; 0 sin espejo, como h1.w) y dirección reflejada. */
   mirrorR: number;
   dir: Vec3;
+  /**
+   * lus-sim (decisión 20), h3: entrada y salida exactas (mm) del primer tramo de hueso antes del espejo, con la bisección
+   * del espejo; null sin él. Un tramo que sigue hasta el espejo o el final de la línea acaba en el borde de su última
+   * muestra de hueso.
+   */
+  bone: { entry: number; exit: number } | null;
   /**
    * Pleura parietal: cruce exacto D (mm), distancia al borde dz, pérdida de la cortina ΔL (dB), tipo 3 y el
    * último segmento del pulmón de la cortina (−1 si el rayo central no da en él; con el pulmón del tórax pegado
@@ -169,6 +178,10 @@ export function transmissionHitsLine(
   let curtainLast = -1;
   let curtainRun = false;
   let entered = false;
+  let boneIn = -1;
+  let boneOut = -1;
+  let boneLast = -1;
+  const isBoneAt = (x: number): boolean => TISSUES[q.at(at(origin, dir0, x)).tissue].bone;
   for (let s = 0; s < coarseN; s++) {
     const r = (s + 0.5) * step;
     const p = mirrorSeg >= 0 ? at(hitPoint, dir, r - hitR) : at(origin, dir0, r);
@@ -176,6 +189,12 @@ export function transmissionHitsLine(
     if (c.tissue === Tissue.Air && !entered) continue;
     entered = true;
     const props = TISSUES[c.tissue];
+    // lus-sim (decisión 20): la entrada y la salida exactas del primer tramo de hueso antes del espejo
+    if (mirrorSeg < 0 && boneOut < 0) {
+      if (props.bone && boneIn < 0) boneIn = boneEdge(isBoneAt, Math.max(r - step, 0), r, true);
+      else if (!props.bone && boneIn >= 0) boneOut = boneEdge(isBoneAt, r - step, r, false);
+      if (props.bone) boneLast = r;
+    }
     // solo con la pleura registrada y pegado a ella (su primer segmento a ≤ CURTAIN_CONTIGUOUS_SEGMENTS de D): si el
     // cruce cae fuera de la huella, o el pulmón del receso está lejos de él (una línea que roza el borde), el pulmón
     // es el espejo de siempre
@@ -224,12 +243,51 @@ export function transmissionHitsLine(
     pleura.dL = curtainDb;
     pleura.curtainLast = curtainLast;
   }
-  return { mirrorSeg, gasSeg, boneSeg, gasKind, mirrorR: hitR, dir, pleura };
+  if (boneIn >= 0 && boneOut < 0) boneOut = boneLast + 0.5 * step;
+  return { mirrorSeg, gasSeg, boneSeg, gasKind, mirrorR: hitR, dir, pleura, bone: boneIn >= 0 ? { entry: boneIn, exit: boneOut } : null };
+}
+
+/**
+ * Borde exacto de un tramo de hueso entre dos muestras (lus-sim, decisión 20): la bisección del espejo
+ * (`MIRROR_BISECTION_STEPS`) entre `lo` y `hi`; `entering`, hueso en `hi` (la entrada), si no en `lo` (la salida).
+ * Devuelve el punto medio del último intervalo, como A0.
+ */
+export function boneEdge(isBone: (r: number) => boolean, lo: number, hi: number, entering: boolean): number {
+  for (let it = 0; it < MIRROR_BISECTION_STEPS; it++) {
+    const mid = 0.5 * (lo + hi);
+    if (isBone(mid) === entering) hi = mid;
+    else lo = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+/**
+ * El primer tramo de hueso de una línea recta hasta `untilMm` con la marcha y la bisección de A0 (h3, lus-sim,
+ * decisión 20): la entrada y la salida exactas; null sin hueso. El banco lo compara con la GPU.
+ */
+export function boneRunAlongLine(
+  isBone: (r: number) => boolean,
+  depthMm: number,
+  coarseN: number,
+  untilMm = depthMm,
+): { entry: number; exit: number } | null {
+  const step = depthMm / coarseN;
+  let entry = -1;
+  let last = -1;
+  for (let s = 0; s < coarseN; s++) {
+    const r = (s + 0.5) * step;
+    if (r > untilMm) break;
+    const b = isBone(r);
+    if (b && entry < 0) entry = boneEdge(isBone, Math.max(r - step, 0), r, true);
+    else if (!b && entry >= 0) return { entry, exit: boneEdge(isBone, r - step, r, false) };
+    if (b) last = r;
+  }
+  return entry >= 0 ? { entry, exit: last + 0.5 * step } : null;
 }
 
 /** Pérdida ida y vuelta (dB) de un segmento con las reglas de A1 (gas 60 dB/cm; el resto 2·α(f)·paso). */
 export function segmentDb(t: Tissue, stepMm: number, fMHz: number): number {
-  return TISSUES[t].gas ? GAS_DB_PER_CM * (stepMm / 10) : 2 * attenuationDbPerCm(t, fMHz) * (stepMm / 10);
+  return TISSUES[t].gas ? GAS_DB_PER_CM * (stepMm / 10) : 2 * transmissionAlphaDbPerCm(t, fMHz) * (stepMm / 10);
 }
 
 /** Transmisión de amplitud ida y vuelta (0–1) correspondiente a `rayAttenuationDb`. */
@@ -264,6 +322,14 @@ export interface SegmentGrid {
   mirrorSeg: Int32Array;
   /** A0 h1.w: profundidad del espejo en el cruce exacto (mm, `mirrorCrossing`). */
   mirrorR: Float64Array;
+  /** lus-sim (decisión 20), A0 h2.x: la pleura parietal registrada de cada línea (mm; −1 sin ella), si se leyó. */
+  pleuraD?: Float64Array;
+  /**
+   * lus-sim (decisión 20), A0 h3: entrada y salida exactas (mm, bisección) del primer tramo de hueso de cada línea antes
+   * del espejo; −1 sin él. La fase de la toma en el cono de A (`boneChordMm`).
+   */
+  boneEntryMm?: Float64Array;
+  boneExitMm?: Float64Array;
 }
 
 /** Impactos de A0 de una línea, derivados de las marcas de A1 con la misma regla (gel previo omitido). */
@@ -293,6 +359,11 @@ export interface PrefixSample {
   boneHit: number;
   mirrorHit: number;
   gasKind: number;
+  /**
+   * lus-sim (decisión 20): hueso de la línea hasta la profundidad de la fila k (mm), con la entrada y la salida exactas
+   * de su costilla (A0 h3, `boneChordMm`): la fase de su toma en el cono de A. 0 si la rejilla no las lleva.
+   */
+  boneMm: number;
 }
 
 /**
@@ -319,7 +390,19 @@ export function prefixDb(g: SegmentGrid, line: number, k: number): PrefixSample 
   const mirrorHit = h.mirrorSeg >= 0 && mr < (k + 1) * g.stepMm + IFACE_REACH_MM ? mr : -1;
   const gasHit = h.gasSeg >= 0 && h.gasSeg <= k ? (h.gasSeg === h.mirrorSeg ? mr : (h.gasSeg + 0.5) * g.stepMm) : -1;
   const boneHit = h.boneSeg >= 0 && h.boneSeg <= k ? (h.boneSeg + 0.5) * g.stepMm : -1;
-  return { db, gasHit, boneHit, mirrorHit, gasKind: gasHit >= 0 ? h.gasKind : 0 };
+  return { db, gasHit, boneHit, mirrorHit, gasKind: gasHit >= 0 ? h.gasKind : 0, boneMm: boneChordMm(g, line, (k + 0.5) * g.stepMm) };
+}
+
+/**
+ * Hueso de la costilla de la línea (su primer tramo de hueso antes del espejo, entre la entrada y la salida exactas de
+ * A0 h3) hasta la profundidad r (mm): max(0, min(salida, r) − entrada). 0 sin costilla o si la rejilla no las lleva.
+ * Gemelo de `boneChordMm` en `APERTURE_GLSL` (lus-sim, decisión 20).
+ */
+export function boneChordMm(g: SegmentGrid, line: number, r: number): number {
+  if (!g.boneEntryMm || !g.boneExitMm) return 0;
+  const a = g.boneEntryMm[line];
+  if (a < 0) return 0;
+  return Math.max(0, Math.min(g.boneExitMm[line], r) - a);
 }
 
 /** Prefijo dirigido de A2 (decisión 58): lo mismo a lo largo del camino dirigido, en distancias del camino. */
@@ -335,6 +418,8 @@ export interface SteeredPrefix {
   mirrorLine: number;
   /** Elemento del que sale el camino (rad): su cobertura (`lookCoverage`) decide si la mirada se forma. */
   element: number;
+  /** lus-sim (decisión 20): hueso a lo largo del camino hasta la fila k (mm, con ds/dρ): la fase de su toma en A. */
+  boneMm: number;
 }
 
 /** Filas que A2 mira más allá de la k para publicar un espejo al alcance del eco pleural. */
@@ -387,6 +472,9 @@ export function steeredPrefixDb(
   let sMirror = -1;
   let gasKind = 0;
   let frozen = -1;
+  let boneMm = 0;
+  let boneLine = -1;
+  let boneScale = 1;
   for (let s = 0; s <= k + ahead; s++) {
     let l: number;
     let seg = s;
@@ -420,13 +508,21 @@ export function steeredPrefixDb(
       db += BONE_ENTRY_DB;
       boneEntered = true;
     }
-    if (g.bone[i] && sBone < 0) sBone = along((s + 0.5) * step);
+    if (g.bone[i] && sBone < 0) {
+      sBone = along((s + 0.5) * step);
+      // lus-sim (decisión 20): la costilla del camino es la de la línea que cruza en su primer hueso
+      if (frozen < 0) {
+        boneLine = l;
+        boneScale = scale;
+      }
+    }
     if (g.gas[i] && g.gas[i] !== CURTAIN_GAS_KIND && sGas < 0) {
       sGas = crossing ? sMirror : along((s + 0.5) * step);
       gasKind = g.gas[i];
     }
     db += g.db[i] * scale;
   }
+  if (boneLine >= 0) boneMm = boneChordMm(g, boneLine, (k + 0.5) * step) * boneScale;
   return {
     db,
     sGas,
@@ -435,17 +531,29 @@ export function steeredPrefixDb(
     gasKind: sGas >= 0 ? gasKind : 0,
     mirrorLine: sMirror >= 0 ? frozen : -1,
     element: steeredElement(alpha, rhoK, theta, R),
+    boneMm,
   };
 }
+
+/**
+ * `boneChordMm` en GLSL (lus-sim, decisión 20): lee A0 h3 (entrada y salida exactas de la costilla de la línea) en
+ * `uHits3`. La usan la pasada A (el hueso de cada toma del cono) y el prefijo dirigido de A2.
+ */
+export const BONE_CHORD_GLSL = /* glsl */ `
+float boneChordMm(int l, float r) {
+  vec4 h3 = texelFetch(uHits3, ivec2(l, 0), 0);
+  return h3.x < 0.0 ? 0.0 : max(0.0, min(h3.y, r) - h3.x);
+}
+`;
 
 /**
  * `steeredPrefixDb` en GLSL para A2 (etapa 2 de la decisión 58). Necesita uSeg (A1 con el gas en .w),
  * uHits0 (espejo en .x), uHits1 (su r exacta en .w), uCoarseN, uDepth, uCurvR, uHalfSector, uLinesF,
  * uSteer (θ, R·sin θ, R·cos θ, k2) y `STEERING_GLSL`. Devuelve (dB, sGas, sBone, sMirror) y, aparte,
- * (tipo de gas, línea del espejo).
+ * (tipo de gas, línea del espejo, hueso a lo largo del camino en mm: lus-sim, decisión 20).
  */
 export const STEERED_PREFIX_GLSL = /* glsl */ `
-vec4 steeredPrefix(int line, int k, out vec2 extra) {
+vec4 steeredPrefix(int line, int k, out vec3 extra) {
   float step = uDepth / uCoarseN;
   float dPhi = 2.0 * uHalfSector / uLinesF;
   float a = uSteer.y;
@@ -456,8 +564,8 @@ vec4 steeredPrefix(int line, int k, out vec2 extra) {
   float db = 0.0;
   bool entered = false;
   bool boneEntered = false;
-  float sGas = -1.0, sBone = -1.0, sMirror = -1.0, gasKind = 0.0;
-  int frozen = -1;
+  float sGas = -1.0, sBone = -1.0, sMirror = -1.0, gasKind = 0.0, boneScale = 1.0;
+  int frozen = -1, boneLine = -1;
   for (int s = 0; s < 512; s++) {
     if (s > k + ahead) break;
     int l;
@@ -487,12 +595,17 @@ vec4 steeredPrefix(int line, int k, out vec2 extra) {
     entered = true;
     if (g.z > 0.5 && !boneEntered) { db += ${glslFloat(BONE_ENTRY_DB)}; boneEntered = true; }
     float sRow = alongLineMm(uCurvR + (float(s) + 0.5) * step, a, rc);
-    if (g.z > 0.5 && sBone < 0.0) sBone = sRow;
+    if (g.z > 0.5 && sBone < 0.0) {
+      sBone = sRow;
+      // lus-sim (decisión 20): la costilla del camino es la de la línea que cruza en su primer hueso
+      if (frozen < 0) { boneLine = l; boneScale = scale; }
+    }
     // el pulmón de la cortina (marca ${CURTAIN_GAS_KIND}, decisión 61) no es un impacto de gas
     if (g.w > 0.5 && g.w < ${glslFloat(CURTAIN_GAS_KIND - 0.5)} && sGas < 0.0) { sGas = crossing ? sMirror : sRow; gasKind = g.w; }
     db += g.x * scale;
   }
-  extra = vec2(sGas >= 0.0 ? gasKind : 0.0, sMirror >= 0.0 ? float(frozen) : -1.0);
+  float boneMm = boneLine >= 0 ? boneChordMm(boneLine, (float(k) + 0.5) * step) * boneScale : 0.0;
+  extra = vec3(sGas >= 0.0 ? gasKind : 0.0, sMirror >= 0.0 ? float(frozen) : -1.0, boneMm);
   return vec4(db, sGas, sBone, sMirror);
 }
 `;

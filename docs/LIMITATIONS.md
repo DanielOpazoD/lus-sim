@@ -130,26 +130,33 @@ conservan su identificador (decisiones 10 y 11).
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina; su nivel sale de K = 55 dB, que se calibra con la GPU.
-- **Bajo el centro de una costilla la línea pleural no se apaga del todo, y la línea A se ve tenue**
-  (`rib-shadow-pleura-residual`): medido en la envolvente de la GPU (`e2e/imagen.spec.ts`, meta F-T08) con la parrilla del
-  paso C1 (decisión 16), en el núcleo de la sombra completa (las líneas en que todas las tomas de los conos de apertura de
-  la pasada A cruzan hueso, a más de 6 líneas de su borde) la línea pleural queda a −40,8…−41,7 dB del eco pleural
-  intercostal, que en la pantalla del preajuste son −23,4…−25,6 dB bajo el blanco: una línea gris sobre la sombra negra; y
-  la línea A de orden 2, a −50,5…−52,8 dB en la pantalla, se ve tenue en más de la mitad de esas líneas. **No cumple la
-  parte de F-T08 «bajo la costilla no hay línea pleural ni líneas A»**; sí la otra: la intensidad media de cada sombra
-  queda a −34,7…−39,2 dB del eco pleural intercostal (el umbral es −20). Causas medidas: la pleura de la sombra recibe la
-  transmisión con apertura de la pasada A, una media de amplitudes de sus tomas en la que pesan las que cruzan el borde
-  redondo de la costilla (un segmento de hueso) y que no lleva la fase que añadiría un hueso con c = 3515 m/s (ni su
-  refracción ni su hueso esponjoso): hasta 12 dB más que un rayo; la línea A de la sombra la trae el pedestal de lóbulos
-  laterales de la pasada D (`no-sidelobes`; sin él no se ve ninguna), que además sube la pleura, y con los espacios
-  intercostales del adulto promedio (15–20 mm; antes 5–12) hay más pleura brillante a su alcance: antes de la parrilla el
-  núcleo quedaba a −46…−67 dB. Con la pleura 5 mm bajo la cresta (antes 7–8), la sombra completa empieza a 4–5 líneas del
-  borde de la sombra, donde la pleura aún recibe el eco vecino por la pasada D (−30…−39 dB a 4–6 líneas): no por el lóbulo
-  principal de la PSF lateral, que cae bajo −35 dB desde 3 líneas, sino sobre todo por su pedestal (el gemelo
-  `lateralKernel` deja −30…−33 dB por energía a 4–6 líneas); las 6 líneas de la e2e son la medida. Y el
-  preajuste deja la línea pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]).
-  `e2e/imagen.spec.ts` exige el fallo con su tamaño; corregirlo pide una decisión con evidencia: la transmisión coherente
-  por el hueso, su sección, el brillo de la línea pleural y, si se justifica, el pedestal.
+- **La costilla es una lente de fase fina, de hueso homogéneo** (`rib-acoustics-simplified`, decisión 20): la sombra costal
+  sale de la transmisión de la pasada A con la fase que el hueso añade a cada toma de su cono (la cuerda recta de la costilla
+  en la línea de la toma, de la entrada y la salida exactas de A0, por 2π·f·(1/c_músculo − 1/c_hueso), promediada en la banda
+  del pulso), de las cuatro caras de la cortical con las impedancias de la tabla (7,4 dB) y de la atenuación del hueso a la
+  frecuencia del pulso que llega a la costilla (3,26 MHz, estimada con el recorrido de la costilla del avatar: una más fina o
+  más gruesa se desplaza distinto). No tiene la refracción de los rayos en la cortical (c 2,3 veces mayor: se abren y, más
+  allá de 26° de incidencia, no entran como onda longitudinal), la conversión a onda transversal, la cortical y el hueso
+  esponjoso por separado, ni el desplazamiento por velocidad del eco que atraviesa el hueso (llegaría ≈ 2,5 mm antes). La
+  fase solo es la de la primera costilla de cada línea antes del espejo, y en las miradas dirigidas, la de la línea que el
+  camino cruza en su primer hueso; en armónica, el cono de emisión pierde la coherencia de p₁ al cuadrado (la fuente del
+  armónico), sin el resto de la física de la armónica a través del hueso. En la sombra completa, el eco de la pleura queda a −68,7…−86,1 dB del intercostal en el
+  núcleo (negro en la pantalla del preajuste) y la línea A de orden 2 a más de 100 dB bajo el blanco; la línea pleural se ve
+  en la penumbra, el semiancho del cono de emisión en la costilla (6,6–10,5 líneas) más el lóbulo principal de la PSF (1–3
+  líneas), por los rayos que pasan junto a la costilla o por su borde redondo, que es fino. Los lóbulos laterales de una
+  línea ven lo de al lado con la menor de las dos transmisiones (la de la mirada 0, también en las dirigidas; bajo la pleura
+  registrada, la de su fila tope, sin mirar la fracción de aire de la cortina): una aproximación del camino de la apertura de
+  la línea hasta la muestra vecina, que no sigue los rayos, y la cota más favorable. Con la transmisión de la línea donde el
+  camino recto cruza la costilla (la revisión la probó), el núcleo sube 1,4–3,8 dB y en el BLUE inferior y el PLAPS llega a
+  gris 9. La penumbra la fija la apertura de emisión de VExUS (26 mm con el foco a 16 mm, F# 0,6, `NEEDS_CALIBRATION`): la
+  pleura se ve en 5–8 mm de cada sombra de 14–17 mm. F-T08 se cumple con el preajuste en los tres puntos de partida y en los
+  cortes longitudinales de la LAM, del lado izquierdo y de 1,2π; en la LAM a z 20 el núcleo llega a gris 2 y en un corte
+  oblicuo de 60° (la costilla más ancha y de cuerda más plana: menos lente), a gris 6 (10 en armónica). Con más ganancia la
+  pleura del núcleo reaparece: con 0 dB, en gris 25–40; con −10, 6–18 (sin el hueso esponjoso, que dispersa, una costilla
+  real quizá la apague más). El preajuste pulmonar no satura la línea pleural (−21 dB de ganancia, decisión 20): toda la
+  imagen baja lo mismo, la pared queda gris oscura y, sin tocar la TGC, las líneas A se ven hasta ≈ 5 cm y el campo lejano
+  es negro, sin suelo de ruido; se sube con la TGC del usuario (el consenso pide ganancia creciente hacia el campo lejano sin
+  fijar la pendiente).
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.
@@ -157,7 +164,9 @@ conservan su identificador (decisiones 10 y 11).
   `src/ultrasound/clutter.ts`, decisión 11): el núcleo lateral lleva un pedestal gaussiano con una pantalla de
   fase fija (ISLR −24 dB con los 14 mm de grasa del paciente por omisión), no el diagrama real de la apertura; la
   reverberación de la pared es de primer y segundo orden y solo de los ecos fuertes (compuerta por el módulo del
-  campo, no por la cara que la produce). En el tórax la pleura es la cara interna de la pared, así que sus réplicas
+  campo, no por la cara que la produce). Desde la decisión 20 cada vecina entra en el pedestal con la menor de las dos
+  transmisiones (la de la línea de destino y la suya): en la sombra de una costilla el pedestal ya no trae la línea pleural
+  ni las líneas A de los espacios intercostales vecinos. En el tórax la pleura es la cara interna de la pared, así que sus réplicas
   caen a W y 2W bajo ella (W, el grosor de la pared, es casi la profundidad de la pleura), junto a las líneas A que la
   serie de reverberaciones ya forma: una doble cuenta. Medida en la GPU (decisión 12), la réplica de la línea pleural
   queda dentro de la línea A de orden 2 en unas 440 de 576 líneas de los tres puntos de partida (27–31 dB por debajo: el

@@ -17,9 +17,14 @@ import { Interface, isRibInterface, isWallLayerInterface } from '../anatomy/inte
 import { TISSUES, Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { FRAME_PASSES, type PassId } from '../ultrasound/passGraph';
-import { lineHits, pleuraCrossingLine, rayAttenuationDb } from '../ultrasound/transmission';
+import { MIRROR_BISECTION_STEPS, boneRunAlongLine, lineHits, pleuraCrossingLine, rayAttenuationDb } from '../ultrasound/transmission';
 import { pleuraCapMm } from '../ultrasound/pleura';
-import { APERTURE_TAPS, type ApertureGeometry } from '../ultrasound/aperture';
+import { APERTURE_TAPS, boneCoherence, type ApertureGeometry } from '../ultrasound/aperture';
+import { lateralSigmaMm } from '../ultrasound/beamModel';
+import { levelOfGrey } from '../ultrasound/greyMap';
+import { bmodeBeam } from '../ultrasound/transducerProfile';
+import { compareLook0Aperture, type Look0ApertureParity } from './apertureParity';
+import { compareLateral, type LateralParity } from './lateralParity';
 import { compareSteeredTransmission } from './steeredParity';
 import { compoundActive } from '../ultrasound/compound';
 import { COARSE_DEPTH, displayLevelDb, type CompoundState } from '../ultrasound/renderer';
@@ -97,7 +102,19 @@ export interface TestHooks {
     truncatedLines: number;
     /** Dónde está el peor desacuerdo (diagnóstico del mensaje de la e2e). */
     worst: { line: number; depthMm: number; cpuDb: number; gpuDb: number; tissue: string } | null;
+    /**
+     * lus-sim (decisión 20), solo la mirada 0: la transmisión con apertura de A (con la fase del hueso de cada toma) y la
+     * dibujada, frente a sus gemelos sobre los segmentos de la GPU (`compareLook0Aperture`), y la costilla de cada línea de
+     * A0 (h3: su entrada y su salida exactas) frente a la bisección de TS sobre la clasificación de la CPU.
+     */
+    look0Aperture?: Look0ApertureParity;
+    boneChord?: { lines: number; mismatched: number; maxErrMm: number; quantumMm: number };
   };
+  /**
+   * Paridad de la pasada D (lus-sim, decisión 20) en `startPoint`, en apnea espiratoria y en la mirada 0: la envolvente de la
+   * GPU frente al gemelo (`compareLateral`) sobre el campo que C le dio, cada `every` líneas y `rowEvery` filas.
+   */
+  lateralParity: (opts: { startPoint: StartPoint['id']; every?: number; rowEvery?: number }) => LateralParity;
   /** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
   goToStartPoint: (id: StartPoint['id']) => void;
   /** Lleva la sonda a una pose cualquiera (capturas y búsqueda de ventanas). */
@@ -297,6 +314,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         const depth = sim.bmode.depthMm;
         const step = depth / gpu.samples;
         const every = Math.max(1, opts.every ?? 8);
+        const look0 = look0ApertureParity(sim, gpu, every);
         // Un segmento cuyo centro está a menos de ε de una interfaz puede caer de un lado en float32 y del
         // otro en float64: la suma de A2 difiere entonces en un segmento de ahí en adelante. La clasificación
         // ya la comprueba la equivalencia; aquí se compara la suma hasta ese segmento.
@@ -332,7 +350,42 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
             }
           }
         }
-        return { lines, samples, maxDiffDb, truncatedLines, worst };
+        return { lines, samples, maxDiffDb, truncatedLines, worst, ...look0 };
+      }),
+    lateralParity: (opts) =>
+      withCompound(getSim(), dispatch, false, () => {
+        const sim = getSim();
+        const patient = sim.patient.respiratoryPattern;
+        sim.patient.respiratoryPattern = 'apnea-expiratory';
+        try {
+          goTo(sim, opts.startPoint);
+          sim.advance(1);
+          sim.render();
+          const inp = sim.renderer.readLateralInputs();
+          const tr = sim.transducer;
+          return compareLateral(
+            {
+              lines: inp.lines,
+              samples: inp.samples,
+              coarseRows: COARSE_DEPTH,
+              depthMm: sim.bmode.depthMm,
+              focusMm: sim.bmode.focusMm,
+              curvatureRadius: tr.curvatureRadius,
+              halfSector: tr.halfSector,
+              beam: bmodeBeam(sim.profile, sim.bmode),
+              clutter: inp.clutter,
+              re: inp.re,
+              im: inp.im,
+              coupling: inp.coupling,
+              drawn: sim.renderer.readTransmission().drawn!,
+              envelope: sim.renderer.readEnvelope().data,
+            },
+            Math.max(1, opts.every ?? 3),
+            Math.max(1, opts.rowEvery ?? 8),
+          );
+        } finally {
+          sim.patient.respiratoryPattern = patient;
+        }
       }),
     goToStartPoint: (id) => goTo(getSim(), id),
     setPose: (pose) => {
@@ -437,8 +490,71 @@ function steeredParity(sim: Simulator, look: number, every: number): ReturnType<
     gpu.theta,
     { lines: gpu.lines, samples: gpu.samples, prefixDb: gpu.prefixDb!, aperture: gpu.aperture },
     every,
+    undefined,
+    // lus-sim (decisión 20): la fase del hueso de cada toma, con el haz del modo B
+    boneCoherence(bmodeBeam(sim.profile, sim.bmode)),
   );
   return { ...parity, truncatedLines: 0 };
+}
+
+/**
+ * lus-sim (decisión 20): la paridad de A de la mirada 0 con la fase del hueso (`compareLook0Aperture`) sobre los segmentos
+ * que la GPU acaba de escribir, y la costilla de cada línea de A0 (h3) frente a `boneRunAlongLine` con la clasificación de
+ * la CPU, hasta el espejo de la línea: la bisección del espejo (su paso final, profundidad/(160·2⁶)) en las dos.
+ */
+function look0ApertureParity(
+  sim: Simulator,
+  gpu: ReturnType<Simulator['renderer']['readTransmission']>,
+  every: number,
+): { look0Aperture: Look0ApertureParity; boneChord: { lines: number; mismatched: number; maxErrMm: number; quantumMm: number } } {
+  const tr = sim.transducer;
+  const depth = sim.bmode.depthMm;
+  const grid = sim.renderer.readSegments(depth);
+  const beam = sim.profile.beam;
+  const ap: ApertureGeometry = {
+    lines: gpu.lines,
+    halfSector: tr.halfSector,
+    curvatureRadius: tr.curvatureRadius,
+    apertureTxMm: beam.apertureTxMm,
+    apertureRxMaxMm: beam.apertureRxMaxMm,
+    fNumberRxMin: beam.fNumberRxMin,
+  };
+  const look0Aperture = compareLook0Aperture(
+    grid,
+    ap,
+    boneCoherence(bmodeBeam(sim.profile, sim.bmode)),
+    {
+      lines: gpu.lines,
+      samples: gpu.samples,
+      aperture: gpu.aperture,
+      drawn: gpu.drawn!,
+    },
+    every,
+  );
+  const step = depth / COARSE_DEPTH;
+  const quantumMm = step / 2 ** MIRROR_BISECTION_STEPS;
+  let lines = 0;
+  let mismatched = 0;
+  let maxErrMm = 0;
+  for (let u = 0; u < gpu.lines; u += every) {
+    const theta = -tr.halfSector + (2 * tr.halfSector * (u + 0.5)) / gpu.lines;
+    const until = grid.mirrorSeg[u] >= 0 ? (grid.mirrorSeg[u] + 0.5) * step - 1e-6 : depth;
+    const cpu = boneRunAlongLine(
+      (r) => TISSUES[sim.anatomy.classifyWorld(pointOnLine(sim.frame, tr, theta, r), sim.sample).tissue].bone,
+      depth,
+      COARSE_DEPTH,
+      until,
+    );
+    const g = grid.boneEntryMm![u] >= 0 ? { entry: grid.boneEntryMm![u], exit: grid.boneExitMm![u] } : null;
+    if (!cpu && !g) continue;
+    lines++;
+    if (!cpu || !g) {
+      mismatched++;
+      continue;
+    }
+    maxErrMm = Math.max(maxErrMm, Math.abs(cpu.entry - g.entry), Math.abs(cpu.exit - g.exit));
+  }
+  return { look0Aperture, boneChord: { lines, mismatched, maxErrMm, quantumMm } };
 }
 
 /** Caras de la pared y de las costillas en un plano: la GPU frente a TS (ver `TestHooks.wallNormals`). */
@@ -689,6 +805,12 @@ export interface RibShadowLine {
    * más somero de las líneas que alcanza la apertura; NaN si no hay obstáculo por encima de la pleura.
    */
   coneHalfLines: number;
+  /**
+   * lus-sim (decisión 20): alcance del lóbulo principal de la PSF lateral de dos vías en la pleura (líneas): 2,5σ, el radio
+   * con que la pasada D suma el principal. Con el semiancho del cono (`coneHalfLines`), la penumbra física de la sombra: lo
+   * que la apertura y el haz ven de la pleura vecina desde una línea bajo la costilla.
+   */
+  mainLobeLines: number;
   /** Todas las tomas de los conos de emisión y de recepción de la pasada A cruzan hueso: la sombra completa. */
   fullyShadowed: boolean;
   /** Ninguna toma cruza hueso: una línea intercostal fuera de la penumbra (la referencia). */
@@ -709,6 +831,11 @@ export interface RibShadowStats {
   intercostalWindowDb: number;
   /** Rango dinámico de la presentación (dB). */
   dynamicRangeDb: number;
+  /**
+   * lus-sim (decisión 20): el nivel en la pantalla (dB sobre el blanco) bajo el que el gris de 8 bits es 0 (el negro): el
+   * de la curva de grises con la mitad del primer escalón, −RD·(1 − y₀) con y₀ = `levelOfGrey(0,5/255)`.
+   */
+  blackLevelDb: number;
 }
 
 /** Semiventana (mm) del pico de la línea pleural y de la línea A de orden 2, y margen de la ventana de la sombra. */
@@ -722,6 +849,9 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const grid = sim.renderer.readSegments(depth);
   const dz = depth / env.samples;
   const step = depth / COARSE_DEPTH;
+  // la PSF lateral de la pasada D: el haz del modo B y el paso entre líneas de D, (R + r)·2·semisector/(líneas − 1)
+  const psfBeam = bmodeBeam(sim.profile, sim.bmode);
+  const lineStep = (2 * tr.halfSector) / (env.lines - 1);
   const scene = sim.scene;
   const instant = sim.anatomy.instantFor(sim.sample);
   const toMaterial = (p: readonly number[]) => sim.anatomy.deformation.toMaterial([p[0], p[1], p[2]], sim.sample.resp);
@@ -815,6 +945,7 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
       bone: cpu ? boneMmA[l] < (row + 0.5) * step : false,
       edgeLines: -1,
       coneHalfLines: Number.NaN,
+      mainLobeLines: cpu ? (2.5 * lateralSigmaMm(D, sim.bmode.focusMm, psfBeam)) / ((tr.curvatureRadius + D) * lineStep) : Number.NaN,
       fullyShadowed: false,
       free: false,
     });
@@ -860,6 +991,7 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
     intercostalPleuraDb: median(ic.map((x) => x.pleuraDb)),
     intercostalWindowDb: median(ic.map((x) => x.belowDb)),
     dynamicRangeDb: sim.bmode.dynamicRangeDb,
+    blackLevelDb: -sim.bmode.dynamicRangeDb * (1 - levelOfGrey(0.5 / 255)),
   };
 }
 

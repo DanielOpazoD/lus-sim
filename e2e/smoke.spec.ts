@@ -26,14 +26,17 @@ async function boot(page: Page): Promise<string[]> {
   return errors;
 }
 const tOf = (s: string | null) => Number(/t ([\d.]+) s/.exec(s ?? '')?.[1] ?? 0);
+/** La línea pleural en la pantalla: casi blanca (gris 243–249 medido) y por encima del HUD y la regla (~200). */
+const PLEURA_GREY = 230;
 /** Espera dos cuadros de la página: el bucle de la aplicación (también en `requestAnimationFrame`) ya pintó uno. */
 const twoFrames = (page: Page) =>
   page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
 
 /**
  * Lo que se ve en el lienzo de la imagen: una captura de su recuadro en la pantalla (con la superposición y el HUD
- * encima, que son finos y grises), decodificada en la página. `max` es el gris más brillante (la línea pleural
- * satura, 255; el HUD y la regla no pasan de ~200) y `lit`, la fracción de píxeles con gris > 40.
+ * encima, que son finos y grises), decodificada en la página. `max` es el gris más brillante (la línea pleural; el HUD y
+ * la regla no pasan de ~200) y `lit`, la fracción de píxeles con gris > 40. lus-sim (decisión 20): con el preajuste pulmonar
+ * la línea pleural no satura (consenso: Demi 2023) y queda a 1–2 dB del blanco, gris 243–249.
  */
 async function screen(page: Page): Promise<{ max: number; lit: number; mean: number; png: string }> {
   const png = (await page.locator('#gl').screenshot()).toString('base64');
@@ -73,11 +76,14 @@ test('arranca, dibuja cuadros con el reloj en marcha, se presenta y avisa de que
   await expect(page.locator('#hud-tr')).toContainText('12 cm · 3,5 MHz');
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
-  // en la pantalla hay imagen: la línea pleural saturada y la pared y la neblina encendidas (no un rectángulo negro)
+  // en la pantalla hay imagen (no un rectángulo negro): la línea pleural casi blanca pero sin saturar (el preajuste del
+  // consenso, decisión 20: 243 medido) y la pared encendida (el 3 % de los píxeles sobre 40 de gris; con la línea pleural
+  // saturada y 0 dB de ganancia, antes, más del 5 %)
   const s = await screen(page);
   const tag = JSON.stringify({ max: s.max, lit: s.lit, mean: s.mean });
-  expect(s.max, tag).toBeGreaterThanOrEqual(250);
-  expect(s.lit, tag).toBeGreaterThan(0.05);
+  expect(s.max, tag).toBeGreaterThanOrEqual(PLEURA_GREY);
+  expect(s.max, `línea pleural saturada (${tag})`).toBeLessThan(255);
+  expect(s.lit, tag).toBeGreaterThan(0.02);
   expect(errors).toEqual([]);
 });
 
@@ -90,7 +96,8 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await page.keyboard.press(']');
   await expect(hud).toContainText('13 cm');
   await page.keyboard.press('-');
-  await expect(hud).toContainText('G -2 dB');
+  // el preajuste pulmonar arranca en −21 dB (decisión 20) y − baja 2
+  await expect(hud).toContainText('G -23 dB');
   // la consola: el deslizador de la profundidad sigue al equipo
   await expect(page.getByLabel('Profundidad')).toHaveValue('130');
   // Espacio congela (el reloj se detiene)
@@ -110,7 +117,7 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await twoFrames(page);
   const older = await screen(page);
   expect(older.png, 'el cuadro del cine no se dibujó').not.toBe(last.png);
-  expect(older.max).toBeGreaterThanOrEqual(250);
+  expect(older.max).toBeGreaterThanOrEqual(PLEURA_GREY);
   // con la imagen congelada el HUD dice lo que se ve: cambiar la profundidad no cambia el cuadro mostrado
   await page.keyboard.press(']');
   await twoFrames(page);
@@ -122,7 +129,7 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await twoFrames(page);
   await twoFrames(page);
   const resized = await screen(page);
-  expect(resized.max, 'lienzo negro tras cambiar el tamaño con la imagen congelada').toBeGreaterThanOrEqual(250);
+  expect(resized.max, 'lienzo negro tras cambiar el tamaño con la imagen congelada').toBeGreaterThanOrEqual(PLEURA_GREY);
   // la sonda no se mueve con la imagen congelada: ni arrastrando, ni con sus mandos, ni con una tarjeta
   const pose = () => page.evaluate(() => window.__lusTest!.sim().pose);
   const p0 = await pose();
@@ -238,7 +245,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
   // el renderizador nuevo dibuja: la línea pleural vuelve a la pantalla
-  await expect.poll(async () => (await screen(page)).max, { timeout: 90_000 }).toBeGreaterThanOrEqual(250);
+  await expect.poll(async () => (await screen(page)).max, { timeout: 90_000 }).toBeGreaterThanOrEqual(PLEURA_GREY);
   // el registro de errores dice la pérdida (en la consola, con su origen), y nada más
   expect(errors).toEqual(['console: [gpu] contexto WebGL perdido']);
 });

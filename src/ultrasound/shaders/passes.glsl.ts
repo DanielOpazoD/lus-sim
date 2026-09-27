@@ -3,19 +3,20 @@ import { ANATOMY_GLSL } from '../../anatomy/gpu/anatomy.glsl';
 import { APERTURE_GLSL, STEERED_APERTURE_GLSL } from '../aperture';
 import { COMPOUND, COMPOUND_GLSL } from '../compound';
 import { IFACE_REACH_MM, INTERFACE_ECHO_GLSL } from '../interfaceEcho';
-import { GAS_DB_PER_CM, MIRROR_BISECTION_STEPS, STEERED_PREFIX_GLSL } from '../transmission';
+import { BONE_CHORD_GLSL, BONE_ENTRY_DB, GAS_DB_PER_CM, MIRROR_BISECTION_STEPS, STEERED_PREFIX_GLSL } from '../transmission';
 import {
   CURTAIN_AIR_GLSL,
   CURTAIN_CONTIGUOUS_SEGMENTS,
   CURTAIN_GAS_KIND,
   CURTAIN_RECORD_MM,
+  PLEURA_CAP_GLSL,
   PLEURA_GLSL,
   PLEURA_STEER_GUESS_MM,
   PLEURA_STEER_ITERATIONS,
 } from '../pleura';
 import { SPECKLE_LOOK_GLSL, SPECKLE_TISSUE_GLSL } from '../speckleField';
 import { WALL_FACE_ECHO_GLSL, WALL_TEXTURE_GLSL } from '../wallTexture';
-import { CLUTTER, SIDELOBE_PHASE_GLSL } from '../clutter';
+import { CLUTTER, PEDESTAL_SHADOW_GLSL, SIDELOBE_PHASE_GLSL } from '../clutter';
 import { RECEIVER_GLSL, glslFloat } from '../receiver';
 import { HARMONIC_GLSL } from '../harmonic';
 import { STEERING_GLSL } from '../steering';
@@ -169,6 +170,7 @@ in vec2 vUv;
 layout(location = 0) out vec4 h0; // (segmento del espejo, del primer gas, del primer hueso, tipo de gas)
 layout(location = 1) out vec4 h1; // (dirección reflejada, r del espejo)
 layout(location = 2) out vec4 h2; // pleura parietal (decisión 61): (D, dz, ΔL dB, 3 + 4·(último seg. de la cortina + 1))
+layout(location = 3) out vec4 h3; // lus-sim (decisión 20): entrada y salida exactas del primer tramo de hueso (mm; −1)
 // dB ida y vuelta del segmento con la regla de A1
 float segmentDb(int t, float step) {
   float flag = tissueFlag(t);
@@ -187,19 +189,36 @@ void main() {
   bool entered = false;
   bool curtainRun = false;
   bool crossed = false;
+  // lus-sim (decisión 20): la entrada y la salida exactas del primer tramo de hueso antes del espejo (la cuerda de la
+  // costilla de la línea, que da la fase de su toma en el cono de A), con la bisección del espejo en las vueltas que
+  // siguen a la muestra que cruza el borde (boneBis vueltas, sin avanzar la muestra)
+  float boneIn = -1.0, boneOut = -1.0, boneLast = -1.0, bLo = 0.0, bHi = 0.0;
+  int boneBis = 0;
+  bool bEntering = false;
   // Una sola clasificación por vuelta (classifyWith inlineado una vez, como classify antes de la decisión 61):
   // tras una muestra de la lámina de la cortina, la vuelta siguiente (behind) clasifica la misma muestra sin la
-  // cortina, lo de detrás de la lámina, y suma su ΔL. Hasta 2·512 vueltas para 512 muestras.
+  // cortina, lo de detrás de la lámina, y suma su ΔL; tras un borde del hueso, las de su bisección. Hasta 2·512 vueltas
+  // para 512 muestras, más las de las dos bisecciones.
   bool behind = false;
   float lungDb = 0.0;
   int s = -1;
-  for (int it = 0; it < 1024; it++) {
-    if (!behind) s++;
+  for (int it = 0; it < ${1024 + 2 * MIRROR_BISECTION_STEPS}; it++) {
+    bool bis = boneBis > 0;
+    if (!behind && !bis) s++;
     if (s >= n) break;
     float r = (float(s) + 0.5) * step;
-    vec3 p = mirrorSeg >= 0.0 ? hitPoint + dir * (r - hitR) : origin + dir * r;
+    float bMid = 0.5 * (bLo + bHi);
+    vec3 p = bis ? origin + dir0 * bMid : (mirrorSeg >= 0.0 ? hitPoint + dir * (r - hitR) : origin + dir * r);
     vec3 m = toMaterial(p);
     Cls c = classifyWith(m, !behind);
+    if (bis) {
+      if ((tissueFlag(c.tissue) > 1.5) == bEntering) bHi = bMid; else bLo = bMid;
+      boneBis--;
+      if (boneBis == 0) {
+        if (bEntering) boneIn = 0.5 * (bLo + bHi); else boneOut = 0.5 * (bLo + bHi);
+      }
+      continue;
+    }
     if (behind) {
       // ΔL: lo que el gas de la cortina cuesta de más frente al tejido de detrás
       curtainDb += lungDb - segmentDb(c.tissue, step);
@@ -227,6 +246,20 @@ void main() {
     if (c.tissue == T_AIR && !entered) continue;
     entered = true;
     float flag = tissueFlag(c.tissue);
+    // lus-sim (decisión 20): un borde del primer tramo de hueso antes del espejo abre su bisección (las vueltas que siguen)
+    if (mirrorSeg < 0.0 && boneOut < 0.0 && boneBis == 0) {
+      bool isBone = flag > 1.5;
+      bool edge = (isBone && boneIn < 0.0) || (!isBone && boneIn >= 0.0);
+      if (edge) {
+        bEntering = isBone;
+        bLo = isBone ? max(r - step, 0.0) : r - step;
+        bHi = r;
+        boneBis = ${MIRROR_BISECTION_STEPS};
+        // la entrada queda marcada para no abrir otra bisección; su valor exacto llega al acabar esta
+        if (isBone) boneIn = r;
+      }
+      if (isBone) boneLast = r;
+    }
     // pulmón que toca la pared en el receso (la cortina o el tórax) y el que le sigue pegado (aire con aire),
     // solo si su pleura está registrada y el pulmón empieza pegado a ella (si el cruce cae fuera de la huella, o
     // la línea roza el borde y llega al pulmón del receso mucho más hondo, el modelo de antes: el espejo)
@@ -268,6 +301,9 @@ void main() {
   }
   h0 = vec4(mirrorSeg, gasSeg, boneSeg, gasKind);
   h1 = vec4(dir, hitR);
+  // un tramo que sigue hasta el espejo o el final de la línea acaba en el borde de su última muestra de hueso
+  if (boneIn >= 0.0 && boneOut < 0.0) boneOut = boneLast + 0.5 * step;
+  h3 = boneIn >= 0.0 ? vec4(boneIn, boneOut, 0.0, 0.0) : vec4(-1.0, -1.0, 0.0, 0.0);
   h2 = pleuraD >= 0.0 ? vec4(pleuraD, pleuraDz, curtainDb, ${glslFloat(CURTAIN_GAS_KIND)} + 4.0 * (curtainLast + 1.0)) : vec4(-1.0, 0.0, 0.0, 0.0);
 }
 `;
@@ -340,7 +376,7 @@ ${steeredOnly(look, STEERED_PREFIX_DECL_GLSL)}void main() {
     vec4 g = texelFetch(uSeg, ivec2(line, s), 0);
     if (g.y > 0.5 && !entered) continue;
     entered = true;
-    if (g.z > 0.5 && !boneEntered) { attenDb += 6.0; boneEntered = true; }
+    if (g.z > 0.5 && !boneEntered) { attenDb += ${glslFloat(BONE_ENTRY_DB)}; boneEntered = true; }
     attenDb += g.x;
   }
   vec4 h0 = texelFetch(uHits0, ivec2(line, 0), 0);
@@ -361,8 +397,10 @@ ${steeredOnly(look, STEERED_PREFIX_MAIN_GLSL)}}
 
 /** Declaraciones que A2 añade en su programa dirigido (decisión 58). */
 const STEERED_PREFIX_DECL_GLSL = /* glsl */ `${STEER_GLSL}
+uniform sampler2D uHits3; // A0 h3 (lus-sim, decisión 20): la costilla de cada línea, para el hueso del camino
+${BONE_CHORD_GLSL}
 // Mirada dirigida del cuadro (decisión 58), a lo largo de su camino: (dB, sGas, sBone, sMirror) y
-// (tipo de gas, línea del espejo, 0, 0); −1 sin impacto
+// (tipo de gas, línea del espejo, hueso del camino en mm, 0); −1 sin impacto
 layout(location = 2) out vec4 o2;
 layout(location = 3) out vec4 o3;
 ${STEERING_GLSL}
@@ -370,9 +408,9 @@ ${STEERED_PREFIX_GLSL}
 `;
 
 /** Final del main de A2 en su programa dirigido: el prefijo de la mirada del cuadro. */
-const STEERED_PREFIX_MAIN_GLSL = /* glsl */ `  vec2 extra;
+const STEERED_PREFIX_MAIN_GLSL = /* glsl */ `  vec3 extra;
   o2 = steeredPrefix(line, k, extra);
-  o3 = vec4(extra, 0.0, 0.0);
+  o3 = vec4(extra, 0.0);
 `;
 
 /** A2 de la mirada 0: el de antes de la composición, sin nada de la dirigida (decisión 58). */
@@ -395,12 +433,16 @@ uniform float uCoarseN;
 uniform sampler2D uPre0;
 uniform sampler2D uPre1;
 uniform sampler2D uHits0;
+uniform sampler2D uHits2; // A0 h2: la pleura parietal de la línea (decisión 61), para la transmisión de lo que hay bajo ella
+uniform sampler2D uHits3; // A0 h3 (lus-sim, decisión 20): la entrada y la salida exactas de la costilla de cada línea
 uniform vec3 uAperture; // D de emisión (mm), D de recepción máxima (mm), F# de recepción mínimo
 in vec2 vUv;
 layout(location = 0) out vec4 o0;
 layout(location = 1) out vec4 o1;
 layout(location = 2) out vec4 o2;
+${BONE_CHORD_GLSL}
 ${APERTURE_GLSL}
+${PLEURA_CAP_GLSL}
 ${steeredOnly(look, STEERED_TRANSMISSION_DECL_GLSL)}void main() {
   int line = int(gl_FragCoord.x);
   int k = int(gl_FragCoord.y);
@@ -410,16 +452,25 @@ ${steeredOnly(look, STEERED_TRANSMISSION_DECL_GLSL)}void main() {
   float r = (float(k) + 0.5) * step;
   float single = pow(10.0, -c0.x / 20.0);
   float T = apertureTransmission(line, k, r, step, single);
+  // lus-sim (decisión 20): la transmisión con la que B dibuja la muestra (bajo la pleura, la de su fila tope), la que
+  // atenúa en D el pedestal que la muestra reparte a sus vecinas en sombra
+  float Tdrawn = T;
+  float D = texelFetch(uHits2, ivec2(line, 0), 0).x;
+  if (D > 0.0) {
+    float rCap = pleuraCapMm(D, step);
+    int kCap = int(floor(rCap / step));
+    if (k > kCap) Tdrawn = apertureTransmission(line, kCap, rCap, step, pow(10.0, -texelFetch(uPre0, ivec2(line, kCap), 0).x / 20.0));
+  }
   o0 = vec4(T, c0.yzw);
   o1 = c1;
-  o2 = vec4(single, 0.0, 0.0, 0.0);
+  o2 = vec4(single, 0.0, Tdrawn, 0.0);
 ${steeredOnly(look, STEERED_TRANSMISSION_MAIN_GLSL)}}
 `;
 }
 
 /** Declaraciones que A añade en su programa dirigido (van detrás de `APERTURE_GLSL`: usan AP_TAPS). */
 const STEERED_TRANSMISSION_DECL_GLSL = /* glsl */ `uniform sampler2D uPreSteer;  // A2 o2: prefijo de la mirada dirigida del cuadro (decisión 58)
-uniform sampler2D uPreSteerX; // A2 o3: (tipo de gas, línea del espejo) de esa mirada
+uniform sampler2D uPreSteerX; // A2 o3: (tipo de gas, línea del espejo, hueso del camino en mm) de esa mirada
 ${STEER_GLSL}
 layout(location = 3) out vec4 o3;
 ${STEERING_GLSL}
@@ -961,13 +1012,17 @@ uniform float uHalfSector;
 uniform float uLinesF;
 uniform vec2 uSidelobe; // energía del pedestal de lóbulos laterales (ISLR, lineal) y su anchura (× σ del principal); decisión 76
 uniform sampler2D uCoupling; // 1D: acoplamiento por línea (una línea sin contacto no recibe lóbulos laterales)
+uniform sampler2D uTransDrawn; // A o2.z (lus-sim, decisión 20): la transmisión con que B dibujó cada muestra
 in vec2 vUv;
 out float oEnv;
 ${LATERAL_PSF_GLSL}
 // pantalla de fase del pedestal (clutter.ts: SIDELOBE_PHASES), indexada por k + ${CLUTTER.lateralMaxLines}
 ${SIDELOBE_PHASE_GLSL}
+${PEDESTAL_SHADOW_GLSL}
 void main() {
   float r = vUv.y * uDepth;
+  // lus-sim (decisión 20): cada vecina entra en el pedestal a través de lo que la apertura de esta línea tiene delante
+  float tDest = texture(uTransDrawn, vUv).z;
   float sigmaMm = lateralSigmaMm(r);
   float lineSpacing = (uCurvR + r) * (2.0 * uHalfSector / (uLinesF - 1.0));
   float sigmaTex = max(0.35, sigmaMm / lineSpacing);
@@ -990,7 +1045,8 @@ void main() {
     vec2 ph = PED_PHASE[k + ${CLUTTER.lateralMaxLines}];
     vec2 f = texture(uField, vUv + vec2(kf * uTexel.x, 0.0)).rg;
     accM += gm * f;
-    accP += gp * vec2(ph.x * f.x - ph.y * f.y, ph.x * f.y + ph.y * f.x);
+    float sh = pedOn ? pedestalShadow(tDest, texture(uTransDrawn, vUv + vec2(kf * uTexel.x, 0.0)).z) : 0.0;
+    accP += gp * sh * vec2(ph.x * f.x - ph.y * f.y, ph.x * f.y + ph.y * f.x);
     sm += gm * gm;
     sp += gp * gp;
     cx += gm * gp * ph.x;

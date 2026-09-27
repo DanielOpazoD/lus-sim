@@ -14,6 +14,7 @@ import { PhysiologyEngine } from '../physiology/engine';
 import { AnatomyQuery } from '../anatomy/query';
 import { HEART } from '../anatomy/organs/heart';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
+import { AXIAL_SIGMA_MM } from '../ultrasound/beamModel';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import { START_POINTS } from '../app/startPoints';
 import {
@@ -914,6 +915,20 @@ describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {
     }
     return median(widths);
   }
+
+  // F-T05 (`docs/knowledge/physics.md` §3.3): la anchura a media altura de la envolvente del eco pleural, a ±20 % de la FWHM
+  // axial de la PSF (el pulso de la pasada C, 2,355·σ = 0,61 mm), e invariable con el grosor anatómico de la pleura (el modelo
+  // no lo tiene: es una cara). En la GPU (ciclo 2, decisión 20), en las líneas intercostales de los tres puntos de partida, la
+  // mediana es 0,69–0,73 mm y las líneas oblicuas llegan a 0,85 (la incidencia y la PSF lateral). No depende de la ganancia: la
+  // saturación engrosaba la línea en la pantalla (1,71–2,00 mm con 0 dB; 1,29–1,46 con el preajuste), no su envolvente
+  it('F-T05: la línea pleural tiene la anchura del pulso axial (±20 %) a 20 y a 60 mm', () => {
+    const axialFwhm = 2 * Math.sqrt(2 * Math.LN2) * AXIAL_SIGMA_MM;
+    for (const D of [20, 60]) {
+      const w = plt(D);
+      expect(w / axialFwhm, `${D} mm: ${w.toFixed(3)} mm`).toBeGreaterThanOrEqual(0.8);
+      expect(w / axialFwhm, `${D} mm: ${w.toFixed(3)} mm`).toBeLessThanOrEqual(1.2);
+    }
+  });
 
   notYetMet('A-T11: la PLT crece 0,67 ± 0,12 mm por cm de profundidad con una sonda de sector (hoy 0: 0,70 mm de 15 a 60 mm)', () => {
     // el pulso axial (σ fija, AXIAL_SIGMA_MM) y el perfil de la cara no dependen de la profundidad, y en las
