@@ -9,7 +9,11 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
   expect: { timeout: 15_000 },
+  // en CI la e2e se reparte en fragmentos (`--shard`, ci.yml) por prueba y no por archivo, que son dos y muy desiguales, y
+  // cada fragmento corre con un trabajador: dos trabajadores en los 4 núcleos de un corredor se estorban con SwiftShader
+  // (13,6 min la e2e entera frente a 8,5 min sumando cada prueba sola). En local, por archivo como siempre.
   fullyParallel: !!process.env.CI,
+  workers: process.env.CI ? 1 : undefined,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: {
