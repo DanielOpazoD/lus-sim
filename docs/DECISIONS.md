@@ -1057,14 +1057,13 @@ reflexión) o un parámetro propio. Para la excursión: la de VExUS (10 y 30 mm)
 
 - **Deslizamiento por región** (`anatomy.lungSliding`, `lungSlideMm` en TS y GLSL, `organs/lungBorder.ts`): el pulmón bajo
   la pleura baja lo que el borde de su columna (el descenso del diafragma, sin pasar de la reflexión) hasta 15,5 mm sobre el
-  borde (la base de Briganti: el EIC7 de la LAM sobre la 8.ª costilla) y en recta hasta 0 a 147 mm por encima, calibrada
+  borde (la base de Briganti: el EIC7 de la LAM sobre la 8.ª costilla) y en recta hasta 0 a 147 mm por encima (138 en la mujer, de parrilla más baja), calibrada
   con el cociente de Briganti en el centro del EIC2 de la LMC. La tabla de los bordes lleva en su cuarto componente la altura
   a la que se apaga (la inserción de la ZOA se calcula de la reflexión). La retícula del deslizamiento de la pasada B y sus
   gemelos se anclan con ello.
 - **La excursión sigue siendo la de VExUS.** Se probó la de la base (16 y 53 mm): A-T13 en la inspiración profunda se
   cumplía, pero con 53 mm el campo respiratorio heredado (su rampa de 25 mm bajo la pared, la del corazón y la inversión de
-  dos pasos de punto fijo) se plegaba (296 cm³ con el jacobiano negativo sobre el corazón y 27 bajo el reborde anterior) y la
-  inversión erraba > 1 mm en el 18 % de las muestras a menos de 8 cm de la piel (hasta 26 mm); la revisión adversarial midió
+  dos pasos de punto fijo) se plegaba (≈ 300–350 cm³ con el jacobiano negativo, sobre el corazón y bajo el reborde anterior) y la inversión erraba > 1 mm en el 18–21 % de las muestras a menos de 8 cm de la piel (hasta 26 mm; con los 30 mm de VExUS ya en el 9,6 %, hasta 15 mm: `respiratory-inverse-fixed-point`); la revisión adversarial midió
   en las vistas tejidos desplazados hasta 27 mm. Rehacer el campo respiratorio es otro paso.
 - **Los puntos BLUE por la regla de las manos quedan pendientes**: la base no tiene la antropometría de la mano (ANSUR II,
   NO ENCONTRADO; `docs/knowledge/anatomy.md` §4) ni la altura de la clavícula del avatar; siguen los reparos de Yuriditsky
@@ -1072,7 +1071,7 @@ reflexión) o un parámetro propio. Para la excursión: la de VExUS (10 y 30 mm)
 
 **Consecuencias.**
 
-- F-T12 pasa a `it`: cociente 0,419 en las dos vistas de Briganti (por construcción: la recta se calibra con él) en la
+- F-T12 pasa a `it`: cociente 0,416 en las dos vistas de Briganti (0,419 en las estaciones de la parrilla con que se calibra) (por construcción: la recta se calibra con él) en la
   respiración tranquila y en la profunda; la amplitud crece con la excursión. En la respiración tranquila (10 mm): 10 mm en
   la base, 5,4 en el punto BLUE inferior, 5,2 en el PLAPS y 4,2 en el superior (D5, 5,4 ± 2,5 de media; D4, ≈ 15 en el
   inferior, no); en la profunda, junto a la columna, 23,4 (el borde se detiene en la reflexión de T12).
