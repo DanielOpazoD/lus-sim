@@ -255,7 +255,7 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     note:
       'EIC6–7 en la medioclavicular, «comparatively narrow» (Gray): algo menos que el EIC5 de la base. Son los espacios del seno ' +
       'costofrénico de Gray en esa línea, del borde del pulmón en espiración (la 6.ª costilla) a la reflexión pleural (el 8.º ' +
-      'cartílago); el pulmón de la escena aún acaba más arriba (limitación `lung-border-above-ribcage`)',
+      'cartílago); la escena los pone ahí desde la decisión 18 (`organs/lungBorder.ts`)',
   },
   midclavicularIcs8Mm: {
     value: 5,

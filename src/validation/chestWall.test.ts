@@ -252,12 +252,14 @@ describe('pared torácica por región (decisión 17)', () => {
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) expect(src).toContain('wallInnerNormal(toMaterial(pD))');
   });
 
-  it('las cúpulas van con la cara interna de la pared: la cortina del receso lateral y posterior baja lo que el diafragma', () => {
-    // lus-sim (decisión 17): sin escalarlas, la pleura del flanco quedaba fuera de su elipse, el pulmón llegaba a la
-    // inserción (−50) y el borde no se movía al respirar. A 1,5 mm de la pleura, de la axilar anterior a 1,2π
+  it('el pulmón que toca la pared baja lo que el diafragma alrededor de todo el tronco (la cortina)', () => {
+    // lus-sim (decisión 17): sin escalar las cúpulas con la cara interna de la pared, la pleura del flanco quedaba fuera de su
+    // elipse, el pulmón llegaba a la inserción (−50) y el borde no se movía al respirar. Desde la decisión 18 el borde en FRC
+    // es el de la base (`organs/lungBorder.ts`: la 8.ª costilla en la LAM, z −35) y la cortina baja en los dos hemitórax. A
+    // 1,5 mm de la pleura, delante, al lado y detrás, a los dos lados
     const border = (phi: number, caudal: number): number => {
       let low = Number.NaN;
-      for (let z = 60; z >= -120; z -= 0.5) {
+      for (let z = 60; z >= -150; z -= 0.5) {
         const sk = torsoSkinPoint(phi, z, t);
         const R = Math.hypot(sk[0], sk[1]);
         let lo = 0;
@@ -273,11 +275,11 @@ describe('pared torácica por región (decisión 17)', () => {
       }
       return low;
     };
-    for (const f of [0.85, 1, 1.1, 1.2]) {
+    for (const f of [0.7, 0.85, 1, 1.1, 1.2, 0.15, 0, -0.1, -0.2]) {
       const rest = border(f * Math.PI, 0);
       const deep = border(f * Math.PI, 30);
-      expect(rest, `${f}π`).toBeGreaterThan(10);
-      expect(rest - deep, `${f}π`).toBeGreaterThanOrEqual(24);
+      expect(rest, `${f}π`).toBeLessThan(-10);
+      expect(rest - deep, `${f}π`).toBeGreaterThanOrEqual(29);
     }
   });
 
@@ -309,7 +311,7 @@ describe('pared torácica por región (decisión 17)', () => {
       expect(w.maxTotal, chest.build).toBeGreaterThanOrEqual(max);
       expect(w.maxTotal - max, chest.build).toBeLessThan(0.5);
     }
-    expect(ANATOMY_GLSL).toContain('float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM);');
+    expect(ANATOMY_GLSL).toContain('float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);');
     // la escena lee la pared con los gemelos TS de nombre GLSL, sobre la misma tabla float32 (que el GLSL da lo mismo lo
     // comprueba la e2e: volumen, cáscara y extremos de las costillas)
     for (const [uu, z] of [

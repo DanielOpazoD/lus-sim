@@ -303,18 +303,27 @@ export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBot
 }
 
 /**
- * Borde inferior del pulmón (z, mm) bajo la línea de piel φ en fin de espiración (`BASELINE_INSTANT`): la z más baja del
- * pulmón que baja sin cortes desde `zTop`, a `insideMm` por dentro de la cara interna de la pared (la pleura parietal) a lo
- * largo de la normal de la piel; null si en `zTop` no hay pulmón. La meta A-T13 y la limitación `lung-border-above-ribcage`.
+ * Borde inferior del pulmón (z, mm) bajo la línea de piel φ en el instante (fin de espiración por omisión,
+ * `BASELINE_INSTANT`): la z más baja del pulmón que baja sin cortes desde `zTop`, a `insideMm` por dentro de la cara interna
+ * de la pared (la pleura parietal) a lo largo de la normal de la piel; null si en `zTop` no hay pulmón. Las metas A-T13 y
+ * A-T14 (lus-sim, decisión 18: a 1,5 mm, en la lámina de la cortina, es el pulmón que ve la ecografía bajo la pleura).
  */
-export function lungBorderZ(scene: AnatomyScene, phi: number, insideMm = 4, zTop = 250, zBottom = -250, step = 0.5): number | null {
+export function lungBorderZ(
+  scene: AnatomyScene,
+  phi: number,
+  insideMm = 4,
+  zTop = 250,
+  zBottom = -250,
+  step = 0.5,
+  instant: SceneInstant = BASELINE_INSTANT,
+): number | null {
   const t = scene.torso;
   let border: number | null = null;
   for (let z = zTop; z >= zBottom; z -= step) {
     // a esa altura, el punto de la normal de la piel `insideMm` por dentro de la pared (decisión 17: por región)
     let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + insideMm, t, z);
     p = probeHitPoint(phi, scene.wallThicknessAt(p) + insideMm, t, z);
-    if (scene.classify(p, BASELINE_INSTANT).tissue !== Tissue.Lung) break;
+    if (scene.classify(p, instant).tissue !== Tissue.Lung) break;
     border = z;
   }
   return border;

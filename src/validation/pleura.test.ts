@@ -7,10 +7,11 @@ import {
   LAST_WALL_INTERFACE,
   interfaceReflectivity,
 } from '../anatomy/interfaces';
-import { LUNG_CURTAIN, lungCurtainEdgeMm } from '../anatomy/organs/lungCurtain';
+import { lungEdgeZ } from '../anatomy/organs/lungBorder';
+import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, type SceneInstant } from '../anatomy/scene';
 import { ANATOMY_GLSL } from '../anatomy/gpu/anatomy.glsl';
-import { torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
+import { sdDiaphragm, torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
 import { TISSUES, Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { cross, normalize, type Vec3 } from '../core/vec3';
 import { CONVEX_C35, lineDirection, pointOnLine, probeFrame, type ProbeFrame, type ProbePose } from '../probe/probe';
@@ -435,18 +436,15 @@ describe('borde blando de la cortina: fracción de aire del haz', () => {
     }
     // el borde sigue al descenso de la cortina: 10 mm de respiración tranquila mueven dz 10 mm
     const m: Vec3 = [-120, 10, 5];
-    expect(lungCurtainEdgeMm(m, 10, 99)! - lungCurtainEdgeMm(m, 0, 99)!).toBeCloseTo(10, 9);
-    // la huella es todo el hemitórax derecho (decisión 71): la pared anterior también; el lado izquierdo, no
-    expect(lungCurtainEdgeMm([20, 10, 5], 0, 99)).toBeNull();
-    expect(lungCurtainEdgeMm([-60, 90, 20], 0, 99)).not.toBeNull();
-    // si la cúpula toca la pared por debajo del borde de la cortina, el borde del pulmón es su inserción
-    expect(lungCurtainEdgeMm(m, 0, 12)).toBeCloseTo(5 - 12, 9);
-    expect(lungCurtainEdgeMm(m, 30, 12)).toBeCloseTo(5 - (LUNG_CURTAIN.z0 - 30), 9);
-    expect(ANATOMY_GLSL).toContain(
-      'return m.x <= uCurtain.z && m.y <= uCurtain.w ? m.z - min(uCurtain.x, domeHeight(m.x, m.y)) : m.z - domeHeight(m.x, m.y);',
-    );
-    // fuera de la lámina, el borde es la inserción del diafragma
-    expect(lungCurtainEdgeMm([-60, 90, 20], 30, 7)).toBeCloseTo(13, 9);
+    const inst = (caudal: number) => ({ diaphragmCaudalMm: caudal });
+    expect(scene.lungEdgeMm(m, inst(10))! - scene.lungEdgeMm(m, inst(0))!).toBeCloseTo(10, 9);
+    // lus-sim (decisión 18): en los dos hemitórax (en VExUS, la huella de la pleura llegaba a la línea media, decisión 71)
+    expect(scene.lungEdgeMm([120, 10, 5], inst(0))).toBeCloseTo(5 - lungEdgeZ(scene.lungBorder, wallArc([120, 10, 5], scene.torso), 0), 9);
+    expect(scene.lungEdgeMm([-60, 90, 20], inst(0))).not.toBeNull();
+    // el borde de la columna: el del pulmón en FRC menos el descenso (sin pasar de la reflexión pleural)
+    expect(scene.lungEdgeMm(m, inst(0))).toBeCloseTo(5 - lungEdgeZ(scene.lungBorder, wallArc(m, scene.torso), 0), 9);
+    expect(ANATOMY_GLSL).toContain('return m.z - lungEdgeZ(wallArc(m));');
+    expect(ANATOMY_GLSL).toContain('float lungEdgeZ(float u) { vec4 b = lungBorderAt(u); return max(b.y, b.x - uCurtain.x); }');
   });
 
   it('la GLSL calcula la fracción con el haz de dos vías y lo que ve del tejido de detrás con 1 − f', () => {
@@ -472,13 +470,12 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
     let other = 0;
     for (const caudal of [0, 10, 30]) {
       const cal = caliberOf(caudal);
-      // sin cortina: el borde tan arriba que no la hay (el descenso solo mueve la cortina en classify)
-      const noCurtain = caliberOf(-1e4);
       for (let t = 0; t < 4000; t++) {
-        // la mitad de los puntos en la lámina bajo la pared del receso; el resto en todo el tronco
+        // la mitad de los puntos en la lámina bajo la pared del seno costofrénico (lus-sim, decisión 18: alrededor de todo el
+        // tronco); el resto en todo el tronco
         let m: Vec3;
         if (t % 2 === 0) {
-          const phi = Math.PI * (0.8 + 0.4 * rnd());
+          const phi = Math.PI * (-1 + 2 * rnd());
           const z = -60 + 120 * rnd();
           const inset = scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) + 4 * rnd() - 0.5;
           const k = 1 - inset / 150;
@@ -489,8 +486,12 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
         const inCurtain = a.tissue === Tissue.Lung && scene.inLungCurtain(m, cal);
         if (inCurtain) {
           curtain++;
-          // lo de detrás: el «resto» (en VExUS, el hígado), el diafragma o el pulmón del tórax (que sigue a la lámina)
-          expect(b).toEqual(scene.classify(m, noCurtain));
+          // lo de detrás (lus-sim, decisión 18: la lámina cubre toda la pleura, así que no hay instante sin ella con que
+          // compararla): sobre la cúpula, el pulmón del tórax (o el corazón); bajo ella, el diafragma (el de la cúpula junto al
+          // borde, o el de la ZOA, que engruesa al inspirar) o el «resto» (en VExUS, el hígado)
+          if (sdDiaphragm(m, scene.diaphragm, scene.torso) < 0) expect([Tissue.Lung, Tissue.Myocardium, Tissue.Blood]).toContain(b.tissue);
+          else expect([Tissue.Diaphragm, Tissue.Bowel]).toContain(b.tissue);
+          expect(scene.inLungCurtain(m, cal)).toBe(true);
         } else {
           other++;
           expect(b).toEqual(a);
@@ -503,7 +504,7 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
 
   it('la GLSL: classify es classifyWith(m, true) y la cortina solo se mira con withCurtain', () => {
     expect(ANATOMY_GLSL).toContain('Cls classify(vec3 m) { return classifyWith(m, true); }');
-    expect(ANATOMY_GLSL).toMatch(/if \(withCurtain\) \{\n\s+float dCurtain = lungCurtainDistance\(m, -depth - wall\);/);
+    expect(ANATOMY_GLSL).toMatch(/if \(withCurtain\) \{\n\s+float dCurtain = lungCurtainDistance\(m, inside, u\);/);
     expect(ANATOMY_GLSL).toContain('float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }');
     // el tejido que se ve a través del borde y sus planos laterales usan la variante bajo la pleura (la muestra de
     // la imagen); la pared que copia la serie, el prefijo de la pared de classify (classifyWall: piel, costillas y
@@ -589,9 +590,8 @@ describe('deslizamiento pulmonar anclado al pulmón', () => {
     const q = slidingLattice([-120, 10, 5], [-1, 0, 0], 7, 2);
     expect(q[0]).toBeCloseTo(-120 / SLIDING_LAT_MM + 2 / SLIDING_AX_MM, 12);
     expect(q[2]).toBeCloseTo((5 + 7) / SLIDING_LAT_MM, 12);
-    expect(PLEURA_GLSL).toContain(
-      'vec3 q = (m + vec3(0.0, 0.0, CURTAIN_Z0 - uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);',
-    );
+    // lus-sim (decisión 18): el descenso del borde del pulmón viene en uCurtain.x (en VExUS, z0 − uCurtain.x)
+    expect(PLEURA_GLSL).toContain('vec3 q = (m + vec3(0.0, 0.0, uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);');
   });
 });
 
@@ -811,14 +811,16 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
   // basculada 0,2) tenía líneas que rozan el borde de la cortina en espiración (132–140; 93–111 basculada 0,55). A0 registraba su pleura con el volumen
   // parcial del borde (D 47–59 mm, f 0,12–0,35) y trataba como cortina el pulmón del receso posterior que la línea
   // alcanza 53–91 mm más hondo: sin espejo, ΔL 50–82 dB, y la pasada B quitaba así de 21 a 33 dB de atenuación al
-  // hígado de en medio (una banda clara en la captura con GPU). Ese pulmón es el espejo del diafragma.
+  // hígado de en medio (una banda clara en la captura con GPU). Ese pulmón es el espejo del diafragma. lus-sim (decisión 18):
+  // con el borde del pulmón de la base (53 mm más abajo en el flanco: la 8.ª costilla de la LAM), la misma vista 53 mm más
+  // abajo (z −50).
   it('una línea que roza el borde de la cortina y alcanza el pulmón del receso lejos de su pleura lo refleja (espejo, ΔL 0)', () => {
     const cal = caliberOf(0);
     const q = sceneQuery(scene, cal);
     const step = depth / N;
     let grazingLines = 0;
     for (const rock of [0.2, 0.55]) {
-      const fr = probeFrame({ phi: Math.PI * 0.98, z: 3, lift: 0, yaw: -1.25, rock, tilt: 0 }, scene.torso, CONVEX_C35);
+      const fr = probeFrame({ phi: Math.PI * 0.98, z: -50, lift: 0, yaw: -1.25, rock, tilt: 0 }, scene.torso, CONVEX_C35);
       for (let i = 0; i < CONVEX_C35.lines; i++) {
         const th = -CONVEX_C35.halfSector + (2 * CONVEX_C35.halfSector * (i + 0.5)) / CONVEX_C35.lines;
         const origin = pointOnLine(fr, CONVEX_C35, th, 0);
@@ -946,7 +948,7 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
       'curtainDb += lungDb - segmentDb(c.tissue, step);',
       'lungDb = segmentDb(c.tissue, step);',
       'if (!behind) s++;',
-      'behind = lungCurtainDistance(m, insideWallMm(m)) >= 0.0;',
+      'behind = lungCurtainDistance(m, insideWallMm(m), wallArc(m)) >= 0.0;',
       'curtainLast = float(s);',
       `curtainRun = c.tissue == T_LUNG && mirrorSeg < 0.0 && (curtainRun || (pleuraD >= 0.0 && float(s) * step <= pleuraD + ${CURTAIN_CONTIGUOUS_SEGMENTS.toFixed(1)} * step && inLungRecess(m, insideWallMm(m))));`,
       `h2 = pleuraD >= 0.0 ? vec4(pleuraD, pleuraDz, curtainDb, ${CURTAIN_GAS_KIND.toFixed(1)} + 4.0 * (curtainLast + 1.0)) : vec4(-1.0, 0.0, 0.0, 0.0);`,

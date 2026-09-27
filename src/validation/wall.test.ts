@@ -468,7 +468,7 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     // (más hondo que la pared más gruesa, la lámina de la cortina y el tope del «resto», la tabla no cambia nada: la
     // salida barata toma la cota)
     const arc = cls.indexOf(
-      'float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM); float u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
+      'float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w); float u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
     );
     const layers = cls.indexOf('if (d < wall) wl = wallLayersAt(u, m.z, wx);');
     const ribs = cls.indexOf('int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);');
@@ -506,8 +506,9 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     // tablas del GLSL con el tamaño interpolado
     expect(WALL_TEXTURE_GLSL).toContain(`const float WT_FACE_VAR[${WALL_TEXTURE.faceVariation.length}]`);
     expect(WALL_TEXTURE.faceVariation.length).toBe(LAST_WALL_INTERFACE - FIRST_WALL_INTERFACE + 1);
-    // los tejidos de la decisión 81 (psoas, cuadrado lumbar, grasa retroperitoneal) van al final: no mueven índices
-    expect(TISSUE_COUNT).toBe(30);
+    // los tejidos de la decisión 81 (psoas, cuadrado lumbar, grasa retroperitoneal) van al final: no mueven índices; lus-sim
+    // (decisión 18) añade el miocardio tras ellos
+    expect(TISSUE_COUNT).toBe(31);
   });
 });
 

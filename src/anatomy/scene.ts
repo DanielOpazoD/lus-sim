@@ -1,7 +1,6 @@
 import { smoothstep, type Vec3 } from '../core/vec3';
 import type { PatientState } from '../physiology/patientState';
 import {
-  diaphragmHeight,
   sdSpine,
   sdDiaphragm,
   torsoDepth,
@@ -13,14 +12,9 @@ import {
   type TubeHit,
   type WallLayersAt,
 } from './primitives';
-import {
-  LUNG_CURTAIN,
-  inLungCurtain,
-  inLungRecess,
-  lungCurtainDistance,
-  lungCurtainEdgeMm,
-  type CurtainFootprint,
-} from './organs/lungCurtain';
+import { inLungCurtain, inLungRecess, lungCurtainDistance, lungCurtainEdgeMm } from './organs/lungCurtain';
+import { LUNG_BORDER, buildLungBorder, lungEdgeZ, zoaDistance, zoaGap, zoaThicknessMm, type LungBorder } from './organs/lungBorder';
+import { buildHeart, heartAtWall, heartClearance, heartDistance, type Heart } from './organs/heart';
 import {
   RIBCAGE,
   RIBS_PER_SIDE,
@@ -90,11 +84,13 @@ export interface Classification {
  * Cara geométrica cuya distancia con signo da la normal que usa la GPU (`Cls.n`) en esa cara: la
  * miden el banco de fidelidad (incidencia de paredes y órganos) y la e2e de normales.
  *  - `dome`: la superficie pleural del diafragma (su cara hepática es paralela).
+ *  - `zoa`: la cara abdominal de la lámina del diafragma de la zona de aposición (lus-sim, decisión 18), paralela a la
+ *    cara interna de la pared: la de `Interface.DiaphragmLiver` donde la muestra está en la ZOA.
  * lus-sim (decisión 10): las caras de los tubos, del hígado, del riñón, de la grasa perirrenal y de la
  * vesícula de VExUS no existen en el tórax.
  */
-export type FaceGeometry = 'dome';
-export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome'];
+export type FaceGeometry = 'dome' | 'zoa';
+export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa'];
 
 /**
  * Geometría cuya distancia (`faceSdf`) da la cara de interfaz `i`, o null sin cara (o las pleuras: la del
@@ -146,8 +142,13 @@ export class AnatomyScene {
    */
   readonly ribNumbers: number[];
   readonly diaphragm: Diaphragm;
-  /** Huella de la lámina de la cortina (decisión 17: escalada con la cara interna de la pared, como las cúpulas). */
-  readonly curtain: CurtainFootprint;
+  /**
+   * Bordes del pulmón y de la pleura frente a la parrilla (lus-sim, decisión 18: `organs/lungBorder.ts`): el borde del
+   * pulmón en FRC, la reflexión pleural y la ZOA por columna de |u|. Es `torso.lungBorder`.
+   */
+  readonly lungBorder: LungBorder;
+  /** El corazón y la ventana cardiaca (lus-sim, decisión 18: `organs/heart.ts`). */
+  readonly heart: Heart;
   readonly spine: Spine;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
@@ -168,32 +169,10 @@ export class AnatomyScene {
     // lus-sim (decisión 17): la pared del tórax por región y por hábito; las capas del hábito quedan como las del abdomen
     const chest = patient.habitus.chest ?? DEFAULT_CHEST_HABITUS;
     this.chestWall = buildChestWall(base, chest, RIBCAGE.params.pleuraComplexMm.value);
-    this.torso = { ...base, chestWall: this.chestWall };
+    const walled: Torso = { ...base, chestWall: this.chestWall };
     // Referencia craneocaudal: z = 0 en la unión xifoesternal, al nivel del disco T9–T10 (Gray; la punta del xifoides
-    // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16). De VExUS: cúpula derecha en T8–T9 (+45 mm), unión
-    // cavoauricular ≈ +55 mm, hilio hepático ≈ −45 mm (T12–L1) [B.5]; el reborde costal es ahora el de la parrilla
-    // (la medioclavicular lo cruza en el 9.º cartílago, con su línea media a −90 mm)
-    // lus-sim (decisión 17): las cúpulas de VExUS iban con su pared de 28 mm; el diafragma se inserta en la cara interna de
-    // la parrilla, así que con la pared torácica por región sus elipses se escalan con esa cara (al lado y delante), y la
-    // relación de la cúpula con la pleura (el receso costofrénico, la cortina) es la de antes
-    const wall0 = base.skinMm + base.fatMm + base.muscleMm;
-    const sx = (base.a - this.chestWall.total(this.chestWall.stations.midaxillary, 0)) / (base.a - wall0);
-    const sy = (base.b - this.chestWall.total(0, 0)) / (base.b - wall0);
-    const dome = (x0: number, y0: number, rx: number, ry: number, apex: number): Dome => ({
-      kind: 'dome',
-      x0: x0 * sx,
-      y0: y0 * sy,
-      rx: rx * sx,
-      ry: ry * sy,
-      apex,
-    });
-    this.curtain = { xMax: LUNG_CURTAIN.xMax * sx, yMax: LUNG_CURTAIN.yMax * sy };
-    this.diaphragm = {
-      right: dome(-55, -5, 85, 92, 55),
-      left: dome(70, -5, 70, 85, 25),
-      edgeZ: -50,
-      edgeRise: 50,
-    };
+    // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16); el reborde costal es el de la parrilla (la medioclavicular
+    // lo cruza en el 9.º cartílago, con su línea media a −90 mm).
     // Columna: cuerpo vertebral de 36 mm justo por detrás de cava y aorta (su cara
     // posterior queda ≈ 5 cm de la piel dorsal, como en un adulto); arco posterior con
     // apófisis transversas de 40 mm a cada lado. Las costillas terminan en ellas.
@@ -202,7 +181,7 @@ export class AnatomyScene {
     // unión xifoesternal (el 7.º cartílago), al nivel del disco T9–T10 (Gray), y sus extremos posteriores en las
     // apófisis transversas de la columna
     const female = chest.sex === 'female';
-    this.ribCage = buildRibCage(this.torso, this.spine, {
+    this.ribCage = buildRibCage(walled, this.spine, {
       icsDeltaMm: female ? -RIBCAGE.params.femaleIcsNarrowingMm.value : 0,
       ...ribOptions,
     });
@@ -210,7 +189,7 @@ export class AnatomyScene {
     this.ribNumbers = this.ribs.map((r) => r.number);
     // las alturas de la pared: la axila alta y la baja en la axilar media, y el reborde costal por columna de |u|
     const cage = this.ribCage;
-    const lam = ribLineArc(thoraxLinePhi('midaxillary', this.torso), this.torso, cage);
+    const lam = ribLineArc(thoraxLinePhi('midaxillary', walled), walled, cage);
     setChestWallCage(
       this.chestWall,
       (n) => ribTableZ(cage, n - 1, lam),
@@ -226,6 +205,36 @@ export class AnatomyScene {
       },
       cage.sternum.zTip,
     );
+    // lus-sim (decisión 18): los bordes del pulmón y de la pleura sobre la parrilla y la pared construidas; la cúpula baja
+    // junto a la pared al borde del pulmón en FRC
+    this.lungBorder = buildLungBorder(walled, cage, this.chestWall);
+    this.torso = { ...walled, lungBorder: this.lungBorder };
+    // Las cúpulas de VExUS: sus elipses van con la cara interna de la pared (decisión 17: con la pared torácica por región se
+    // escalan con ella, al lado y delante); lus-sim (decisión 18): sus vértices, el de la base en FRC (la derecha en el 5.º
+    // EIC anterior, la izquierda `leftDomeDropMm` más baja; en VExUS, 55 y 25 mm, T8–T9)
+    const wall0 = base.skinMm + base.fatMm + base.muscleMm;
+    const sx = (base.a - this.chestWall.total(this.chestWall.stations.midaxillary, 0)) / (base.a - wall0);
+    const sy = (base.b - this.chestWall.total(0, 0)) / (base.b - wall0);
+    const dome = (x0: number, y0: number, rx: number, ry: number, apex: number): Dome => ({
+      kind: 'dome',
+      x0: x0 * sx,
+      y0: y0 * sy,
+      rx: rx * sx,
+      ry: ry * sy,
+      apex,
+    });
+    const LB = LUNG_BORDER.params;
+    const ics = LB.rightDomeIcs.value;
+    const ps = cage.stations.parasternal;
+    const rightApex = 0.5 * (ribTableZ(cage, ics - 1, ps) + ribTableZ(cage, ics, ps));
+    this.diaphragm = {
+      right: dome(-55, -5, 85, 92, rightApex),
+      left: dome(70, -5, 70, 85, rightApex - LB.leftDomeDropMm.value),
+      edgeZ: -50,
+      edgeRise: 50,
+    };
+    // el corazón (decisión 18): su ápex donde lo pone Gray y la ventana cardiaca izquierda
+    this.heart = buildHeart(this.torso, cage);
   }
 
   /** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m (lus-sim, decisión 17: por región). */
@@ -252,7 +261,7 @@ export class AnatomyScene {
    * (decisión 61; gemelo GLSL `inLungCurtain`). Solo tiene sentido donde `classify` da pulmón.
    */
   inLungCurtain(m: Vec3, instant: SceneInstant): boolean {
-    return inLungCurtain(m, this.insideWallMm(m), instant.diaphragmCaudalMm, this.curtain);
+    return inLungCurtain(m, this.insideWallMm(m), lungEdgeZ(this.lungBorder, wallArc(m, this.torso), instant.diaphragmCaudalMm));
   }
 
   /**
@@ -264,12 +273,13 @@ export class AnatomyScene {
   }
 
   /**
-   * Distancia (mm) de un punto MATERIAL de la cara interna de la pared al borde del pulmón que la toca en el
-   * receso: z − min(borde de la cortina, inserción del diafragma); null fuera de la huella (gemelo GLSL
-   * `lungCurtainEdgeMm`, decisión 61).
+   * Distancia (mm) de un punto MATERIAL de la cara interna de la pared al borde caudal del pulmón que la toca: z − el borde
+   * de su columna con el descenso del diafragma (gemelo GLSL `lungCurtainEdgeMm`, decisión 61); lus-sim (decisión 18): en
+   * los dos hemitórax, −1e3 en la ventana cardiaca (el corazón toca ahí la pared).
    */
   lungEdgeMm(m: Vec3, instant: SceneInstant): number | null {
-    return lungCurtainEdgeMm(m, instant.diaphragmCaudalMm, diaphragmHeight(m[0], m[1], this.diaphragm, this.torso), this.curtain);
+    if (heartAtWall(this.heart, m, this.torso)) return -1e3;
+    return lungCurtainEdgeMm(m, lungEdgeZ(this.lungBorder, wallArc(m, this.torso), instant.diaphragmCaudalMm));
   }
 
   /**
@@ -301,10 +311,30 @@ export class AnatomyScene {
     if (m[2] < torso.zMin || m[2] > torso.zMax || depth > 0) return NONE;
     const wall = this.classifyWall(m, -depth, instant.diaphragmCaudalMm);
     if (wall.final) return wall.cls;
-    const curtain = withCurtain ? this.classifyLungCurtain(m, -depth - wall.wallMm, instant.diaphragmCaudalMm) : null;
-    if (curtain) return curtain;
+    const inside = -depth - wall.wallMm;
+    const caudal = instant.diaphragmCaudalMm;
+    const u = wallArc(m, torso);
+    // lus-sim (decisión 18): el corazón y el tapón de la ventana cardiaca, sobre la cúpula (se apoya en ella); lo de fuera
+    // cuenta su cara en la distancia a la frontera
+    const heart = heartDistance(this.heart, m, inside, u);
+    if (heart) {
+      const dHeartDome = sdDiaphragm(m, this.diaphragm, torso);
+      if (dHeartDome < 0)
+        return { ...NONE, tissue: heart.blood ? Tissue.Blood : Tissue.Myocardium, boundaryDistance: Math.min(heart.d, -dHeartDome) };
+    }
+    const clearance = heartClearance(this.heart, m, inside, u);
+    const curtain = withCurtain ? this.classifyLungCurtain(m, inside, u, caudal) : null;
+    if (curtain) return { ...curtain, boundaryDistance: Math.min(curtain.boundaryDistance, clearance) };
+    // la zona de aposición (decisión 18): bajo el borde del pulmón en FRC, el diafragma contra la pared; su mitad de dentro
+    // dibuja la cara abdominal, con la normal de la pared
+    const zoa = zoaDistance(this.lungBorder, m, inside, u, caudal);
+    if (zoa !== null) {
+      const t = zoaThicknessMm(caudal);
+      const face = inside > 0.5 * t ? { interface: Interface.DiaphragmLiver, interfaceDistance: t - inside } : {};
+      return { ...NONE, tissue: Tissue.Diaphragm, boundaryDistance: Math.min(zoa, clearance), ...face };
+    }
     const dDome = sdDiaphragm(m, this.diaphragm, this.torso);
-    if (dDome < 0) return { ...NONE, tissue: Tissue.Lung, boundaryDistance: -dDome };
+    if (dDome < 0) return { ...NONE, tissue: Tissue.Lung, boundaryDistance: Math.min(-dDome, clearance) };
     if (dDome < DIAPHRAGM_THICKNESS_MM) {
       // la mitad abdominal dibuja la cara hepática; la pleural la dibuja el espejo exacto de la pasada A
       const liverFace = dDome > 0.5 * DIAPHRAGM_THICKNESS_MM;
@@ -319,7 +349,7 @@ export class AnatomyScene {
     // clasificación de VExUS, sin órganos ni gas. Su distancia a la frontera es la de las interfaces que ganan
     // antes (el diafragma y la pared), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por
     // interior un punto pegado al diafragma que float32 clasificaba al otro lado (CI de #39 de VExUS).
-    const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, -depth - wall.wallMm);
+    const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, inside, zoaGap(this.lungBorder, m, inside, u, caudal), clearance);
     return { ...NONE, tissue: Tissue.Bowel, boundaryDistance: Math.max(0, bd) };
   }
 
@@ -330,10 +360,12 @@ export class AnatomyScene {
    *  - `dome`: `sdDiaphragm`.
    * Solo banco de fidelidad y pruebas: la clasificación no la llama.
    */
-  faceSdf(m: Vec3, _instant: SceneInstant, face: FaceGeometry): number | null {
+  faceSdf(m: Vec3, instant: SceneInstant, face: FaceGeometry): number | null {
     switch (face) {
       case 'dome':
         return sdDiaphragm(m, this.diaphragm, this.torso);
+      case 'zoa':
+        return this.insideWallMm(m) - zoaThicknessMm(instant.diaphragmCaudalMm);
     }
   }
 
@@ -358,6 +390,8 @@ export class AnatomyScene {
         return { ...g, axis: ribTangent(m, k, this.torso, this.ribCage) };
       }
       face = faceGeometryOf(iface);
+      // la cara abdominal del diafragma en la ZOA (decisión 18) es la de su lámina, no la de la cúpula
+      if (face === 'dome' && this.inZoa(m, instant)) face = 'zoa';
     }
     if (face === null) return null;
     const geometry = face;
@@ -427,9 +461,16 @@ export class AnatomyScene {
     return layer(Tissue.Fat, Math.min(d - w.transversalis, wall - d), scan.ribD, scan.ribAny);
   }
 
-  /** Lámina de pulmón en el receso costofrénico derecho (lateral y posterior), bajo la pared. */
-  private classifyLungCurtain(m: Vec3, insideWallMm: number, diaphragmCaudalMm: number): Classification | null {
-    const bd = lungCurtainDistance(m, insideWallMm, diaphragmCaudalMm, this.curtain);
+  /** El punto MATERIAL es de la lámina del diafragma de la zona de aposición (decisión 18): la clasificación lo da así. */
+  inZoa(m: Vec3, instant: SceneInstant): boolean {
+    const c = this.classify(m, instant);
+    if (c.tissue !== Tissue.Diaphragm) return false;
+    return zoaDistance(this.lungBorder, m, this.insideWallMm(m), wallArc(m, this.torso), instant.diaphragmCaudalMm) !== null;
+  }
+
+  /** Lámina de pulmón bajo la pared, del borde del pulmón al que ha bajado con el diafragma (decisión 18: los dos lados). */
+  private classifyLungCurtain(m: Vec3, insideWallMm: number, u: number, diaphragmCaudalMm: number): Classification | null {
+    const bd = lungCurtainDistance(m, insideWallMm, lungEdgeZ(this.lungBorder, u, diaphragmCaudalMm));
     return bd === null ? null : { ...NONE, tissue: Tissue.Lung, boundaryDistance: bd };
   }
 }

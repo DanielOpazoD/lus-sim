@@ -1,5 +1,4 @@
 import { INTERFACES, Interface, interfaceReflectivity } from '../anatomy/interfaces';
-import { LUNG_CURTAIN } from '../anatomy/organs/lungCurtain';
 import { cross, normalize, type Vec3 } from '../core/vec3';
 import { IFACE_SHIFT_MM, interfaceEchoField, roughnessCoherence } from './interfaceEcho';
 import { RECEIVER_NOISE, glslFloat } from './receiver';
@@ -393,7 +392,6 @@ export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
 const float PLEURA_RT = ${glslFloat(PLEURA_RT)};
-const float CURTAIN_Z0 = ${glslFloat(LUNG_CURTAIN.z0)};
 const float SLIDING_AMP = ${glslFloat(slidingAmplitude(0))};
 const float SLIDING_EFOLD_MM = ${glslFloat(SLIDING_EFOLD_MM)};
 const float SLIDING_LAT_MM = ${glslFloat(SLIDING_LAT_MM)};
@@ -419,10 +417,10 @@ float pleuraSeriesEcho(float cosI, float delta) {
   return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));
 }
 float slidingAmplitude(float h) { return SLIDING_AMP * exp(-h / SLIDING_EFOLD_MM); }
-// Deslizamiento anclado al pulmón (bajado CURTAIN_Z0 − uCurtain.x), grano alargado a lo largo de la pleura
+// Deslizamiento anclado al pulmón (bajado uCurtain.x, el descenso de su borde), grano alargado a lo largo de la pleura
 vec2 slidingField(vec3 pD, float h, float salt) {
   vec3 m = toMaterial(pD);
-  vec3 q = (m + vec3(0.0, 0.0, CURTAIN_Z0 - uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
+  vec3 q = (m + vec3(0.0, 0.0, uCurtain.x)) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
   return scattererField(q, 1.0, uSeed + SLIDING_SALT + salt) * slidingAmplitude(h);
 }
 // Campo del medio de la imagen en p (mirada 0): clasificación (withCurtain = false bajo la pleura de la cortina:

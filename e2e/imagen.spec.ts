@@ -84,8 +84,12 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // 0,7 mm), y dz hasta 0,061 mm: con σ del borde blando ≥ σ_taper = 4 mm, la fracción de aire cambia < 1 %
   const pleura = await page.evaluate(() => window.__lusTest!.pleuraEquivalence());
   const ptag = JSON.stringify(pleura);
-  expect(pleura.lines, ptag).toBe(3 * 192);
-  expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.95 * pleura.lines);
+  // los tres puntos de partida y (lus-sim, decisión 18) la ventana cardiaca, sin pleura en su centro (el corazón toca la
+  // pared), y el borde del pulmón en la axilar media izquierda
+  expect(pleura.lines, ptag).toBe(5 * 192);
+  expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.7 * pleura.lines);
+  expect(pleura.centralDepthMm.cardiacWindow, ptag).toBe(-1);
+  expect(pleura.centralDepthMm.leftBorder, ptag).toBeGreaterThan(0);
   expect(pleura.registrationMismatch, ptag).toBe(0);
   expect(pleura.depthMaxErrMm, ptag).toBeLessThanOrEqual(pleura.quantumMm + 1e-5);
   // (lus-sim, decisión 17: con la pared torácica por región ese paso final cae, en la línea 150 del punto BLUE superior,

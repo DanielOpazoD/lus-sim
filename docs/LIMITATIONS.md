@@ -53,21 +53,22 @@ conservan su identificador (decisiones 10 y 11).
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
   texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
   músculos del abdomen de VExUS.
-- **Todo el tórax sobre las cúpulas es pulmón aireado** (`thorax-all-lung`): sin corazón, mediastino,
-  grandes vasos ni escotadura cardíaca; tampoco hay ventana cardíaca paraesternal izquierda.
-- **La cortina y la pleura parietal solo en el hemitórax derecho** (`lung-curtain-right-only`): la lámina
-  del receso costofrénico es la de VExUS (lateral y posterior derecha) y la huella donde la imagen registra
-  la pleura parietal acaba en x = 10 mm (`pleuraXMax`). En el hemitórax izquierdo el pulmón bajo la pared no
-  registra pleura: desde la decisión 16 la imagen muestra allí las costillas con su sombra, pero sin línea pleural ni
-  líneas A (paso C3).
-- **El borde del pulmón es el heredado, unas dos costillas por encima del de Gray** (`lung-border-above-ribcage`, decisión
-  16): la parrilla sigue la base, pero el pulmón y las cúpulas son los de VExUS (desde la decisión 17, escaladas con la cara
-  interna de la pared torácica por región, que las mantiene respecto de la pleura como estaban). En fin de espiración, 4 mm
-  por dentro de la pleura, el pulmón derecho acaba en z 43 en la LMC (la 4.ª costilla; Gray: la 6.ª, z −17), en 20 en la LAM
-  (la 6.ª; Gray: la 8.ª, z −35) y en 45 junto a la columna (entre la 7.ª y la 8.ª; Gray: la apófisis espinosa de T10,
-  z ≈ −35); el izquierdo, en 17,5, 4 y 10,5. Bajo la pleura de los EIC4–8 de la LMC y los EIC6–10 de la LAM derechas no hay
-  pulmón sino diafragma y abdomen, y la reflexión pleural no llega a la 8.ª unión condrocostal ni a la 10.ª costilla (meta
-  A-T13, paso C3).
+- **El corazón es un elipsoide estático** (`heart-simplified`, decisión 18): miocardio con una sola cavidad de sangre, su
+  ápex donde lo pone Gray (5.º EIC, 9 cm de la línea media, 10 mm por dentro de la pleura: la língula) y un tapón de
+  miocardio que lo une a la pared en el disco de la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea
+  media en el 5.º EIC; un elipsoide que tocara la pared dejaría una ventana alargada de lado a lado). No late: no hay pulso
+  pulmonar (la segunda parte de A-T16) ni movimiento del corazón en la ventana; su pericardio no tiene cara propia y el
+  borde de la ventana es duro (sin el volumen parcial de la cortina). Fuera del corazón, todo el tórax sobre las cúpulas
+  sigue siendo pulmón: sin mediastino, grandes vasos, timo ni esófago. Largo, ancho, grosor, orientación y paredes son
+  [SUPUESTO] (la base no los da).
+- **Los bordes del pulmón son una tabla por columna, la misma a los dos lados** (`lung-border-table`, decisión 18): el borde
+  en FRC y la reflexión pleural se anclan en la paraesternal, la LMC, la LAM y la paravertebral (Gray) y se interpolan
+  entre ellas; sin el receso costomediastínico izquierdo (Choi) ni diferencia entre los dos lados salvo la ventana
+  cardiaca. La cúpula baja a la pared en una rampa de 40 mm [SUPUESTO] y su diafragma sigue siendo la lámina de 2,5 mm de
+  VExUS; bajo el borde, la ZOA es una lámina de grosor uniforme contra la pared (1,9 mm en FRC, 5 a TLC) con solo su cara
+  abdominal (la pleural es la cara interna de la pared), hasta 20 mm bajo la reflexión [SUPUESTO]. La lámina de la
+  cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma del modelo: 10 mm en respiración tranquila y 30 en la
+  profunda (la base: 5,3 cm en supino; A-T13 en inspiración profunda no se cumple).
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara

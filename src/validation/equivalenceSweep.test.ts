@@ -196,9 +196,13 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
 
   it('la pleura de A0: una «GPU» igual al gemelo acuerda en todas las líneas; 0,05 mm de desplazamiento no pasan', () => {
     const ok = pleuraEquivalence(fakeSim());
-    expect(ok.lines).toBe(START_POINTS.length * CONVEX_C35.lines);
-    // la pleura parietal se registra en todas las líneas de los tres puntos de partida (el pulmón toca la pared)
-    expect(ok.cpuPleura).toBe(ok.lines);
+    // los tres puntos de partida y (lus-sim, decisión 18) la ventana cardiaca y el borde del pulmón en la LAM izquierda
+    expect(ok.lines).toBe((START_POINTS.length + 2) * CONVEX_C35.lines);
+    // la pleura parietal se registra en todas las líneas de los tres puntos de partida (el pulmón toca la pared); en la
+    // ventana cardiaca, no en su centro
+    expect(ok.cpuPleura).toBeGreaterThan(START_POINTS.length * CONVEX_C35.lines);
+    expect(ok.cpuPleura).toBeLessThan(ok.lines);
+    expect(ok.centralDepthMm.cardiacWindow).toBe(-1);
     expect(ok.registrationMismatch).toBe(0);
     // solo el redondeo a float32 de la lectura (la GPU real da 0 en D: la bisección cae en múltiplos exactos del paso)
     expect(ok.depthMaxErrMm).toBeLessThan(1e-4);

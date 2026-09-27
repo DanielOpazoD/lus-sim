@@ -68,9 +68,11 @@ export enum Tissue {
   QuadratusLumborum = 28,
   /** Grasa retroperitoneal (decisión 81): pararrenal y perivascular, detrás del peritoneo parietal posterior. */
   RetroperitonealFat = 29,
+  /** Miocardio (lus-sim, decisión 18): el corazón de la ventana cardiaca (`organs/heart.ts`). */
+  Myocardium = 30,
 }
 
-export const TISSUE_COUNT = 30;
+export const TISSUE_COUNT = 31;
 
 /**
  * Nombre de cada tejido en GLSL (`#define T_… índice`). Se genera desde aquí
@@ -108,6 +110,7 @@ export const TISSUE_GLSL_NAME: Record<Tissue, string> = {
   [Tissue.Psoas]: 'T_PSOAS',
   [Tissue.QuadratusLumborum]: 'T_QUADRATUS',
   [Tissue.RetroperitonealFat]: 'T_RETROFAT',
+  [Tissue.Myocardium]: 'T_MYOCARDIUM',
 };
 
 /** Lámina diafragmática bajo la cúpula (mm); la misma en TS, GLSL y el navegador 3D. */
@@ -219,6 +222,10 @@ export const TISSUES: TissueProps[] = [
   { name: 'psoas', c: 1588, rho: 1090, alpha1: 0.617, b: 1.083, backscatter: 0.35, gas: false, bone: false },
   { name: 'cuadrado lumbar', c: 1588, rho: 1090, alpha1: 0.617, b: 1.083, backscatter: 0.35, gas: false, bone: false },
   { name: 'grasa retroperitoneal', c: 1450, rho: 920, alpha1: 0.45, b: 1.1, backscatter: 1.4, gas: false, bone: false, speckleClump: 0.8 },
+  // Miocardio (lus-sim, decisión 18): la base no da sus propiedades acústicas (NO ENCONTRADO); c, ρ y atenuación, las del
+  // músculo de IT'IS [ESTIMADO]; retrodispersión de gris medio, menor que la del hígado [ESTIMADO], sin la textura de la
+  // pared (las estrías del músculo esquelético)
+  { name: 'miocardio', c: 1588, rho: 1090, alpha1: 0.617, b: 1.083, backscatter: 0.5, gas: false, bone: false },
 ];
 
 /** Impedancia acústica Z = ρc en MRayl. */

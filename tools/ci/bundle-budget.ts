@@ -25,17 +25,20 @@
 // 2026-09-27 (paso C2, decisión 17): la pared torácica por región (`anatomy/organs/chestWall.ts`: sus ~25 parámetros con su
 // evidencia, la tabla y su gemelo GLSL) y las capas por región de la pared, el contacto y la clasificación llevan index de
 // 187,7 a 203,4 kB. index sube a 210 kB y el total de JS a 215.
+// 2026-09-27 (paso C3, decisión 18): los bordes del pulmón y el corazón (`anatomy/organs/lungBorder.ts` y `heart.ts`: sus
+// ~30 parámetros con su evidencia, ≈ 13 kB de notas, sus tablas y sus gemelos GLSL), la cortina de los dos lados y la ZOA
+// llevan index de 205,3 a 221,8 kB. index sube a 230 kB y el total de JS a 235.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 210 * KB],
+  [/index-.*\.js$/, 230 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const TOTAL_JS_BUDGET = 215 * KB;
+const TOTAL_JS_BUDGET = 235 * KB;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

@@ -3,6 +3,11 @@ import type { Simulator } from './simulator';
 import { Interface, isRibInterface } from '../anatomy/interfaces';
 import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
 import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
+import { HEART } from '../anatomy/organs/heart';
+import { lungBorderAt } from '../anatomy/organs/lungBorder';
+import { torsoSkinPoint } from '../anatomy/primitives';
+import { thoraxLinePhi } from '../anatomy/thoraxLines';
+import type { AnatomyScene } from '../anatomy/scene';
 import type { Vec3 } from '../core/vec3';
 import { Tissue } from '../anatomy/tissues';
 import type { ProbeCompression } from '../anatomy/compression';
@@ -395,6 +400,21 @@ export interface PleuraEquivalenceReport {
   worst: string;
 }
 
+/**
+ * Poses de la pleura además de los puntos de partida (lus-sim, decisión 18): la ventana cardiaca (A0 no registra pleura
+ * donde el corazón toca la pared) y el borde del pulmón en FRC en la axilar media izquierda (la cortina del otro lado).
+ */
+export function extraPleuraPoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
+  const t = scene.torso;
+  const lam = thoraxLinePhi('midaxillary', t, 1);
+  const zL = lungBorderAt(scene.lungBorder, wallArc(torsoSkinPoint(lam, 0, t), t))[0];
+  const flat = { lift: 0, yaw: 0, rock: 0, tilt: 0 };
+  return [
+    { id: 'cardiacWindow', pose: { phi: Math.acos(HEART.params.windowOffsetMm.value / t.a), z: scene.heart.window.z, ...flat } },
+    { id: 'leftBorder', pose: { phi: lam, z: zL, ...flat } },
+  ];
+}
+
 export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
   const tr = sim.transducer;
   const depth = sim.bmode.depthMm;
@@ -407,8 +427,12 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
   let worst = '';
   const centralDepthMm: Record<string, number> = {};
   try {
-    for (const sp of START_POINTS) {
-      sim.setPose(poseOf(sp));
+    const poses: Array<{ id: string; pose: ProbePose }> = [
+      ...START_POINTS.map((sp) => ({ id: sp.id, pose: poseOf(sp) })),
+      ...extraPleuraPoses(sim.scene),
+    ];
+    for (const sp of poses) {
+      sim.setPose(sp.pose);
       sim.advance(0.05);
       sim.render();
       const h2 = sim.renderer.readPleuraHits();

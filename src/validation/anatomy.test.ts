@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { RespiratoryDeformation } from '../anatomy/deformation';
 import { AnatomyQuery } from '../anatomy/query';
 import { torsoSkinPoint } from '../anatomy/primitives';
-import { LUNG_CURTAIN } from '../anatomy/organs/lungCurtain';
+import { lungBorderAt, zoaThicknessMm } from '../anatomy/organs/lungBorder';
+import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
 import { Tissue } from '../anatomy/tissues';
@@ -52,7 +53,7 @@ describe('Anatomía implícita (base B)', () => {
     // no hay arco costal por detrás de la columna: lo que hay ahí es vértebra, no costilla
     expect(cls([-30, -70, 5]).tissue).toBe(Tissue.Vertebra);
     expect(cls([-30, -70, 5]).tissue).not.toBe(Tissue.Bone);
-    // tórax sobre las cúpulas: pulmón en los dos lados (`thorax-all-lung`)
+    // tórax sobre las cúpulas: pulmón en los dos lados (fuera del corazón, `heart-simplified`)
     expect(cls([-55, -5, 70]).tissue).toBe(Tissue.Lung);
     expect(cls([80, 50, 90]).tissue).toBe(Tissue.Lung);
     expect(cls([0, 60, 100]).tissue).toBe(Tissue.Lung);
@@ -194,13 +195,15 @@ describe('Anatomía implícita (base B)', () => {
   });
 
   it('por el camino real (motor → consulta → escena) la cortina baja con la inspiración del reloj', () => {
-    // un punto 1,5 mm bajo la pared del receso lateral derecho, a z −5: el «resto» en espiración y pulmón cuando el
-    // diafragma del instante ha bajado más de 23 mm (el borde de la cortina, a 18 − descenso, pasa por debajo de
-    // −5). A 1,5 mm de la pared el peso respiratorio es smoothstep(0, 25, 1,5) ≈ 0,01: el punto material sube unos
-    // 0,3 mm con los 30 mm de descenso, así que se deja ±1 mm de descenso alrededor de 23 sin juzgar
-    // lus-sim (decisión 17): el punto, exactamente a 1,5 mm de la cara interna de la pared de ese punto (por región)
+    // un punto 1,5 mm bajo la pared del seno costofrénico lateral derecho, 23 mm bajo el borde del pulmón en FRC: el
+    // diafragma de la ZOA en espiración y pulmón cuando el diafragma del instante ha bajado más de 23 mm (el borde de la
+    // cortina, el de FRC menos el descenso, pasa por debajo). A 1,5 mm de la pared el peso respiratorio es smoothstep(0,
+    // 25, 1,5) ≈ 0,01: el punto material sube unos 0,3 mm con los 30 mm de descenso, así que se deja ±1 mm de descenso
+    // alrededor de 23 sin juzgar. lus-sim (decisión 17): el punto, a 1,5 mm de la cara interna de la pared de ese punto
+    // (por región); (decisión 18) con el borde del pulmón de la base (la 8.ª costilla en la LAM) y la ZOA bajo él
     const phi = Math.PI * 0.95;
-    const p = underWall(scene, phi, -5, 1.5);
+    const zL = lungBorderAt(scene.lungBorder, wallArc(underWall(scene, phi, 0, 1.5), scene.torso))[0];
+    const p = underWall(scene, phi, zL - 23, 1.5);
     const q = new AnatomyQuery(scene);
     const engine = new PhysiologyEngine({ ...NORMAL_ADULT, respiratoryPattern: 'deep' });
     const seen = new Set<Tissue>();
@@ -212,12 +215,12 @@ describe('Anatomía implícita (base B)', () => {
       maxCaudal = Math.max(maxCaudal, instant.diaphragmCaudalMm);
       const t = q.classifyWorld(p, s).tissue;
       seen.add(t);
-      if (s.resp.diaphragmCaudalMm < 22) expect(t).toBe(Tissue.Bowel);
+      if (s.resp.diaphragmCaudalMm < 22) expect(t).toBe(Tissue.Diaphragm);
       if (s.resp.diaphragmCaudalMm > 24) expect(t).toBe(Tissue.Lung);
     }
     // la inspiración profunda baja el diafragma 30 mm y el punto pasa de un tejido al otro dentro del ciclo
     expect(maxCaudal).toBeCloseTo(30, 1);
-    expect([...seen].sort()).toEqual([Tissue.Lung, Tissue.Bowel].sort());
+    expect([...seen].sort()).toEqual([Tissue.Lung, Tissue.Diaphragm].sort());
   });
 
   it('la deformación es invertible y desplaza lo que hay bajo el diafragma en sentido caudal', () => {
@@ -282,39 +285,45 @@ describe('Sonda (guía §8)', () => {
 
 describe('Cortina pulmonar (decisión 43)', () => {
   const scene = new AnatomyScene(NORMAL_ADULT);
-  it('el pulmón baja por el receso lateral solo por debajo del borde que baja con la inspiración', () => {
-    // punto 1,5 mm bajo la pared, flanco derecho, z −5: el «resto» en espiración (borde en +18; en VExUS, el
-    // hígado), pulmón en inspiración profunda (borde en 18 − 30 = −12)
-    // lus-sim (decisión 17): el punto, exactamente a 1,5 mm de la cara interna de la pared de ese punto (por región)
+  it('el pulmón baja por el seno costofrénico solo por debajo del borde que baja con la inspiración, a los dos lados', () => {
+    // un punto 2,5 mm bajo la pared del flanco derecho (entre la lámina del diafragma de la ZOA en FRC, 1,9 mm, y la de la
+    // cortina, 3 mm), 20 mm bajo el borde del pulmón en FRC: el «resto» en espiración, pulmón en inspiración profunda (el
+    // borde baja 30 mm). lus-sim (decisión 17): el punto, a 2,5 mm de la cara interna de la pared de ese punto (por región);
+    // (decisión 18) con el borde del pulmón de la base y la cortina en los dos hemitórax (en VExUS, solo a la derecha)
     const phi = Math.PI * 0.95;
-    const p = underWall(scene, phi, -5, 1.5);
-    const at = (caudal: number) => scene.classify(p, { ...BASELINE_INSTANT, diaphragmCaudalMm: caudal }).tissue;
-    expect(at(0)).toBe(Tissue.Bowel);
-    expect(at(30)).toBe(Tissue.Lung);
+    const zL = lungBorderAt(scene.lungBorder, wallArc(underWall(scene, phi, 0, 2.5), scene.torso))[0];
+    const p = underWall(scene, phi, zL - 20, 2.5);
+    const at = (q: [number, number, number], caudal: number) =>
+      scene.classify(q, { ...BASELINE_INSTANT, diaphragmCaudalMm: caudal }).tissue;
+    expect(at(p, 0)).toBe(Tissue.Bowel);
+    expect(at(p, 30)).toBe(Tissue.Lung);
     expect(scene.inLungCurtain(p, { diaphragmCaudalMm: 30 })).toBe(true);
     expect(scene.inLungRecess(p)).toBe(true);
     // el mismo punto 10 mm más hondo nunca es cortina (lámina de 3 mm)
-    const deep: [number, number, number] = [p[0] * 0.93, p[1] * 0.93, -5];
-    expect(scene.classify(deep, { ...BASELINE_INSTANT, diaphragmCaudalMm: 30 }).tissue).toBe(Tissue.Bowel);
-    // y en el lado izquierdo (x > −45) no hay cortina (`lung-curtain-right-only`)
-    const left: [number, number, number] = [-p[0], p[1], -5];
-    expect(scene.classify(left, { ...BASELINE_INSTANT, diaphragmCaudalMm: 30 }).tissue).not.toBe(Tissue.Lung);
-    // sin la cortina (withCurtain = false) el punto de la lámina es lo que hay detrás
-    expect(scene.classify(p, { diaphragmCaudalMm: 30 }, false).tissue).toBe(Tissue.Bowel);
+    const deep = underWall(scene, phi, zL - 20, 12.5);
+    expect(at(deep, 30)).toBe(Tissue.Bowel);
+    // y en el lado izquierdo, lo mismo (la tabla de los bordes es la misma a los dos lados)
+    const left: [number, number, number] = [-p[0], p[1], p[2]];
+    expect(at(left, 0)).toBe(Tissue.Bowel);
+    expect(at(left, 30)).toBe(Tissue.Lung);
+    // sin la cortina (withCurtain = false) el punto de la lámina es lo que hay detrás: el diafragma de la ZOA, que engruesa
+    // al inspirar (5 mm a TLC)
+    expect(scene.classify(p, { diaphragmCaudalMm: 30 }, false).tissue).toBe(Tissue.Diaphragm);
+    // a 1 mm de la pared, bajo el borde, en espiración: el diafragma de la ZOA contra la pared
+    expect(at(underWall(scene, phi, zL - 20, 1), 0)).toBe(Tissue.Diaphragm);
+    expect(zoaThicknessMm(0)).toBeGreaterThan(1);
   });
 
-  it('el borde del pulmón que toca la pared: la inserción del diafragma delante y el de la lámina en el receso', () => {
-    // delante (fuera de la huella de la lámina), el borde es la inserción del diafragma (≈ +31 mm en x −80, y 70 de
-    // VExUS; lus-sim, decisión 17: el mismo punto, escalado como las cúpulas con la cara interna de la pared): a z 60, el
-    // pulmón toca la pared 29 mm por encima de su borde; nulo en el hemitórax izquierdo
-    const sx = scene.curtain.xMax / LUNG_CURTAIN.xMax;
-    const sy = scene.curtain.yMax / LUNG_CURTAIN.yMax;
-    const front: [number, number, number] = [-80 * sx, 70 * sy, 60];
-    const edge = scene.lungEdgeMm(front, BASELINE_INSTANT)!;
-    expect(edge).toBeGreaterThan(20);
-    expect(scene.lungEdgeMm([80 * sx, 70 * sy, 60], BASELINE_INSTANT)).toBeNull();
-    // la inspiración no mueve la inserción anterior (el borde de la lámina sí baja)
-    expect(scene.lungEdgeMm(front, { diaphragmCaudalMm: 30 })).toBe(edge);
+  it('el borde del pulmón que toca la pared: el de su columna, que baja con el diafragma hasta la reflexión pleural', () => {
+    for (const phi of [0.6 * Math.PI, 0.95 * Math.PI, 1.15 * Math.PI, 0.05 * Math.PI, -0.15 * Math.PI]) {
+      const front = underWall(scene, phi, 60, 0);
+      const [zL, zR] = lungBorderAt(scene.lungBorder, wallArc(front, scene.torso));
+      // en FRC, a z 60 el pulmón toca la pared 60 − zL mm por encima de su borde
+      expect(scene.lungEdgeMm(front, BASELINE_INSTANT)!, `φ ${phi / Math.PI}π`).toBeCloseTo(60 - zL, 6);
+      // al inspirar baja lo que el diafragma, sin pasar de la reflexión
+      expect(scene.lungEdgeMm(front, { diaphragmCaudalMm: 10 })!).toBeCloseTo(60 - zL + 10, 6);
+      expect(scene.lungEdgeMm(front, { diaphragmCaudalMm: 500 })!).toBeCloseTo(60 - zR, 6);
+    }
   });
 });
 
@@ -350,8 +359,9 @@ describe('Caras geométricas del banco de interfaces (faceSdf)', () => {
     return along(p0, d, 0.5 * (lo + hi));
   };
 
-  it('el tórax solo tiene la cara de la cúpula', () => {
-    expect(FACE_GEOMETRIES).toEqual(['dome']);
+  it('el tórax tiene la cara de la cúpula y la de la ZOA (lus-sim, decisión 18)', () => {
+    expect(FACE_GEOMETRIES).toEqual(['dome', 'zoa']);
+    // la geometría por interfaz es la de la cúpula; en la ZOA, `faceGradient` la cambia por la de su lámina
     expect(faceGeometryOf(Interface.DiaphragmLiver)).toBe('dome');
     for (const i of [Interface.None, Interface.PleuraWall, Interface.LiverCapsule, Interface.IvcLumen, Interface.RenalCapsule])
       expect(faceGeometryOf(i)).toBeNull();
@@ -362,14 +372,35 @@ describe('Caras geométricas del banco de interfaces (faceSdf)', () => {
     expect(sdf('dome')([-60, 20, -10])!).toBeGreaterThan(0); // abdomen
     // pendiente 1 sobre la cara: cúpula desde el pulmón hacia abajo, en las dos cúpulas
     const exact: Array<[V, V, number]> = [
-      [[-55, -5, 70], [0, 0, -1], 40],
-      [[-70, 10, 60], [0, 0, -1], 40],
-      [[70, -5, 40], [0, 0, -1], 40],
+      // lus-sim (decisión 18): las cúpulas del adulto en FRC (27 y 12 mm; en VExUS, 55 y 25): se cruzan más abajo
+      [[-55, -5, 70], [0, 0, -1], 80],
+      [[-70, 10, 60], [0, 0, -1], 80],
+      [[70, -5, 40], [0, 0, -1], 60],
     ];
     for (const [p0, d, tMax] of exact) {
       const g = grad(sdf('dome'), crossing('dome', p0, d, tMax));
       expect(Math.abs(Math.hypot(...g) - 1), `cúpula desde ${p0.join(',')}`).toBeLessThan(1e-3);
     }
+  });
+
+  it('ZOA (decisión 18): negativa hacia la pared, positiva hacia el abdomen, con la normal de la pared', () => {
+    const phi = Math.PI * 0.95;
+    const zL = lungBorderAt(scene.lungBorder, wallArc(underWall(scene, phi, 0, 1), scene.torso))[0];
+    const inZoa = underWall(scene, phi, zL - 15, 0.5);
+    const beyond = underWall(scene, phi, zL - 15, 4);
+    expect(sdf('zoa')(inZoa)!).toBeLessThan(0);
+    expect(sdf('zoa')(beyond)!).toBeGreaterThan(0);
+    // la cara abdominal de la lámina: la clasificación la dibuja en su mitad de dentro y faceGradient usa su geometría
+    const face = underWall(scene, phi, zL - 15, 0.8 * zoaThicknessMm(0));
+    const c = scene.classify(face, BASELINE_INSTANT);
+    expect(c.tissue).toBe(Tissue.Diaphragm);
+    expect(c.interface).toBe(Interface.DiaphragmLiver);
+    const g = scene.faceGradient(face, BASELINE_INSTANT)!;
+    const gz = grad(sdf('zoa'), face);
+    const l = Math.hypot(...gz);
+    expect(g.normal[0] * gz[0] + g.normal[1] * gz[1] + g.normal[2] * gz[2]).toBeCloseTo(l, 3);
+    // hacia dentro: el gradiente apunta lejos de la piel
+    expect(g.normal[0] * face[0] + g.normal[1] * face[1]).toBeLessThan(0);
   });
 
   it('en el mundo, faceSdfWorld es la cara del punto material que da la deformación', () => {
@@ -400,7 +431,7 @@ describe('Caras de interfaz en classify (decisión 57)', () => {
   };
 
   it('diafragma: la mitad abdominal dibuja la cara hepática a 2,5 − dDome; la pleural, ninguna', () => {
-    const c = crossing('dome', [-55, -5, 70], [0, 0, -1], 40);
+    const c = crossing('dome', [-55, -5, 70], [0, 0, -1], 80);
     const pleural = along(c, [0, 0, -1], 0.5);
     expect(cls(pleural).tissue).toBe(Tissue.Diaphragm);
     expect(sdf('dome', pleural)).toBeLessThan(1.25);

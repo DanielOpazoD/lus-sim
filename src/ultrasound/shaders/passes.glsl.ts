@@ -237,7 +237,7 @@ void main() {
         // (el pulmón del tórax que le sigue pegado) classifyWith sin la cortina da el mismo pulmón: ΔL 0, sin vuelta
         lungDb = segmentDb(c.tissue, step);
         curtainLast = float(s);
-        behind = lungCurtainDistance(m, insideWallMm(m)) >= 0.0;
+        behind = lungCurtainDistance(m, insideWallMm(m), wallArc(m)) >= 0.0;
         continue;
       }
       if (c.tissue == T_LUNG && mirrorSeg < 0.0) {

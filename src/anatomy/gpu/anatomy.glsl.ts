@@ -17,7 +17,9 @@
  *   tabla de las alturas de las costillas desde RIB_TABLE_BASE (decisión 16): por lado y columna de |u|, tres téxeles
  *   con las z de las líneas medias de las costillas 1–4, 5–8 y 9–12;
  *   tabla de la pared torácica desde CHEST_WALL_BASE (decisión 17, `organs/chestWall.ts`): por columna de |u|, tres téxeles
- *   (grosores alto y bajo, reborde costal, peso inspiratorio; y las capas altas y bajas)
+ *   (grosores alto y bajo, reborde costal, peso inspiratorio; y las capas altas y bajas);
+ *   tabla de los bordes del pulmón desde LUNG_BORDER_BASE (decisión 18, `organs/lungBorder.ts`): por columna de |u|, un
+ *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, inserción de la ZOA)
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, TISSUE_GLSL_NAME } from '../tissues';
 import {
@@ -31,14 +33,14 @@ import {
 import { COMPRESSION_GLSL, PROBE_COMPRESSION } from '../compression';
 import { ORGAN_MODULES } from '../organs';
 import { RIB_TABLE_BASE } from '../organs/ribcage';
-import { CHEST_WALL_BASE, CHEST_WALL_TEXELS } from '../organs/chestWall';
+import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from '../organs/lungBorder';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
 export const COMPRESSION_BASE = 0;
 if (RIB_TABLE_BASE < COMPRESSION_BASE + PROBE_COMPRESSION.nodes) throw new Error('la tabla costal pisa la de la compresión');
-export const SCENE_TEX_H = Math.ceil((CHEST_WALL_BASE + CHEST_WALL_TEXELS) / SCENE_TEX_W);
+export const SCENE_TEX_H = Math.ceil((LUNG_BORDER_BASE + LUNG_BORDER_TEXELS) / SCENE_TEX_W);
 export { MAX_RIBS } from './sceneUniforms';
 
 const TISSUE_DEFINES = Object.entries(TISSUE_GLSL_NAME)
@@ -129,13 +131,15 @@ float domeLift(float x, float y, vec4 dome) {
 }
 
 // Altura del diafragma: inserción costal (0 en el xifoides, −50 en flancos y espalda) +
-// la hemicúpula más alta (misma construcción que primitives.diaphragmHeight)
+// la hemicúpula más alta (misma construcción que primitives.diaphragmHeight); lus-sim (decisión 18): junto a la pared,
+// la rampa al borde del pulmón (domeRim, organs/lungBorder.ts)
+float domeRim(float x, float y, float D);
 float domeHeight(float x, float y) {
   float phi = atan(y / uTorso.y, x / uTorso.x);
   float edge = uDiaphragm.z + uDiaphragm.w * pow(max(0.0, sin(phi)), 1.5);
   float zr = edge + max(0.0, uDiaphragm.x - edge) * domeLift(x, y, uDomeR);
   float zl = edge + max(0.0, uDiaphragm.y - edge) * domeLift(x, y, uDomeL);
-  return max(edge, max(zr, zl));
+  return domeRim(x, y, max(edge, max(zr, zl)));
 }
 
 // Distancia con signo al diafragma (negativa en el tórax) y normal hacia el abdomen.
@@ -167,11 +171,12 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   wall = 0.0;
   if (m.z < uTorso.z || m.z > uTorso.w || depth > 0.0) return true;
   // lus-sim (decisión 17): la pared por región en el (u, z) de la muestra (organs/chestWall.ts); sus capas, solo dentro. Más
-  // hondo que la pared más gruesa (uChestWall.w) más lo que miran la cortina (3 mm) y el «resto» (su tope) no hace falta
-  // leerla: el grosor máximo da lo mismo en todo lo que sigue (la muestra no está en la pared, ni en la lámina, y la
-  // distancia del «resto» a la pared pasa de su tope)
+  // hondo que la pared más gruesa (uChestWall.w) más lo que miran la cortina (3 mm), el «resto» (su tope, con la ZOA más
+  // gruesa, decisión 18) y el tapón de la ventana cardiaca (su fondo) no hace falta leerla: el grosor máximo da lo mismo en
+  // todo lo que sigue (la muestra no está en la pared, ni en la lámina, ni en la ZOA, ni en el tapón, y la distancia del
+  // «resto» a la pared pasa de su tope)
   float d = -depth;
-  float far = uChestWall.w + max(uCurtain.y, BOWEL_BD_CAP_MM);
+  float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);
   float u = d < far ? wallArc(m) : 0.0;
   wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;
   vec4 wx = vec4(0.0);
@@ -226,15 +231,37 @@ Cls classifyWith(vec3 m, bool withCurtain) {
     c.n = dBody < dArch ? normalize(vec3(m.xy - uSpine.xy, 0.0)) : (ax > ay ? vec3(sign(m.x - uSpine.x), 0.0, 0.0) : vec3(0.0, sign(m.y - acy), 0.0));
     return c;
   }
-  // Cortina pulmonar (módulo de órgano: anatomy/organs/lungCurtain.ts)
+  // lus-sim (decisión 18): el arco de la muestra donde lo miran el tapón de la ventana cardiaca, la lámina de la cortina, la
+  // ZOA y la cota de su cara para el «resto» (más hondo, ninguno depende de él)
+  float inside = -depth - wall;
+  float u = inside < max(uHeartC.w, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0) ? wallArc(m) : 0.0;
+  // El corazón y el tapón de la ventana (organs/heart.ts), sobre la cúpula (se apoya en ella)
+  bool blood;
+  float dHeart = heartDistance(m, inside, u, blood);
+  if (dHeart >= 0.0) {
+    vec3 hn;
+    float dHeartDome = sdDome(m, hn);
+    if (dHeartDome < 0.0) { c.tissue = blood ? T_BLOOD : T_MYOCARDIUM; c.bd = min(dHeart, -dHeartDome); c.n = tn; return c; }
+  }
+  float clear = heartClearance(m, inside, u);
+  // Cortina pulmonar (módulo de órgano: anatomy/organs/lungCurtain.ts; decisión 18, los dos hemitórax)
   if (withCurtain) {
-    float dCurtain = lungCurtainDistance(m, -depth - wall);
-    if (dCurtain >= 0.0) { c.tissue = T_LUNG; c.bd = dCurtain; c.n = torsoNormal(m); return c; }
+    float dCurtain = lungCurtainDistance(m, inside, u);
+    if (dCurtain >= 0.0) { c.tissue = T_LUNG; c.bd = min(dCurtain, clear); c.n = torsoNormal(m); return c; }
+  }
+  // La zona de aposición (decisión 18, organs/lungBorder.ts): el diafragma contra la pared bajo el borde del pulmón; su
+  // mitad de dentro dibuja la cara abdominal con la normal de la pared (c.kc = 1: faceGradient la distingue de la cúpula)
+  float dZoa = zoaDistance(m, inside, u);
+  if (dZoa >= 0.0) {
+    float tz = zoaThicknessMm(uResp.x);
+    c.tissue = T_DIAPHRAGM; c.bd = min(dZoa, clear); c.n = tn; c.kc = 1.0;
+    if (inside > 0.5 * tz) { c.iface = IF_DIAPHRAGM_LIVER; c.ifd = tz - inside; }
+    return c;
   }
   // Tórax y diafragma (lus-sim, decisión 12: sin vasos, conductos ni aurícula de VExUS entre la cortina y la cúpula)
   vec3 dn;
   float dDome = sdDome(m, dn);
-  if (dDome < 0.0) { c.tissue = T_LUNG; c.bd = -dDome; c.n = dn; return c; }
+  if (dDome < 0.0) { c.tissue = T_LUNG; c.bd = min(-dDome, clear); c.n = dn; return c; }
   if (dDome < DIAPHRAGM_MM) {
     c.tissue = T_DIAPHRAGM; c.bd = min(dDome, DIAPHRAGM_MM - dDome); c.n = dn;
     // la mitad abdominal dibuja la cara hepática; la pleural la dibuja el espejo exacto de la pasada A
@@ -243,7 +270,7 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   }
   // Bajo el diafragma, el «resto» (abdomen-generic-tissue): sin vesícula, riñones, hígado ni gas. Su distancia a
   // la frontera es la de las interfaces que ganan antes (misma fórmula que scene.classify)
-  float bdBowel = min(min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_MM), -depth - wall);
+  float bdBowel = min(min(min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_MM), inside), min(zoaGap(m, inside, u), clear));
   c.tissue = T_BOWEL; c.bd = max(bdBowel, 0.0); c.n = tn;
   return c;
 }
@@ -252,6 +279,8 @@ Cls classify(vec3 m) { return classifyWith(m, true); }
 
 // Distancia de la cúpula sin su normal (el gradiente numérico de faceGradient)
 float domeSd(vec3 m) { vec3 n; return sdDome(m, n); }
+// Distancia a la cara abdominal de la ZOA, positiva hacia el abdomen (decisión 18). Gemelo: faceSdf(m, 'zoa')
+float zoaSd(vec3 m) { return insideWallMm(m) - zoaThicknessMm(uResp.x); }
 
 // Gradiente de la distancia de la cara que dibuja una muestra (decisión 57): xyz es su dirección, la
 // normal de la cara, y w su norma, que pasa ifd (el valor de esa distancia) a distancia por la normal,
@@ -263,7 +292,12 @@ float domeSd(vec3 m) { vec3 n; return sdDome(m, n); }
 vec4 faceGradient(Cls c, vec3 m) {
   vec2 h = vec2(FACE_GRAD_EPS, 0.0);
   vec3 g;
-  if (c.tissue == T_DIAPHRAGM) {
+  if (c.tissue == T_DIAPHRAGM && c.kc > 0.5) {
+    // la cara abdominal de la ZOA (decisión 18): la de su lámina, paralela a la pared
+    g = vec3(zoaSd(m + h.xyy) - zoaSd(m - h.xyy),
+             zoaSd(m + h.yxy) - zoaSd(m - h.yxy),
+             zoaSd(m + h.yyx) - zoaSd(m - h.yyx));
+  } else if (c.tissue == T_DIAPHRAGM) {
     g = vec3(domeSd(m + h.xyy) - domeSd(m - h.xyy),
              domeSd(m + h.yxy) - domeSd(m - h.yxy),
              domeSd(m + h.yyx) - domeSd(m - h.yyx));
