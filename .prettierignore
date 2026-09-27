@@ -7,3 +7,5 @@ test-results
 playwright-report
 # worktrees de agentes: otros checkouts con su propio formato
 .claude
+# generado por `npm run fidelity:ref` (decisión 21), como el índice de decisiones
+docs/reference-bank/reference-stats.json

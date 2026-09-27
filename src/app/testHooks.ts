@@ -31,6 +31,7 @@ import { compoundActive } from '../ultrasound/compound';
 import { COARSE_DEPTH, displayLevelDb, type CompoundState } from '../ultrasound/renderer';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { speckleStats, type SpeckleOptions, type SpeckleStats } from './speckle';
+import { fidelityBench, type FidelityBenchOptions, type FidelityBenchReport } from './fidelityBench';
 import type { RenderMeasureOptions, Simulator } from './simulator';
 import { START_POINTS, type StartPoint } from './startPoints';
 
@@ -40,8 +41,8 @@ import { START_POINTS, type StartPoint } from './startPoints';
  *
  * lus-sim (decisión 12): el subconjunto del tórax — equivalencia (tejido en los planos de partida, volumen,
  * cáscara de las caras y, propia, la pleura parietal de A0), moteado, líneas A (propia: meta F-T01 en la
- * envolvente de la GPU), sombra costal (propia: meta F-T08), pared (normales de sus caras), coste del cuadro, paridad
- * de la pasada A y poses. Sin los
+ * envolvente de la GPU), sombra costal (propia: meta F-T08), banco de fidelidad (propio, decisión 21: la imagen mostrada
+ * medida como un clip real), pared (normales de sus caras), coste del cuadro, paridad de la pasada A y poses. Sin los
  * del banco de fidelidad del hígado, el color, el PW, las tríadas portales ni el lazo cerrado de VExUS.
  */
 export interface TestHooks {
@@ -76,6 +77,13 @@ export interface TestHooks {
    * `startPoint` con la respiración `respiration`, una mirada; ver `RibShadowStats`.
    */
   ribShadow: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern }) => RibShadowStats;
+  /**
+   * Banco de fidelidad (lus-sim, decisión 21): la imagen mostrada en `startPoint` con la respiración `respiration`, una pila
+   * de `frames` cuadros cada `frameIntervalS` s, medida con las funciones del banco de referencia
+   * (`src/measure/fidelity/`), su coherencia con la verdad del simulador y los niveles en dB. Una mirada. Ver
+   * `FidelityBenchReport`.
+   */
+  fidelity: (opts: FidelityBenchOptions) => FidelityBenchReport;
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -289,6 +297,22 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         });
       } finally {
         sim.patient.respiratoryPattern = pattern;
+      }
+    },
+    fidelity: (opts) => {
+      const sim = getSim();
+      const pattern = sim.patient.respiratoryPattern;
+      const gain = sim.bmode.gainDb;
+      try {
+        sim.patient.respiratoryPattern = opts.respiration;
+        // la ganancia del barrido (decisión 21), con el comando del equipo; al terminar, la de antes
+        if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: opts.gainDb } });
+        return withCompound(sim, dispatch, false, () =>
+          fidelityBench(sim, opts, { goTo: (id) => goTo(sim, id), ribShadow: () => ribShadowStats(sim) }),
+        );
+      } finally {
+        sim.patient.respiratoryPattern = pattern;
+        if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: gain } });
       }
     },
     wallNormals: (opts) => {

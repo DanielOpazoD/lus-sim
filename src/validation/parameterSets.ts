@@ -10,6 +10,7 @@ import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
 import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
+import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
 
 /**
  * Todos los conjuntos de parámetros del modelo (decisión 4). `evidence.test.ts` comprueba sobre esta
@@ -32,4 +33,5 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   BONE_TRANSMISSION,
   DIAPHRAGM_EXCURSION,
   RESPIRATORY_WALL,
+  FIDELITY_BENCH,
 ];

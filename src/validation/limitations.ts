@@ -27,6 +27,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'interface-echo-coherent-only',
   'rib-acoustics-simplified',
   'speckle-statistics-uncalibrated',
+  'display-uncalibrated',
   'no-sidelobes',
   'harmonic-simplified',
 ]);

@@ -1198,12 +1198,184 @@ la penumbra depende de la apertura de emisión heredada sin calibrar (declarado)
 artificial (frente a una apertura continua se apartan −2,5…+15 dB, casi siempre hacia más brillante; con 17 tomas el núcleo se
 mueve ≤ 1,5 dB), las caras del hueso, su frecuencia, que la composición no cambia el núcleo y que no se pinta nada.
 
-## 21. Reservada para la PR paralela que la usa [Estado: reservada]
+## 21. El banco de fidelidad: las mismas métricas para la pantalla del simulador y para los clips reales
 
 **Fecha.** 2026-09-27.
 
-**Contexto.** El número 21 lo usa otra PR abierta a la vez que la de la decisión 22; esta entrada solo guarda la numeración
-sin huecos que exige `docs.test.ts` hasta que aquella se integre y la sustituya.
+**Contexto.** Con la línea pleural sin saturar (decisión 20, Demi 2023, enunciado 15) la imagen por omisión se ve oscura: la
+pared gris muy oscuro y, bajo la pleura y en el campo profundo, casi negro. El eco pleural está K = 55 dB sobre el moteado del
+hígado (`src/ultrasound/interfaceEcho.ts`), así que puede ser física correcta con una presentación (70 dB de rango, la curva
+de grises de EchoTwin con c = 3,5) que no es la de un ecógrafo pulmonar, o puede faltar algo (la neblina subpleural, un
+suelo de ruido). Mirarlo no lo decide: hacen falta las métricas de la base (`docs/knowledge/reference-images.md` §3) en la
+imagen del simulador y en clips reales, invariantes a lo que en los clips web se desconoce (la ganancia y el rango dinámico,
+§3.1, principio 5). Objetivos O3 (fidelidad ecográfica: «métricas del banco dentro del rango de referencia») y O6.
+
+**Opciones.** (a) Medir la envolvente de la GPU, como las e2e de F-T01 y F-T08: exacta, pero no comparable con un vídeo. (b)
+Medir la imagen mostrada (el gris de 8 bits del lienzo) con funciones puras que no saben de dónde viene el cuadro, las mismas
+para el simulador y para los clips, y, solo en el simulador, los mismos niveles leídos en su envolvente sin recortar. (c) Un
+clasificador aprendido (FID/KID, G1): pocos clips y no dice qué corregir. Para los niveles que la base no mide (la pared, la
+neblina, el campo profundo): en dB (no invariante); sobre la brecha suelo–pleura, (g_x − g_suelo)/(g_pl − g_suelo) (la
+primera versión, N1–N3: invariante solo si el suelo se mide, y en el simulador está en el negro); o sin suelo, en «caídas de
+línea A» desde la pleura. Para la geometría de cada clip: detectarla en cada medición, o fijarla en el manifiesto.
+
+**Decisión.** (b), con niveles sin suelo, la censura de todo lo recortado y la geometría de los clips fijada.
+
+- **Métricas** (`src/measure/fidelity/`, capa `measure`, sin DOM ni WebGL). El cuadro se muestrea «en el espacio del haz» (una
+  fila por px a lo largo del haz desde la piel) con la geometría del sector: la verdadera en el simulador, la del manifiesto en
+  los clips. La pleura es la cresta de cada columna, en un clip guiada por la del cuadro medio (±30 %: una fascia o un eco
+  hondo pueden ser, en un cuadro suelto, más brillantes); las sombras costales, los tramos con poca energía bajo su cresta
+  (umbral de Otsu exacto) cuya cresta —la costilla— está por encima de la pleura y forma una sola superficie (IQR/mediana
+  ≤ 0,2; los demás se cuentan como descartados); el perfil axial, la media de las columnas intercostales alineadas en su
+  pleura (u = r/d_pl), con los fondos de las líneas A en la mediana. Del §3.2, P1, P2, P4, A1, A2, T1, T2 y S1 (el modo M
+  reconstruido con columnas de la pila). Y las propuestas: **M** sin suelo,
+  M_x = (g_pl − g_x)/(g_pl − g_A1) —la familia M_x = (g_pl − g_x)/(g_A_k − g_A_(k+1)) con k = 0, la pleura como A_0—, para la
+  pared (0,2–0,85 d_pl), la neblina subpleural (1,25–1,75 d_pl) y el campo profundo (3,25–3,75 d_pl, entre las líneas A de
+  orden 3 y 4); **N4** = (g_pl − g_pared)/(g_A1 − g_A2), el mismo con k = 1; y **N1–N3**, sobre el suelo de la sombra costal,
+  que se siguen midiendo pero no se comparan. Las definiciones son `FIDELITY_BENCH` (`defineParameters`, estimadas, con su
+  fila en `docs/APPROXIMATIONS.md`).
+- **Censura.** Cada nivel lleva su fracción recortada en el negro del clip (la moda fuera del sector: LUS-01 recorta en 3,
+  no en 0) y en el blanco. Una mediana (los niveles de las bandas, los fondos de las líneas A) es una cota con la mitad o más
+  recortada; una media o un momento (los picos del perfil, la σ y la autocorrelación del moteado de T1, las correlaciones y σ
+  temporales de T2 y S1) con un 5 % (`CLIP_MEAN_MAX`); una anchura por debajo de 5 px (P2) o 3 px (T1 axial) está al límite
+  del muestreo (`resolution`); σ_t se mide con suelo en el ruido de cuantización (escalón/√12). Cada métrica que usa un dato
+  censurado sale censurada (cota inferior, superior o sin dirección), por cuadro y por clip (la mitad o más de sus cuadros), y
+  **la censura llega a la comparación**: un valor censurado es una cota (≥, ≤, «cens.», «resolución»), nunca ↓ ni ↑.
+- **Simulador** (`src/app/fidelityBench.ts`, gancho `fidelity`; `e2e/fidelidad.spec.ts`): 30 cuadros de la imagen mostrada a
+  30 cps en cada punto de partida, en apnea espiratoria y en respiración tranquila, medidos con la geometría verdadera (la línea
+  base) y, simétricamente, con la detectada desde la imagen (en el informe); la coherencia con lo que el simulador sabe (la
+  pleura del gemelo de A0, k·D, las líneas que cruzan hueso); los niveles en dB desde el gris (invirtiendo `greyMap.ts`) y
+  desde la envolvente en las mismas muestras; la caída por orden de las líneas A frente a F-T02; y un **barrido de ganancia**
+  (−30…−12 dB) que prueba que lo que se declara invariante lo es en el simulador y que N1–N3 salen censuradas.
+  `LUS_E2E_GPU=1` la corre con la GPU real (Metal).
+- **Referencia** (`tools/fidelity/reference.ts`, `npm run fidelity:ref`): el manifiesto (`docs/reference-bank/MANIFEST.json`,
+  34 archivos: LUS-01–LUS-04 y los 24 convexos «regular según el dataset» de los sujetos pat1–4 de Born, LUS-35a–x, fuente 14
+  de su CSV), con su licencia, su clave de `docs/REFERENCES.md`, su SHA-256, su **sujeto** (anonimizado: los clips de un sujeto
+  no son independientes), su **geometría fijada** (tipo, ápice, bordes, arcos, fila de la piel en el borde o no, zonas
+  quemadas) y su control de calidad (apto; pleura, líneas A, sombra costal y tiempo fiables). La geometría la propone el
+  detector sobre el clip entero (su media y su σ temporal: `npm run fidelity:geometry`, que deja hojas de contacto fuera del
+  repositorio, con todo lo que está fuera del sector en negro) y la fija una persona: medir con la detectada cambiaba con la
+  ganancia en un abanico cortado por el marco. Cada clip se mide entero; **compuertas automáticas** (`dpl_spread`,
+  `few_intercostal`, `floor_above_deep`, `bimodal_crests`, `repeated_frames`) y un clip apto que dispare una que su control de
+  calidad no admite hace fallar la prueba. `docs/reference-bank/reference-stats.json` lleva solo números derivados: por clip,
+  cuantiles sobre sus cuadros; por estrato de sonda, la distribución de la mediana de cada clip apto **entre clips y entre
+  sujetos**, con cuántos hay de cada uno. Con menos de 3 clips o 2 sujetos el estrato se informa sin situar al simulador.
+  `npm run fidelity:compare` da la tabla.
+
+**Consecuencias.**
+
+- **Línea base del simulador** (main 9f9fd9f con #22; GPU real, Apple M4, `LUS_E2E_GPU=1`), apnea espiratoria, 30 cuadros;
+  gris y dB sobre el blanco de la pantalla (desde el gris / desde la envolvente sin recortar); el negro de 8 bits está en
+  −69,7 dB. SwiftShader da lo mismo a ≤ 0,2 grises y ≤ 0,15 dB en el BLUE superior y el PLAPS; en el BLUE inferior la
+  envolvente es la misma (≤ 0,06 dB) pero la imagen mostrada no: con SwiftShader la pleura sale 0,4 mm más somera y 5 grises
+  más brillante, y M 0,08–0,11 más alto (sin explicar todavía):
+
+  | Punto de partida | d_pl    | Pleura               | Pared              | Neblina subpleural | Línea A 2 / 3            | Campo profundo | Suelo (sombra) |
+  | ---------------- | ------- | -------------------- | ------------------ | ------------------ | ------------------------ | -------------- | -------------- |
+  | BLUE superior    | 17,4 mm | 211 (−6,6 / −6,8 dB) | 29 (−54,4 / −54,4) | 14 (−61,9 / −61,9) | 114 / 44 (−26,1 / −47,9) | 0 (— / −76,8)  | 0 (— / −111,7) |
+  | BLUE inferior    | 13,6 mm | 193 (−9,8 / −2,9)    | 38 (−50,5 / −52,2) | 18 (−59,9 / −61,9) | 95 / 39 (−31,1 / −50,2)  | 0 (— / −76,4)  | 0 (— / −108,7) |
+  | PLAPS            | 15,0 mm | 225 (−4,5 / −3,3)    | 29 (−54,6 / −54,6) | 14 (−61,6 / −61,3) | 119 / 50 (−24,9 / −45,8) | 0 (— / −75,4)  | 0 (— / −111,1) |
+
+  M de la pared, la neblina y el campo profundo: 1,88 / 2,03 / ≥ 2,18 (BLUE superior), 1,59 / 1,79 / ≥ 1,97 (inferior), 1,86 /
+  1,99 / ≥ 2,13 (PLAPS): **el campo profundo y el suelo quedan bajo el negro** (6–7 y 39–42 dB por debajo), así que M del campo profundo es
+  una cota inferior y N1–N3 (0,127–0,196, 0,064–0,092, 0) no son medidas: su suelo es el recorte. N4 2,61–2,82 (censurado en
+  el BLUE inferior: la línea A de orden 3 está en el negro en el 14–16 % de sus columnas); P1 1,10–1,20; P2 1,23–1,32 mm (0,076–0,091 d_pl) está al límite del muestreo
+  (4,6–4,9 px; `resolution`), y T1 axial también en el BLUE inferior y el PLAPS; P4 0,31–0,37 d_pl.
+
+- **Líneas A.** La caída por orden es 17,7–22,7 dB en la pantalla y 17,9–22,5 dB en la envolvente (órdenes 1→2, 2→3 y 3→4),
+  frente a 20,2–20,4 dB de la fórmula de F-T02 con los números del simulador: −20·log₁₀(R_p·χ·R_t) = 19,3 dB (χ = 0,36 por la
+  rugosidad de la pleura, −8,9 dB; R_t = 0,3, −10,5 dB), más la pared hasta la pleura (4,6–5,6 dB) menos la compensación
+  nominal (3,6–4,4 dB). Del orden 1 al 2 cae 0,5–4,5 dB menos que después (la línea pleural es el eco de la cara con su lóbulo,
+  en el foco). Con 70 dB de rango solo caben dos: r₂ 0,48–0,56; r₃ 0,23–0,24 es una cota (su fondo, en el negro); A1 ≤ 0,013
+  d_pl.
+- **Coherencia (lo que exige la e2e):** la pleura detectada a −0,11…−0,17 mm del cruce del gemelo de A0 (la peor, 0,24 mm) en
+  las 63–174 columnas intercostales; las líneas A de orden 2 y 3 a +0,11…+0,34 mm de k veces la línea pleural mostrada y a
+  −0,17…−0,32 mm de k·D; los núcleos de las sombras detectadas sobre líneas que cruzan hueso (94,2–100 %) y todas las sombras
+  completas con núcleo cubiertas (la parcial del borde del BLUE inferior, 3 líneas, no). La geometría detectada desde la
+  imagen: ápice a 0,4–1,0 px, bordes a ≤ 0,25°, piel a ≤ 0,5 px, salvo en el BLUE inferior, de bordes oscuros (ápice a 8,1–13,7
+  px, borde derecho a 1,7–2,9°, piel a 4,8–7,7 px); **el fondo, a 32,6–41,7 mm de los 120**: lo negro no se ve. Con ella, d_pl
+  sale 0,1–0,6 mm más larga (la piel detectada, más honda).
+- **Pila.** La pared no cambia entre cuadros ni respirando: σ temporal 0,004–0,16 grises, T2 1,000, y los 29 pares de cada pila
+  tienen menos de ½ gris de cambio medio (en un clip real, la compuerta `repeated_frames`). Bajo la pleura, σ_t 0,010–0,026
+  grises en apnea y 3,3–4,6 respirando: S1 es una cota inferior (≥ 11,3–16,0: la σ de encima está bajo el escalón/√12) y en
+  apnea no es una medida; la decorrelación bajo la pleura, 0,15–0,20 s.
+- **Barrido de ganancia** (BLUE superior, apnea, 3 cuadros; −21 dB es el preajuste): d_pl, M de la pared y de la neblina, N4, P1,
+  P4 y T1 se mueven ≤ 5 % mientras no están censurados (M de la pared 1,88–1,92 entre −30 y −15 dB), y se comparan de verdad a
+  −24 y −18 dB. Lo que se recorta sale censurado: la neblina en el negro a −30 dB, la pared (12 %) para T1 a −30 dB, la
+  pleura en el blanco desde −15 dB (5 % de sus columnas; 44 % a −12 dB) y con ella M, N4, P1 y A2; el campo profundo, siempre
+  (M del campo profundo es una cota inferior en todo el barrido). N1–N3 dependen de la ganancia (N1 0,068–0,201 entre −30 y
+  −12 dB) y salen censuradas en todas.
+- **Referencia** (`npm run fidelity:ref`, los 34 clips enteros, 8 277 cuadros, en 3–4 min): aptos 18 —16 convexos de 6 sujetos
+  (LUS-01, LUS-04b, 04f, 04g y 12 de LUS-35), LUS-02 sectorial y LUS-03 lineal—; no aptos 16: los cuatro recortes LUS-04a y
+  LUS-04c–e, sin pleura identificable; LUS-35a y 35b (pat1) no son pulmón limpio; 35h, 35j (pat2) y 35v (pat4) traen el
+  diafragma y el hígado; y 35c–e, 35l, 35m, 35p y 35t, con la pleura que salta entre cuadros o sin forma de pulmón (control de
+  calidad del manifiesto: la pleura revisada a ojo por el agente en las hojas de contacto, lo demás por el detector y las
+  compuertas; pendiente de revisión humana). Con líneas A, 10 convexos de 5 sujetos; con una sombra costal limpia, 2 (35i y
+  35k, del mismo sujeto). El detector se aparta de la geometría fijada ≤ 4,3 px y ≤ 0,9° en los aptos salvo LUS-01 (el abanico sale del
+  cuadro: lo propone lineal) y LUS-35r (borde derecho oscuro), y en 35e, 35h, 35j, 35l, 35p y 35v toma un borde oscuro (hasta
+  38°): por eso se fija.
+- **El simulador frente a la referencia** (respiración tranquila, geometría verdadera; ↓ bajo el p10 y ↑ sobre el p90 del
+  estrato convexo; entre paréntesis, clips/sujetos; una cota no se marca, ni un estrato de menos de 3 clips o 2 sujetos):
+
+  | Métrica                  | Convexa p10–p90 [mediana] (clips/sujetos) | Lineal (LUS-03) | Sectorial (LUS-02) | Simulador: BLUE sup. / BLUE inf. / PLAPS            |
+  | ------------------------ | ----------------------------------------- | --------------- | ------------------ | --------------------------------------------------- |
+  | M pared                  | 0,75–1,53 [1,11] (9/4)                    | —               | 1,55               | 1,89 ↑ / 1,59 ↑ / 1,85 ↑                            |
+  | M neblina subpleural     | 0,92–1,36 [1,04] (9/4)                    | —               | 1,10               | 2,04 ↑ / 1,79 ↑ / 1,99 ↑                            |
+  | M campo profundo         | 1,49–2,75 [2,01] (9/4)                    | —               | 2,04               | ≥ 2,19 / ≥ 1,97 / ≥ 2,12                            |
+  | N4 cociente de brechas   | 1,75–6,75 [3,06] (9/4)                    | —               | 3,66               | 2,58 · / 2,76 (cens.) / 2,82 ·                      |
+  | P1 brillo de la pleura   | 2,99–5,05 [4,02] (2/1)                    | 1,36            | —                  | 1,10 / 1,20 / 1,20                                  |
+  | P2 grosor pleural (d_pl) | — (todos al límite del muestreo)          | 0,046           | —                  | 0,076 / 0,091 / 0,085 (resolución)                  |
+  | P4 (d_pl)                | 0,35–0,38 [0,36] (2/1)                    | 0,36            | —                  | 0,37 / 0,34 / 0,31                                  |
+  | A1 (desfase)             | 0,10–0,23 [0,19] (9/4)                    | —               | 0,11               | 0,007 ↓ / 0,013 ↓ / 0,011 ↓                         |
+  | A2 r₂                    | 0,11–0,30 [0,22] (9/4)                    | —               | 0,51               | 0,56 ↑ / 0,49 ↑ / 0,53 ↑                            |
+  | A2 r₃                    | 0,01–0,12 [0,07] (10/5)                   | —               | 0,52               | 0,23 / 0,23 / 0,24 (cens.)                          |
+  | A2 líneas A visibles     | 0,9–1 [1] (10/5)                          | —               | 3                  | 2 ↑ / 2 ↑ / 2 ↑                                     |
+  | T1 grano axial (d_pl)    | — (todos al límite del muestreo)          | 0,017           | —                  | 0,050 / 0,056 / 0,053 (las dos últimas, resolución) |
+  | T1 grano lateral (d_pl)  | 0,070–0,18 [0,096] (16/6)                 | 0,035           | —                  | 0,063 ↓ / 0,079 · / 0,079 ·                         |
+  | T1 σ/prominencia pleural | 0,11–0,31 [0,19] (16/6)                   | 0,092           | 0,066              | 0,039 ↓ / 0,042 ↓ / 0,035 ↓                         |
+  | T2 pared                 | 0,971–0,993 [0,984] (15/6)                | —               | 0,995              | 1,000 ↑ / 1,000 ↑ / 1,000 ↑                         |
+  | T2 bajo la pleura        | 0,959–0,994 [0,984] (15/6)                | —               | 0,930              | 0,998 (cens.) / 0,997 (cens.) / 0,990 ·             |
+  | S1                       | 0,76–1,68 [1,18] (15/6)                   | —               | 2,14               | ≥ 12,3 / ≥ 11,3 / ≥ 16,0                            |
+  | S1 decorrelación (s)     | 0,41–1,01 [0,58] (15/6)                   | —               | 0,047              | 0,20 ↓ / 0,19 ↓ / 0,15 ↓                            |
+
+  Lo que dice, sin afirmarlo (es la entrada del ciclo 3b): en la presentación, la pared y la neblina del simulador quedan más
+  lejos de la pleura, en caídas de línea A, que en los clips convexos (M 1,6–2,0 frente a 1,0–1,1), y el campo profundo, en el
+  negro; las líneas A decaen más despacio en gris (r₂ 0,5 frente a 0,22) y se ven dos (en los clips, una); el moteado de la
+  pared es más tenue frente a la pleura (T1) y la pared, quieta (T2, S1). **M mezcla el nivel con la reverberación**: su
+  unidad, la caída pleura → línea A, es física (R_p·χ·R_t·T(D), decisión 20) y en el simulador no es la de los clips (r₂), así
+  que una M más alta puede ser una pared más oscura o una línea A más brillante; se lee con A2 al lado. Y es invariante a lo
+  afín en el gris, que en el simulador es la ganancia pero no el rango dinámico (la curva de grises es exponencial en el
+  nivel: cambiar el rango cambia el exponente). P1 y P4 solo tienen 2 clips de un sujeto con sombra costal limpia: no se
+  sitúan. P2 y T1 axial están al límite del muestreo en los clips de 370 px (FWHM 2,2–4,1 px) y en el simulador.
+
+- **Mutaciones.** Del código, aplicadas a mano con 200 corridas y sin encoger el contraejemplo; cada una la atrapa su propiedad
+  en 1–2 corridas: un umbral absoluto en la visibilidad de las líneas A (`&& pk.prominence >= 0.01`, a = 0,11), M sin la línea
+  A ((g_pl − g_x)/g_pl), N1 sin restar el suelo (g_x/g_pl), la media altura de P2 sobre cero y no sobre el fondo local, T1
+  σ/g_pl sin restar la pared (la continua), y los extremos de fila en el borde del cuadro dentro de la recta del borde (la
+  tubería: el ápice a 191 px). Sin censurar la pleura recortada, el barrido de ganancia falla a −12 dB (M de la pared +8,6 %);
+  sin el suelo de σ_t, S1 en apnea es el cociente de dos ceros (la prueba de la pila).
+- **Lo que no es invariante y queda dicho:** la geometría detectada. El soporte temporal compara σ_t con el brillo sobre el
+  fondo, así que con el sector desplazado hacia el blanco una pared quieta deja de «variar» y la piel detectada se hunde
+  (`fidelityInvariance.test.ts` lo deja escrito); un extremo de fila a menos de 3 px del marco no es el borde del abanico.
+  Por eso se fija. Los clips también enseñaron que la piel puede no estar en el borde superior de un recorte (LUS-01: la línea
+  A de orden 2 en u ≈ 2,2; sin A1), que los `.ogv` de Commons traen texto, escalas y un ECG quemados (LUS-03, con el número de
+  registro, la institución y la fecha: se excluyen y hay que recortarlos antes de cualquier mosaico), que el suelo de la sombra
+  no está en el negro (≈ 6 grises) y que LUS-03 repite cuadros (Theora a 30 cps de un original más lento; fuera T2 y S1).
+- La e2e añade 4 pruebas (≈ 4–9 s cada una con GPU real). Limitación `display-uncalibrated`.
+
+**Verificación.** `npm run check` en verde; la e2e de fidelidad con GPU real y con SwiftShader. Las métricas, sobre sintéticos con
+respuesta conocida (`src/validation/fidelityBench.test.ts`: la geometría, también de un abanico cortado por el cuadro; el
+negro del clip; las zonas excluidas; la pleura guiada frente a una fascia más brillante; las crestas de dos poblaciones; P4,
+las líneas A a k·d_pl con r_k = decay^(k−1), los niveles, M, N1–N4, P1, P2 = 2,355σ con su límite de resolución, el grano de
+T1; la censura de las medianas, de los momentos y de la pila; T2 y S1 con y sin deslizamiento; los cuadros repetidos). La
+invariancia afín con fast-check (`src/validation/fidelityInvariance.test.ts`, 200 corridas por propiedad, semilla fija, nivel
+lento, ≈ 2 min): continua con a ∈ [0,05; 3] (1e-6, también la censura), en 8 bits con dos contrastes (`TOL_8BIT`, el peor de
+200 corridas con 2–3× de margen) y la tubería del banco (el detector propone la geometría de un abanico cortado por el
+cuadro, se fija y se miden los dos contrastes con el cambio solo dentro del sector). El manifiesto y las estadísticas
+(`src/validation/fidelityReference.test.ts`: licencias abiertas, `in_repo` false, sujetos, geometría fijada, control de
+calidad, compuertas, estratos entre clips y sujetos, la comparación con cotas y estratos pequeños; cada regla con su defecto);
+`src/validation/fidelityReferenceBank.test.ts` (dorada) vuelve a medir el banco real y exige las estadísticas del repositorio
+(se salta sin la carpeta o sin ffmpeg). Pendiente: la revisión humana de las hojas de contacto y del control de calidad, y la
+revisión adversarial de contexto limpio.
 
 ## 22. El campo respiratorio invertible por construcción y la excursión de la base (A-T13)
 

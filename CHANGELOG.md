@@ -86,6 +86,19 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   `src/validation/respiratoryField.test.ts` (fast-check, con sus mutaciones) y la equivalencia de la e2e en inspiración profunda
   con la ventana cardiaca, el borde de la LAM izquierda y la cortina derecha. Limitación nueva `respiratory-field-vertical`
   (entre otras cosas, la cúpula izquierda baja el 35 % de la excursión: meta pendiente).
+- Ciclo 3a, el banco de fidelidad (21): métricas de imagen puras (`src/measure/fidelity/`), las mismas para la pantalla del
+  simulador y para los clips reales: la pleura, las sombras costales y las líneas A detectadas sin verdad de terreno; las del
+  patrón normal de `docs/knowledge/reference-images.md` §3.2 (P1, P2, P4, A1, A2, T1, T2, S1) y las propuestas sin suelo (M, el
+  nivel de la pared, de la neblina subpleural y del campo profundo en caídas pleura → línea A, y N4, el cociente de brechas),
+  con la censura de todo lo recortado hasta la comparación (una cota nunca sale ↓ ni ↑). Los niveles sobre el suelo de la
+  sombra (N1–N3) se miden pero no se comparan: con el suelo en el negro dependen de la ganancia. Invariancia afín con
+  fast-check (200 corridas: continua con a ∈ [0,05; 3], en 8 bits y la tubería del banco) y mutaciones del código. El gancho
+  `fidelity` y `e2e/fidelidad.spec.ts` miden la imagen mostrada en los tres puntos de partida (con la geometría verdadera y la
+  detectada) y barren la ganancia de −30 a −12 dB; `npm run fidelity:ref` mide el banco de referencia real, fuera del repo
+  (34 clips, con los 24 convexos de 4 sujetos de Born), con la geometría fijada en el manifiesto, compuertas automáticas y
+  estratos entre clips y entre sujetos, y escribe solo estadísticas derivadas (`docs/reference-bank/reference-stats.json`);
+  `npm run fidelity:compare` da la tabla frente al simulador y `npm run fidelity:geometry` las propuestas de geometría con sus
+  hojas de contacto, fuera del repo. `LUS_E2E_GPU=1` corre la e2e con la GPU real. Limitación nueva `display-uncalibrated`.
 
 ### Cambiado
 

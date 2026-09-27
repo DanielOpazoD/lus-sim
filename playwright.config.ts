@@ -4,7 +4,17 @@ import { defineConfig, devices } from '@playwright/test';
  * Pruebas de extremo a extremo sobre el build de producción (`vite preview`). En CI no hay GPU:
  * Chromium usa SwiftShader (WebGL2 por software), más lento pero suficiente para comprobar que la
  * cadena funciona. Puerto 6709: el 6609 es de VExUS y esta máquina corre las dos suites.
+ *
+ * `LUS_E2E_GPU=1` (lus-sim, decisión 21) lanza Chromium con la GPU real (Metal en macOS, como el banco de VExUS): la línea
+ * base del banco de fidelidad y las medidas «con GPU real» de las decisiones. En CI nunca se pone.
  */
+const GPU = process.env.LUS_E2E_GPU === '1';
+const GL_ARGS = GPU
+  ? process.platform === 'darwin'
+    ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist']
+    : ['--enable-gpu', '--ignore-gpu-blocklist']
+  : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+
 export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
@@ -19,7 +29,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:6709',
     trace: 'retain-on-failure',
-    launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] },
+    launchOptions: { args: GL_ARGS },
     viewport: { width: 1280, height: 800 },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

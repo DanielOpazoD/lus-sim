@@ -20,6 +20,9 @@
     "test:coverage": "VITEST_TIER=all vitest run --coverage --testTimeout=180000",
     "docs:index": "tsx tools/docs/decisions-index.ts",
     "provenance": "tsx tools/provenance/drift.ts",
+    "fidelity:ref": "tsx tools/fidelity/reference.ts",
+    "fidelity:compare": "tsx tools/fidelity/compare.ts",
+    "fidelity:geometry": "tsx tools/fidelity/geometry.ts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && vite build && tsx tools/ci/bundle-budget.ts",
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
