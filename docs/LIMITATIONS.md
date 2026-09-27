@@ -87,15 +87,16 @@ conservan su identificador (decisiones 10 y 11).
   de −20 dB, y sin líneas A: la de orden 2 a −80…−107 dB). Causas medidas: la pasada A atenúa la costilla (6,4 mm de
   hueso cortical, −64…−79 dB ida y vuelta por un rayo) como un medio homogéneo que conserva la coherencia, sin la
   refracción ni la aberración de fase de un hueso con c = 3515 m/s ni su hueso esponjoso; y el pedestal de lóbulos
-  laterales de la pasada D (`no-sidelobes`) sube la pleura de la sombra hasta ~15 dB en alguna línea (sin él, −51…−67
-  dB), porque no sabe que la costilla también tapa los caminos de los lóbulos. El preajuste deja la línea pleural
-  15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]) y el negro 85–88 dB por debajo de
-  ella, así que en pantalla se ve una línea gris (38–101) atravesando la sombra negra. La pleura que se ve cerca del
-  borde de la sombra (a > −40 dB, hasta 6 líneas dentro) es la penumbra de la apertura (física: parte del cono pasa
-  junto a la costilla) y ocupa más de la mitad de cada sombra (69 de las 103 líneas con hueso del PLAPS) porque los
-  espacios intercostales de la escena son estrechos (`ribs-5-10-only`, metas A-T7 y A-T8). `e2e/imagen.spec.ts` exige
-  el fallo con su tamaño; corregirlo pide una decisión con evidencia (la transmisión coherente por el hueso, el
-  pedestal que respete la sombra, la sección de la costilla del paso C, el brillo de la línea pleural).
+  laterales de la pasada D (`no-sidelobes`) sube la pleura de la sombra 6–10 dB de mediana y hasta 17 dB (sin él,
+  −51…−67 dB), porque no sabe que la costilla también tapa los caminos de los lóbulos. El preajuste deja la línea
+  pleural 15–18 dB por encima del blanco (el consenso pide no saturarla [@demi-guias-2023]) y el negro 85–88 dB por
+  debajo de ella, así que en pantalla se ve una línea gris (38–101) atravesando la sombra negra. La pleura que se ve
+  cerca del borde de la sombra (a > −40 dB, hasta 6 líneas dentro) es la penumbra de la apertura (física: parte del
+  cono pasa junto a la costilla) y ocupa más de la mitad de cada sombra (69 de las 103 líneas con hueso del PLAPS)
+  porque los espacios intercostales de la escena son estrechos (`ribs-5-10-only`, metas A-T7 y A-T8).
+  `e2e/imagen.spec.ts` exige el fallo con su tamaño; corregirlo pide una decisión con evidencia (la transmisión
+  coherente por el hueso, el pedestal que respete la sombra, la sección de la costilla del paso C, el brillo de la
+  línea pleural).
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
   lo hará.
