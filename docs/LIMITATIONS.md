@@ -183,7 +183,21 @@ conservan su identificador (decisiones 10 y 11).
   fijar la pendiente).
 - **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
-  lo hará.
+  lo hará. Desde la decisión 21 el banco de fidelidad mide el grano de la pared (T1) en la pantalla del simulador y en los
+  clips; la comparación y la calibración son del ciclo 3b.
+- **La presentación no está calibrada frente a la imagen real** (`display-uncalibrated`, decisión 21): el rango dinámico
+  (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido
+  con el banco de fidelidad en la imagen mostrada, la pared y la neblina subpleural a 1,6–1,9 y 1,8–2,0 caídas de línea A bajo
+  la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,53 y 0,92–1,36 (p10–p90) en 9 clips convexos de 4
+  sujetos del banco de referencia; el campo profundo y el suelo de la sombra costal quedan en el gris 0 de 8 bits (la
+  envolvente, 6–7 y 39–42 dB bajo el negro de −69,7 dB), así que M del campo profundo es una cota inferior y los niveles sobre
+  el suelo (N1–N3) no son medidas: dependen de la ganancia. La línea A cae ≈ 20 dB por orden (F-T02 da 20,2–20,4), pero en gris
+  decae más despacio que en los clips (r₂ 0,48–0,56 frente a 0,11–0,30) y se ven dos; M se mide en esa caída, así que lee a la
+  vez el nivel y la reverberación. El moteado de la pared es tenue frente a la pleura (T1 σ/prominencia 0,035–0,042 frente a
+  0,11–0,31) y la pared, quieta hasta el escalón de 8 bits (σ temporal 0,004–0,16 grises; T2 1,000; en un clip real sería un
+  vídeo que repite cuadros), así que S1 es una cota (≥ 11–16 frente a 0,76–1,68). Las métricas son invariantes a lo afín en el
+  gris, que en el simulador es la ganancia pero no el rango dinámico (la curva de grises es exponencial en el nivel). No se
+  sabe aún si es la física (la neblina, un suelo de ruido, R_t, χ) o la presentación: es la pregunta del ciclo 3b.
 - **Lóbulos laterales simplificados, sin lóbulos de rejilla ni en elevación** (`no-sidelobes`, heredada con
   `src/ultrasound/clutter.ts`, decisión 11): el núcleo lateral lleva un pedestal gaussiano con una pantalla de
   fase fija (ISLR −24 dB con los 14 mm de grasa del paciente por omisión), no el diagrama real de la apertura; la
