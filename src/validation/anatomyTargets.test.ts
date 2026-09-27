@@ -5,6 +5,9 @@ import { torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
+import type { Vec3 } from '../core/vec3';
+import { lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
+import { wallArc } from '../anatomy/organs/wall';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { PhysiologyEngine } from '../physiology/engine';
@@ -719,13 +722,16 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  notYetMet('A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm (hoy 3,0: el diafragma del modelo baja 30 mm)', () => {
-    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
-    const phi = line('midaxillary');
-    const d = at(phi)! - at(phi, deep)!;
-    expect(d).toBeGreaterThanOrEqual(31);
-    expect(d).toBeLessThanOrEqual(75);
-  });
+  notYetMet(
+    'A-T13: en la inspiración profunda la cortina baja 3,1–7,5 cm (hoy 3,0: el diafragma del modelo, el de VExUS, baja 30 mm; con los 53 de la base el campo respiratorio se pliega, `lung-border-table`)',
+    () => {
+      const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+      const phi = line('midaxillary');
+      const d = at(phi)! - at(phi, deep)!;
+      expect(d).toBeGreaterThanOrEqual(31);
+      expect(d).toBeLessThanOrEqual(75);
+    },
+  );
 
   it('A-T14: en la inspiración profunda la cortina izquierda tapa el espacio intercostal por el que se ve la cúpula', () => {
     // el primer EIC entero bajo el borde del pulmón en FRC en la LAM y la LAP izquierdas (el 8.º y el 9.º): en FRC, a 1,5 mm de
@@ -832,6 +838,51 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
       expect(moved).toBeGreaterThan(0.1);
     },
   );
+});
+
+describe('F-T12: deslizamiento por región (paso C4, decisión 19)', () => {
+  // La amplitud del deslizamiento es lo que baja el pulmón bajo la pleura en una inspiración (Briganti: el desplazamiento de
+  // un artefacto en modo B): `lungSlideMm`, el que ancla la retícula del deslizamiento de la pasada B, en la pleura del centro
+  // de la vista, de fin de espiración a fin de inspiración. El ápex de Briganti es el EIC2 de la LMC (el punto BLUE superior);
+  // su base, la LAM un espacio sobre el diafragma (el EIC7, con el borde del pulmón en la 8.ª costilla).
+  const pleuraAt = (pose: ProbePose): Vec3 => {
+    const v = chestView(scene, pose);
+    const D = scanLine(v, 0).pleuraMm!;
+    return v.material(pointOnLine(v.contact.frame, tr, 0, D));
+  };
+  const slide = (p: Vec3, caudal: number) => lungSlideMm(scene.lungBorder, p, scene.torso, caudal);
+  const quiet = new RespiratoryModel(defaultPatient()).excursionMm();
+  const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+
+  it('F-T12: el cociente ápex/base es 0,42 ± 0,1 (la recta se calibra con él: se cumple por construcción) y crece con el volumen', () => {
+    const apex = pleuraAt(longitudinalPose(LMC, intercostalZ(scene, 2, LMC)));
+    const base = pleuraAt(longitudinalPose(LAM, intercostalZ(scene, 7, LAM)));
+    for (const exc of [quiet, deep]) {
+      const r = slide(apex, exc) / slide(base, exc);
+      expect(r, `excursión ${exc}`).toBeGreaterThanOrEqual(0.32);
+      expect(r, `excursión ${exc}`).toBeLessThanOrEqual(0.52);
+    }
+    expect(slide(apex, deep)).toBeGreaterThan(slide(apex, quiet));
+    expect(slide(base, deep)).toBeGreaterThan(slide(base, quiet));
+  });
+
+  it('decrece con la altura en cada línea y no pasa de lo que baja el borde de su columna (se detiene en la reflexión)', () => {
+    for (const side of [-1, 1] as const)
+      for (const l of ['midclavicular', 'midaxillary', 'paravertebral'] as const) {
+        const phi = line(l, side);
+        let prev = Infinity;
+        for (let z = -30; z <= 200; z += 10) {
+          const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) + 1, scene.torso, z);
+          const s = slide(p, deep);
+          expect(s, `${l} z ${z}`).toBeLessThanOrEqual(prev + 1e-9);
+          prev = s;
+          const b = lungBorderAt(scene.lungBorder, wallArc(p, scene.torso));
+          expect(s).toBeLessThanOrEqual(b[0] - b[1] + 1e-9);
+        }
+        // y se apaga arriba (Lichtenstein: «habitualmente nulo» en el vértice)
+        expect(prev, l).toBe(0);
+      }
+  });
 });
 
 describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {

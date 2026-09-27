@@ -179,13 +179,47 @@ export const LUNG_BORDER = defineParameters('anatomy.lungBorder', {
 });
 
 /**
+ * Deslizamiento por región (lus-sim, decisión 19; meta F-T12): el pulmón bajo la pleura baja con la inspiración lo que el
+ * borde de su columna en la base y menos hacia arriba, en recta con la altura (la expansión del pulmón es proporcional a la
+ * distancia a su vértice), sin pasar de lo que baja de verdad el borde (que se detiene en la reflexión). En VExUS, el
+ * descenso del diafragma en todo el tórax (`sliding-uniform-caudal`).
+ */
+export const LUNG_SLIDING = defineParameters('anatomy.lungSliding', {
+  apexRatio: {
+    value: 3.6 / 8.6,
+    unit: '1',
+    range: [0.32, 0.52],
+    evidence: 'documentado',
+    sources: ['briganti-deslizamiento-2023'],
+    note:
+      'Amplitud del deslizamiento en el ápex (EIC2 de la LMC) sobre la de la base (LAM, un espacio sobre el diafragma): 3,6 ± ' +
+      '2,0 / 8,6 ± 4,3 mm (Briganti, ventilación mecánica, tabla 2). Fija la pendiente de la recta: F-T12 (0,42 ± 0,1) se cumple ' +
+      'por construcción en las dos vistas de Briganti',
+  },
+  baseAboveBorderMm: {
+    value: 15.5,
+    unit: 'mm',
+    range: [10, 25],
+    evidence: 'derivado',
+    sources: ['briganti-deslizamiento-2023', 'gray-anatomia-1918'],
+    note:
+      'Briganti mide la base en la LAM un espacio intercostal sobre el diafragma: con el borde del pulmón en la 8.ª costilla, el ' +
+      'centro del EIC7 queda 15,5 mm sobre él (−19,5 frente a −35). La base de cada columna, a esa altura sobre su borde: por ' +
+      'debajo, el pulmón baja lo que el borde',
+  },
+});
+
+/**
  * Tope de la distancia a la frontera del pulmón del tórax (mm): más arriba que la cúpula más alta (`LungBorder.domeTopZ`)
  * más este tope, la clasificación no evalúa la cúpula (su distancia pasaría del tope). La pasada B solo mira si la distancia
  * pasa de la media anchura en elevación (≤ 3 mm).
  */
 export const LUNG_BD_CAP_MM = 10;
 
-/** Tabla por columna de |u| (la de la pared torácica: mismas columnas y paso): (zL, zR, Wrim, zAtt), un téxel. */
+/**
+ * Tabla por columna de |u| (la de la pared torácica: mismas columnas y paso): (zL, zR, Wrim, zTop), un téxel; zTop es la
+ * altura a la que se apaga el deslizamiento (decisión 19). La inserción de la ZOA, zR − `zoaBelowReflectionMm`.
+ */
 export const LUNG_BORDER_TEXELS_PER_COL = 1;
 export const LUNG_BORDER_TEXELS = CHEST_WALL_COLS * LUNG_BORDER_TEXELS_PER_COL;
 /** Téxel de la textura de escena donde empieza la tabla: tras la de la pared torácica. */
@@ -201,12 +235,17 @@ export interface LungBorderStations {
 }
 
 export interface LungBorder extends LungBorderLookup {
-  /** `LUNG_BORDER_TEXELS` téxeles RGBA (float32, como en la GPU): (zL, zR, Wrim, zAtt). */
+  /** `LUNG_BORDER_TEXELS` téxeles RGBA (float32, como en la GPU): (zL, zR, Wrim, zTop). */
   table: Float32Array;
   /** Cota de la profundidad bajo la piel desde la que la cúpula no mira la tabla: el mayor Wrim más la rampa. */
   rimFarMm: number;
   /** El borde más alto de la tabla (la cúpula no pasa de él ni de sus vértices: la rampa va del borde a la de VExUS). */
   zLMax: number;
+  /**
+   * Altura del deslizamiento (mm): de la base de cada columna a donde se apaga, calibrada con el cociente de Briganti entre el
+   * EIC2 de la LMC y la base (decisión 19).
+   */
+  slideSpanMm: number;
   stations: LungBorderStations;
 }
 
@@ -247,6 +286,12 @@ export function buildLungBorder(t: Torso, cage: RibCage, cw: ChestWall): LungBor
     vertebraZ(P.reflectionPosteriorVertebra.value),
     vertebraZ(P.reflectionPosteriorVertebra.value),
   ]);
+  // deslizamiento (decisión 19): la recta sube de la base de la columna (su borde + baseAboveBorderMm) a zTop = base + H, con
+  // H tal que en el ápex de Briganti (el centro del EIC2 de la LMC) la fracción es apexRatio
+  const S = LUNG_SLIDING.params;
+  const mcl = st.midclavicular;
+  const apexZ = 0.5 * (ribZ(cage, 2, mcl) + ribZ(cage, 3, mcl));
+  const span = (apexZ - (zL(mcl) + S.baseAboveBorderMm.value)) / (1 - S.apexRatio.value);
   const table = new Float32Array(LUNG_BORDER_TEXELS * 4);
   let rimMax = 0;
   let zLMax = -Infinity;
@@ -257,12 +302,13 @@ export function buildLungBorder(t: Torso, cage: RibCage, cw: ChestWall): LungBor
     const W = cw.total(u, l);
     rimMax = Math.max(rimMax, W);
     zLMax = Math.max(zLMax, Math.fround(l));
-    table.set([l, r, W, r - P.zoaBelowReflectionMm.value], j * LUNG_BORDER_TEXELS_PER_COL * 4);
+    table.set([l, r, W, l + S.baseAboveBorderMm.value + span], j * LUNG_BORDER_TEXELS_PER_COL * 4);
   }
   const lb: LungBorder = {
     table,
     rimFarMm: rimMax + P.rimBlendMm.value,
     zLMax,
+    slideSpanMm: span,
     stations: st,
     at: (u) => lungBorderAt(lb, u),
     rim: (x, y, D) => diaphragmRim(lb, x, y, D, t),
@@ -272,7 +318,7 @@ export function buildLungBorder(t: Torso, cage: RibCage, cw: ChestWall): LungBor
 
 const mix = (a: number, b: number, f: number): number => a * (1 - f) + b * f;
 
-/** (zL, zR, Wrim, zAtt) en |u|, interpolados entre columnas como en la GPU (gemelo GLSL con el mismo nombre). */
+/** (zL, zR, Wrim, zTop) en |u|, interpolados entre columnas como en la GPU (gemelo GLSL con el mismo nombre). */
 export function lungBorderAt(lb: Pick<LungBorder, 'table'>, u: number): [number, number, number, number] {
   const tc = Math.min(Math.abs(u) / CHEST_WALL_DU_MM, CHEST_WALL_COLS - 1 - 1e-4);
   const j = Math.floor(tc);
@@ -332,8 +378,9 @@ export function zoaDistance(lb: Pick<LungBorder, 'table'>, m: Vec3, insideWallMm
   const t = zoaThicknessMm(caudalMm);
   if (insideWallMm < 0 || insideWallMm >= t) return null;
   const b = lungBorderAt(lb, u);
-  if (m[2] >= b[0] || m[2] < b[3]) return null;
-  return Math.min(insideWallMm, t - insideWallMm, b[0] - m[2], m[2] - b[3]);
+  const zAtt = b[1] - LUNG_BORDER.params.zoaBelowReflectionMm.value;
+  if (m[2] >= b[0] || m[2] < zAtt) return null;
+  return Math.min(insideWallMm, t - insideWallMm, b[0] - m[2], m[2] - zAtt);
 }
 
 /**
@@ -343,9 +390,24 @@ export function zoaDistance(lb: Pick<LungBorder, 'table'>, m: Vec3, insideWallMm
  */
 export function zoaGap(lb: Pick<LungBorder, 'table'>, m: Vec3, insideWallMm: number, u: number, caudalMm: number): number {
   const b = lungBorderAt(lb, u);
-  const dz = m[2] < b[3] ? b[3] - m[2] : m[2] >= b[0] ? m[2] - b[0] : 0;
+  const zAtt = b[1] - LUNG_BORDER.params.zoaBelowReflectionMm.value;
+  const dz = m[2] < zAtt ? zAtt - m[2] : m[2] >= b[0] ? m[2] - b[0] : 0;
   const dw = insideWallMm - zoaThicknessMm(caudalMm);
   return dz > 0 ? Math.max(dz, dw, 0) : Math.abs(dw);
+}
+
+/**
+ * Lo que ha bajado el pulmón bajo la pleura en m (mm) con el diafragma bajado `caudalMm` (lus-sim, decisión 19; gemelo GLSL
+ * con el mismo nombre): el descenso del borde de su columna (el del diafragma por `curtainDescentRatio`, sin pasar de la
+ * reflexión) por la fracción de su altura: 1 hasta la base de la columna (su borde + `baseAboveBorderMm`), 0 desde zTop, en
+ * recta entre las dos. Ancla la retícula del deslizamiento (`ultrasound/pleura.ts`).
+ */
+export function lungSlideMm(lb: Pick<LungBorder, 'table'>, m: Vec3, t: Torso, caudalMm: number): number {
+  const b = lungBorderAt(lb, wallArc(m, t));
+  const descent = Math.min(LUNG_BORDER.params.curtainDescentRatio.value * Math.max(caudalMm, 0), b[0] - b[1]);
+  const base = b[0] + LUNG_SLIDING.params.baseAboveBorderMm.value;
+  const g = Math.min(1, Math.max(0, (b[3] - m[2]) / (b[3] - base)));
+  return descent * g;
 }
 
 const f4 = (x: number): string => x.toFixed(4);
@@ -363,6 +425,8 @@ export const LUNG_BORDER_GLSL = /* glsl */ `
 #define LB_ZOA_FRC ${f4(PL.zoaFrcMm.value)}
 #define LB_ZOA_TLC ${f4(PL.zoaTlcMm.value)}
 #define LB_ZOA_TLC_CAUDAL ${f4(PL.zoaTlcCaudalMm.value)}
+#define LB_ZOA_BELOW ${f4(PL.zoaBelowReflectionMm.value)}
+#define LB_SLIDE_BASE ${f4(LUNG_SLIDING.params.baseAboveBorderMm.value)}
 vec4 lungBorderAt(float u) {
   int j;
   float f = cwColumn(u, j);
@@ -384,12 +448,18 @@ float domeRim(float x, float y, float D) {
   return b.x + (D - b.x) * rimWeight(w);
 }
 float lungEdgeZ(float u) { vec4 b = lungBorderAt(u); return max(b.y, b.x - uCurtain.x); }
+float lungSlideMm(vec3 m) {
+  vec4 b = lungBorderAt(wallArc(m));
+  float base = b.x + LB_SLIDE_BASE;
+  return min(uCurtain.x, b.x - b.y) * clamp((b.w - m.z) / (b.w - base), 0.0, 1.0);
+}
 float zoaThicknessMm(float caudal) {
   return LB_ZOA_FRC + (LB_ZOA_TLC - LB_ZOA_FRC) * min(max(caudal, 0.0) / LB_ZOA_TLC_CAUDAL, 1.0);
 }
 float zoaGap(vec3 m, float insideWall, float u) {
   vec4 b = lungBorderAt(u);
-  float dz = m.z < b.w ? b.w - m.z : (m.z >= b.x ? m.z - b.x : 0.0);
+  float zAtt = b.y - LB_ZOA_BELOW;
+  float dz = m.z < zAtt ? zAtt - m.z : (m.z >= b.x ? m.z - b.x : 0.0);
   float dw = insideWall - zoaThicknessMm(uResp.x);
   return dz > 0.0 ? max(max(dz, dw), 0.0) : abs(dw);
 }
@@ -397,7 +467,8 @@ float zoaDistance(vec3 m, float insideWall, float u) {
   float t = zoaThicknessMm(uResp.x);
   if (insideWall < 0.0 || insideWall >= t) return -1.0;
   vec4 b = lungBorderAt(u);
-  if (m.z >= b.x || m.z < b.w) return -1.0;
-  return min(min(insideWall, t - insideWall), min(b.x - m.z, m.z - b.w));
+  float zAtt = b.y - LB_ZOA_BELOW;
+  if (m.z >= b.x || m.z < zAtt) return -1.0;
+  return min(min(insideWall, t - insideWall), min(b.x - m.z, m.z - zAtt));
 }
 `;

@@ -160,7 +160,10 @@ export interface ChestWallLookup {
 
 /** Los bordes del pulmón que lee la cúpula (u: arco de la piel con signo). */
 export interface LungBorderLookup {
-  /** (borde del pulmón en FRC, reflexión pleural, grosor de la pared a la altura del borde, inserción de la ZOA) en |u|. */
+  /**
+   * (borde del pulmón en FRC, reflexión pleural, grosor de la pared a la altura del borde, altura a la que se apaga el
+   * deslizamiento) en |u|.
+   */
   at(u: number): [number, number, number, number];
   /** Altura del diafragma en (x, y) con la rampa junto a la pared, dada la de las cúpulas D. */
   rim(x: number, y: number, D: number): number;
