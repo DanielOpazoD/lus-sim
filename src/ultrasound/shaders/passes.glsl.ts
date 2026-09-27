@@ -527,7 +527,8 @@ vec2 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
   Cls c;
   float depth;
   vec3 tn;
-  if (!classifyWall(m, c, depth, tn)) { c.tissue = T_FAT; c.n = tn; }
+  float wallMm;
+  if (!classifyWall(m, c, depth, tn, wallMm)) { c.tissue = T_FAT; c.n = tn; }
   vec2 field = fieldForPhBase(m, se, c.tissue, ph0, g, normalize(p - uCurvC), w);
   float clump = uTissueClump4[c.tissue / 4][c.tissue % 4];
   if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);

@@ -466,7 +466,10 @@ export function wallNormalStats(sim: Simulator): WallNormalStats {
   const scene = sim.scene;
   const instant = sim.anatomy.instantFor(sim.sample);
   const toMaterial = (p: Vec3): Vec3 => sim.anatomy.deformation.toMaterial(p, sim.sample.resp);
-  const reach = scene.wallThickness() + 12;
+  // lus-sim (decisión 17): la pared bajo la sonda y lo que la parrilla asoma por debajo de ella (la pared torácica es más
+  // delgada que la del abdomen de VExUS, 28 mm + 12)
+  const under = scene.wallAtSkin(sim.pose.phi, sim.pose.z);
+  const reach = under.skin + under.fat + under.muscle + 16;
   const cand: { p: Vec3; face: Interface; normal: Vec3; norm: number }[] = [];
   for (let u = 0; u < tr.lines; u += 2) {
     const theta = -tr.halfSector + (2 * tr.halfSector * (u + 0.5)) / tr.lines;

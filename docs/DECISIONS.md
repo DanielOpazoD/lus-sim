@@ -864,3 +864,72 @@ la cuenta por línea no veía dos costillas fundidas (el índice cambiaba sin es
 A-T7 se había aflojado a 20,5 mm; etiquetas de evidencia (el EIC2 de la medioclavicular es derivado; la paraesternal y la
 paravertebral, estimadas); la oblicuidad sin cifra frente a Robinson; la divergencia de la costilla de la cara; la
 justificación del alcance de la PSF; comentarios viejos.
+
+## 17. Paso C2: la pared torácica por región y por hábito
+
+**Fecha.** 2026-09-27.
+
+**Contexto.** Tras la parrilla del paso C1 (decisión 16) la pared del tórax seguía siendo la del abdomen de VExUS: piel 2,
+grasa 14 y músculo 12 mm, 28 en la métrica radial en todo el tronco (`thorax-wall-abdominal-habitus`), con los tres músculos
+y dos planos de la pared abdominal y sin intercostales (`wall-generic-layers`). Medido: la pleura a 25,3 mm en EIC2-LMC y a
+26,8–28,0 en EIC5 LAA/LAM (cociente lateral/anterior 1,06–1,11), sin banda intercostal (0,0 / 2,5 / 2,6 mm de músculo
+entre la línea costal y la pleura) y sin cambio al inspirar: A-T1–A-T3 y A-T10 sin cumplir. La base da el estado ecográfico
+de la pared por región y sus variantes (`docs/knowledge/anatomy.md` §2.2–2.6 y metas A-T1–A-T5, A-T10).
+
+**Opciones.** Para la geometría: (a) un tronco cuya piel siga la pared (un tórax no cilíndrico): rehace el contacto, la
+compresión, la cortina y todas las líneas de la sonda de VExUS; (b) conservar la piel (el cilindro elíptico) y mover la
+pleura y la parrilla por dentro con el grosor de cada punto. Para el grosor en el shader: (i) un uniform por estación; (ii)
+una tabla por |u| en la textura de escena, como la parrilla. Para la axila (la base da 13 mm en el EIC5 lateral, Nelson, y
+18 en el EIC4, McLean): (α) cada valor en su espacio (5 mm de salto en un espacio intercostal); (β) una transición entre el
+centro del EIC5 y la 4.ª costilla. Para el contacto de la sonda: un grosor fijo bajo la cara o el de cada línea.
+
+**Decisión.** (b), (ii), (β) y el grosor de cada línea. Un módulo de órgano propio, `src/anatomy/organs/chestWall.ts` (TS y
+GLSL con los mismos nombres), que la pared en capas de VExUS (`organs/wall.ts`) lee por región.
+
+- **Estaciones y capas** (por la normal de la piel; la tabla las lleva a la radial con |∇torsoDepth|): delante (línea media,
+  paraesternal, LMC) piel 1,8, grasa 3,7, pectoral 8,0, intercostales 2,2 y el complejo pleura + fascia endotorácica 0,3 =
+  16,0; al lado bajo (LAA, LAM) 1,8 / 3,2 / serrato 4,5 / 3,0 / 0,3 = 12,8; la axila alta (LAA, LAM y el pliegue de la LAP)
+  18 con los intercostales del EIC3 lateral (3,7); infraescapular (1,2π) 2,5 / 4 / dorsal 5 / 4,3 / 0,3 = 16,1; la línea
+  media posterior, la pared heredada (28). Interpolación monótona en |u| y, en altura, la pared alta desde la 4.ª costilla de
+  la LAM y la baja desde el centro del EIC5; bajo el reborde costal (suavizado entre columnas), en 100 mm, la pared del
+  abdomen del hábito.
+- **Capas en la pared de VExUS.** El músculo va de la fascia profunda a la fascia endotorácica (la transversalis de la
+  tabla, sin ondular) con el plano músculo–intercostal (el segundo plano intermuscular) a la banda intercostal sobre ella; el
+  primer plano se funde con la fascia; el complejo pleural es la grasa preperitoneal; Scarpa y la fascia ondulan con la
+  grasa. La banda engruesa delante al inspirar a fondo (Yoshida, +0,76 mm) con el descenso del diafragma.
+- **Todo lo que usaba el grosor fijo lo toma del punto:** la clasificación (TS y GLSL), `insideWallMm`, el peso
+  respiratorio, la parrilla (su pleura y su construcción), el contacto de la sonda (cada nodo con la pared donde su línea
+  entra en la piel), los ecos parásitos (la pared y la grasa bajo la sonda), la textura de la pared y las medidas.
+- **Variantes** (`habitus.chest`): delgada (grasa 1,75 y pectoral 6 delante; lo demás, en la misma proporción), obesa (23
+  delante y 1,1 × al lado, en grasa), mujer (+2 mm de mama del esternón a la axilar anterior; espacios intercostales 1,5 mm
+  más estrechos, Kim).
+- **Preajuste.** El foco sigue a la pleura del punto BLUE superior: 25 → 16 mm; el mínimo del equipo, de 20 a 8.
+
+**Consecuencias.**
+
+- A-T1: 25,3 → 16,1 mm. A-T2: 26,8 y 28,0 → 12,8 y 12,8 (cociente 0,79–0,80). A-T3: 28,0 → 16,7 (más que A-T1). A-T10: la
+  banda 0,0 / 2,5 / 2,6 → 2,0 / 3,0 / 4,0 mm, y al inspirar a fondo +0,7 delante y +0,0 al lado. A-T4 (obesa): 23,6 mm y
+  cociente 1,07. A-T5 (mujer): +2,0 mm. La delgada: 12,1 y 10,0. Todas pasan a `it`.
+- A-T13 (el borde del pulmón en la LAM a la altura de la 8.ª costilla) pasa a cumplirse: la pleura del flanco queda 15 mm
+  más afuera, fuera de la elipse de la cúpula heredada, y el pulmón llega a la inserción del diafragma (−49,5 mm). Delante
+  y detrás el borde sigue alto (`lung-border-above-ribcage`).
+- A-T7: la pleura a 4,2 mm bajo la línea costal en EIC5-LAM (en la subida de la pared hacia la axila) y 4,7 en el punto BLUE
+  superior; F-T08, medias de 5,2–5,7 mm (un lado del punto BLUE inferior a 7,4: la prueba admite 7,5 por lado). La caja de
+  la parrilla mide 304 mm de ancho (Robinson, 303).
+- En la imagen: caben 6–7 líneas A en 12 cm; la e2e exige los órdenes 1–4 (el 4.º, a 9–11 dB de prominencia, en el 60 % de
+  los grupos). F-T08 en la GPU: el eco pleural vecino llega a 10 líneas del borde de la sombra (antes 6); en el núcleo la
+  línea pleural queda a −41,2…−46,7 dB y cada sombra a −33,7…−38,5 dB del eco intercostal.
+- El coste del cuadro no cambia (2,12–2,18 ms en el M4). El chunk principal pasa de 187,7 a 203,4 kB: su presupuesto sube a
+  210 y el del total de JS a 215. Ranuras de uniforms de la pasada B: 106 (+1, `uChestWall`).
+- La equivalencia TS ↔ GLSL sigue exacta con GPU real; con SwiftShader, un empate en la cáscara (0,99994). La distancia al
+  borde del volumen se compara donde es continua: el pulmón de la cortina y el del tórax detrás son el mismo tejido con
+  distancias distintas, y un punto a 3 mm de la pleura cambiaba de rama con el redondeo.
+- Se borra `thorax-wall-abdominal-habitus`; `wall-generic-layers` queda para los tejidos (un músculo sobre los
+  intercostales, texturas de VExUS); nueva `chest-wall-regional-approx` (la piel fija, la transición de la axila, sin
+  escápula ni límites de la mama, la pared paravertebral heredada, la mezcla con el abdomen).
+- Las pruebas portadas de la pared en capas de VExUS miran ahora la pared del abdomen (bajo el reborde) o el tronco uniforme
+  del hábito; las de la cortina, un punto del receso posterior (en el flanco el pulmón llega ya a la pared).
+
+**Verificación.** `npm run check` y `npm run e2e` en verde; `src/validation/chestWall.test.ts` (capas por estación, tabla,
+orden de las caras, inspiración, abdomen, variantes, gemelo GLSL) y `anatomyTargets.test.ts` (A-T1–A-T5, A-T10, A-T13, la
+delgada); la e2e con GPU real y con SwiftShader. Revisión adversarial de contexto limpio: ver la PR.

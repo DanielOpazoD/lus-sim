@@ -32,9 +32,10 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const vtag = JSON.stringify(vol);
   expect(vol.interiorPoints, vtag).toBeGreaterThan(40_000);
   expect(vol.tissueAgreement, vtag).toBe(1);
-  // el volumen tiene dientes: los tejidos del tórax de la escena (medido con la parrilla del paso C1, decisión 16, igual con
-  // GPU real y con SwiftShader: pulmón 14 816, «resto» 13 043, grasa 8548, músculo 3881, columna 1900, piel 725, hueso 399
-  // (costillas y esternón) y cartílago 60 de 43 450 interiores; antes, con las costillas 5.ª–10.ª derechas, 106 de hueso)
+  // el volumen tiene dientes: los tejidos del tórax de la escena (medido con la parrilla del paso C1, decisión 16, y la pared
+  // por región del C2, decisión 17, con GPU real y con SwiftShader: pulmón 18 418, «resto» 15 036, músculo 4915, columna
+  // 1968, grasa 1556, piel 864, hueso 424 (costillas y esternón) y cartílago 62 de 43 352 interiores; con la pared heredada,
+  // grasa 8548 y músculo 3881; con las costillas 5.ª–10.ª derechas de VExUS, 106 de hueso)
   for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin', 'Bone'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(200);
   expect(vol.byTissue.Cartilage ?? 0, vtag).toBeGreaterThan(20);
@@ -43,12 +44,14 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // GPU real (M4): 2·10⁻⁵ mm; SwiftShader, 0,014 mm (en VExUS, la cara del diafragma): una décima del eco
   expect(vol.interfaceDistanceMaxErr, vtag).toBeLessThan(0.02);
   // la distancia al borde del tejido, la que funde los bordes en la pasada B (hasta 10 mm, lo que puede importar;
-  // lo añadió la revisión): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
+  // lo añadió la revisión), donde es continua (`boundaryStable`: sin el salto del pulmón de la cortina al del tórax, el
+  // mismo tejido, a 3 mm de la pleura): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
   expect(vol.boundaryDistanceMaxErr, vtag).toBeLessThan(0.02);
   // Los extremos de las 24 costillas (lo pidió la revisión del paso C1: el volumen apenas los toca): nubes de 22 680 puntos
   // alrededor de las uniones esternocostales, las condrocostales, las puntas y los extremos posteriores, hasta 0,05 mm de
-  // los bordes. GPU real y SwiftShader: 19 460 interiores (hueso 3658, cartílago 1936), acuerdo 1 de tejido y de cara,
-  // |Δifd| ≤ 0,014 mm y, en 2263 puntos de la banda del eco de la cortical o del pericondrio, |n_GPU·n_TS| ≥ 0,9999997
+  // los bordes. GPU real y SwiftShader, con la pared por región (decisión 17): 19 613 interiores (hueso 3450, cartílago
+  // 1880), acuerdo 1 de tejido y de cara, |Δifd| ≤ 0,0004 mm y, en 2294 puntos de la banda del eco de la cortical o del
+  // pericondrio, |n_GPU·n_TS| ≥ 0,9999997
   const ends = await page.evaluate(() => window.__lusTest!.ribEnds());
   const etag = JSON.stringify(ends);
   expect(ends.interiorPoints, etag).toBeGreaterThan(15_000);
@@ -60,26 +63,32 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(ends.normalPoints, etag).toBeGreaterThan(1000);
   expect(ends.normalMin, etag).toBeGreaterThan(0.9999);
   // Cáscara: los puntos a 0,01–0,6 mm de una cara donde se dibuja su eco, según la CPU o la GPU. En el tórax la cara
-  // interna de la pared (Peritoneum en la tabla de VExUS) es la pleura parietal. Con la parrilla del paso C1, 21 501 puntos
-  // (2702 de la cortical costal) y acuerdo 1
+  // interna de la pared (Peritoneum en la tabla de VExUS) es la pleura parietal. Con la parrilla del paso C1 y la pared por
+  // región del C2, 17 626 puntos (2726 de la cortical costal) y acuerdo 1 con GPU real (con SwiftShader, 0,99994: un empate
+  // en el umbral de prioridad de la cortical, a 1,300 mm)
   const shell = await page.evaluate(() => window.__lusTest!.interfaceShell());
   const stag = JSON.stringify(shell);
   expect(shell.points, stag).toBeGreaterThan(5000);
-  for (const face of ['SkinFat', 'Scarpa', 'DeepFascia', 'ObliquePlane', 'TransversusPlane', 'Transversalis', 'Peritoneum', 'RibCortex'])
+  // (lus-sim, decisión 17: en la pared torácica el primer plano intermuscular se funde con la fascia profunda; el oblicuo es
+  // del abdomen, fuera de los planos de partida)
+  for (const face of ['SkinFat', 'Scarpa', 'DeepFascia', 'TransversusPlane', 'Transversalis', 'Peritoneum', 'RibCortex'])
     expect(shell.byInterface[face] ?? 0, `${face}: ${stag}`).toBeGreaterThan(50);
+  expect(shell.byInterface.ObliquePlane ?? 0, stag).toBe(0);
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
   expect(shell.distanceMaxErr, stag).toBeLessThan(0.02);
   // La pleura parietal de A0 frente a su gemelo, línea a línea: la registran las dos en las mismas líneas y en el mismo
   // sitio. GPU real: 0 mm (la bisección cae en múltiplos exactos de su paso final). SwiftShader: una decisión de la
   // bisección en una línea de 576 cambia con el redondeo y mueve D un paso final (0,0117 mm a 12 cm, 1/60 del eco de
-  // 0,7 mm), y dz 0,032 mm: con σ del borde blando ≥ σ_taper = 4 mm, la fracción de aire cambia < 0,5 %
+  // 0,7 mm), y dz hasta 0,061 mm: con σ del borde blando ≥ σ_taper = 4 mm, la fracción de aire cambia < 1 %
   const pleura = await page.evaluate(() => window.__lusTest!.pleuraEquivalence());
   const ptag = JSON.stringify(pleura);
   expect(pleura.lines, ptag).toBe(3 * 192);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.95 * pleura.lines);
   expect(pleura.registrationMismatch, ptag).toBe(0);
   expect(pleura.depthMaxErrMm, ptag).toBeLessThanOrEqual(pleura.quantumMm + 1e-5);
-  expect(pleura.edgeMaxErrMm, ptag).toBeLessThan(0.05);
+  // (lus-sim, decisión 17: con la pared torácica por región ese paso final cae, en la línea 150 del punto BLUE superior,
+  // donde el borde del pulmón sube 5 mm por mm: dz 0,061 mm con SwiftShader, 0,0006 con la GPU real; antes, 0,032)
+  expect(pleura.edgeMaxErrMm, ptag).toBeLessThan(0.1);
   // Las caras de la pared y de las costillas: la misma cara, normal y norma del gradiente en la GPU que en TS
   for (const startPoint of ['blueUpper', 'plaps'] as const) {
     const n = await page.evaluate((id) => window.__lusTest!.wallNormals({ startPoint: id }), startPoint);
@@ -164,22 +173,24 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
   // a lo largo de cada haz, con el perfil axial promediado lateralmente como la métrica A1 del banco de referencia.
   // Desde la decisión 15 la rama del pulmón de la pasada B dibuja la línea pleural y sus réplicas centradas en su cruce
   // (`pleuraSeriesEcho`), en la mirada 0 y en la dirigida. Con SwiftShader y con GPU real (Apple M4), en los tres puntos de
-  // partida y en apnea espiratoria (26-09-2026; los extremos de varias pasadas, que cambian con el ruido del receptor; con
-  // la parrilla del paso C1, decisión 16, las mismas cifras, en 13, 9 y 8 grupos: los espacios intercostales ya no son
-  // estrechos, y las líneas del borde caudal del PLAPS que caen bajo el borde del pulmón, sin pulmón detrás, no cuentan):
-  //  - frente al cruce de la pleura D del gemelo de A0: los órdenes 1–4, a −0,11…+0,07 mm de k·D (antes, con el perfil de
-  //    la cara de un lado, −0,43…−0,26: toda la serie 0,35 mm por encima de su cruce), y la separación entre órdenes a
-  //    ≤ 0,08 mm de D;
-  //  - frente a la línea pleural mostrada (F-T01): los órdenes 2–4 a −0,20…+0,05 mm (antes el 2 a +0,27…+0,39, el 3 a
-  //    +0,56…+0,76 y el 4 a +0,87…+1,13: 0,35·(k − 1), fuera de la meta en los órdenes 3 y 4). 1 píxel = 0,268 mm;
+  // partida y en apnea espiratoria (27-09-2026, con la parrilla del paso C1, decisión 16, y la pared torácica por región del
+  // C2, decisión 17: la pleura a 17,3, 14,3 y 16,9 mm, en 12, 12 y 10 grupos; las líneas del borde caudal del PLAPS que caen
+  // bajo el borde del pulmón, sin pulmón detrás, no cuentan):
+  //  - frente al cruce de la pleura D del gemelo de A0: los órdenes 1–4, a −0,14…+0,11 mm de k·D (antes de la decisión 15,
+  //    con el perfil de la cara de un lado, −0,43…−0,26: toda la serie 0,35 mm por encima de su cruce), y la separación
+  //    entre órdenes a ≤ 0,11 mm de D;
+  //  - frente a la línea pleural mostrada (F-T01): los órdenes 2–4 a −0,30…+0,11 mm (antes de la decisión 15, el 2 a
+  //    +0,27…+0,39, el 3 a +0,56…+0,76 y el 4 a +0,87…+1,13). 1 píxel = 0,268 mm;
   //  - con la composición espacial (la envolvente de K con el anillo lleno; el preajuste pulmonar la apaga, pero la consola
-  //    la enciende): a −0,07…+0,07 mm de k·D y F-T01 a −0,28…0,00 mm. El peso de las miradas dirigidas en K cambia en D
+  //    la enciende): a −0,13…+0,11 mm de k·D y F-T01 a −0,41…+0,02 mm. El peso de las miradas dirigidas en K cambia en D
   //    (`curtainSteerWeight`: 1 encima, 1 − fAir debajo), sobre el pico de la línea pleural.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   /** Cuántos errores caben en la tolerancia, y cuántos se exigen: todos, o el 90 % en el orden 4. */
   const within = (errs: number[], tol: number): number => errs.filter((e) => Math.abs(e) <= tol).length;
   const needed = (o: { k: number; errMm: number[] }, n = o.errMm.length): number => (o.k <= 3 ? n : Math.floor(0.9 * n));
+  /** Grupos en que se exige ver el orden: casi todos; el 4.º, a 9–11 dB de prominencia con la pleura a 14–17 mm, en 7 de 10. */
+  const seenIn = (o: { k: number; groups: number }): number => Math.floor((o.k <= 3 ? 0.9 : 0.6) * o.groups);
   for (const compound of [false, true])
     for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
       const a = await page.evaluate(
@@ -188,15 +199,15 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
       );
       const tag = `${startPoint}${compound ? ' (compuesto)' : ''}: ${JSON.stringify(a)}`;
       expect(a.groups, tag).toBeGreaterThanOrEqual(6);
-      // la pleura a 25–29 mm (la pared del abdomen de VExUS, `thorax-wall-abdominal-habitus`): caben 4 órdenes
-      expect(
-        a.orders.map((o) => o.k),
-        tag,
-      ).toEqual([1, 2, 3, 4]);
-      for (const o of a.orders) {
-        // cada orden se ve en casi todos los grupos: la línea A de orden 4, a ~10 cm, es la más débil (16 dB de
-        // prominencia en el PLAPS) y en unas pasadas se pierde en 1 de sus 6 grupos, con GPU real y con SwiftShader
-        expect(o.peaks, tag).toBeGreaterThanOrEqual(Math.floor(0.9 * o.groups));
+      // la pleura a 13–18 mm (la pared torácica por región, decisión 17; antes, la del abdomen de VExUS, a 25–29 mm, con 4
+      // órdenes): caben 6–7 órdenes en los 12 cm del preajuste. Se exigen los 1–4; los de más allá, a 8–10 dB de
+      // prominencia (el 5.º en 4 de 12 grupos del punto BLUE superior, el 6.º en 2), se pierden en el ruido del receptor
+      expect(a.orders.map((o) => o.k).slice(0, 4), tag).toEqual([1, 2, 3, 4]);
+      for (const o of a.orders.filter((x) => x.k <= 4)) {
+        // cada orden se ve en casi todos los grupos; la línea A de orden 4 es la más débil: con la pared heredada, a ~10 cm y
+        // 16 dB de prominencia en el PLAPS, se perdía en 1 de sus 6 grupos; con la pared torácica por región (decisión 17), a
+        // 6–7 cm y 9–11 dB, en 2–3 de 10–12 (GPU real y SwiftShader, 27-09-2026)
+        expect(o.peaks, tag).toBeGreaterThanOrEqual(seenIn(o));
         // la serie, la línea pleural incluida, en k·D: un tercio de la FWHM axial del pulso (el perfil de la cara de un
         // lado la dejaba 0,35 mm por encima y fallaba aquí). En todos los grupos, salvo en el orden 4, la línea A más débil
         // (16–22 dB), donde el detector puede tomar otro máximo de su ventana en un grupo (una vez, −1,08 mm en 1 de 6
@@ -207,7 +218,7 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
       }
       // F-T01 frente a la línea pleural mostrada, en los órdenes 1–4 (el 1 es la línea pleural: r_1 − 1·r_1 = 0)
       const tol = Math.max(0.5, a.pixelMm);
-      for (const o of a.orders.filter((x) => x.k >= 2)) {
+      for (const o of a.orders.filter((x) => x.k >= 2 && x.k <= 4)) {
         const worst = Math.max(Math.abs(o.minShownErrMm), Math.abs(o.maxShownErrMm));
         expect(
           within(o.shownErrMm, tol),
@@ -229,28 +240,27 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   // cruza hueso), cuyo eco pleural es la referencia. Lo que se ve se juzga en la pantalla, con el nivel del equipo del
   // cuadro (`displayLevelDb`: ≥ 0 satura, ≤ −70 dB es negro). Medido con GPU real (Apple M4) y con SwiftShader, en apnea
   // espiratoria, con la parrilla del paso C1 (decisión 16: costillas de 14 mm con la pleura 5 mm bajo su cresta, espacios de
-  // 15–20 mm), relativo al eco pleural intercostal:
-  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −34,7…−39,2 dB (F-T08 pide −20; la sombra
-  //    parcial del borde del BLUE inferior, −58);
-  //  - con la pleura 5 mm bajo la cresta (antes 7–8), el cono de la pasada A en la pleura es estrecho y la sombra completa
-  //    empieza a 4–5 líneas del borde de la sombra; ahí la pleura aún recibe el eco pleural intercostal vecino (+42 dB) por
-  //    la pasada D: −30, −35 y −39 dB a 4, 5 y 6 líneas del borde. No es el lóbulo principal de la PSF lateral (su gemelo,
-  //    `lateralKernel` sin pedestal, cae bajo −35 dB desde 3 líneas a 22–31 mm con el foco a 25) sino sobre todo el pedestal
-  //    de lóbulos laterales (`no-sidelobes`): con él, la pleura encendida desde el borde deja −30…−33 dB por energía a 4–6
-  //    líneas (−40…−61 si se sumara coherente). El 6 de `PSF_REACH_LINES` es la medida, no una derivación. Desde 7 líneas
-  //    (≈ 3,7 mm a la pleura), el núcleo de la sombra;
-  //  - en el núcleo, la ventana queda ≥ 40,6 dB más oscura que la de las líneas libres;
-  //  - pero la línea pleural sigue a −40,8…−41,7 dB, en pantalla a −23,4…−25,6 dB (gris sobre negro; antes de la parrilla
-  //    −29…−50: las costillas de VExUS estaban 7–8 mm sobre la pleura y los espacios eran de 5–12 mm, con menos pleura
-  //    brillante al alcance del pedestal), y la línea A de orden 2, a −50,5…−52,8 dB en pantalla, se ve tenue en 23–33 de
-  //    41–51 líneas: `rib-shadow-pleura-residual`. La pleura recibe la transmisión de la apertura, una media de amplitudes
-  //    en la que pesan las tomas del borde redondo de la costilla (sin la fase que añadiría el hueso), y el pedestal de
-  //    lóbulos laterales de la pasada D trae la pleura intercostal; el preajuste deja la línea pleural 15–18 dB por encima
-  //    del blanco.
+  // 15–20 mm) y la pared torácica por región del paso C2 (decisión 17: la pleura a 14–17 mm), relativo al eco pleural
+  // intercostal (27-09-2026):
+  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −33,7…−38,5 dB (F-T08 pide −20; la sombra
+  //    parcial del borde del BLUE inferior, −23,1);
+  //  - con la pleura 5 mm bajo la cresta, el cono de la pasada A en la pleura es estrecho y la sombra completa empieza a pocas
+  //    líneas del borde de la sombra; ahí la pleura aún recibe el eco pleural intercostal vecino por la pasada D. No es el
+  //    lóbulo principal de la PSF lateral (su gemelo, `lateralKernel` sin pedestal, cae bajo −35 dB desde 3 líneas) sino
+  //    sobre todo el pedestal de lóbulos laterales (`no-sidelobes`). Con la pared heredada (la pleura a 25 mm, costillas
+  //    más hondas y sombras de menos líneas) llegaba a 6 líneas; con la pared por región, a 8–10 (a 14–17 mm la costilla
+  //    ocupa más líneas y el pedestal alcanza más): el 10 de `PSF_REACH_LINES` es la medida, no una derivación. Desde 11
+  //    líneas, el núcleo de la sombra (24–32 líneas por punto de partida);
+  //  - en el núcleo, la ventana queda ≥ 40,5 dB más oscura que la de las líneas libres;
+  //  - pero la línea pleural sigue a −41,2…−46,7 dB, en pantalla a −22,1…−30,4 dB (gris sobre negro), y la línea A de
+  //    orden 2, a −53,1…−56,1 dB en pantalla, se ve tenue en 14–21 de 24–32 líneas: `rib-shadow-pleura-residual`. La
+  //    pleura recibe la transmisión de la apertura, una media de amplitudes en la que pesan las tomas del borde redondo de
+  //    la costilla (sin la fase que añadiría el hueso), y el pedestal de lóbulos laterales de la pasada D trae la pleura
+  //    intercostal; el preajuste deja la línea pleural 15–18 dB por encima del blanco.
   test.setTimeout(300_000);
   const errors = await openBench(page);
   /** Líneas desde el borde de la sombra hasta las que el eco pleural vecino (por el pedestal de la pasada D) supera −40 dB: medido. */
-  const PSF_REACH_LINES = 6;
+  const PSF_REACH_LINES = 10;
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
     const s = await page.evaluate((id) => window.__lusTest!.ribShadow({ startPoint: id, respiration: 'apnea-expiratory' }), startPoint);
     const ref = s.intercostalPleuraDb;
@@ -295,14 +305,14 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
     // con su tamaño medido (±2,5 dB): cuando se corrija, esta prueba fallará aquí; entonces se exige la meta (nada sobre el
     // negro de la pantalla en el núcleo de la sombra) y se borra la limitación
     const top = Math.max(...core.map((x) => x.pleuraDb - ref));
-    expect(top, tag).toBeGreaterThan(-44.2);
-    expect(top, tag).toBeLessThan(-38.3);
+    expect(top, tag).toBeGreaterThan(-49.2);
+    expect(top, tag).toBeLessThan(-38.7);
     const topShown = Math.max(...core.map((x) => x.pleuraDisplayDb));
-    expect(topShown, tag).toBeGreaterThan(-28.1);
-    expect(topShown, tag).toBeLessThan(-20.9);
+    expect(topShown, tag).toBeGreaterThan(-32.9);
+    expect(topShown, tag).toBeLessThan(-19.6);
     const a2Shown = Math.max(...core.map((x) => x.a2DisplayDb));
-    expect(a2Shown, tag).toBeGreaterThan(-55.3);
-    expect(a2Shown, tag).toBeLessThan(-48);
+    expect(a2Shown, tag).toBeGreaterThan(-58.6);
+    expect(a2Shown, tag).toBeLessThan(-50.6);
     expect(
       core.every((x) => x.pleuraDisplayDb <= -s.dynamicRangeDb && x.a2DisplayDb <= -s.dynamicRangeDb),
       `F-T08: nada sobre el negro de la pantalla en el núcleo de la sombra (${tag})`,

@@ -59,7 +59,19 @@ export interface PatientState {
   habitus: {
     subcutaneousFatMm: number;
     muscleMm: number;
+    /**
+     * Hábito del tórax (lus-sim, decisión 17: la pared torácica por región, `anatomy/organs/chestWall.ts`): complexión y
+     * sexo. Sin él, el avatar de la base (varón de complexión media); `subcutaneousFatMm` y `muscleMm` quedan como la pared
+     * del abdomen, bajo el reborde costal.
+     */
+    chest?: ChestHabitus;
   };
+}
+
+/** Complexión y sexo del tórax (anatomy.md §2.4–2.6): el avatar, la variante delgada (IMC ≈ 18,5) y la obesa (≈ 32–35). */
+export interface ChestHabitus {
+  build: 'average' | 'thin' | 'obese';
+  sex: 'male' | 'female';
 }
 
 export function clonePatient(p: PatientState): PatientState {
@@ -69,8 +81,8 @@ export function clonePatient(p: PatientState): PatientState {
 /**
  * Paciente por omisión: el núcleo del adulto sano euvolémico de VExUS (`NORMAL_ADULT` de
  * vexus-sim@52354d5:src/cases/index.ts), con sus mismos valores [EXTRAPOLACIÓN PROPIA de VExUS]. El
- * hábito es el del abdomen de VExUS: la pared del tórax con las dimensiones de la base llega en el paso C
- * (`thorax-wall-abdominal-habitus`). Un objeto nuevo en cada llamada.
+ * hábito (grasa y músculo) es el del abdomen de VExUS, la pared bajo el reborde costal; la del tórax es la del avatar de la
+ * base, por región (lus-sim, decisión 17: `habitus.chest` sin fijar). Un objeto nuevo en cada llamada.
  */
 export function defaultPatient(): PatientState {
   return {

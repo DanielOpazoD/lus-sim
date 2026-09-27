@@ -2,7 +2,7 @@ import { defineParameters } from '../../core/evidence';
 import type { Vec3 } from '../../core/vec3';
 import { torsoDepth, torsoDepthGradient, torsoNormal, torsoSkinPoint, type Spine, type Torso } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
-import { WALL, wallArc } from './wall';
+import { WALL, wallArc, wallTotalMm } from './wall';
 
 /**
  * Parrilla costal del adulto promedio (lus-sim, decisión 16) como módulo de órgano (decisión 46 de VExUS): las 12
@@ -387,6 +387,16 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
     sources: ['gray-anatomia-1918'],
     note: 'Cartílago de las puntas de la 11.ª y la 12.ª («pointed extremities», «The Costal Cartilages»), en arco de piel',
   },
+  femaleIcsNarrowingMm: {
+    value: 1.5,
+    unit: 'mm',
+    range: [1, 2],
+    evidence: 'documentado',
+    sources: ['kimys-espaciosic-2014'],
+    note:
+      'Mujer: espacios intercostales 1–2 mm más estrechos (Kim y cols., anatomy.md §2.6); se restan en las estaciones de medida ' +
+      '(la variante de la decisión 17). La sección costal 20–35 % menor y la caja más pequeña no se modelan',
+  },
   cartilageCalcifiedFraction: {
     value: 0,
     unit: 'fracción del volumen',
@@ -461,13 +471,21 @@ export interface RibCage {
 export interface RibCageOptions {
   /** Fracción calcificada del volumen del cartílago (`RIBCAGE.cartilageCalcifiedFraction`). */
   cartilageCalcifiedFraction?: number;
+  /**
+   * Cambio (mm) de los anchos de los espacios intercostales en las estaciones de medida (lus-sim, decisión 17): la mujer,
+   * −`femaleIcsNarrowingMm`.
+   */
+  icsDeltaMm?: number;
 }
 
 // --- Geometría de la cáscara costal (TS; solo construcción y pruebas) ---------------------------------------------
 
-/** Grosor total de la pared (mm, métrica radial): piel + grasa + músculo (con la preperitoneal). */
-function wallMm(t: Torso): number {
-  return t.skinMm + t.fatMm + t.muscleMm;
+/**
+ * Grosor total de la pared (mm, métrica radial) bajo la piel del ángulo elíptico τ, a la altura z = 0 de la construcción
+ * (lus-sim, decisión 17: la pared torácica por región; en z = 0 es la torácica baja en todo el tronco).
+ */
+function wallAtTau(tau: number, t: Torso): number {
+  return wallTotalMm(radialPoint(tau, 0, t), t);
 }
 
 /** Punto a la profundidad radial `depth` bajo la piel en el ángulo elíptico τ (0 delante, + hacia +x). */
@@ -478,13 +496,16 @@ function radialPoint(tau: number, depth: number, t: Torso): Vec3 {
   return [sx * k, sy * k, 0];
 }
 
-/** τ ∈ [lo, hi] donde la cáscara a `depth` tiene |x| = x (bisección; |x| es monótona en cada cuadrante). */
-function tauOfX(x: number, depth: number, t: Torso, posterior: boolean): number {
+/**
+ * τ ∈ [lo, hi] donde la cáscara a la profundidad `depth(τ)` tiene |x| = x (bisección; |x| es monótona en cada cuadrante
+ * mientras la pared cambia despacio con τ).
+ */
+function tauOfX(x: number, depth: (tau: number) => number, t: Torso, posterior: boolean): number {
   let lo = posterior ? Math.PI / 2 : 0;
   let hi = posterior ? Math.PI : Math.PI / 2;
   for (let i = 0; i < 60; i++) {
     const mid = 0.5 * (lo + hi);
-    const grows = Math.abs(radialPoint(mid, depth, t)[0]) < x;
+    const grows = Math.abs(radialPoint(mid, depth(mid), t)[0]) < x;
     if (grows === !posterior) lo = mid;
     else hi = mid;
   }
@@ -512,39 +533,42 @@ function tauOfArc(u: number, t: Torso): number {
  * Punto de la cáscara a `depth` bajo la línea de piel φ, a lo largo de la normal de la piel (lo que corta la sonda
  * apoyada en esa línea, marcador craneal): las medidas ecográficas de la base son las de una sonda en la línea.
  */
-export function probeHitPoint(phi: number, depth: number, t: Torso): Vec3 {
-  const s = torsoSkinPoint(phi, 0, t);
+export function probeHitPoint(phi: number, depth: number, t: Torso, z = 0): Vec3 {
+  const s = torsoSkinPoint(phi, z, t);
   const n = torsoNormal(s, t);
   let lo = 0;
   let hi = 4 * depth + 20;
   for (let i = 0; i < 60; i++) {
     const mid = 0.5 * (lo + hi);
-    const p: Vec3 = [s[0] - n[0] * mid, s[1] - n[1] * mid, 0];
+    const p: Vec3 = [s[0] - n[0] * mid, s[1] - n[1] * mid, z];
     if (-torsoDepth(p, t) < depth) lo = mid;
     else hi = mid;
   }
   const r = 0.5 * (lo + hi);
-  return [s[0] - n[0] * r, s[1] - n[1] * r, 0];
+  return [s[0] - n[0] * r, s[1] - n[1] * r, z];
 }
 
 /**
  * Punto de la línea media de las costillas bajo la línea de piel φ, por la normal de la piel: a `offset` mm de la pleura por
  * la normal (la métrica de la parrilla, `ribCenterDepth`), en dos pasadas (la norma del gradiente cambia poco en 1 mm).
  */
-function ribLineHit(phi: number, t: Torso, offset: number): Vec3 {
-  let hit = probeHitPoint(phi, wallMm(t) - offset, t);
-  for (let i = 0; i < 2; i++) hit = probeHitPoint(phi, wallMm(t) - ribMetric(hit, t) * offset, t);
+function ribLineHit(phi: number, t: Torso, offset: number, z = 0): Vec3 {
+  let hit = probeHitPoint(phi, wallTotalMm(torsoSkinPoint(phi, z, t), t) - offset, t, z);
+  for (let i = 0; i < 3; i++) hit = probeHitPoint(phi, wallTotalMm(hit, t) - ribMetric(hit, t) * offset, t, z);
   return hit;
 }
 
-/** |u| (mm de piel) donde la sonda apoyada en la línea φ, marcador craneal, corta la línea media de las costillas. */
-export function ribLineArc(phi: number, t: Torso, cage: RibCage): number {
-  return Math.abs(wallArc(ribLineHit(phi, t, cage.pleuraComplex + cage.halfThickness), t));
+/**
+ * |u| (mm de piel) donde la sonda apoyada en la línea φ, marcador craneal, corta la línea media de las costillas a la
+ * altura z (lus-sim, decisión 17: la pared cambia con la altura, y con ella la profundidad de la parrilla).
+ */
+export function ribLineArc(phi: number, t: Torso, cage: RibCage, z = 0): number {
+  return Math.abs(wallArc(ribLineHit(phi, t, cage.pleuraComplex + cage.halfThickness, z), t));
 }
 
-/** Punto de esa línea media bajo la línea φ (z = 0). */
-export function ribLinePoint(phi: number, t: Torso, cage: RibCage): Vec3 {
-  return ribLineHit(phi, t, cage.pleuraComplex + cage.halfThickness);
+/** Punto de esa línea media bajo la línea φ, a la altura z. */
+export function ribLinePoint(phi: number, t: Torso, cage: RibCage, z = 0): Vec3 {
+  return ribLineHit(phi, t, cage.pleuraComplex + cage.halfThickness, z);
 }
 
 /** Interpolante cúbico monótono (Fritsch–Carlson) por los puntos (x creciente); constante fuera. */
@@ -596,7 +620,7 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
   const P = RIBCAGE.params;
   const hw = 0.5 * P.ribHeightMm.value;
   const ht = 0.5 * (P.crestToPleuraMm.value - P.pleuraComplexMm.value);
-  const cd = wallMm(t) - P.pleuraComplexMm.value - ht;
+  const cd = (tau: number) => wallAtTau(tau, t) - P.pleuraComplexMm.value - ht;
   const seg = P.thoracicSegmentMm.value;
   const rib = 2 * hw;
 
@@ -604,7 +628,10 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
   // de las costillas (la misma cuenta que `ribLineArc`, antes de tener la parrilla)
   const lineU = (phi: number) => Math.abs(wallArc(ribLineHit(phi, t, P.pleuraComplexMm.value + ht), t));
   const xU = (x: number, posterior = false) => arcOfTau(tauOfX(x, cd, t, posterior), t);
-  const lineY = (u: number) => radialPoint(tauOfArc(u, t), cd, t)[1];
+  const lineY = (u: number) => {
+    const tau = tauOfArc(u, t);
+    return radialPoint(tau, cd(tau), t)[1];
+  };
   // |u| bajo la línea de piel a x mm de la línea media (anatomía de superficie, como la medioclavicular)
   const skinU = (x: number) => lineU(Math.PI - Math.acos(x / t.a));
   // x de la línea de piel de la unión condrocostal n-ésima (1–8)
@@ -628,17 +655,21 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
 
   // perfiles de los anchos de los espacios intercostales W_k(|u|), k = 1..11 (entre la costilla k y la k + 1)
   const tip = (n: number) => xU(P.marginTip8XMm.value + (n - 8) * P.marginTipStepMm.value);
+  // lus-sim (decisión 17): la variante de mujer estrecha los espacios de las estaciones (no los de junto a la columna, que
+  // da la vértebra, ni las puntas del reborde, que se cierran)
+  const dI = opts.icsDeltaMm ?? 0;
   const psW = [
     0,
     0,
-    P.parasternalIcs2Mm.value,
-    P.parasternalIcs3Mm.value,
-    P.parasternalIcs4Mm.value,
-    P.parasternalIcs5Mm.value,
-    P.parasternalIcs6Mm.value,
+    P.parasternalIcs2Mm.value + dI,
+    P.parasternalIcs3Mm.value + dI,
+    P.parasternalIcs4Mm.value + dI,
+    P.parasternalIcs5Mm.value + dI,
+    P.parasternalIcs6Mm.value + dI,
   ];
   const mclW = (k: number) =>
-    k === 1
+    dI +
+    (k === 1
       ? P.midclavicularIcs1Mm.value
       : k === 2
         ? P.midclavicularIcs2Mm.value
@@ -648,9 +679,10 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
             ? P.midclavicularIcs5Mm.value
             : k <= 7
               ? P.midclavicularIcs6to7Mm.value
-              : P.midclavicularIcs8Mm.value;
-  const lamW = (k: number) => (k <= 4 ? P.midaxillaryIcs1to4Mm.value : k <= 6 ? P.midaxillaryIcs5to6Mm.value : P.lateralLowIcsMm.value);
-  const lapW = (k: number) => (k <= 6 ? P.posteriorAxillaryIcs1to6Mm.value : P.posteriorAxillaryIcs7to11Mm.value);
+              : P.midclavicularIcs8Mm.value);
+  const lamW = (k: number) =>
+    dI + (k <= 4 ? P.midaxillaryIcs1to4Mm.value : k <= 6 ? P.midaxillaryIcs5to6Mm.value : P.lateralLowIcsMm.value);
+  const lapW = (k: number) => dI + (k <= 6 ? P.posteriorAxillaryIcs1to6Mm.value : P.posteriorAxillaryIcs7to11Mm.value);
   const postW = seg - rib;
   // la 5.ª costilla en la paraesternal: la 7.ª en la unión xifoesternal (z = 0) más dos costillas y los espacios 5.º y 6.º
   const z5ps = 2 * rib + psW[5] + psW[6];
@@ -664,7 +696,7 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
     if (k === 7 || k === 8) pts.push([tip(k + 1), 0]);
     if (k <= 8) pts.push([st.midclavicular, mclW(k)]);
     if (k === 9) pts.push([tip(10), 0]);
-    if (k >= 7 && k <= 9) pts.push([st.anteriorAxillary, P.lateralLowIcsMm.value]);
+    if (k >= 7 && k <= 9) pts.push([st.anteriorAxillary, P.lateralLowIcsMm.value + dI]);
     if (k <= 10) pts.push([st.midaxillary, lamW(k)]);
     pts.push([st.posteriorAxillary, lapW(k)], [st.posterior, postW]);
     pts.sort((a, b) => a[0] - b[0]);
@@ -775,14 +807,17 @@ export function ribMetric(m: Vec3, t: Torso): number {
   return Math.hypot(g[0], g[1]);
 }
 
-/** Distancia por la normal (mm) de la muestra a la profundidad radial d a la cara interna de la pared (la pleura parietal). */
-export function pleuraNormalDepth(m: Vec3, d: number, t: Torso): number {
-  return (wallMm(t) - d) / ribMetric(m, t);
+/**
+ * Distancia por la normal (mm) de la muestra a la profundidad radial d a la cara interna de la pared (la pleura parietal);
+ * `wall`, el grosor de la pared en la muestra (`wallTotalMm`; lus-sim, decisión 17: por región).
+ */
+export function pleuraNormalDepth(m: Vec3, d: number, t: Torso, wall = wallTotalMm(m, t)): number {
+  return (wall - d) / ribMetric(m, t);
 }
 
 /** Profundidad radial (mm bajo la piel) de la línea media de las costillas en el punto: su cara interna, a `pleuraComplex` de la pleura. */
 export function ribCenterDepth(m: Vec3, t: Torso, cage: RibCage): number {
-  return wallMm(t) - ribMetric(m, t) * (cage.pleuraComplex + cage.halfThickness);
+  return wallTotalMm(m, t) - ribMetric(m, t) * (cage.pleuraComplex + cage.halfThickness);
 }
 
 /** mix de GLSL: a·(1 − f) + b·f. */
@@ -852,10 +887,10 @@ export interface RibScan {
  * pared (`WALL.ribSearchMarginMm`) de la pleura, el esternón y las costillas del lado de la muestra (u, su arco con signo),
  * en orden. Gemelo de `ribScan` en GLSL.
  */
-export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage): RibScan {
+export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage, wall = wallTotalMm(m, t)): RibScan {
   const out: RibScan = { inside: -1, inD: 1e3, cartilage: false, ribD: 1e3, ribI: 0, ribAny: 1e3 };
-  if (d >= wallMm(t)) return out;
-  const nP = pleuraNormalDepth(m, d, t);
+  if (d >= wall) return out;
+  const nP = pleuraNormalDepth(m, d, t, wall);
   if (nP < cage.pleuraComplex + cage.sternum.thickness + WALL.ribSearchMarginMm) {
     const sd = sternumSd(m, nP, cage);
     if (sd.d < 0) return { ...out, inside: MAX_RIBS, inD: sd.d, cartilage: sd.cartilage };
@@ -961,8 +996,8 @@ float ribMetric(vec3 m) {
   float rho = length(m.xy / uTorso.xy);
   return length(m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy));
 }
-float pleuraNormalDepth(vec3 m, float d) { return (uWall.x + uWall.y + uWall.z - d) / ribMetric(m); }
-float ribCenterDepth(vec3 m) { return uWall.x + uWall.y + uWall.z - ribMetric(m) * (uRibParams.y + uRibParams.x); }
+float pleuraNormalDepth(vec3 m, float d, float wall) { return (wall - d) / ribMetric(m); }
+float ribCenterDepth(vec3 m) { return wallTotalMm(m) - ribMetric(m) * (uRibParams.y + uRibParams.x); }
 vec4 ribZGroup(int s, int g, float au) {
   float tc = min(au / RIB_DU, float(RIB_COLS - 1) - 1e-4);
   int k = int(tc);
@@ -1002,10 +1037,10 @@ float sternumSd(vec3 m, float nP, out bool cartilage) {
 }
 // la parrilla en classifyWall: devuelve la costilla (0–23) o el esternón (MAX_RIBS) que contiene la muestra, o −1; la
 // distancia dentro, si es cartílago, y el hueso más cercano (ribD, ribI) y lo más cercano (ribAny). Gemelo: ribScan
-int ribScan(vec3 m, float d, float u, out float inD, out bool cartilage, out float ribD, out int ribI, out float ribAny) {
+int ribScan(vec3 m, float d, float u, float wall, out float inD, out bool cartilage, out float ribD, out int ribI, out float ribAny) {
   inD = 1e3; cartilage = false; ribD = 1e3; ribI = 0; ribAny = 1e3;
-  if (d >= uWall.x + uWall.y + uWall.z) return -1;
-  float nP = pleuraNormalDepth(m, d);
+  if (d >= wall) return -1;
+  float nP = pleuraNormalDepth(m, d, wall);
   if (nP < uRibParams.y + uSternum.w + RIB_SEARCH_MARGIN_MM) {
     bool xc;
     float sd = sternumSd(m, nP, xc);
@@ -1037,7 +1072,7 @@ int ribScan(vec3 m, float d, float u, out float inD, out bool cartilage, out flo
   return -1;
 }
 float ribSd(vec3 m, int k) {
-  float nP = pleuraNormalDepth(m, -torsoDepth(m));
+  float nP = pleuraNormalDepth(m, -torsoDepth(m), wallTotalMm(m));
   bool c;
   if (k == MAX_RIBS) return sternumSd(m, nP, c);
   float u = wallArc(m);
@@ -1048,7 +1083,8 @@ float ribSd(vec3 m, int k) {
 }
 int faceRib(vec3 m) {
   float inD; bool cart; float ribD; int ribI; float ribAny;
-  int ri = ribScan(m, -torsoDepth(m), wallArc(m), inD, cart, ribD, ribI, ribAny);
+  float u = wallArc(m);
+  int ri = ribScan(m, -torsoDepth(m), u, wallTotalAt(u, m.z), inD, cart, ribD, ribI, ribAny);
   return ri >= 0 ? ri : ribI;
 }
 vec3 ribTangent(vec3 p, int k) {
@@ -1067,7 +1103,7 @@ float ribCurvature(vec3 p, int k) {
   if (k == MAX_RIBS) return 0.0;
   float a = uRibParams.x;
   float b = uRibs[k].w;
-  float nP = pleuraNormalDepth(p, -torsoDepth(p));
+  float nP = pleuraNormalDepth(p, -torsoDepth(p), wallTotalMm(p));
   float qx = abs(nP - uRibParams.y - a) / a;
   float qz = abs(p.z - ribTableZ(k, abs(wallArc(p)))) / b;
   float l = length(vec2(qx, qz));

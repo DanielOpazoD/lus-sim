@@ -1,5 +1,6 @@
 import type { ProbeCompression } from '../compression';
 import { RespiratoryDeformation } from '../deformation';
+import { CHEST_WALL } from '../organs/chestWall';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
 import { MAX_RIBS, RIBS_PER_SIDE } from '../organs/ribcage';
 import type { AnatomyScene } from '../scene';
@@ -47,8 +48,20 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uWall',
     type: 'vec4',
-    doc: 'piel, grasa, músculo (con la grasa preperitoneal), grasa preperitoneal (mm)',
+    doc: 'pared del abdomen (bajo el reborde costal; decisión 17): piel, grasa, músculo (con la preperitoneal), preperitoneal (mm)',
     value: (s) => [s.torso.skinMm, s.torso.fatMm, s.torso.muscleMm, s.torso.preperitonealMm],
+  },
+  {
+    name: 'uChestWall',
+    type: 'vec4',
+    doc:
+      'pared torácica por región (decisión 17, organs/chestWall.ts; la tabla va en uSceneTex, CW_BASE): z de la pared alta y ' +
+      'de la baja, engrosamiento inspiratorio de la banda intercostal por mm de descenso, descenso de referencia (mm)',
+    value: (s) => {
+      const P = CHEST_WALL.params;
+      const ref = P.inspirationReferenceMm.value;
+      return [s.chestWall.zHigh, s.chestWall.zLow, P.intercostalInspirationMm.value / ref, ref];
+    },
   },
   {
     name: 'uDomeR',

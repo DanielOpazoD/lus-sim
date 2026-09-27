@@ -57,6 +57,12 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   A-T8, A-T9, A-T19 y la geometría de F-T08 pasan a cumplirse; A-T13 y los EIC visibles altos, medidos y pendientes;
   `src/validation/ribcage.test.ts`; la equivalencia TS ↔ GLSL en los extremos de las 24 costillas (`ribEnds`).
 - Limitaciones nuevas `thorax-cylindrical-cage`, `rib-section-uniform` y `lung-border-above-ribcage` (16).
+- Fase 1, paso C2: la pared torácica por región y por hábito (17): el estado ecográfico de la base por estación (16 mm en
+  EIC2-LMC, 12,8 en EIC5 LAA/LAM, 18 en la axila alta, 16 infraescapular) con sus capas (piel, grasa, pectoral, serrato o
+  dorsal, banda intercostal y complejo pleural), la banda intercostal que engruesa delante al inspirar y las variantes
+  delgada, obesa y mujer (`habitus.chest`). Módulo nuevo `src/anatomy/organs/chestWall.ts` (TS y GLSL; la tabla en la
+  textura de escena). A-T1–A-T5, A-T10 y A-T13 pasan a cumplirse; `src/validation/chestWall.test.ts`.
+- Limitación nueva `chest-wall-regional-approx` (17).
 
 ### Cambiado
 
@@ -81,12 +87,18 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   línea pleural aún a −40,8…−41,7 dB, `rib-shadow-pleura-residual`); el moteado de la e2e, en siete vistas paraesternales;
   las líneas A, solo con pulmón detrás de la pleura. El presupuesto del chunk principal sube a 195 kB (186,8 kB medidos).
 
+- Paso C2 (17): el foco del preajuste pulmonar sigue a la pleura (25 → 16 mm; el mínimo del equipo baja a 8); el contacto
+  de la sonda toma la pared de cada línea; la e2e exige los órdenes 1–4 de las líneas A de los 6–7 que caben y mide la sombra
+  costal con el núcleo a más de 10 líneas del borde; la equivalencia del volumen compara la distancia al borde donde es
+  continua. El presupuesto del chunk principal sube a 210 kB (203,4 medidos) y el del total a 215.
+
 ### Quitado
 
 - La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
 - La limitación `pleura-echo-offset`: las líneas A cumplen F-T01 (15).
 - Las limitaciones `ribs-5-10-only` y `no-spleen-no-left-ribs` (el bazo sigue en `abdomen-generic-tissue`): la parrilla
   costal del adulto promedio (16).
+- La limitación `thorax-wall-abdominal-habitus`: la pared torácica por región (17).
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

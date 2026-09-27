@@ -32,7 +32,8 @@ export interface EquipmentContext {
 export const EQUIPMENT_LIMITS = {
   depthMm: { min: 60, max: 240, step: 5 },
   gainDb: { min: -20, max: 20, step: 1 },
-  focusMm: { min: 20, max: 240 },
+  // lus-sim (decisión 17): el foco baja hasta la pleura de la pared torácica más delgada (10 mm en la variante delgada)
+  focusMm: { min: 8, max: 240 },
   dynamicRangeDb: { min: 40, max: 80 },
   persistence: { min: 0, max: 0.8 },
   tgcDb: { min: -15, max: 15 },
