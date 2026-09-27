@@ -16,6 +16,7 @@ import { TISSUES, Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { FRAME_PASSES, type PassId } from '../ultrasound/passGraph';
 import { pleuraCrossingLine, rayAttenuationDb } from '../ultrasound/transmission';
+import { pleuraCapMm } from '../ultrasound/pleura';
 import { type ApertureGeometry } from '../ultrasound/aperture';
 import { compareSteeredTransmission } from './steeredParity';
 import { compoundActive } from '../ultrasound/compound';
@@ -745,8 +746,8 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
     let bone = 0;
     let boneEnd = Number.NaN;
     let cartilage = false;
-    const step = 0.05;
-    for (let r = step; r < (cpu ? D : 0.5 * depth); r += step) {
+    const march = 0.05;
+    for (let r = march; r < (cpu ? D : 0.5 * depth); r += march) {
       const t = sim.anatomy.classifyWorld(pointOnLine(sim.frame, tr, theta, r), sim.sample).tissue;
       if (t === Tissue.Bone || t === Tissue.Cartilage) {
         if (Number.isNaN(ribTop)) {
@@ -754,7 +755,7 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
           cartilage = t === Tissue.Cartilage;
         }
         if (t === Tissue.Bone) {
-          bone += step;
+          bone += march;
           boneEnd = r;
         }
       }
@@ -768,7 +769,9 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
       sum += e * e;
       n++;
     }
-    const row = cpu ? Math.min(COARSE_DEPTH - 1, Math.max(0, Math.floor((D / depth) * COARSE_DEPTH) - 1)) : 0;
+    // la fila de la pasada A que usa la rama del pulmón para la pleura (`pleuraCapMm`: la más honda sin el pulmón)
+    const step = depth / COARSE_DEPTH;
+    const row = cpu ? Math.min(COARSE_DEPTH - 1, Math.floor(pleuraCapMm(D, step) / step)) : 0;
     out.push({
       line: l,
       coupling: contactCoupling(sim.contact, theta),
