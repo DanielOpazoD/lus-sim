@@ -101,8 +101,9 @@ salen de la base; lo que falta en ella:
 
 ## Física
 
-| Parámetro | Valor y rango | Por qué | Cómo calibrar |
-| --------- | ------------- | ------- | ------------- |
+| Parámetro                                    | Valor y rango      | Por qué                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Cómo calibrar                                                                                                                                                      |
+| -------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ultrasound.boneTransmission.attenuationMHz` | 3,26 MHz (2,5–3,5) | El hueso de la pasada A atenúa a la frecuencia del pulso que llega a la costilla (a 8–15 mm de la piel, sin el desplazamiento a bajas del campo profundo que da la frecuencia B efectiva de 2,5 MHz), con el desplazamiento que la propia costilla produce en un pulso gaussiano (f₀ − α′ℓσ_E²) tomado con el recorrido de la costilla del avatar (decisión 20): una costilla más fina o más gruesa se desplaza distinto, y la sección real no es hueso homogéneo. | Banco de referencia (decisión 5): contraste entre la línea pleural intercostal y la sombra costal en clips de convexa de 3,5 MHz con la línea pleural sin saturar. |
 
 ## Fisiopatología y clínica
 

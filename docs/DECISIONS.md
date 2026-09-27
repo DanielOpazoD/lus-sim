@@ -1082,3 +1082,101 @@ reflexión) o un parámetro propio. Para la excursión: la de VExUS (10 y 30 mm)
 altura en cada línea, no pasa del descenso del borde y se apaga arriba), `organs.test.ts` (la función GLSL letra a letra con
 sus constantes) y `pleura.test.ts`. Revisión adversarial de contexto limpio (de la primera versión, con la excursión de la
 base): ver la PR.
+
+## 20. La costilla apaga la pleura: lente de fase, lóbulos laterales por su apertura y el preajuste sin saturar (F-T08)
+
+**Fecha.** 2026-09-27.
+
+**Contexto.** Con la parrilla del paso C (decisiones 16–17), en los puntos BLUE y PLAPS la línea pleural seguía viéndose
+continua por debajo de las sombras costales (`rib-shadow-pleura-residual`): en una imagen real se interrumpe en cada sombra
+(el signo del murciélago) y la meta F-T08 pide que bajo la costilla no haya línea pleural ni líneas A. La PR #14 había medido
+tres causas: la transmisión de la pasada A promediaba amplitudes sin la fase del hueso, el pedestal de lóbulos laterales de la
+pasada D subía la pleura en la sombra y el preajuste dejaba la línea pleural 15–18 dB sobre el blanco. Medido de nuevo con la
+anatomía nueva (GPU real, Apple M4, y SwiftShader, en apnea espiratoria, en las líneas a más de 10 del borde de la sombra
+completa): la línea pleural a −40,6…−62,7 dB del eco intercostal y en la pantalla a −21,9…−43,4 dB (gris 57–137 sobre la
+sombra negra); la línea A de orden 2 visible en 86 de 125 líneas de la sombra completa; la línea pleural intercostal a
++12,4…+20,1 dB sobre el blanco. Lo que dejaba la pleura en el núcleo no era sobre todo el pedestal (≤ +8,6 dB) ni la media
+del cono (−2,6…+8 dB sobre un rayo), sino la transmisión de la propia costilla: un rayo por su centro perdía 53,5–63 dB de ida
+y vuelta; con la línea pleural cerca del blanco, eso sigue siendo gris. El pedestal sí traía la línea A (sin él, ≤ −77,5 dB en
+la pantalla).
+
+**Opciones.** (a) Retocar la imagen bajo las costillas o subir la atenuación del hueso hasta que no se vea: sin física detrás.
+(b) Separar la física legítima de la que no lo es y corregir la segunda. Legítima: la penumbra de la apertura (los rayos del
+cono que pasan junto a la costilla o por su borde redondo, que es fino) y el lóbulo principal del haz. No legítima: (1) sumar
+las tomas del cono en fase, como si la costilla fuera tejido blando; (2) que los lóbulos laterales de una línea bajo la
+costilla vean la pleura vecina con la transmisión de la vecina, que no tiene la costilla delante; (3) atenuar la costilla a la
+frecuencia B efectiva del campo profundo (2,5 MHz), cuando el pulso le llega a 1 cm de la piel casi sin desplazar; (4) cobrar
+sus caras como un solo cruce de 6 dB; (5) un preajuste que satura la línea pleural. Para el preajuste: bajar la ganancia (lo
+que hace el ecografista) o cambiar el rango dinámico (sin fuente).
+
+**Decisión.** (b), con la ganancia.
+
+- **La costilla es una lente** (`src/ultrasound/aperture.ts`, `APERTURE_GLSL` y `STEERED_APERTURE_GLSL`). Un rayo que cruza L mm
+  de hueso adelanta su fase k·L, k = 2π·f·(1/c_músculo − 1/c_hueso) (7,5 rad/mm a 3,5 MHz, IT'IS). Una placa solo retrasa el
+  frente; una sección redonda es más gruesa en el centro, así que las tomas del cono se suman con fases distintas. La media de
+  cada cono (`coherentConeMean`) es la raíz de la potencia de la suma coherente promediada en la banda gaussiana del pulso de
+  la pasada C (σ_E = 0,33 MHz): Σ_j Σ_m a_j·a_m·cos(k·ΔL)·e^(−(σ·ΔL)²/2); sin hueso, la media de siempre. La fase de emisión y la
+  de recepción son las del haz del modo B (en armónica, la emisión a la mitad: `boneCoherence`). El hueso de cada toma es la
+  cuerda exacta de su costilla: A0 guarda la entrada y la salida del primer tramo de hueso de cada línea antes del espejo (h3)
+  con la bisección del espejo, en las vueltas que siguen a la muestra del borde (sin otra copia de la clasificación; con la
+  cuenta de segmentos de 0,75 mm la fase era de escalera y no deformaba el frente). En las miradas dirigidas, la cuerda de la
+  línea que el camino cruza en su primer hueso (el prefijo dirigido de A2 la publica en o3.z).
+- **Los lóbulos laterales ven por su apertura** (`src/ultrasound/clutter.ts`, `FRAG_LATERAL`). Cada vecina entra en el pedestal
+  de la pasada D con la menor de las dos transmisiones, min(1, T_destino/T_vecina) (`pedestalShadowFactor`): los caminos de la
+  apertura de una línea bajo la costilla hasta una muestra vecina cruzan su costilla. T es la transmisión con que la pasada B
+  dibujó cada muestra (A o2.z: bajo la pleura registrada, la de su fila tope), la de la mirada 0 también en las dirigidas. El
+  lóbulo principal no cambia.
+- **El hueso en la transmisión** (`src/ultrasound/boneTransmission.ts`, `BONE_TRANSMISSION`). Atenúa a la frecuencia del pulso que
+  le llega con el desplazamiento que él mismo produce en un pulso gaussiano, f₀ − α′ℓσ_E² = 3,26 MHz con la costilla del avatar
+  (estimado, rango 2,5–3,5; `docs/APPROXIMATIONS.md`), y sus caras cuestan cuatro cruces músculo ↔ cortical con las impedancias
+  de la tabla, 7,42 dB (derivado; physics.md §2.10: «≈ −7,4 dB»; VExUS cobraba 6 dB). El cartílago sigue a la frecuencia B.
+- **El preajuste no satura la línea pleural** (`LUNG_PRESET.gainDb`): −21 dB, la ganancia que deja bajo el blanco el eco pleural
+  intercostal más brillante de los tres puntos de partida (medido: +19,4, +20,1 y +19,5 dB con 0 dB), por el enunciado 15 del
+  consenso de Demi 2023. El equipo baja ahora hasta −40 dB.
+- **Pruebas.** La e2e de F-T08 exige la meta: la línea pleural intercostal sin saturar (≤ 0 dB en la pantalla y a menos de 3 dB
+  del blanco); cada sombra ≥ 20 dB bajo el eco intercostal; la pleura a más de −40 dB solo dentro de la penumbra física de cada
+  línea (el semiancho del cono de emisión en la costilla más 2,5σ del lóbulo principal, `mainLobeLines`); en el núcleo (la
+  sombra completa más allá de esa penumbra), la pleura a ≤ −60 dB del eco intercostal y en el negro de la pantalla (el gris de
+  8 bits en 0, `blackLevelDb`, −69,7 dB con 70 de rango), y la línea A de orden 2 en el negro en toda la sombra completa. Gemelos
+  y equivalencia: la transmisión con apertura de la mirada 0 y la dibujada frente a `look0ApertureTwin` sobre los segmentos de
+  la GPU, la cuerda de A0 frente a `boneRunAlongLine` sobre la clasificación de la CPU, la pasada D frente a `lateralTwin` sobre
+  el campo que le dio la C y las miradas dirigidas con la fase (`transmissionParity`, `lateralParity`);
+  `src/validation/boneTransmission.test.ts` en TypeScript.
+
+**Consecuencias.**
+
+- F-T08 se cumple entera (GPU real y SwiftShader, las mismas cifras a 0,3 dB): en el núcleo de la sombra (25, 25 y 36 líneas)
+  la línea pleural queda a −68,7…−86,1 dB del eco intercostal y a −71,1…−88,5 dB en la pantalla (negro); la línea A de orden 2, a
+  −100,4…−114,9 dB en toda la sombra completa (antes visible en 86 de 125 líneas); cada sombra, a −38,0…−42,9 dB (−27,0 la
+  parcial del borde del sector del BLUE inferior; antes −33,7…−39,3). En las líneas a más de 10 del borde (la medida de antes),
+  la pleura en la pantalla pasa de −21,9…−43,4 dB (gris 57–137) a −65,7…−88,5 (gris 0–9: los 0–9 son de líneas del BLUE inferior
+  que aún están en su penumbra, a 11–12 líneas del borde con un cono de 10,5).
+- Por causa, en el núcleo: la fase quita 2–20 dB a la transmisión con apertura (antes la media del cono sumaba hasta 8 sobre un
+  rayo); el hueso a su frecuencia y sus caras, ≈ 16 dB por el centro de la costilla (un rayo pasa de −53,5…−63 a −68,6…−80,4 dB de
+  ida y vuelta); el pedestal por la apertura de la línea deja de traer la línea A y hasta 8,6 dB de pleura cerca del borde; el
+  preajuste baja todo 21 dB en la pantalla (con él solo, la línea A ya queda en el negro, pero la pleura del núcleo no). Ninguna
+  basta sola: cada mutación que quita una hace fallar la e2e.
+- La línea pleural intercostal queda a −0,9…−8,6 dB del blanco (gris 243–249 la más brillante); el resto de la imagen baja lo
+  mismo: la pared es gris oscura y, sin tocar la TGC, las líneas A se ven hasta ≈ 7 cm. El humo de la aplicación lo juzga así.
+- Grosor de la línea pleural (meta F-T05 en la envolvente, A-T11 en la pantalla): la anchura a media altura de la envolvente, que
+  no depende de la ganancia, es 0,68–0,85 mm en las líneas intercostales (mediana 0,69–0,73) frente a los 0,61 mm de la PSF axial:
+  la mediana cumple ±20 %, no todas las líneas (hasta +39 %, por la incidencia y la PSF lateral). La saturación no era la causa
+  de F-T05, pero sí engrosaba la línea en la pantalla: su grosor (gris ≥ la mitad del máximo) pasa de 1,71–2,00 mm a 1,29–1,46 mm.
+  En el gemelo B → C → D, a incidencia normal, 0,70 mm a 20 y a 60 mm (+14 %): F-T05 pasa a `it` en
+  `anatomyTargets.test.ts`. A-T11 (el grosor crece 0,67 mm/cm con la profundidad en una sonda de sector) sigue sin cumplirse:
+  el pulso axial del modelo no depende de la profundidad (`notYetMet`).
+- Coste del cuadro en el M4: de 2,5 a 3,1 ms (A +0,17 ms, A0 +0,12, D +0,23), muy lejos de O6. Ranuras de A: los mismos uniforms
+  más `uBoneCoh`; A lee además h2 y h3 y D, la transmisión dibujada (el grafo de pasadas lo declara). El chunk principal pasa de
+  226,6 a 234,9 kB: su presupuesto sube a 240 y el total de JS a 245.
+- Se borra `rib-shadow-pleura-residual`; nueva `rib-acoustics-simplified` (lente de fase fina de hueso homogéneo, sin refracción,
+  onda transversal ni desplazamiento por velocidad; la frecuencia del hueso con la costilla de referencia; el pedestal con la
+  mirada 0). `no-sidelobes` dice ahora que el pedestal entra por la apertura de la línea.
+- Mejoras para ofrecer al origen (VExUS tiene las mismas costillas sobre el hígado y el mismo pedestal): la lente de fase, la
+  cuerda exacta en A0, el pedestal por la apertura de la línea, las caras del hueso y su frecuencia.
+
+**Verificación.** `npm run check` y `npm run e2e` en verde; la e2e con GPU real y con SwiftShader. Mutaciones de la e2e de F-T08
+(cada una falla, con GPU real, en el BLUE superior): el pedestal sin la sombra (la pleura del núcleo sube a −52 dB del eco
+intercostal), el cono sin la fase (en la pantalla, −65…−73 dB: gris), el hueso a 2,5 MHz (−66…−73) y el preajuste con 0 dB (la
+línea pleural intercostal saturada). Las paridades nuevas casan a ≤ 10⁻⁴ dB (A de la mirada 0, la dibujada, D y las miradas dirigidas) y la
+cuerda de A0 a 0 mm; `boneTransmission.test.ts` comprueba que sin la fase, con el pedestal de siempre o con la media de VExUS
+las paridades fallan. Revisión adversarial de contexto limpio: ver la PR.

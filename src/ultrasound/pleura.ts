@@ -390,6 +390,11 @@ float curtainSteerWeight(float r, float D, float fAir) { return D > 0.0 && fAir 
  * `elevSigma`, `lateralSigmaMm`, `fieldFor`, `anchoredClump`, `interfaceEcho`, `interfaceProfileEcho` con `IFACE_SHIFT`,
  * `wallFaceEchoFlat`, `scattererField`, `uSeed`, `uElev` y `uCurtain`). Lleva `CURTAIN_AIR_GLSL` (y con él `uHits2`).
  */
+/** `pleuraCapMm` en GLSL: la pasada B (en `PLEURA_GLSL`) y, lus-sim (decisión 20), la A (la transmisión dibujada). */
+export const PLEURA_CAP_GLSL = /* glsl */ `
+float pleuraCapMm(float D, float step) { return (max(ceil(D / step - 0.5) - 1.0, 0.0) + 0.5) * step; }
+`;
+
 export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
@@ -402,8 +407,7 @@ const float SLIDING_SALT = ${glslFloat(SLIDING_SALT)};
 const float PLEURA_SERIES_FLOOR = ${glslFloat(PLEURA_SERIES_FLOOR)};
 const float PLEURA_WALL_FIELD_BOUND = ${glslFloat(PLEURA_WALL_FIELD_BOUND)};
 const float WALL_COPY_FACE_GAIN = ${glslFloat(WALL_COPY_FACE_GAIN)};
-float pleuraCapMm(float D, float step) { return (max(ceil(D / step - 0.5) - 1.0, 0.0) + 0.5) * step; }
-// χ de Ament de la pleura parietal: la parte coherente de su reflexión especular
+${PLEURA_CAP_GLSL}// χ de Ament de la pleura parietal: la parte coherente de su reflexión especular
 float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }
 float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * PLEURA_RT * tD; }
 float seriesPow(float g, float n) { return n < 0.5 ? 1.0 : pow(max(g, 1e-30), n); }

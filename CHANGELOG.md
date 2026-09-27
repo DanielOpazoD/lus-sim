@@ -108,6 +108,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - La e2e del CI en cinco fragmentos paralelos con un trabajador cada uno: de 10–14 min a unos 3 min de reloj; la prueba de
   la pérdida del contexto WebGL espera 90 s a la línea pleural (antes 150).
 
+- La costilla apaga la pleura (meta F-T08) (20): la pasada A suma el cono de la apertura con la fase que el hueso añade a cada
+  toma (la costilla es una lente; su cuerda exacta sale de A0), los lóbulos laterales de la pasada D ven lo de al lado a través
+  de lo que la apertura de su línea tiene delante, el hueso atenúa a la frecuencia del pulso que le llega (3,26 MHz) y sus caras
+  cuestan cuatro cruces (7,42 dB), y el preajuste pulmonar no satura la línea pleural (−21 dB de ganancia; el equipo baja hasta
+  −40). En el núcleo de la sombra la línea pleural pasa de −40,6…−62,7 a −68,7…−86,1 dB del eco intercostal y de gris 57–137 al
+  negro de la pantalla; la línea A, del gris al negro en toda la sombra completa. Coste del cuadro en el M4: 2,5 → 3,1 ms.
+  F-T05 (la línea pleural con la anchura del pulso axial, ±20 %) se exige en el gemelo; A-T11 sigue sin cumplirse.
+
 ### Quitado
 
 - La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
@@ -115,6 +123,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 - Las limitaciones `ribs-5-10-only` y `no-spleen-no-left-ribs` (el bazo sigue en `abdomen-generic-tissue`): la parrilla
   costal del adulto promedio (16).
 - La limitación `thorax-wall-abdominal-habitus`: la pared torácica por región (17).
+- La limitación `rib-shadow-pleura-residual`: bajo la costilla no se ven la línea pleural ni las líneas A (20); la sustituye
+  `rib-acoustics-simplified`, lo que el modelo de la costilla aún simplifica.
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

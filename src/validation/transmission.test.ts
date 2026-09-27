@@ -3,7 +3,9 @@ import { AnatomyScene } from '../anatomy/scene';
 import { Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import { CONVEX_C35, defaultPose, pointOnLine, pointOnSteeredLine, probeFrame } from '../probe/probe';
+import { BONE_TRANSMISSION, transmissionAlphaDbPerCm } from '../ultrasound/boneTransmission';
 import { COMPOUND, lookTheta } from '../ultrasound/compound';
+import { glslFloat } from '../ultrasound/receiver';
 import { IFACE_REACH_MM } from '../ultrasound/interfaceEcho';
 import { COARSE_DEPTH } from '../ultrasound/renderer';
 import { FRAG_RAWFIELD, FRAG_TRANS_HITS, FRAG_TRANS_PREFIX } from '../ultrasound/shaders/passes.glsl';
@@ -35,7 +37,9 @@ describe('Atenuación a lo largo del rayo', () => {
   it('el hueso cobra la reflexión de entrada UNA sola vez, no en cada paso (antes 6 dB por paso en CPU)', () => {
     const one = rayAttenuationDb([Tissue.Bone], 2.5, f);
     const four = rayAttenuationDb([Tissue.Bone, Tissue.Bone, Tissue.Bone, Tissue.Bone], 2.5, f);
-    const alphaStep = 2 * attenuationDbPerCm(Tissue.Bone, f) * 0.25;
+    // lus-sim (decisión 20): el hueso a la frecuencia del pulso en la costilla, no a la B efectiva
+    const alphaStep = 2 * transmissionAlphaDbPerCm(Tissue.Bone, f) * 0.25;
+    expect(alphaStep).toBeCloseTo(2 * attenuationDbPerCm(Tissue.Bone, BONE_TRANSMISSION.params.attenuationMHz.value) * 0.25, 12);
     expect(one).toBeCloseTo(BONE_ENTRY_DB + alphaStep, 9);
     expect(four).toBeCloseTo(BONE_ENTRY_DB + 4 * alphaStep, 9);
     // una segunda costilla tras tejido blando no vuelve a cobrar la entrada (igual que la GPU)
@@ -245,7 +249,7 @@ describe('Prefijo dirigido de A2 (decisión 58)', () => {
 
   it('el GLSL dirigido de A2 interpola sus constantes de TS', () => {
     expect(STEERED_PREFIX_GLSL).toContain(`int ahead = int(ceil(${IFACE_REACH_MM.toFixed(4)} / step + 0.5));`);
-    expect(STEERED_PREFIX_GLSL).toContain(`db += ${BONE_ENTRY_DB.toFixed(1)}; boneEntered = true;`);
+    expect(STEERED_PREFIX_GLSL).toContain(`db += ${glslFloat(BONE_ENTRY_DB)}; boneEntered = true;`);
     expect(STEERED_PREFIX_GLSL).toContain('} else scale = rho / sqrt(rho * rho - a * a);');
     expect(STEERED_PREFIX_GLSL).toContain('sMirror = alongLineMm(uCurvR + mr, a, rc);');
     expect(STEERED_PREFIX_GLSL.replace(/\/\/.*$/gm, '')).not.toMatch(/\bIFACE_REACH_MM\b|\bBONE_ENTRY_DB\b|\bMIRROR_DB\b/);

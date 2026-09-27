@@ -28,17 +28,21 @@
 // 2026-09-27 (paso C3, decisión 18): los bordes del pulmón y el corazón (`anatomy/organs/lungBorder.ts` y `heart.ts`: sus
 // ~30 parámetros con su evidencia, ≈ 13 kB de notas, sus tablas y sus gemelos GLSL), la cortina de los dos lados y la ZOA
 // llevan index de 205,3 a 221,8 kB. index sube a 230 kB y el total de JS a 235.
+// 2026-09-27 (ciclo 2, decisión 20): la costilla que apaga la pleura (la lente de fase en TS y en las dos GLSL de A, la
+// costilla de A0, el pedestal por la apertura de la línea, `ultrasound/boneTransmission.ts` con la evidencia de sus dos
+// parámetros, la ganancia del preajuste y los gemelos de las paridades, que viven en módulos que el renderizador importa)
+// llevan index de 226,6 a 234,9 kB. index sube a 240 kB y el total de JS a 245.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 230 * KB],
+  [/index-.*\.js$/, 240 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const TOTAL_JS_BUDGET = 235 * KB;
+const TOTAL_JS_BUDGET = 245 * KB;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

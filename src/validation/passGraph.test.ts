@@ -215,13 +215,23 @@ describe('summarizeGpuTimings', () => {
 const SAMPLERS: Record<PassId, { srcs: readonly string[]; samplers: Record<string, Resource> }> = {
   transmissionHits: { srcs: [FRAG_TRANS_HITS], samplers: {} },
   transmissionSegments: { srcs: [FRAG_TRANS_SEGMENTS], samplers: { uHits0: 'transHits', uHits1: 'transHits', uHits2: 'transHits' } },
+  // (lus-sim, decisión 20: el dirigido lee además la costilla de cada línea, uHits3)
   transmissionPrefix: {
     srcs: [FRAG_TRANS_PREFIX, FRAG_TRANS_PREFIX_STEERED],
-    samplers: { uSeg: 'transSeg', uHits0: 'transHits', uHits1: 'transHits' },
+    samplers: { uSeg: 'transSeg', uHits0: 'transHits', uHits1: 'transHits', uHits3: 'transHits' },
   },
+  // (lus-sim, decisión 20: y la pleura y la costilla de cada línea, uHits2 y uHits3)
   transmission: {
     srcs: [FRAG_TRANSMISSION, FRAG_TRANSMISSION_STEERED],
-    samplers: { uPre0: 'transPrefix', uPre1: 'transPrefix', uPreSteer: 'transPrefix', uPreSteerX: 'transPrefix', uHits0: 'transHits' },
+    samplers: {
+      uPre0: 'transPrefix',
+      uPre1: 'transPrefix',
+      uPreSteer: 'transPrefix',
+      uPreSteerX: 'transPrefix',
+      uHits0: 'transHits',
+      uHits2: 'transHits',
+      uHits3: 'transHits',
+    },
   },
   // la pleura parietal de A0 (uHits2, decisión 61) en los dos programas de B
   rawField: {
@@ -229,7 +239,8 @@ const SAMPLERS: Record<PassId, { srcs: readonly string[]; samplers: Record<strin
     samplers: { uTrans0: 'trans', uTrans1: 'trans', uTrans2: 'trans', uTrans3: 'trans', uHits2: 'transHits' },
   },
   axial: { srcs: [FRAG_AXIAL], samplers: { uField: 'raw', uTrans: 'trans' } },
-  lateral: { srcs: [FRAG_LATERAL], samplers: { uField: 'axial' } },
+  // (lus-sim, decisión 20: y la transmisión dibujada de A, que atenúa el pedestal en sombra)
+  lateral: { srcs: [FRAG_LATERAL], samplers: { uField: 'axial', uTransDrawn: 'trans' } },
   // y la pleura de A0 (la cortina de la mirada 0, decisión 61)
   compound: { srcs: [FRAG_COMPOUND], samplers: { uLook0: 'envLooks', uLook1: 'envLooks', uLook2: 'envLooks', uHits2: 'transHits' } },
   scanConvert: { srcs: [FRAG_SCANCONVERT], samplers: { uEnv: 'env' } },

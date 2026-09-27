@@ -10,6 +10,7 @@ import {
 import { CONVEX_BEAM } from '../ultrasound/beamModel';
 import { COMPOUND, lookTheta } from '../ultrasound/compound';
 import { CONVEX_C35_PROFILE } from '../ultrasound/transducerProfile';
+import { BONE_ENTRY_DB } from '../ultrasound/transmission';
 import { GRID_GEOMETRY, lookTransmission, segmentGridFromScene } from './support/segmentGrid';
 
 /**
@@ -126,7 +127,7 @@ describe('penumbra y refuerzo de las miradas dirigidas (decisión 58)', () => {
         for (let s = 0; s <= k; s++) {
           const i = l * rib.rows + s;
           if (rib.bone[i] && !bone) {
-            d += 6;
+            d += BONE_ENTRY_DB;
             bone = true;
           }
           d += rib.db[i];

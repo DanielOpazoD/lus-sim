@@ -5,8 +5,9 @@
  * escena se clasifica en el plano de imagen con x lateral y z = profundidad bajo el centro de la cara
  * (z = ρ·cos α − R), como los diseños de la decisión 58 (`design-thi/psf-diversity/shadow.ts`).
  */
-import { TISSUES, Tissue, attenuationDbPerCm } from '../../anatomy/tissues';
-import { type ApertureGeometry, steeredApertureTransmission } from '../../ultrasound/aperture';
+import { TISSUES, Tissue } from '../../anatomy/tissues';
+import { transmissionAlphaDbPerCm } from '../../ultrasound/boneTransmission';
+import { type ApertureGeometry, type BoneCoherence, steeredApertureTransmission } from '../../ultrasound/aperture';
 import { GAS_DB_PER_CM, MIRROR_DB, type SegmentGrid, lineHits, steeredPrefixDb } from '../../ultrasound/transmission';
 
 /** Geometría de la pasada A: la de la aplicación por defecto (192 líneas, 160 filas en 18 cm). */
@@ -42,7 +43,8 @@ export function emptyGrid(g: GridGeometry = GRID_GEOMETRY): SegmentGrid {
 
 /**
  * A1 sobre una escena sin espejo: cada segmento radial se clasifica en su centro con las reglas de
- * `FRAG_TRANS_SEGMENTS` (gas 60 dB/cm, resto 2·α(f)·paso) y sus marcas (aire, hueso, tipo de gas).
+ * `FRAG_TRANS_SEGMENTS` (gas 60 dB/cm, resto 2·α(f)·paso; lus-sim, decisión 20: el hueso a su frecuencia,
+ * `transmissionAlphaDbPerCm`) y sus marcas (aire, hueso, tipo de gas).
  */
 export function segmentGridFromScene(
   classify: (x: number, z: number) => Tissue,
@@ -58,7 +60,7 @@ export function segmentGridFromScene(
       const t = classify(rho * Math.sin(a), rho * Math.cos(a) - g.curvatureRadius);
       const p = TISSUES[t];
       const i = l * g.rows + s;
-      grid.db[i] = p.gas ? GAS_DB_PER_CM * (step / 10) : 2 * attenuationDbPerCm(t, fMHz) * (step / 10);
+      grid.db[i] = p.gas ? GAS_DB_PER_CM * (step / 10) : 2 * transmissionAlphaDbPerCm(t, fMHz) * (step / 10);
       grid.air[i] = t === Tissue.Air ? 1 : 0;
       grid.bone[i] = p.bone ? 1 : 0;
       grid.gas[i] = t === Tissue.Lung ? 1 : p.gas ? 2 : 0;
@@ -82,9 +84,16 @@ export function setMirror(grid: SegmentGrid, l: number, m: number, r: number): v
  * Transmisión de amplitud ida y vuelta con apertura de la mirada θ en la fila k de todas las líneas: el
  * prefijo dirigido de cada línea (A2) y el cono de la pasada A sobre los caminos dirigidos vecinos, con el
  * obstáculo a lo largo del camino. Con θ = 0 es la de la decisión 54: el obstáculo sale de los impactos de
- * A0 de toda la línea, en el centro de su segmento (`APERTURE_GLSL` con uHits0).
+ * A0 de toda la línea, en el centro de su segmento (`APERTURE_GLSL` con uHits0). lus-sim (decisión 20): con `coherence`,
+ * la fase del hueso de cada toma, como la pasada A; sin ella, la media de amplitudes de VExUS.
  */
-export function lookTransmission(grid: SegmentGrid, ap: ApertureGeometry, theta: number, k: number): Float64Array {
+export function lookTransmission(
+  grid: SegmentGrid,
+  ap: ApertureGeometry,
+  theta: number,
+  k: number,
+  coherence?: BoneCoherence,
+): Float64Array {
   const pre = Array.from({ length: grid.lines }, (_, l) => steeredPrefixDb(grid, ap, theta, l, k));
   const oneWay = (l: number) => Math.pow(10, -pre[l].db / 40);
   const first = (a: number, b: number) => (a >= 0 ? (b >= 0 ? Math.min(a, b) : a) : b);
@@ -98,5 +107,6 @@ export function lookTransmission(grid: SegmentGrid, ap: ApertureGeometry, theta:
     return o >= 0 ? o : Infinity;
   };
   const r = (k + 0.5) * grid.stepMm;
-  return Float64Array.from({ length: grid.lines }, (_, l) => steeredApertureTransmission(ap, theta, l, r, oneWay, obstacle));
+  const bone = coherence ? { mm: (l: number) => pre[l].boneMm, coherence } : undefined;
+  return Float64Array.from({ length: grid.lines }, (_, l) => steeredApertureTransmission(ap, theta, l, r, oneWay, obstacle, 0, bone));
 }

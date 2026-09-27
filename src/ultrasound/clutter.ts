@@ -18,6 +18,15 @@
  *    `reverbFirstDb`/`reverbSecondDb` de su fuente. En el tejido quedan bajo el moteado; en una luz cercana a la pared
  *    (vesícula, VCI subxifoidea) dan bandas tenues paralelas a la piel.
  *
+ *
+ * lus-sim (ciclo 2, decisión 20): los lóbulos laterales son de la apertura de la línea de destino. El eco de una muestra
+ * vecina entra por ellos a través de lo que esa apertura tiene delante: bajo una costilla, la costilla. La pasada D
+ * convolucionaba el campo de las vecinas, que lleva su propia transmisión, y así el pedestal traía al núcleo de la sombra
+ * la línea pleural y las líneas A de los espacios intercostales vecinos (6–10 dB sobre lo que deja pasar la costilla).
+ * Ahora cada vecina entra en el pedestal con la menor de las dos transmisiones (`pedestalShadowFactor`, la de ida y
+ * vuelta con que la pasada B dibujó cada muestra): donde nada tapa la apertura, como antes. El lóbulo principal no
+ * cambia: su anchura es la del haz, y la penumbra que deja en el borde de la sombra es la de la apertura (decisión 54).
+ *
  * Los dos crecen con la grasa subcutánea (la aberración y la reverberación empeoran en el obeso) y la armónica
  * tisular los reduce (decisión 77); en las réplicas, por orden (la segunda paga dos veces la pendiente de la grasa y
  * la reducción de la armónica). Niveles [ESTIMADO] con capturas de GPU frente a las referencias de la revisión.
@@ -143,6 +152,79 @@ export function lateralKernel(
   });
   const n = Math.sqrt(w.reduce((a, [re, im]) => a + re * re + im * im, 0));
   return w.map(([re, im]) => [re / n, im / n]);
+}
+
+/**
+ * Factor con que una muestra vecina entra en el pedestal de la línea de destino (lus-sim, decisión 20): la menor de las
+ * dos transmisiones de ida y vuelta sobre la de la vecina, min(1, T_destino/T_vecina). Gemelo de `pedestalShadow` en
+ * `FRAG_LATERAL`. Una vecina sin transmisión (0) no aporta nada que atenuar.
+ */
+export function pedestalShadowFactor(tDest: number, tSource: number): number {
+  return tSource > tDest ? tDest / tSource : 1;
+}
+
+/** GLSL de `pedestalShadowFactor`. */
+export const PEDESTAL_SHADOW_GLSL = /* glsl */ `
+float pedestalShadow(float tDest, float tSource) { return tSource > tDest ? tDest / tSource : 1.0; }
+`;
+
+/**
+ * El núcleo de `lateralKernel` en sus dos partes, con la normalización de energía de la suma (lus-sim, decisión 20): el
+ * principal (real) y el pedestal (complejo, con su amplitud y su fase), para atenuar cada vecina del pedestal por
+ * separado. `main[i] + ped[i]` es `lateralKernel`.
+ */
+export function lateralKernelParts(
+  sigmaLines: number,
+  p: Pick<ClutterParams, 'sidelobeIslr' | 'sidelobeWidth'>,
+  coupling = 1,
+): { main: number[]; ped: Array<[number, number]> } {
+  const pedestal = p.sidelobeIslr > 0 && coupling > 0;
+  const sp = sigmaLines * p.sidelobeWidth;
+  const R = kernelRadius(sigmaLines, sp, pedestal);
+  const Rmax = CLUTTER.lateralMaxLines;
+  let sm = 0;
+  let spp = 0;
+  const gm: number[] = [];
+  const gp: number[] = [];
+  for (let k = -R; k <= R; k++) {
+    const m = Math.exp(-0.5 * (k / sigmaLines) ** 2);
+    const q = pedestal ? Math.exp(-0.5 * (k / sp) ** 2) : 0;
+    gm.push(m);
+    gp.push(q);
+    sm += m * m;
+    spp += q * q;
+  }
+  const amp = pedestal ? coupling * Math.sqrt((p.sidelobeIslr * sm) / spp) : 0;
+  const ped: Array<[number, number]> = gp.map((q, i) => {
+    const ph = SIDELOBE_PHASES[i - R + Rmax];
+    return [amp * q * Math.cos(ph), amp * q * Math.sin(ph)];
+  });
+  const n = Math.sqrt(gm.reduce((a, m, i) => a + (m + ped[i][0]) ** 2 + ped[i][1] ** 2, 0));
+  return { main: gm.map((m) => m / n), ped: ped.map(([re, im]) => [re / n, im / n]) };
+}
+
+/**
+ * Pasada D con el pedestal en sombra (lus-sim, decisión 20): Σ (principal + pedestal·factor(k))·f(k), con el factor de
+ * `pedestalShadowFactor` de cada vecina. Con todos los factores en 1 es `applyComplexKernel(lateralKernel(…))`.
+ */
+export function applyLateralKernel(
+  parts: { main: readonly number[]; ped: ReadonlyArray<readonly [number, number]> },
+  at: (k: number) => readonly [number, number],
+  pedestalFactor: (k: number) => number,
+): [number, number] {
+  const R = (parts.main.length - 1) / 2;
+  let re = 0;
+  let im = 0;
+  for (let k = -R; k <= R; k++) {
+    const m = parts.main[k + R];
+    const f = pedestalFactor(k);
+    const wr = m + f * parts.ped[k + R][0];
+    const wi = f * parts.ped[k + R][1];
+    const [fr, fi] = at(k);
+    re += wr * fr - wi * fi;
+    im += wr * fi + wi * fr;
+  }
+  return [re, im];
 }
 
 /** Aplica un núcleo complejo a un campo complejo: Σ w·f (producto complejo). */

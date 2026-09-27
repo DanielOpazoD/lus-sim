@@ -31,7 +31,8 @@ export interface EquipmentContext {
 /** Límites del equipo (deslizadores, atajos y normalización comparten estos valores). */
 export const EQUIPMENT_LIMITS = {
   depthMm: { min: 60, max: 240, step: 5 },
-  gainDb: { min: -20, max: 20, step: 1 },
+  // lus-sim (decisión 20): el preajuste pulmonar arranca en −21 dB (la línea pleural sin saturar); se deja margen hacia abajo
+  gainDb: { min: -40, max: 20, step: 1 },
   // lus-sim (decisión 17): el foco baja hasta la pleura de la pared torácica más delgada (10 mm en la variante delgada)
   focusMm: { min: 8, max: 240 },
   dynamicRangeDb: { min: 40, max: 80 },

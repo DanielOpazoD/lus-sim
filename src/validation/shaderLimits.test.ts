@@ -247,9 +247,20 @@ describe('Límites del shader con margen para crecer', () => {
     for (const [name, src] of FRAGMENT_SHADERS) expect(samplersOf(src).length, name).toBeLessThanOrEqual(16);
     expect(samplersOf(FRAG_RAWFIELD)).toEqual(['uSceneTex', 'uCoupling', 'uTrans0', 'uTrans1', 'uHits2', 'uTrans2']);
     expect(samplersOf(FRAG_RAWFIELD_STEERED)).toEqual(['uSceneTex', 'uCoupling', 'uTrans1', 'uTrans3', 'uHits2', 'uTrans2']);
-    expect(samplersOf(FRAG_TRANSMISSION)).toEqual(['uCoupling', 'uPre0', 'uPre1', 'uHits0']);
-    expect(samplersOf(FRAG_TRANSMISSION_STEERED)).toEqual(['uCoupling', 'uPre0', 'uPre1', 'uHits0', 'uPreSteer', 'uPreSteerX']);
-    expect(samplersOf(FRAG_TRANS_PREFIX_STEERED)).toEqual(samplersOf(FRAG_TRANS_PREFIX));
+    // lus-sim (decisión 20): A lee además la pleura y la costilla de cada línea (A0 h2 y h3), y el prefijo dirigido de A2,
+    // la costilla (h3)
+    expect(samplersOf(FRAG_TRANSMISSION)).toEqual(['uCoupling', 'uPre0', 'uPre1', 'uHits0', 'uHits2', 'uHits3']);
+    expect(samplersOf(FRAG_TRANSMISSION_STEERED)).toEqual([
+      'uCoupling',
+      'uPre0',
+      'uPre1',
+      'uHits0',
+      'uHits2',
+      'uHits3',
+      'uPreSteer',
+      'uPreSteerX',
+    ]);
+    expect(samplersOf(FRAG_TRANS_PREFIX_STEERED)).toEqual([...samplersOf(FRAG_TRANS_PREFIX), 'uHits3']);
     expect(samplersOf(FRAG_COMPOUND)).toEqual([...COMPOUND.order.map((_, i) => `uLook${i}`), 'uHits2']);
   });
 
@@ -300,13 +311,15 @@ describe('Límites del shader con margen para crecer', () => {
   // lus-sim (d2e0f2cd7f45185c → 98f77a1b63690b8f, decisión 15): la línea pleural y sus réplicas con el perfil centrado en
   // su cruce (`pleuraSeriesEcho`), sin el desplazamiento de la cara de un lado: la serie cae a k·D (F-T01). Después (→ la
   // de abajo, decisión 17), la incidencia de la pleura con la normal de la cara interna de la pared (`wallInnerNormal`),
-  // no la de la piel: con la pared torácica por región la pleura se inclina.
+  // no la de la piel: con la pared torácica por región la pleura se inclina. lus-sim (decisión 20): el main de A2 cobra
+  // las caras del hueso con la constante de TS (`BONE_ENTRY_DB`, 7,42 dB; antes 6,0 escrito a mano: f6b08093f699bc04) y el
+  // de A escribe además la transmisión con que B dibuja cada muestra (o2.z; antes 668efb9a2b5c7008).
   it('el main de los programas de la mirada 0 es, letra a letra, el de antes de la composición', () => {
     const mainOf = (src: string): string => src.slice(src.lastIndexOf('\nvoid main() {'));
     const print = (src: string): string => createHash('sha256').update(mainOf(src)).digest('hex').slice(0, 16);
     expect(Object.fromEntries(LOOK_PAIRS.map((p) => [p.name, print(p.look0)]))).toEqual({
-      FRAG_TRANS_PREFIX: 'f6b08093f699bc04',
-      FRAG_TRANSMISSION: '668efb9a2b5c7008',
+      FRAG_TRANS_PREFIX: '96cbff76912bf550',
+      FRAG_TRANSMISSION: '6eb8ceec72e45847',
       FRAG_RAWFIELD: '8ed188a8f422812e',
     });
     // y el resto de B es el mismo texto en los dos programas: solo cambian sus entradas y su main

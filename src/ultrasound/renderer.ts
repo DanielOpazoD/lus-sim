@@ -1,5 +1,6 @@
 import type { AnatomyScene } from '../anatomy/scene';
-import { TISSUES, TISSUE_COUNT, attenuationDbPerCm } from '../anatomy/tissues';
+import { TISSUES, TISSUE_COUNT } from '../anatomy/tissues';
+import { transmissionAlphaDbPerCm } from './boneTransmission';
 import type { PhysiologySample } from '../physiology/engine';
 import type { ProbeCompression } from '../anatomy/compression';
 import { contactCoupling } from '../probe/contact';
@@ -27,6 +28,7 @@ import { RECEIVER_NOISE } from './receiver';
 import { ELEV_SIGMA0_MM } from './pleura';
 import { CLUTTER, clutterParams, type ClutterParams } from './clutter';
 import { harmonicNearUniform, noiseGain, transientGain } from './harmonic';
+import { boneCoherence } from './aperture';
 import { bmodeBeam } from './transducerProfile';
 import { FRAME_PASSES, type PassId } from './passGraph';
 import { CompoundRing, compoundActive, lookTheta, type CompoundLook } from './compound';
@@ -97,7 +99,7 @@ export interface DisplayFrame {
 export const DEFAULT_BMODE: BModeSettings = {
   depthMm: LUNG_PRESET.params.depthMm.value,
   focusMm: LUNG_PRESET.params.focusMm.value,
-  gainDb: 0,
+  gainDb: LUNG_PRESET.params.gainDb.value,
   tgcDb: [0, 0, 0, 0, 0, 0, 0, 0],
   dynamicRangeDb: 70,
   persistence: LUNG_PRESET.params.persistence.value,
@@ -241,6 +243,11 @@ export interface TransmissionRead {
   theta: number;
   prefixDb?: Float32Array;
   sGas?: Float32Array;
+  /**
+   * lus-sim (decisión 20), solo en la mirada 0: la transmisión con que la pasada B dibuja cada muestra (A o2.z: bajo la
+   * pleura registrada, la de su fila tope), la que atenúa el pedestal de lóbulos laterales en sombra en la pasada D.
+   */
+  drawn?: Float32Array;
 }
 
 /** Composición espacial tras el último cuadro (`compoundState`, decisión 58). */
@@ -317,6 +324,8 @@ export class UltrasoundRenderer {
    */
   private repeatTargets = new Map<PassId, [RenderTarget, RenderTarget]>();
   private couplingTex: WebGLTexture;
+  /** Ecos parásitos del último cuadro (lus-sim, decisión 20: la paridad de la pasada D). */
+  private lastClutter: ClutterParams | null = null;
   private couplingData: Float32Array;
   private frameCount = 0;
   /** Adquisición intercalada de la composición espacial (decisión 58): una mirada por cuadro. */
@@ -444,7 +453,8 @@ export class UltrasoundRenderer {
     // como la 0); la suma A2, además, el prefijo de esa mirada (2 y 3)
     const fn = { internal: gl.RGBA32F, format: gl.RGBA, type: gl.FLOAT, filter: gl.NEAREST };
     // A0: espejo e impactos (0 y 1) y la pleura parietal de cada línea (2, decisión 61), que lee la pasada B
-    this.tHits = createTarget(gl, LINES, 1, [fn, fn, fn]);
+    // (lus-sim, decisión 20: y 3, la entrada y la salida exactas de la costilla de cada línea, que leen A2 y A)
+    this.tHits = createTarget(gl, LINES, 1, [fn, fn, fn, fn]);
     this.tSeg = createTarget(gl, LINES, COARSE_DEPTH, [fn]);
     this.tPre = createTarget(gl, LINES, COARSE_DEPTH, [fn, fn, fn, fn]);
     this.tTrans = createTarget(gl, LINES, COARSE_DEPTH, [f, fn, f, f]);
@@ -553,8 +563,9 @@ export class UltrasoundRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {
-      // Frecuencia efectiva de penetración del perfil (banda baja por atenuación)
-      this.alpha[i] = attenuationDbPerCm(i, this.profile.bEffectiveMHz);
+      // Frecuencia efectiva de penetración del perfil (banda baja por atenuación); lus-sim (decisión 20): el hueso, a la del
+      // pulso que llega a la costilla
+      this.alpha[i] = transmissionAlphaDbPerCm(i, this.profile.bEffectiveMHz);
       this.back[i] = TISSUES[i].backscatter;
       this.clump[i] = TISSUES[i].speckleClump ?? 0;
       this.flags[i] = TISSUES[i].gas ? 1 : TISSUES[i].bone ? 2 : 0;
@@ -1004,7 +1015,11 @@ export class UltrasoundRenderer {
     p.tex('uSeg', 0, this.tSeg.textures[0]);
     p.tex('uHits0', 1, this.tHits.textures[0]);
     p.tex('uHits1', 2, this.tHits.textures[1]);
-    if (steered) this.setSteerUniforms(p, inputs);
+    if (steered) {
+      this.setSteerUniforms(p, inputs);
+      // lus-sim (decisión 20): la costilla de cada línea, para el hueso del camino dirigido
+      p.tex('uHits3', 3, this.tHits.textures[3]);
+    }
     drawFullscreen(gl);
   }
 
@@ -1043,7 +1058,13 @@ export class UltrasoundRenderer {
     p.tex('uPre0', 0, this.tPre.textures[0]);
     p.tex('uPre1', 1, this.tPre.textures[1]);
     p.tex('uHits0', 2, this.tHits.textures[0]);
+    // lus-sim (decisión 20): la pleura de A0, para la transmisión con que B dibuja lo que hay bajo ella
+    p.tex('uHits2', 5, this.tHits.textures[2]);
+    p.tex('uHits3', 6, this.tHits.textures[3]);
     p.v3('uAperture', [beam.apertureTxMm, beam.apertureRxMaxMm, beam.fNumberRxMin]);
+    // la fase del hueso de cada toma del cono, con el haz del modo B (la emisión de la armónica a la mitad)
+    const coh = boneCoherence(bmodeBeam(this.profile, inputs.bmode));
+    p.v3('uBoneCoh', [coh.kTxPerMm, coh.kRxPerMm, coh.sigmaPerMm]);
     if (steered) {
       // el prefijo de la mirada del cuadro, que A2 acaba de escribir con su programa dirigido
       p.tex('uPreSteer', 3, this.tPre.textures[2]);
@@ -1158,8 +1179,11 @@ export class UltrasoundRenderer {
     this.pLateral.f('uHalfSector', tr.halfSector);
     this.pLateral.f('uLinesF', this.lines);
     const cp = this.clutterFor(inputs);
+    this.lastClutter = cp;
     this.pLateral.v2('uSidelobe', cp.sidelobeIslr, cp.sidelobeWidth);
     this.pLateral.tex('uCoupling', 1, this.couplingTex);
+    // lus-sim (decisión 20): la transmisión dibujada de la mirada 0 atenúa el pedestal en sombra (también en las dirigidas)
+    this.pLateral.tex('uTransDrawn', 2, this.tTrans.textures[2]);
     this.setLateralPsfUniforms(this.pLateral, inputs);
     drawFullscreen(gl);
   }
@@ -1396,6 +1420,32 @@ export class UltrasoundRenderer {
   }
 
   /**
+   * lus-sim (decisión 20), solo pruebas: la entrada de la pasada D del último cuadro (el campo complejo tras la convolución
+   * axial de C, `re`/`im` por fila·líneas + línea), el acoplamiento por línea que leyó y los ecos parásitos con que se
+   * formó. La paridad de D con su gemelo (`applyLateralKernel`) los usa.
+   */
+  readLateralInputs(): {
+    lines: number;
+    samples: number;
+    re: Float32Array;
+    im: Float32Array;
+    coupling: Float32Array;
+    clutter: ClutterParams;
+  } {
+    if (!this.lastClutter) throw new Error('readLateralInputs: aún no se ha dibujado ningún cuadro');
+    const W = this.lines;
+    const H = FINE_DEPTH;
+    const px = this.readRgba(this.tAxial, 0);
+    const re = new Float32Array(W * H);
+    const im = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      re[i] = px[i * 4];
+      im[i] = px[i * 4 + 1];
+    }
+    return { lines: W, samples: H, re, im, coupling: this.couplingData.slice(0, W), clutter: this.lastClutter };
+  }
+
+  /**
    * Envolvente detectada (líneas × profundidad, antes de la compresión logarítmica y de la persistencia).
    * Solo pruebas: lectura GPU→CPU bloqueante. La fuente es explícita (decisión 58):
    *  - `'look0'` (por defecto): la mirada 0, la imagen de una mirada de siempre. Lanza si la mirada 0 no es
@@ -1480,12 +1530,14 @@ export class UltrasoundRenderer {
       const single = new Float32Array(n);
       const aperture = new Float32Array(n);
       const mirrorHit = new Float32Array(n);
+      const drawn = new Float32Array(n);
       for (let i = 0; i < n; i++) {
         single[i] = a2[i * 4];
+        drawn[i] = a2[i * 4 + 2];
         aperture[i] = a0[i * 4];
         mirrorHit[i] = a0[i * 4 + 3];
       }
-      return { lines: W, samples: H, single, aperture, mirrorHit, look: 0, theta: 0 };
+      return { lines: W, samples: H, single, aperture, mirrorHit, look: 0, theta: 0, drawn };
     }
     const last = this.look;
     if (last === null || last.index !== look)
@@ -1518,6 +1570,8 @@ export class UltrasoundRenderer {
     const seg = this.readRgba(this.tSeg, 0);
     const h0 = this.readRgba(this.tHits, 0);
     const h1 = this.readRgba(this.tHits, 1);
+    const h2 = this.readRgba(this.tHits, 2);
+    const h3 = this.readRgba(this.tHits, 3);
     const n = W * H;
     const grid: SegmentGrid = {
       lines: W,
@@ -1529,6 +1583,9 @@ export class UltrasoundRenderer {
       gas: new Uint8Array(n),
       mirrorSeg: new Int32Array(W),
       mirrorR: new Float64Array(W),
+      pleuraD: new Float64Array(W),
+      boneEntryMm: new Float64Array(W),
+      boneExitMm: new Float64Array(W),
     };
     // la textura va por filas (fila s, línea l); la rejilla, por línea (l·rows + s)
     for (let s = 0; s < H; s++)
@@ -1543,6 +1600,9 @@ export class UltrasoundRenderer {
     for (let l = 0; l < W; l++) {
       grid.mirrorSeg[l] = Math.round(h0[l * 4]);
       grid.mirrorR[l] = h0[l * 4] >= 0 ? h1[l * 4 + 3] : -1;
+      grid.pleuraD![l] = h2[l * 4];
+      grid.boneEntryMm![l] = h3[l * 4];
+      grid.boneExitMm![l] = h3[l * 4 + 1];
     }
     return grid;
   }

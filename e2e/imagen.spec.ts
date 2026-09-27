@@ -112,6 +112,20 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(t.lines, ttag).toBeGreaterThan(5);
   expect(t.samples, ttag).toBeGreaterThan(300);
   expect(t.maxDiffDb, ttag).toBeLessThan(0.01);
+  // lus-sim (decisión 20): la transmisión con apertura de A, con la fase del hueso de cada toma, y la que dibuja B, frente a
+  // sus gemelos sobre los segmentos de la GPU (con GPU real y con SwiftShader: ≤ 3·10⁻⁵ dB, ningún empate; ≈ 5200 de las
+  // ≈ 5800 muestras con hueso en el cono en el BLUE inferior con una línea de cada 4); y la costilla de cada línea de A0
+  // (su entrada y su salida exactas, la bisección del espejo) frente a la de TS sobre la clasificación de la CPU: 0 mm
+  const la = t.look0Aperture!;
+  const latag = JSON.stringify(la);
+  expect(la.boneSamples, latag).toBeGreaterThan(0.5 * la.samples);
+  expect(la.apertureMaxDiffDb, latag).toBeLessThan(0.01);
+  expect(la.drawnMaxDiffDb, latag).toBeLessThan(0.01);
+  expect(la.ambiguous, latag).toBeLessThan(0.01 * la.samples);
+  const bc = t.boneChord!;
+  expect(bc.lines, JSON.stringify(bc)).toBeGreaterThan(5);
+  expect(bc.mismatched, JSON.stringify(bc)).toBe(0);
+  expect(bc.maxErrMm, JSON.stringify(bc)).toBeLessThanOrEqual(bc.quantumMm + 1e-5);
   // Lo mismo en inspiración máxima: el diafragma 30 mm más abajo (la deformación respiratoria entra en los dos
   // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar)
   const caudal = await page.evaluate(() => {
@@ -238,7 +252,7 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
   expect(errors).toEqual([]);
 });
 
-test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo el centro de la costilla la pleura (y, tenue, la línea A) aún se ven (rib-shadow-pleura-residual)', async ({
+test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo la costilla, ni línea pleural ni líneas A en la pantalla', async ({
   page,
 }) => {
   // Meta F-T08 (`docs/knowledge/physics.md` §3.3): bajo la costilla no hay línea pleural ni líneas A, y la intensidad
@@ -247,42 +261,40 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
   // línea (`ribShadow`), con la sombra clasificada con los datos de la pasada A: las líneas que cruzan hueso antes de la
   // pleura, la sombra completa (todas las tomas de sus conos de apertura cruzan hueso) y las líneas libres (ninguna toma
   // cruza hueso), cuyo eco pleural es la referencia. Lo que se ve se juzga en la pantalla, con el nivel del equipo del
-  // cuadro (`displayLevelDb`: ≥ 0 satura, ≤ −70 dB es negro). Medido con GPU real (Apple M4) y con SwiftShader, en apnea
-  // espiratoria, con la parrilla del paso C1 (decisión 16: costillas de 14 mm con la pleura 5 mm bajo su cresta, espacios de
-  // 15–20 mm) y la pared torácica por región del paso C2 (decisión 17: la pleura a 14–17 mm), relativo al eco pleural
-  // intercostal (27-09-2026):
-  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −33,7…−39,1 dB (F-T08 pide −20; la sombra
-  //    parcial del borde del BLUE inferior, −53,4);
-  //  - con la pleura 5 mm bajo la cresta, el cono de la pasada A en la pleura es estrecho y la sombra completa empieza a pocas
-  //    líneas del borde de la sombra; ahí la pleura aún recibe el eco pleural intercostal vecino por la pasada D. No es el
-  //    lóbulo principal de la PSF lateral (su gemelo, `lateralKernel` sin pedestal, cae bajo −35 dB desde 3 líneas) sino
-  //    sobre todo el pedestal de lóbulos laterales (`no-sidelobes`). Con la pared heredada llegaba a 6 líneas; con la
-  //    pared por región, a 8–10: el foco del preajuste sigue a la pleura (25 → 16 mm) y, a 1–2 mm del foco, el haz de la
-  //    pasada D ya se abre (el gemelo `lateralKernel` con el pedestal de la grasa de 3,7 mm deja −37…−41 dB por energía a
-  //    8–10 líneas a 14 y 18 mm; con el foco a 25 y la pleura en él, −65 a 8 líneas). El 10 de `PSF_REACH_LINES` es la
-  //    medida. Desde 11 líneas, el núcleo de la sombra (24–32 líneas por punto de partida);
-  //  - en el núcleo, la ventana queda ≥ 39,8 dB más oscura que la de las líneas libres (la del BLUE inferior; 43,8–45,5
-  //    en los otros dos);
-  //  - pero la línea pleural sigue a −40,5…−46,7 dB, en pantalla a −22,0…−30,2 dB (gris sobre negro), y la línea A de
-  //    orden 2, a −53,0…−55,9 dB en pantalla, se ve tenue en 14–18 de 24–32 líneas: `rib-shadow-pleura-residual`. La
-  //    pleura recibe la transmisión de la apertura, una media de amplitudes en la que pesan las tomas del borde redondo de
-  //    la costilla (sin la fase que añadiría el hueso), y el pedestal de lóbulos laterales de la pasada D trae la pleura
-  //    intercostal; el preajuste deja la línea pleural 15–18 dB por encima del blanco.
+  // cuadro (`displayLevelDb`) y el negro de 8 bits de la curva de grises (`blackLevelDb`, −69,7 dB con 70 de rango).
+  //
+  // La penumbra es física (decisión 20): una línea bajo el borde de la costilla ve la pleura vecina por las tomas de su
+  // cono de emisión que pasan junto a la costilla o por su borde redondo, que es fino (el semiancho del cono en la
+  // profundidad de la costilla, `coneHalfLines`), y por el lóbulo principal de su PSF lateral (2,5σ, `mainLobeLines`). El
+  // núcleo de la sombra son las líneas de la sombra completa más allá de esa penumbra (25–36 por punto de partida). Medido
+  // con GPU real (Apple M4) y con SwiftShader, en apnea espiratoria, con la parrilla del paso C1 y la pared por región del C2,
+  // relativo al eco pleural intercostal (ciclo 2, 27-09-2026):
+  //  - la línea pleural intercostal, sin saturar con el preajuste (consenso: Demi 2023): −0,9…−8,6 dB en la pantalla
+  //    (antes, con 0 dB de ganancia, +12,4…+20,1 dB: saturada);
+  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −38,0…−42,9 dB (−27,0 la sombra parcial del
+  //    borde del sector del BLUE inferior; F-T08 pide −20);
+  //  - la pleura a más de −40 dB solo dentro de la penumbra, a 6–8 líneas de su límite;
+  //  - en el núcleo, la línea pleural a −68,7…−86,1 dB y en la pantalla a −71,1…−88,5 dB: negro (antes de la decisión 20,
+  //    −40,6…−62,7 dB y −21,9…−43,4 en la pantalla, gris de 57 a 137); la ventana, ≥ 67,7 dB más oscura que la de las
+  //    líneas libres;
+  //  - la línea A de orden 2 en toda la sombra completa, −100,4…−114,9 dB en la pantalla (antes, tenue en 14–18 líneas por
+  //    punto: el pedestal de lóbulos laterales de la pasada D la traía de los espacios vecinos).
   test.setTimeout(300_000);
   const errors = await openBench(page);
-  /** Líneas desde el borde de la sombra hasta las que el eco pleural vecino (por el pedestal de la pasada D) supera −40 dB: medido. */
-  const PSF_REACH_LINES = 10;
   for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
     const s = await page.evaluate((id) => window.__lusTest!.ribShadow({ startPoint: id, respiration: 'apnea-expiratory' }), startPoint);
     const ref = s.intercostalPleuraDb;
     const bone = s.lines.filter((x) => x.bone);
     const fully = bone.filter((x) => x.fullyShadowed);
-    const core = fully.filter((x) => x.edgeLines > PSF_REACH_LINES);
+    const penumbra = (x: (typeof bone)[number]): number => x.coneHalfLines + x.mainLobeLines;
+    const core = fully.filter((x) => x.edgeLines > penumbra(x));
+    const free = s.lines.filter((x) => x.free && !Number.isNaN(x.pleuraMm) && x.coupling >= 0.99);
     const rel = (db: number): string => (db - ref).toFixed(1);
     const tag = `${startPoint}: ref ${ref.toFixed(1)} dB; ${bone.length} líneas con hueso, ${fully.length} en sombra completa, ${core.length} en su núcleo; ${JSON.stringify(
       bone.map((x) => [
         x.line,
         x.edgeLines,
+        penumbra(x).toFixed(1),
         x.fullyShadowed ? 1 : 0,
         rel(x.pleuraDb),
         x.pleuraDisplayDb.toFixed(1),
@@ -292,6 +304,10 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
     // cada punto de partida corta costillas enteras (el signo del murciélago; desde el paso C1, también el BLUE superior)
     expect(bone.length, tag).toBeGreaterThan(50);
     expect(core.length, tag).toBeGreaterThan(20);
+    // la línea pleural intercostal no satura con el preajuste y sigue siendo lo más brillante (consenso, decisión 20)
+    const freeShown = free.map((x) => x.pleuraDisplayDb);
+    expect(Math.max(...freeShown), `línea pleural intercostal saturada (${tag})`).toBeLessThanOrEqual(0);
+    expect(Math.max(...freeShown), tag).toBeGreaterThan(-3);
     // F-T08: la intensidad media de cada sombra (sus líneas con hueso, contiguas), ≥ 20 dB bajo el eco pleural intercostal
     const runs: (typeof bone)[] = [];
     for (const x of s.lines) {
@@ -304,30 +320,26 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
       const mean = 10 * Math.log10(run.reduce((a, x) => a + 10 ** (x.belowDb / 10), 0) / run.length);
       expect(mean - ref, `sombra ${run[0].line}–${run[run.length - 1].line} (${tag})`).toBeLessThanOrEqual(-20);
     }
-    // lo que se ve de la pleura dentro de la sombra es su borde: la penumbra de la apertura (física: parte del cono pasa
-    // junto a la costilla) y el eco vecino que trae la pasada D; a más de −40 dB, solo a ≤ PSF_REACH_LINES del borde
-    for (const x of bone) if (x.pleuraDb - ref > -40) expect(x.edgeLines, `línea ${x.line} (${tag})`).toBeLessThanOrEqual(PSF_REACH_LINES);
+    // lo que se ve de la pleura dentro de la sombra es su borde: la penumbra de la apertura y del haz
+    for (const x of bone) if (x.pleuraDb - ref > -40) expect(x.edgeLines, `línea ${x.line} (${tag})`).toBeLessThanOrEqual(penumbra(x));
     for (const x of core) {
-      // la costilla apaga la pleura y oscurece el núcleo de la sombra (su transmisión, −64…−79 dB ida y vuelta por un rayo)
-      expect(x.pleuraDb - ref, tag).toBeLessThanOrEqual(-40);
-      expect(x.belowDb - s.intercostalWindowDb, tag).toBeLessThanOrEqual(-39);
+      // la costilla apaga la pleura y oscurece el núcleo de la sombra
+      expect(x.pleuraDb - ref, tag).toBeLessThanOrEqual(-60);
+      expect(x.belowDb - s.intercostalWindowDb, tag).toBeLessThanOrEqual(-60);
+      // F-T08 en la pantalla: bajo la costilla no hay línea pleural ni línea A (el negro de la pantalla)
+      expect(x.pleuraDisplayDb, `F-T08, línea pleural en la pantalla, línea ${x.line} (${tag})`).toBeLessThanOrEqual(s.blackLevelDb);
     }
-    // F-T08, sin línea pleural ni líneas A bajo la costilla: aún no. La desviación declarada (`rib-shadow-pleura-residual`),
-    // con su tamaño medido (±2,5 dB): cuando se corrija, esta prueba fallará aquí; entonces se exige la meta (nada sobre el
-    // negro de la pantalla en el núcleo de la sombra) y se borra la limitación
-    const top = Math.max(...core.map((x) => x.pleuraDb - ref));
-    expect(top, tag).toBeGreaterThan(-49.2);
-    expect(top, tag).toBeLessThan(-38.7);
-    const topShown = Math.max(...core.map((x) => x.pleuraDisplayDb));
-    expect(topShown, tag).toBeGreaterThan(-32.9);
-    expect(topShown, tag).toBeLessThan(-19.6);
-    const a2Shown = Math.max(...core.map((x) => x.a2DisplayDb));
-    expect(a2Shown, tag).toBeGreaterThan(-58.6);
-    expect(a2Shown, tag).toBeLessThan(-50.6);
-    expect(
-      core.every((x) => x.pleuraDisplayDb <= -s.dynamicRangeDb && x.a2DisplayDb <= -s.dynamicRangeDb),
-      `F-T08: nada sobre el negro de la pantalla en el núcleo de la sombra (${tag})`,
-    ).toBe(false);
+    // y la línea A no se ve en ninguna línea de la sombra completa
+    for (const x of fully)
+      expect(x.a2DisplayDb, `F-T08, línea A en la pantalla, línea ${x.line} (${tag})`).toBeLessThanOrEqual(s.blackLevelDb);
+    // la pasada D, con el pedestal que entra por lo que la apertura de cada línea tiene delante, frente a su gemelo sobre el
+    // campo que le dio la C (decisión 20; GPU real y SwiftShader: ≤ 2·10⁻⁵ dB hasta 100 dB bajo el máximo, y el pedestal
+    // en sombra cambia la envolvente más de 3 dB en decenas de muestras de cada punto)
+    const d = await page.evaluate((id) => window.__lusTest!.lateralParity({ startPoint: id }), startPoint);
+    const dtag = `${startPoint}: ${JSON.stringify(d)}`;
+    expect(d.samples, dtag).toBeGreaterThan(3000);
+    expect(d.maxDiffDb, dtag).toBeLessThan(0.01);
+    expect(d.shadowedSamples, dtag).toBeGreaterThan(20);
   }
   expect(errors).toEqual([]);
 });

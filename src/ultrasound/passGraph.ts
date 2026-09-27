@@ -71,7 +71,8 @@ export const FRAME_PASSES: readonly PassSpec[] = [
   { id: 'axial', label: 'C', reads: ['raw', 'trans'], writes: 'axial', cadence: 'frame' },
   // D escribe la envolvente de la mirada del cuadro en su ranura del anillo; K compone las válidas (paso
   // directo exacto con una sola mirada: compuesto apagado)
-  { id: 'lateral', label: 'D', reads: ['axial'], writes: 'envLooks', cadence: 'frame' },
+  // (lus-sim, decisión 20: y la transmisión dibujada de A, que atenúa el pedestal de lóbulos laterales en sombra)
+  { id: 'lateral', label: 'D', reads: ['axial', 'trans'], writes: 'envLooks', cadence: 'frame' },
   { id: 'compound', label: 'K', reads: ['envLooks', 'transHits'], writes: 'env', cadence: 'frame' },
   { id: 'scanConvert', label: 'G', reads: ['env'], writes: 'scan', cadence: 'frame' },
   { id: 'persistence', label: 'P', reads: ['scan', 'persist'], writes: 'persist', cadence: 'frame' },
