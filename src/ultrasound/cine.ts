@@ -1,3 +1,7 @@
+import type { PhysiologySample } from '../physiology/engine';
+import type { RespiratoryPattern } from '../physiology/patientState';
+import type { ProbeFrame, ProbePose } from '../probe/probe';
+
 /**
  * Cine (decisión 80): los últimos ~6 s de cuadros adquiridos se guardan en la GPU ANTES de la conversión de
  * barrido (la envolvente polar tras la composición y el campo de color) y se vuelven a mostrar con la misma
@@ -9,6 +13,35 @@
 export const CINE_FRAMES = 120;
 /** Cadencia máxima de guardado (Hz del reloj de la simulación): el anillo cubre 6 s. */
 export const CINE_RATE_HZ = 20;
+
+/** Sonda y fisiología con que se adquirió un cuadro; `frame` incluye el hundimiento efectivo del contacto. */
+export interface AcquisitionState {
+  pose: ProbePose;
+  frame: ProbeFrame;
+  sample: PhysiologySample;
+  respiratoryPattern: RespiratoryPattern;
+}
+
+/**
+ * Copia al guardar un cuadro: ni un gesto posterior ni una mutación del estado vivo pueden cambiar su navegación.
+ * Solo estos metadatos pequeños se copian; la imagen permanece en la textura del cine.
+ */
+export function snapshotAcquisition(source: AcquisitionState): AcquisitionState {
+  return {
+    pose: { ...source.pose },
+    frame: {
+      face: [...source.frame.face],
+      axial: [...source.frame.axial],
+      lateral: [...source.frame.lateral],
+      elevation: [...source.frame.elevation],
+      curvatureCenter: [...source.frame.curvatureCenter],
+      skinNormal: [...source.frame.skinNormal],
+      skinPoint: [...source.frame.skinPoint],
+    },
+    sample: { ...source.sample, resp: { ...source.sample.resp } },
+    respiratoryPattern: source.respiratoryPattern,
+  };
+}
 
 /** Anillo de cuadros del cine: el índice 0 es el más viejo y `count − 1` el último guardado. */
 export class CineRing<T> {

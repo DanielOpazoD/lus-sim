@@ -5,7 +5,8 @@
  * heredan de VExUS con el código portado conservan su identificador (decisiones 10 y 11).
  */
 export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
-  'ui-minimal',
+  'normal-acquisition-only',
+  'navigator-parametric',
   // anatomía y fisiología
   'left-handed-anatomy-frame',
   'thorax-cylindrical-cage',

@@ -35,17 +35,23 @@
 // 2026-09-27 (decisión 22): el campo respiratorio invertible (la bisección y la pared que mira el campo, en TS y GLSL) y la
 // evidencia de sus parámetros (`physiology.diaphragmExcursion`, `anatomy.respiratoryWall`, las notas de los derivados de la
 // excursión) llevan index de 235,7 a 240,4 kB. index sube a 245 kB y el total de JS a 250.
+// 2026-09-28 (decisión 23): adquisición con controles contextuales e historial espacial, más navegador 3D diferido.
+// Primer build medido: entrada 245,3 KiB y thorax 529,6 KiB (incluye Three.js 0.186.1; 133,5 KiB gzip).
+// El núcleo tiene 260 KiB de presupuesto INICIAL; el módulo opcional 560 KiB. El total de 820 KiB cuenta ambos:
+// cargar tarde no borra el coste de descarga. El navegador solo se solicita después de la primera imagen modo B.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
-  [/three.*\.js$/, 700 * KB],
-  [/index-.*\.js$/, 245 * KB],
+  [/^thorax-.*\.js$/, 560 * KB],
+  [/index-.*\.js$/, 260 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const TOTAL_JS_BUDGET = 250 * KB;
+const INITIAL_JS_BUDGET = 260 * KB;
+const TOTAL_JS_BUDGET = 820 * KB;
+const NAVIGATOR_JS = /^thorax-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 
@@ -59,11 +65,15 @@ try {
 }
 let over = false;
 let totalJs = 0;
+let initialJs = 0;
 const rows: string[][] = [];
 for (const f of files) {
   if (f.endsWith('.map')) continue;
   const size = statSync(join(dir, f)).size;
-  if (f.endsWith('.js') && !TEST_ONLY.test(f)) totalJs += size;
+  if (f.endsWith('.js') && !TEST_ONLY.test(f)) {
+    totalJs += size;
+    if (!NAVIGATOR_JS.test(f)) initialJs += size;
+  }
   const budget = BUDGETS.find(([re]) => re.test(f));
   const max = budget ? budget[1] : Infinity;
   const ok = size <= max;
@@ -78,9 +88,12 @@ for (const f of files) {
 const w = rows.reduce((m, r) => Math.max(m, r[0].length), 10);
 for (const r of rows) console.log(`${r[0].padEnd(w)}  ${r[1].padStart(10)}  ${r[2].padStart(8)}  ${r[3]}`);
 console.log(
+  `${'js inicial'.padEnd(w)}  ${(initialJs / KB).toFixed(1).padStart(7)} kB  ${(INITIAL_JS_BUDGET / KB).toFixed(0).padStart(5)} kB  ${initialJs <= INITIAL_JS_BUDGET ? 'ok' : 'OVER'}`,
+);
+console.log(
   `${'total js'.padEnd(w)}  ${(totalJs / KB).toFixed(1).padStart(7)} kB  ${(TOTAL_JS_BUDGET / KB).toFixed(0).padStart(5)} kB  ${totalJs <= TOTAL_JS_BUDGET ? 'ok' : 'OVER'}`,
 );
-if (over || totalJs > TOTAL_JS_BUDGET) {
+if (over || initialJs > INITIAL_JS_BUDGET || totalJs > TOTAL_JS_BUDGET) {
   console.error('bundle-budget: presupuesto superado');
   process.exit(1);
 }

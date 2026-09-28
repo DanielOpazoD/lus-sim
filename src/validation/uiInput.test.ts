@@ -128,6 +128,63 @@ describe('Atajos de teclado', () => {
   });
 });
 
+describe('Entrada compuesta: sonda y atajos instalados como en main', () => {
+  it('Espacio sobre un botón conserva su acción nativa y no mueve ni congela', () => {
+    const store = new Store({ frozen: false });
+    let pose = defaultPose();
+    const initial = pose;
+    const input = new ProbeInput(
+      new FakeTarget() as unknown as HTMLElement,
+      () => pose,
+      (p) => (pose = p),
+      () => !store.get().frozen,
+    );
+    const commands: EquipmentCommand[] = [];
+    bindKeyboardShortcuts(store, (cmd) => commands.push(cmd));
+    let cancelled = 0;
+    for (const tagName of ['BUTTON', 'SUMMARY']) {
+      win.fire('keydown', { ...key(' ', { tagName }), preventDefault: () => cancelled++ });
+      input.tick(0.1);
+    }
+    expect(cancelled).toBe(0); // la mutación: ProbeInput cancelaba este mismo evento antes del atajo
+    expect(store.get().frozen).toBe(false);
+    expect(pose).toBe(initial);
+    expect(commands).toEqual([]);
+    win.fire('keydown', key(' '));
+    expect(store.get().frozen).toBe(true);
+    win.fire('keydown', { ...key(' '), repeat: true });
+    expect(store.get().frozen).toBe(true);
+    for (const k of ['[', ']', '-', '+']) win.fire('keydown', key(k));
+    expect(commands).toEqual([]); // el cine no recibe ajustes de adquisición futuros
+  });
+
+  it('escribir o navegar en controles no integra movimiento; congelar suelta teclas mantenidas', () => {
+    let live = true;
+    let pose = defaultPose();
+    const initial = pose;
+    const input = new ProbeInput(
+      new FakeTarget() as unknown as HTMLElement,
+      () => pose,
+      (p) => (pose = p),
+      () => live,
+    );
+    for (const target of [{ tagName: 'BUTTON' }, { tagName: 'TEXTAREA' }, { isContentEditable: true }]) {
+      win.fire('keydown', key('w', target));
+      input.tick(0.1);
+    }
+    expect(pose).toBe(initial);
+    win.fire('keydown', key('w'));
+    input.tick(0.1);
+    expect(pose.z).toBeGreaterThan(initial.z);
+    live = false;
+    input.tick(0.1);
+    const atFreeze = pose;
+    live = true;
+    input.tick(0.1);
+    expect(pose).toBe(atFreeze);
+  });
+});
+
 describe('Entrada de la sonda: ratón, trackpad, teclado y táctil dan la misma pose', () => {
   function setup(live = () => true) {
     const el = new FakeTarget();

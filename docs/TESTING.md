@@ -223,3 +223,21 @@ la salida actual no protege nada.
 
 Las de la guía (§18) que aún no tienen módulo (líneas B, modo M, puntaje, ganancia y mapa de grises frente al
 estado físico) entran como pruebas cuando llega su módulo; cada una con su mutación.
+
+## Adquisición con navegación 3D (decisión 23)
+
+`src/validation/acquisitionHistory.test.ts` recorre el renderizador con WebGL registrador para comprobar
+que cada cuadro conserva pose, contacto efectivo, muestra y maniobra respiratoria. Incluye el frame visible que todavía no
+había vencido para el cine, copia independiente de vectores/respiración, vuelta del anillo y sustitución de
+escena/GPU. El gesto sin paso fisiológico debe actualizar el plano sin adelantar el reloj.
+
+Las pruebas puras del navegador comprueban el adaptador de coordenadas, la continuidad al cruzar π,
+el rechazo de regiones no explorables y la huella/sector sobre el mismo marco de la adquisición.
+`src/validation/uiInput.test.ts` instala juntos los oyentes reales de la sonda y de los atajos: la
+activación nativa de Espacio no debe cancelarse al enfocar un botón. `e2e/adquisicion.spec.ts` verifica
+los mandos contextuales, congelado/cine y distribución móvil sobre el build de producción.
+`e2e/navegacion3d.spec.ts` recorre los gestos y botones del navegador, la independencia de la cámara,
+el bloqueo de la sonda en cine y la pérdida/restauración del contexto 3D sin reiniciar el ecógrafo.
+
+El build controla entrada inicial y módulo 3D diferido por separado y también la suma. Estas pruebas
+no establecen rendimiento en GPU física ni certifican fidelidad anatómica o visual del modelo.

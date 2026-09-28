@@ -58,3 +58,19 @@ Lo portado conserva su ruta de origen y su fila en `docs/PROVENANCE.md`. Lo prop
 archivos nuevos (módulos de órgano del pulmón, física subpleural, `measure/`, `lus/`), de modo que al
 unir los proyectos se reconcilia lo portado y se trae lo propio sin separarlo de nada
 (`docs/UNIFICATION.md`).
+
+## Adquisición con navegación 3D (decisión 23)
+
+`src/ui/thorax/` presenta la escena mediante Three.js, cargado después de la primera imagen. Lee la misma
+anatomía y `Simulator.displayedAcquisition` que corresponde al frame mostrado; los gestos llaman al camino
+común de pose de `src/main.ts`, que cancela la animación y respeta congelación. No hay un segundo paciente,
+reloj ni generador de imagen en el navegador. La conversión de coordenadas se mantiene en su frontera de UI.
+
+`AcquisitionState` (`src/ultrasound/cine.ts`) contiene pose, marco efectivo y muestra fisiológica. El renderizador
+conserva la última adquisición y copia los metadatos al guardar el cuadro en el anillo. El cine recupera
+imagen y metadatos del mismo registro. Un gesto actualiza contacto y marco aunque todavía no corresponda
+avanzar el reloj fisiológico. Los ajustes visibles utilizan los valores históricos mientras se revisa cine.
+
+La barra básica y el diálogo de ajustes usan el mismo controlador del equipo. El núcleo mantiene las fronteras
+de capas existentes; Three.js solo se importa desde la UI. El HUD conserva sus nodos y el tamaño del sector
+sigue un ResizeObserver; las mediciones de FPS utilizan tiempo real, separado del intervalo limitado del motor.

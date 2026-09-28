@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json --noEmit && vite build && tsx tools/ci/bundle-budget.ts",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && node --import tsx tools/ci/bundle-budget.ts",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -23,7 +23,7 @@
     "fidelity:ref": "tsx tools/fidelity/reference.ts",
     "fidelity:compare": "tsx tools/fidelity/compare.ts",
     "fidelity:geometry": "tsx tools/fidelity/geometry.ts",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && vite build && tsx tools/ci/bundle-budget.ts",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage && vite build && node --import tsx tools/ci/bundle-budget.ts",
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
@@ -31,6 +31,7 @@
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@types/node": "22.20.2",
+    "@types/three": "0.186.0",
     "@vitest/coverage-v8": "^5.0.1",
     "eslint": "10.11.0",
     "fast-check": "4.10.2",
@@ -44,5 +45,8 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "three": "0.186.1"
   }
 }

@@ -11,56 +11,78 @@
     <div id="app" class="app">
       <header class="topbar">
         <h1 class="title">lus-sim</h1>
-        <span id="live-chip" class="chip live">LIVE</span>
+        <span id="live-chip" class="chip live" role="status">En vivo</span>
         <span class="spacer"></span>
-        <span id="build-info" class="build-info" title="Versión y commit" data-testid="build"></span>
+        <details class="help-menu">
+          <summary>Ayuda</summary>
+          <div class="help-content">
+            <h2>Adquirir una imagen</h2>
+            <p>
+              Mueve el transductor sobre el tórax y ajusta la orientación. Las referencias BLUE aproximan la ubicación; afina la ventana
+              sobre la imagen.
+            </p>
+            <p>Congela para revisar los cuadros del cine. Profundidad, ganancia y foco se ajustan junto a la imagen.</p>
+            <button id="tech-report" class="secondary" title="Descargar el diagnóstico técnico del simulador">
+              Descargar diagnóstico técnico
+            </button>
+            <span id="build-info" class="build-info" title="Versión y commit" data-testid="build"></span>
+            <span id="status" class="technical-status" aria-live="off"></span>
+          </div>
+        </details>
       </header>
 
-      <aside class="left" aria-label="Puntos de partida y ayuda">
-        <section class="rail-block windows-block" aria-labelledby="windows-title">
-          <div class="rail-head">
-            <h2 class="rail-title" id="windows-title">Puntos de partida</h2>
-            <button id="nav-help" class="icon-btn" title="Cómo mover la sonda" aria-label="Cómo mover la sonda">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 17h.01" />
-              </svg>
-            </button>
-          </div>
-          <div id="nav-help-pop" class="menu popover" role="region" aria-label="Cómo mover la sonda" hidden>
-            <h3>En la imagen</h3>
-            <dl>
-              <dt>Arrastrar</dt>
-              <dd>deslizar</dd>
-              <dt>Botón derecho o <kbd>⌥</kbd></dt>
-              <dd>bascular/inclinar</dd>
-              <dt>Rueda · <kbd>⇧</kbd> + rueda</dt>
-              <dd>rotar · presión</dd>
-              <dt>Un dedo · dos dedos</dt>
-              <dd>deslizar · bascular/inclinar</dd>
-            </dl>
-            <h3>Teclado</h3>
-            <ul class="keys">
-              <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> deslizar</li>
-              <li><kbd>Q</kbd><kbd>E</kbd> rotar</li>
-              <li><kbd>←</kbd><kbd>→</kbd> bascular</li>
-              <li><kbd>↑</kbd><kbd>↓</kbd> inclinar</li>
-              <li><kbd>R</kbd><kbd>F</kbd> presión</li>
-              <li><kbd>⇧</kbd> fino</li>
-              <li><kbd>[</kbd><kbd>]</kbd> profundidad</li>
-              <li><kbd>−</kbd><kbd>+</kbd> ganancia</li>
-              <li><kbd>Espacio</kbd> congelar</li>
-              <li><kbd>←</kbd><kbd>→</kbd> cine (congelada)</li>
-            </ul>
-          </div>
-          <div id="start-points" class="windows" role="group" aria-labelledby="windows-title"></div>
-        </section>
+      <aside class="navigator-pane" aria-label="Navegación anatómica">
+        <div class="navigator-heading">
+          <h2>Ubicación</h2>
+          <span class="spacer"></span>
+          <button id="navigator-toggle" class="secondary" aria-expanded="false" aria-controls="navigator-content">Mostrar tórax</button>
+          <button id="nav-help" class="icon-btn" title="Cómo mover la sonda" aria-label="Cómo mover la sonda">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 17h.01" />
+            </svg>
+          </button>
+        </div>
+        <div id="nav-help-pop" class="menu popover" role="region" aria-label="Cómo mover la sonda" hidden>
+          <h3>Sobre el tórax</h3>
+          <p>
+            Arrastra el transductor para deslizarlo. Orientar permite bascular e inclinar. Las vistas cambian la cámara, sin mover la sonda.
+          </p>
+          <h3>Sobre la imagen</h3>
+          <p>Arrastra para deslizar; botón derecho o <kbd>⌥</kbd> para orientar; rueda para rotar.</p>
+          <h3>Teclado</h3>
+          <ul class="keys">
+            <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> deslizar</li>
+            <li><kbd>Q</kbd><kbd>E</kbd> rotar</li>
+            <li><kbd>←</kbd><kbd>→</kbd> bascular</li>
+            <li><kbd>↑</kbd><kbd>↓</kbd> inclinar</li>
+            <li><kbd>R</kbd><kbd>F</kbd> contacto</li>
+            <li><kbd>⇧</kbd> ajuste fino</li>
+            <li><kbd>[</kbd><kbd>]</kbd> profundidad</li>
+            <li><kbd>−</kbd><kbd>+</kbd> ganancia</li>
+            <li><kbd>Espacio</kbd> congelar / reanudar</li>
+            <li><kbd>←</kbd><kbd>→</kbd> cine al congelar</li>
+          </ul>
+        </div>
+        <div id="navigator-content">
+          <div id="thorax-navigator"></div>
+          <section class="reference-points" aria-labelledby="windows-title">
+            <h3 id="windows-title">Puntos de referencia</h3>
+            <p class="note">Hemitórax derecho · ubicaciones aproximadas</p>
+            <div id="start-points" class="windows" role="group" aria-labelledby="windows-title"></div>
+          </section>
+        </div>
       </aside>
 
-      <main class="center">
-        <div class="display-wrap" id="sector-wrap">
+      <main class="center" aria-label="Ecografía y equipo">
+        <div
+          class="display-wrap"
+          id="sector-wrap"
+          tabindex="0"
+          aria-label="Área de adquisición. Arrastra para mover la sonda; Espacio para congelar."
+        >
           <canvas id="gl" role="img" aria-label="Imagen ecográfica en modo B"></canvas>
-          <canvas id="overlay"></canvas>
+          <canvas id="overlay" aria-hidden="true"></canvas>
           <div class="img-hud">
             <div class="hud-tl" id="hud-tl"></div>
             <div class="hud-tr" id="hud-tr"></div>
@@ -70,30 +92,44 @@
             <input type="range" id="cine" min="0" max="0" step="1" value="0" aria-label="Cuadro del cine (← →)" />
             <span id="cine-time" aria-hidden="true">0,00 s</span>
           </div>
-          <div class="disclaimer">
-            Simulador educativo con un paciente sintético. No es un dispositivo médico: no utilizar para diagnóstico ni para decisiones
-            clínicas.
-          </div>
+        </div>
+        <div class="modebar" aria-label="Equipo">
+          <button id="freeze" class="primary freeze-button" title="Congelar o reanudar la imagen (Espacio)" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" />
+              <path d="m9.5 4.5 2.5 2 2.5-2M9.5 19.5l2.5-2 2.5 2" />
+            </svg>
+            <span id="freeze-label">Congelar</span>
+          </button>
+          <div id="panel" class="equipment-controls" role="group" aria-label="Ajustes básicos de la imagen"></div>
+          <button
+            id="settings-toggle"
+            class="secondary settings-button"
+            aria-haspopup="dialog"
+            aria-controls="acquisition-settings"
+            aria-expanded="false"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 17h16M8 4v6M16 14v6" />
+            </svg>
+            Ajustes
+          </button>
+          <p id="acquisition-lock-note" class="lock-note" hidden>Imagen congelada. Reanuda para ajustar la adquisición.</p>
         </div>
       </main>
 
-      <aside class="right" id="panel" aria-label="Consola"></aside>
-
-      <footer class="modebar" role="toolbar" aria-label="Equipo">
-        <span class="spacer"></span>
-        <button id="tech-report" class="secondary" title="Descargar el informe técnico del simulador (sin datos del usuario)">
-          Informe técnico
-        </button>
-        <button id="freeze" class="secondary" title="Congelar la imagen (Espacio)" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" />
-            <path d="m9.5 4.5 2.5 2 2.5-2M9.5 19.5l2.5-2 2.5 2" />
-          </svg>
-          Congelar
-        </button>
-        <span id="status" class="modebar-status" aria-live="off"></span>
-      </footer>
+      <footer class="app-footer">Uso educativo. No es un dispositivo médico.</footer>
     </div>
+    <dialog id="acquisition-settings" class="settings-dialog" aria-labelledby="settings-title">
+      <div class="settings-heading">
+        <h2 id="settings-title">Ajustes de adquisición</h2>
+        <button id="settings-close" class="icon-btn" aria-label="Cerrar ajustes" autofocus>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
+      <p id="settings-lock-note" class="lock-note" hidden>Imagen congelada. Reanuda para cambiar la sonda, el equipo o la respiración.</p>
+      <div id="settings-content"></div>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

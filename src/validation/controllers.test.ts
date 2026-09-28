@@ -33,23 +33,26 @@ describe('HUD', () => {
     dynamicRangeDb: 70,
     compound: false,
     harmonic: false,
-    respVolume: 0.42,
   };
   it('esquinas con la FC, la profundidad, la frecuencia del transductor, la ganancia y el rango dinámico', () => {
     const b = hudText(base);
     expect(b.topLeft).toEqual(['Paciente sintético']);
-    expect(b.topRight).toEqual(['FC 70 lpm · Sinusal', '12 cm · 3,5 MHz · G 0 dB · RD 70']);
-    expect(b.bottomRight).toEqual(['resp 0,42']);
+    expect(b.topRight).toEqual(['FC 70 lpm · Sinusal', '12,0 cm · 3,5 MHz · G 0 dB · RD 70']);
+    expect(b.bottomRight).toEqual([]);
     const f = hudText({ ...base, frozen: true, atrialFibrillation: true, depthMm: 100, gainDb: -4 });
     expect(f.topLeft[0]).toBe('Paciente sintético · congelada');
-    expect(f.topRight).toEqual(['FC 70 lpm · FA', '10 cm · 3,5 MHz · G -4 dB · RD 70']);
+    expect(f.topRight).toEqual(['FC 70 lpm · FA', '10,0 cm · 3,5 MHz · G -4 dB · RD 70']);
+  });
+  it('conserva los pasos de medio centímetro al mostrar la profundidad', () => {
+    expect(hudText({ ...base, depthMm: 65 }).topRight[1]).toContain('6,5 cm');
+    expect(hudText({ ...base, depthMm: 70 }).topRight[1]).toContain('7,0 cm');
   });
   it('«CX» cuando la composición espacial se forma (decisión 58 de VExUS), y solo entonces', () => {
-    expect(hudText({ ...base, compound: true }).topRight[1]).toBe('12 cm · 3,5 MHz · G 0 dB · RD 70 · CX');
+    expect(hudText({ ...base, compound: true }).topRight[1]).toBe('12,0 cm · 3,5 MHz · G 0 dB · RD 70 · CX');
     expect(hudText({ ...base, compound: false }).topRight[1]).not.toContain('CX');
   });
   it('«THI» delante de la frecuencia con la armónica tisular (decisión 77 de VExUS)', () => {
-    expect(hudText({ ...base, harmonic: true, compound: true }).topRight[1]).toBe('12 cm · THI 3,5 MHz · G 0 dB · RD 70 · CX');
+    expect(hudText({ ...base, harmonic: true, compound: true }).topRight[1]).toBe('12,0 cm · THI 3,5 MHz · G 0 dB · RD 70 · CX');
     expect(hudText(base).topRight[1]).not.toContain('THI');
   });
   it('la FC mostrada se suaviza (media móvil) y arranca en el primer valor', () => {

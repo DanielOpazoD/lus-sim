@@ -73,7 +73,7 @@ test('arranca, dibuja cuadros con el reloj en marcha, se presenta y avisa de que
   await expect(page.getByText('No es un dispositivo médico')).toBeVisible();
   await expect(page.getByTestId('build')).toContainText(`v${version}`);
   // la imagen es la del preajuste pulmonar: 12 cm y la frecuencia del transductor en el HUD
-  await expect(page.locator('#hud-tr')).toContainText('12 cm · 3,5 MHz');
+  await expect(page.locator('#hud-tr')).toContainText('12,0 cm · 3,5 MHz');
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
   // en la pantalla hay imagen (no un rectángulo negro): la línea pleural casi blanca pero sin saturar (el preajuste del
@@ -91,18 +91,18 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   test.setTimeout(240_000);
   const errors = await boot(page);
   const hud = page.locator('#hud-tr');
-  await expect(hud).toContainText('12 cm');
+  await expect(hud).toContainText('12,0 cm');
   await page.locator('#sector-wrap').click({ position: { x: 5, y: 5 } }); // foco en la página, no en un control
   await page.keyboard.press(']');
-  await expect(hud).toContainText('13 cm');
+  await expect(hud).toContainText('13,0 cm');
   await page.keyboard.press('-');
   // el preajuste pulmonar arranca en −21 dB (decisión 20) y − baja 2
   await expect(hud).toContainText('G -23 dB');
   // la consola: el deslizador de la profundidad sigue al equipo
-  await expect(page.getByLabel('Profundidad')).toHaveValue('130');
+  await expect(page.getByLabel('Profundidad', { exact: true })).toHaveValue('130');
   // Espacio congela (el reloj se detiene)
   await page.keyboard.press(' ');
-  await expect(page.locator('#live-chip')).toHaveText('FREEZE');
+  await expect(page.locator('#live-chip')).toHaveText('Congelada');
   await expect(page.locator('#hud-tl')).toContainText('congelada');
   const frozenT = await page.evaluate(() => window.__lusTest!.sim().physiology.clock.t);
   await page.waitForTimeout(1500);
@@ -118,12 +118,12 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   const older = await screen(page);
   expect(older.png, 'el cuadro del cine no se dibujó').not.toBe(last.png);
   expect(older.max).toBeGreaterThanOrEqual(PLEURA_GREY);
-  // con la imagen congelada el HUD dice lo que se ve: cambiar la profundidad no cambia el cuadro mostrado
+  // congelada: ni el equipo ni el cuadro cambian por un atajo de adquisición
   await page.keyboard.press(']');
   await twoFrames(page);
   await twoFrames(page);
-  await expect(hud).toContainText('13 cm');
-  await expect(hud).not.toContainText('14 cm');
+  await expect(hud).toContainText('13,0 cm');
+  await expect(hud).not.toContainText('14,0 cm');
   // cambiar el tamaño de la ventana congelada vuelve a dibujar el cuadro (no deja el lienzo negro)
   await page.setViewportSize({ width: 1100, height: 700 });
   await twoFrames(page);
@@ -138,15 +138,21 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 - 40, { steps: 4 });
   await page.mouse.up();
-  await expect(page.getByLabel('Rotación')).toBeDisabled();
   await expect(page.locator('[data-start-point="plaps"]')).toBeDisabled();
   expect(await pose()).toEqual(p0);
-  // descongelar: en vivo con el equipo que se cambió mientras tanto
-  await page.getByRole('button', { name: 'Congelar' }).click();
-  await expect(page.locator('#live-chip')).toHaveText('LIVE');
+  // el diálogo permite consultar valores, con maniobras y ajustes deshabilitados
+  await page.locator('#settings-toggle').click();
+  await page.getByRole('button', { name: 'Sonda', exact: true }).click();
+  await expect(page.getByLabel('Rotación', { exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Apnea espiratoria' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  // reanudar conserva el equipo: el atajo no dejó un cambio pendiente
+  await page.getByRole('button', { name: 'Reanudar' }).click();
+  await expect(page.locator('#live-chip')).toHaveText('En vivo');
   await expect(page.locator('#cine-bar')).toBeHidden();
-  await expect(hud).toContainText('14 cm');
-  await expect(page.getByLabel('Rotación')).toBeEnabled();
+  await expect(hud).toContainText('13,0 cm');
+  expect(await page.evaluate(() => window.__lusTest!.sim().bmode.depthMm)).toBe(130);
+  await expect(page.getByLabel('Rotación', { exact: true })).toBeEnabled();
   expect(errors).toEqual([]);
 });
 
@@ -171,21 +177,24 @@ test('la sonda: arrastrar sobre la imagen la desliza y una tarjeta la lleva, des
   expect(errors).toEqual([]);
 });
 
-test('«Reiniciar paciente» vuelve a la respiración de su definición y el informe técnico se descarga', async ({ page }) => {
+test('«Restablecer paciente» vuelve a la respiración de su definición y el informe técnico se descarga', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
+  await page.locator('#settings-toggle').click();
   await page.getByRole('button', { name: 'Apnea espiratoria' }).click();
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().patient.respiratoryPattern)).toBe('apnea-expiratory');
   await page.evaluate(() => ((window.__lusTest!.sim() as unknown as { mark?: number }).mark = 1));
-  await page.getByRole('button', { name: 'Reiniciar paciente' }).click();
+  await page.getByRole('button', { name: 'Restablecer paciente' }).click();
   // un simulador nuevo, con el paciente de su definición (respiración tranquila) y la misma sonda
   await expect.poll(() => page.evaluate(() => (window.__lusTest!.sim() as unknown as { mark?: number }).mark ?? 0)).toBe(0);
   expect(await page.evaluate(() => window.__lusTest!.sim().patient.respiratoryPattern)).toBe('quiet');
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
   // el informe técnico: un JSON con el formato, la versión y el equipo (sin datos del usuario)
+  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  await page.locator('.help-menu > summary').click();
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Informe técnico' }).click();
+  await page.locator('#tech-report').click();
   const d = await download;
   expect(d.suggestedFilename()).toMatch(/^lus-diagnostico-.*\.json$/);
   const report = JSON.parse(readFileSync(await d.path(), 'utf8')) as {
@@ -212,7 +221,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   const errors = await boot(page);
   await page.locator('#sector-wrap').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press(' ');
-  await expect(page.locator('#live-chip')).toHaveText('FREEZE');
+  await expect(page.locator('#live-chip')).toHaveText('Congelada');
   await page.evaluate(() => {
     const gl = (document.getElementById('gl') as HTMLCanvasElement).getContext('webgl2')!;
     const ext = gl.getExtension('WEBGL_lose_context')!;
@@ -240,7 +249,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
       timeout: 120_000,
     })
     .toBe(true);
-  await expect(page.locator('#live-chip')).toHaveText('LIVE');
+  await expect(page.locator('#live-chip')).toHaveText('En vivo');
   await expect(page.locator('.banner')).toHaveCount(0, { timeout: 30_000 });
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);

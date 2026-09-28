@@ -1542,3 +1542,69 @@ declararlo (declarado arriba, con su meta pendiente) y conservaba el grosor del 
 en el avatar con 5 mm de grasa y 15,8 en la obesa: corregido, ahí mira la pared de verdad); A-T15 colgaba de la longitud
 estimada de la ZOA sin decirlo; el deslizamiento sin evaluar frente a D1, D4 y D5; la justificación de la ley de altura; cifras
 que no cuadraban entre los documentos; el umbral de los planos nuevos de la e2e, que no veía la mutación; aplicado.
+
+## 23. Adquisición normal con navegación torácica 3D y cine espacialmente coherente
+
+**Fecha.** 2026-09-28.
+
+**Contexto.** La interfaz mostraba siete deslizadores básicos y tres columnas mientras el alumno movía
+la sonda sobre la imagen sin una referencia espacial. La profundidad de 65 mm se redondeaba a 7 cm, el
+foco ofrecía valores por encima de la profundidad y el oyente de la sonda cancelaba Espacio incluso en
+botones. El cine conservaba imagen y ajustes, pero no la pose ni la respiración que produjeron cada cuadro.
+Objetivos: O5 (obtener la ventana moviendo la sonda) y O6 (interacción, reproducibilidad y rendimiento),
+conservando la cadena causal de O1–O3.
+
+**Opciones.** Se consideró añadir un atlas GLB externo. Sin registro anatómico, su piel y sus costillas
+podrían no coincidir con lo que encuentra el haz. Se eligió representar primero la anatomía compartida;
+la mejora del contorno torácico debe aplicarse después al motor y a su representación de forma conjunta.
+Una reescritura de la aplicación o del renderizador ecográfico no es necesaria para esta entrega.
+
+**Decisión.**
+
+- `src/ui/thorax/` monta un navegador Three.js con piel paramétrica y referencias costales derivadas de
+  la escena. La huella, el marcador y el sector opcional utilizan el marco efectivo del contacto. Los
+  puntos que quedan fuera de la cobertura real se rechazan; desenvolver el ángulo antes de limitarlo
+  evita saltar de lado al pasar por π. La cámara no cambia la postura del paciente.
+- Los gestos del navegador llaman al mismo `setPoseManual` que la imagen y los mandos: cancelan la
+  animación hacia una referencia y se bloquean en congelado. Hay botones de desplazamiento y giro para
+  realizar las acciones sin arrastrar; los ángulos finos y el contacto siguen en ajustes.
+- `AcquisitionState` en `src/ultrasound/cine.ts` guarda pose, marco efectivo, muestra fisiológica y maniobra respiratoria. El
+  renderizador conserva el último estado mostrado y lo copia profundamente al guardar cada cuadro del
+  anillo. `Simulator.displayedAcquisition` selecciona el mismo cuadro que la imagen y los ajustes.
+- `advance(0)` actualiza el contacto al cambiar la pose aunque no venza un paso fisiológico: el reloj no
+  avanza y ya no se entrega una pose nueva con un plano previo. Congelar mantiene su retorno inicial.
+- La interfaz tiene dos superficies, una barra básica de profundidad/ganancia/foco y un diálogo para
+  orientación, contacto, respiración y procesamiento. El navegador se pliega en móvil. Los controles
+  leen los valores históricos y se bloquean durante cine; las referencias BLUE declaran lado y aproximación.
+- El HUD conserva sus nodos y su profundidad tiene un decimal; no muestra volumen respiratorio normalizado.
+  El tamaño del sector sigue ResizeObserver y los FPS usan tiempo de pared, separado del dt limitado del motor.
+- El navegador se importa después de la primera imagen y redibuja al cambiar pose, cámara, tamaño o sus
+  opciones. DPR limitado a 1,5; no hay reloj fisiológico adicional ni lecturas de GPU para navegar. Los
+  presupuestos distinguen entrada inicial, módulo 3D y total de JavaScript, incluyendo el coste del módulo diferido.
+  Los scripts build/check invocan el mismo comprobador mediante `node --import tsx`, evitando el socket IPC
+  del lanzador CLI en entornos restringidos, sin omitir ninguna comprobación.
+
+**Consecuencias.** La navegación aporta contexto a la adquisición normal sin introducir un segundo
+modelo clínico. La piel conserva el cilindro elíptico del motor y las costillas opcionales se rotulan
+como guía en reposo; las terminaciones esquemáticas fuera del dominio explorable no se usan para
+adquirir. El contacto sigue siendo cinemático. Estas limitaciones figuran en `docs/LIMITATIONS.md`.
+Three.js 0.186.1 es la única dependencia nueva de producción; sus tipos 0.186.0 son de desarrollo.
+El primer build del bloque midió 245,3 KiB de entrada y 529,6 KiB de navegador (133,5 KiB gzip), frente a
+240,7 KiB de entrada antes del bloque. Los presupuestos pasan a 260 KiB iniciales, 560 KiB de navegador
+y 820 KiB totales. La medición en GPU de usuario y la revisión visual humana siguen siendo necesarias.
+
+**Verificación.**
+
+- `src/validation/acquisitionHistory.test.ts`: pose/marco/respiración viajan juntos al seleccionar cine,
+  maniobra tranquila → profunda → revisión histórica, sellado del último cuadro, copia independiente,
+  vuelta del anillo, reset y GPU; un gesto sin paso de
+  reloj actualiza el contacto. Quitar la copia o usar el estado vivo rompe la independencia histórica.
+- `src/validation/uiInput.test.ts`: ambos manejadores instalados como en la aplicación; Espacio sobre
+  un botón no se cancela ni mueve la sonda. Reintroducir su cancelación rompe esta regresión.
+- `src/validation/controllers.test.ts`: 65 mm aparece como 6,5 cm.
+- Pruebas de geometría y entrada del navegador en `src/validation/`; los puntos proceden de la escena,
+  no de coordenadas elegidas para parecer un tórax. La revisión independiente contrasta también la malla
+  costal con la distancia implícita del modelo.
+- La CI mantiene todas las pruebas, los umbrales de cobertura y sus cinco fragmentos E2E. La interfaz
+  tiene pruebas de adquisición y navegación; la inspección visual manual no se declara realizada cuando
+  el navegador de la sesión está bloqueado. No se modifican shaders ni parámetros clínicos.

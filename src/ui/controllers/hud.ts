@@ -5,6 +5,8 @@
  * lus-sim (decisión 13): solo el modo B; sin las líneas del color, del PW ni del modo M, ni el chip de contexto de
  * VExUS (que solo decía el modo Doppler).
  */
+import { formatDepthMm } from '../format';
+
 export interface HudInput {
   patientLabel: string;
   frozen: boolean;
@@ -18,7 +20,6 @@ export interface HudInput {
   compound: boolean;
   /** Armónica tisular (decisión 77 de VExUS): «THI» delante de la frecuencia de la imagen. */
   harmonic: boolean;
-  respVolume: number;
 }
 
 export interface HudText {
@@ -34,10 +35,10 @@ export function hudText(v: HudInput): HudText {
     topLeft: [v.patientLabel + (v.frozen ? ' · congelada' : '')],
     topRight: [
       `FC ${Math.round(v.heartRateBpm)} lpm · ${v.atrialFibrillation ? 'FA' : 'Sinusal'}`,
-      `${(v.depthMm / 10).toFixed(0)} cm · ${v.harmonic ? 'THI ' : ''}${mhz(v.transducerMHz)} MHz · G ${v.gainDb} dB · RD ${v.dynamicRangeDb}` +
+      `${formatDepthMm(v.depthMm)} · ${v.harmonic ? 'THI ' : ''}${mhz(v.transducerMHz)} MHz · G ${v.gainDb} dB · RD ${v.dynamicRangeDb}` +
         (v.compound ? ' · CX' : ''),
     ],
-    bottomRight: [`resp ${v.respVolume.toFixed(2).replace('.', ',')}`],
+    bottomRight: [],
   };
 }
 
@@ -51,13 +52,15 @@ export class HeartRateDisplay {
   }
 }
 
-/** Sustituye el contenido de `host` por una línea `<span>` por texto. */
+/** Conserva los nodos: el bucle solo modifica los textos que realmente cambian. */
 export function renderLines(host: HTMLElement, lines: readonly string[]): void {
-  host.replaceChildren(
-    ...lines.map((l) => {
-      const s = document.createElement('span');
-      s.textContent = l;
-      return s;
-    }),
-  );
+  while (host.children.length > lines.length) host.lastElementChild?.remove();
+  for (let i = 0; i < lines.length; i++) {
+    let span = host.children[i];
+    if (!span) {
+      span = document.createElement('span');
+      host.appendChild(span);
+    }
+    if (span.textContent !== lines[i]) span.textContent = lines[i];
+  }
 }

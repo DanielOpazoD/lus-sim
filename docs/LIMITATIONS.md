@@ -7,13 +7,17 @@ conservan su identificador (decisiones 10 y 11).
 
 ## Estado del proyecto
 
-- **La interfaz es mínima** (`ui-minimal`, decisión 13): solo el modo B con un paciente sintético (el adulto sano
-  por omisión), sin casos, modo M, medición, modo docente ni navegador 3D; la sonda se mueve sin ver el tórax (los
-  puntos de partida la llevan cerca de cada ventana). Con la imagen congelada, la FC y la respiración del HUD son las
-  del instante congelado, no las del cuadro del cine que se esté viendo. En un teléfono las columnas se apilan y la
-  imagen queda pequeña, con el HUD sobre el borde del sector. La anatomía del tórax con las dimensiones de la base
-  llega en el paso C (`docs/ROADMAP.md`): la parrilla costal en C1 (decisión 16), la pared por región en C2 (decisión 17);
-  la pleura y los puntos BLUE, en C3–C4.
+- **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
+  sintético, navegador torácico 3D y cine con pose y respiración históricas. Sin casos patológicos, modo M,
+  medición ni modo docente/examen. Los puntos BLUE son referencias aproximadas derechas, no posiciones
+  anatómicas universales ni una garantía de obtener la ventana correcta.
+- **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
+  el motor, con las simplificaciones de `thorax-cylindrical-cage`. No es un atlas segmentado ni amplía la cobertura
+  posterior permitida por la pose. La piel permanece fija y las costillas opcionales son una guía rotulada en
+  reposo; las terminaciones esquemáticas de hombros y cuello quedan fuera del dominio explorable. La envolvente
+  y el marcador visible de la sonda son ayudas de interacción; la huella y el plano se calculan con la geometría
+  y el marco efectivos de la adquisición. La validación visual humana y el
+  presupuesto de fluidez en GPU de usuario requieren medición; la CI con SwiftShader comprueba comportamiento.
 
 ## Anatomía y fisiología
 
