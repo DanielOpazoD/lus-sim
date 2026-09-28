@@ -1648,6 +1648,19 @@ conservan sus pruebas. Espesor pleural limitado por resolución, desfase A1 con 
 sombras procedentes de un único sujeto y cocientes temporales censurados no son objetivos de ajuste.
 No se añaden mandos al usuario ni se declara cerrada la fidelidad del normal.
 
+El candidato conserva rango dinámico 70 dB y curva 3,5, reduce K de 55 a 53 dB y R_t de 0,3 a 0,2,
+y compensa nominalmente la interfaz con ganancia −19 dB en lugar de −21. Los valores siguen siendo
+estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. R_t añade 3,52 dB de pérdida
+por ida y vuelta; la compensación K/ganancia conserva solo nominalmente la interfaz y debe comprobarse
+en imagen. `normalCalibration.ts` registra valores, fuentes de mecanismo y límites; TS y GLSL consumen
+la misma configuración. Las fuentes no se presentan como mediciones de estos valores concretos.
+
+Durante la verificación, la prueba anatómica `maxTotal` agotó 180 s (212,5 s medidos). Ejecutaba millones
+de matchers sobre una rejilla finita. Se mantienen las 18 escenas, todos los puntos, desigualdades y
+tolerancias, pero se acumula el peor exceso de cada desigualdad y su ubicación antes de afirmarlo.
+Los no finitos se registran y hacen fallar la prueba. El caso aislado con cobertura pasó en 11,1 s;
+esa ejecución aislada no alcanza por sí sola la cobertura global y no sustituye `check` completo.
+
 **Verificación.** En curso: línea base del protocolo sobre la física de `e28aaa0`, comparación del
 candidato y revisión independiente antes de integrar. El navegador local de esta sesión está bloqueado;
 la ejecución gráfica se verifica en la CI del repositorio y no se presenta como inspección visual

@@ -161,24 +161,60 @@ describe('Campo respiratorio: difeomorfismo por construcción (decisión 22)', (
   it('la pared que mira el campo nunca es más fina que la de verdad, ni más gruesa que la cota de la GLSL (`maxTotal`)', () => {
     // más fina, el peso sería > 0 dentro de la pared (la pared se movería); más gruesa que maxTotal, la salida barata de la
     // GLSL (`RespCol.far`) daría 1 donde no lo es
-    for (const s of SCENES)
+    type Location = { scene: string; point: Vec3; actual: number; bound: number };
+    type Check = {
+      name: string;
+      lowerBound: boolean;
+      count: number;
+      maxExcess: number;
+      worst: Location | null;
+      nonFinite: (Omit<Location, 'actual' | 'bound'> & { actual: string; bound: string }) | null;
+    };
+    const check = (name: string, lowerBound = false): Check => ({
+      name,
+      lowerBound,
+      count: 0,
+      maxExcess: -Infinity,
+      worst: null,
+      nonFinite: null,
+    });
+    const minimum = check('espesor mínimo: pared de verdad − 1e-9', true);
+    const maximum = check('espesor máximo: maxTotal + 1e-9');
+    const slope = check('pendiente máxima: slopeMax + 0.012');
+    // La misma desigualdad en TODOS los puntos; solo se agrega su exceso para evitar millones de matchers.
+    // Math.max propaga NaN y se registra además el primer dato no finito con su ubicación.
+    const record = (c: Check, actual: number, bound: number, v: number, x: number, y: number, z: number): void => {
+      c.count++;
+      if ((!Number.isFinite(actual) || !Number.isFinite(bound)) && c.nonFinite === null)
+        c.nonFinite = { scene: tag(v), point: [x, y, z], actual: String(actual), bound: String(bound) };
+      const excess = c.lowerBound ? bound - actual : actual - bound;
+      if (excess > c.maxExcess) c.worst = { scene: tag(v), point: [x, y, z], actual, bound };
+      c.maxExcess = Math.max(c.maxExcess, excess);
+    };
+    for (const [v, s] of SCENES.entries())
       for (let x = -157; x <= 157; x += 9)
         for (let y = -103; y <= 103; y += 9) {
           if (torsoDepth([x, y, 0], s.torso) > 0) continue;
           const c = s.respiratoryColumn(x, y);
           for (let z = -300; z <= 300; z += 3) {
             const w = respiratoryWallOf(s.chestWall, c.wall, c.wallBlendMm, z);
-            expect(w).toBeGreaterThanOrEqual(wallTotalOf(s.chestWall, c.wall, z) - 1e-9);
-            expect(w).toBeLessThanOrEqual(s.chestWall.maxTotal + 1e-9);
+            record(minimum, w, wallTotalOf(s.chestWall, c.wall, z) - 1e-9, v, x, y, z);
+            record(maximum, w, s.chestWall.maxTotal + 1e-9, v, x, y, z);
           }
           // y su paso al abdomen no engruesa hacia abajo más deprisa que la pendiente declarada (la del tórax alto → bajo,
           // ≤ 0,01 mm/mm, aparte)
           for (let z = -300; z < 300; z += 0.5) {
             const thicker =
               respiratoryWallOf(s.chestWall, c.wall, c.wallBlendMm, z) - respiratoryWallOf(s.chestWall, c.wall, c.wallBlendMm, z + 0.5);
-            expect(thicker / 0.5).toBeLessThanOrEqual(RESPIRATORY_WALL.params.slopeMax.value + 0.012);
+            record(slope, thicker / 0.5, RESPIRATORY_WALL.params.slopeMax.value + 0.012, v, x, y, z);
           }
         }
+    for (const c of [minimum, maximum, slope]) {
+      const diagnostic = JSON.stringify(c);
+      expect(c.count, diagnostic).toBeGreaterThan(0);
+      expect(c.nonFinite, diagnostic).toBeNull();
+      expect(c.maxExcess, diagnostic).toBeLessThanOrEqual(0);
+    }
   });
 
   it('mutación: el campo de VExUS (caudal y algo anterior, sin la ley de altura) se pliega con 53 mm', () => {

@@ -75,7 +75,11 @@ test('adquisición compacta: profundidad exacta, foco limitado y foco de teclado
 test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
-  const start = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
+  const start = await page.evaluate(() => {
+    const sim = window.__lusTest!.sim();
+    return { pose: { ...sim.pose }, gainDb: sim.bmode.gainDb };
+  });
+  const changedGainDb = start.gainDb + 1;
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().renderer.cineCount), { timeout: 60_000 }).toBeGreaterThan(2);
   await page.locator('#settings-toggle').click();
   await page.getByRole('button', { name: 'Profunda', exact: true }).click();
@@ -90,13 +94,15 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await expect
     .poll(
       () =>
-        page.evaluate(() => {
+        page.evaluate((expectedGainDb) => {
           const sim = window.__lusTest!.sim();
           const n = sim.renderer.cineCount;
           if (!n) return false;
           const f = sim.renderer.cineFrame(n - 1);
-          return f.acquisition.pose.phi > 1.14 * Math.PI && f.bmode.gainDb === -20 && f.acquisition.respiratoryPattern === 'deep';
-        }),
+          return (
+            f.acquisition.pose.phi > 1.14 * Math.PI && f.bmode.gainDb === expectedGainDb && f.acquisition.respiratoryPattern === 'deep'
+          );
+        }, changedGainDb),
       { timeout: 60_000 },
     )
     .toBe(true);
@@ -104,7 +110,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await expect(page.locator('#live-chip')).toHaveText('Congelada');
   const currentPose = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
   await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
-  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
+  await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
 
   // Escoge con el cine nativo un cuadro adquirido al inicio; el índice se encuentra por sus metadatos,
   // sin modificar ni el anillo ni la pose, y se recorre con las mismas teclas que usa el alumno.
@@ -114,8 +120,8 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
       const f = r.cineFrame(i);
       if (
         f.bmode.depthMm === 120 &&
-        f.bmode.gainDb === -21 &&
-        Math.abs(f.acquisition.pose.phi - initial.phi) < 0.001 &&
+        f.bmode.gainDb === initial.gainDb &&
+        Math.abs(f.acquisition.pose.phi - initial.pose.phi) < 0.001 &&
         f.acquisition.respiratoryPattern === 'quiet'
       ) {
         return { index: i, pose: f.acquisition.pose };
@@ -129,10 +135,10 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   for (let i = 0; i < old!.index; i++) await cine.press('ArrowRight');
   await frame(page);
   await expect(page.locator('#quick-depth')).toContainText('12,0 cm');
-  await expect(page.locator('#quick-gain')).toContainText('-21 dB');
+  await expect(page.locator('#quick-gain')).toContainText(`${start.gainDb} dB`);
   await expect(page.locator('#quick-gain')).toBeDisabled();
   await expect(page.locator('#hud-tr')).toContainText('12,0 cm');
-  await expect(page.locator('#hud-tr')).toContainText('G -21 dB');
+  await expect(page.locator('#hud-tr')).toContainText(`G ${start.gainDb} dB`);
   await expect(page.locator('[data-start-point="blueUpper"]')).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('[data-start-point="plaps"]')).not.toHaveAttribute('aria-current', 'true');
   expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.pose)).toEqual(old!.pose);
@@ -144,11 +150,11 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
 
   await cine.press('End');
   await frame(page);
-  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
+  await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
   await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
   await page.locator('#freeze').click();
   expect(await page.evaluate(() => window.__lusTest!.sim().pose)).toEqual(currentPose);
-  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
+  await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
   // Una profundidad distinta inicia un historial nuevo: no conserva cuadros de la escala anterior.
   await page.locator('#quick-depth').click();
   await expect(page.locator('#quick-depth-panel')).toContainText('Cambiar la profundidad inicia un nuevo cine.');
@@ -171,6 +177,8 @@ test('pantalla de 320 px: equipo visible y navegador plegable sin desbordamiento
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 320, height: 740 });
   const errors = await boot(page);
+  const initialGainDb = await page.evaluate(() => window.__lusTest!.sim().bmode.gainDb);
+  const changedGainDb = initialGainDb + 1;
   await expect(page.locator('#navigator-content')).toBeHidden();
   const visibleEquipment = async () => {
     for (const id of ['freeze', 'quick-depth', 'quick-gain', 'quick-focus', 'settings-toggle']) {
@@ -193,7 +201,7 @@ test('pantalla de 320 px: equipo visible y navegador plegable sin desbordamiento
   expect(popup.x).toBeGreaterThanOrEqual(0);
   expect(popup.x + popup.width).toBeLessThanOrEqual(320);
   await page.getByLabel('Ganancia', { exact: true }).press('ArrowRight');
-  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
+  await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
   await visibleEquipment();
   expect(errors).toEqual([]);
 });

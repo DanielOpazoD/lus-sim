@@ -5,7 +5,7 @@ import { calibrationReference, type CalibrationGroup } from '../tools/fidelity/c
 import type { ReferenceStats } from '../tools/fidelity/reference';
 
 /**
- * C3b-A: barrido experimental de presentación, sin escoger ni aceptar un nuevo preajuste.
+ * C3b-A: adquisición reproducible del preajuste normal y barrido de presentación.
  * Tres réplicas en el MISMO instante de apnea por candidato: la anatomía no cambia; el ruido del receptor
  * sigue dependiendo del cuadro. No es una medida temporal T2/S1 ni una validación clínica del normal.
  * Cada candidato pasa por la GPU y readDisplay: no se remapea el gris ya recortado ni se duplica la conversión de barrido.
@@ -98,6 +98,7 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       console.log(
         `CALIBRATION_JSON ${JSON.stringify({
           startPoint,
+          protocol: { respiration: 'apnea-expiratory', frames: FRAMES, frameIntervalS: 0, settleS: 0, stack: r.stack },
           acquisition: r.acquisition,
           display: r.display,
           renderer: result.renderer,

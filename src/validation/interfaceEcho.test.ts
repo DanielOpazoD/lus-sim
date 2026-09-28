@@ -275,10 +275,10 @@ describe('Uniforms y GLSL del eco de interfaz', () => {
         faceProfile(delta, p.twoSided);
       expect(interfaceEchoField(id, cosI, curv, delta, K0)).toBeCloseTo(want, 4);
     }
-    // K se calibra en la GPU dentro de su rango; fuera es un error de modelo
+    // K se calibra dentro de su dominio heredado; el cociente sigue el incremento de amplitud en dB
     expect(IFACE_K_DB).toBeGreaterThanOrEqual(IFACE_K_RANGE_DB[0]);
     expect(IFACE_K_DB).toBeLessThanOrEqual(IFACE_K_RANGE_DB[1]);
-    expect(interfaceUniforms(K0, 57)[4 * Interface.VeinLumen] / u[4 * Interface.VeinLumen]).toBeCloseTo(10 ** (2 / 20), 5);
+    expect(interfaceUniforms(K0, 57)[4 * Interface.VeinLumen] / u[4 * Interface.VeinLumen]).toBeCloseTo(10 ** ((57 - IFACE_K_DB) / 20), 5);
   });
 
   it('las constantes entran interpoladas y la pasada B dibuja el eco (sin el término especular de antes)', () => {
