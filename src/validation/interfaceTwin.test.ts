@@ -49,7 +49,12 @@ import {
  * renal queda en 2,17. La VCI del gemelo (`ivc`) es circular (r 10 mm); la de la anatomía, elíptica: sus
  * paredes AP (subxifoidea) tienen curvatura apScale/r y las laterales (flanco) 1/(apScale²·r), y en apnea
  * (apScale 0,777) dan 1,67 y 1,52 frente a 1,62 (`ivcAp`, `ivcLateral`).
+ *
+ * lus-sim (decisión 24): `runCase` conserva K = 55 dB del banco abdominal histórico M1–M8
+ * (`design-spec/final`), independiente de la calibración pulmonar vigente. Las simulaciones directas,
+ * incluida M9, siguen usando la escala actual de producción; las bandas del banco no cambian.
  */
+const HISTORICAL_K_DB = 55;
 type Model = SimOpts['model'];
 interface CaseSpec {
   scene: (phi: number) => Scene;
@@ -150,7 +155,7 @@ function runCase(model: Model, spec: CaseSpec, liverMed: number): CaseResult {
     for (const phi of spec.phis) {
       const sc = spec.scene(phi);
       const [r0, r1] = spec.range(phi);
-      const o = simulate(sc, { model, r0, r1, seed, mirror: spec.mirror });
+      const o = simulate(sc, { model, r0, r1, seed, mirror: spec.mirror, kDb: HISTORICAL_K_DB });
       const found = bench(sc, o, liverMed, 180, spec.opt);
       all.push(...found);
       if (phi === spec.phis[0]) beads.push(beading(found, 0, 20));
@@ -225,7 +230,7 @@ function gaussianBeamFace(r: number, focus = 90): number {
   return Math.hypot(re, im) / Math.sqrt(s2);
 }
 
-describe('Gemelo B→C→D de los ecos de interfaz (decisión 57)', () => {
+describe('Gemelo B→C→D: banco abdominal histórico M1–M8 a K = 55 dB (decisión 57)', () => {
   let liverMed = 1;
   let R = {} as Record<CaseId, CaseResult>;
   beforeAll(() => {

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { FidelityBenchReport } from '../src/app/fidelityBench';
+import { LUNG_PRESET } from '../src/ultrasound/lungPreset';
 import { compareToReference, simValuesOf, type StratumMetric } from '../src/measure/fidelity/compare';
 
 /**
@@ -10,8 +11,8 @@ import { compareToReference, simValuesOf, type StratumMetric } from '../src/meas
  * se compara con la referencia (ciclo 3b): se exige que el detector automático vea lo que el simulador sabe, y el informe con
  * las métricas, su censura y los niveles en dB se adjunta al resultado de Playwright (`fidelidad-<punto>.json`).
  *
- * Medido el 27-09-2026 sobre main 9f9fd9f con GPU real (Apple M4, `LUS_E2E_GPU=1`), 30 cuadros a 30 cps (los mismos rangos
- * que la decisión 21):
+ * Referencia histórica medida el 27-09-2026 sobre main 9f9fd9f (K = 55 dB, R_t = 0,3, ganancia −21 dB) con GPU real
+ * (Apple M4, `LUS_E2E_GPU=1`), 30 cuadros a 30 cps (los mismos rangos que la decisión 21):
  *  - la pleura detectada, a −0,11…−0,17 mm del cruce del gemelo de A0 (la peor, 0,24 mm) en todas las columnas;
  *  - las líneas A de orden 2 y 3 a +0,11…+0,34 mm de k veces la línea pleural mostrada (F-T01 pide ±0,5 mm) y a
  *    −0,17…−0,32 mm de k·D;
@@ -117,9 +118,11 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
  * Las métricas que se declaran invariantes a la ganancia (decisión 21). Un cambio de ganancia es exactamente g → a·g + b en el
  * gris mostrado (la curva de grises es exponencial en el nivel: (1 + c)^(y + δ) = (1 + c)^δ·(1 + c)^y), así que lo que no se
  * recorta no debe cambiar más que el escalón de 8 bits y la detección (una fila o una columna): ±5 %. Lo recortado sale
- * censurado y no se compara: la neblina y el campo profundo en el negro (a −30 dB), la pleura en el blanco (desde −15 dB, un 5 %
- * de sus columnas), el fondo de las líneas A en el negro. N1–N3 no están: con el suelo de la sombra en el negro dependen de la
- * ganancia (la revisión de la PR #23 lo midió: N1 de 0,059 a 0,175 entre −31 y −15 dB) y deben salir censuradas.
+ * censurado y no se compara. En la medición histórica del 27-09-2026, con preajuste −21 dB: neblina y campo profundo en el negro
+ * a −30 dB, pleura en el blanco desde −15 dB (un 5 % de sus columnas) y fondo de las líneas A en el negro. Estos niveles no se
+ * presuponen para otro preajuste: el barrido conserva sus desplazamientos y exige comparación a ±3 dB. N1–N3 no están: con el
+ * suelo de la sombra en el negro dependen de la ganancia (la revisión de la PR #23 lo midió: N1 de 0,059 a 0,175 entre −31 y
+ * −15 dB) y deben salir censuradas.
  */
 const GAIN_INVARIANT = [
   'dPl.px',
@@ -149,11 +152,13 @@ const MUST_COMPARE = [
   'T1.lateral.dPl',
   'T1.sigmaOverProminence',
 ] as const;
-/** La ganancia del preajuste (−21 dB, la referencia del barrido) y el barrido, dentro del rango del equipo. */
-const GAINS = [-30, -24, -21, -18, -15, -12] as const;
+/** El barrido conserva sus desplazamientos respecto a la ganancia vigente del preajuste. */
+const PRESET_GAIN_DB = LUNG_PRESET.params.gainDb.value;
+const GAIN_OFFSETS_DB = [-9, -3, 0, 3, 6, 9] as const;
+const GAINS = GAIN_OFFSETS_DB.map((offsetDb) => PRESET_GAIN_DB + offsetDb);
 const GAIN_TOLERANCE = 0.05;
 
-test('barrido de ganancia (−30…−12 dB): lo que se declara invariante lo es en el simulador, y N1–N3 con el suelo en el negro salen censuradas', async ({
+test('barrido de ganancia (−9…+9 dB respecto al preajuste): lo que se declara invariante lo es en el simulador, y N1–N3 con el suelo en el negro salen censuradas', async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -168,7 +173,7 @@ test('barrido de ganancia (−30…−12 dB): lo que se declara invariante lo es
     );
   // la ganancia llegó al equipo en cada corrida
   expect(runs.map((r) => r.display.gainDb)).toEqual([...GAINS]);
-  const ref = runs[GAINS.indexOf(-21)].metrics;
+  const ref = runs[GAIN_OFFSETS_DB.indexOf(0)].metrics;
   const table = GAIN_INVARIANT.map((k) => ({
     metric: k,
     byGain: runs.map((r, i) => ({ gainDb: GAINS[i], value: r.metrics[k]?.median ?? null, censored: r.metrics[k]?.censored ?? null })),
@@ -178,6 +183,8 @@ test('barrido de ganancia (−30…−12 dB): lo que se declara invariante lo es
     file,
     JSON.stringify(
       {
+        presetGainDb: PRESET_GAIN_DB,
+        gainOffsetsDb: GAIN_OFFSETS_DB,
         table,
         floorBased: ['N1', 'N2', 'N3'].map((k) => ({ metric: k, byGain: runs.map((r, i) => ({ gainDb: GAINS[i], ...r.metrics[k] })) })),
         clipped: [
@@ -203,7 +210,7 @@ test('barrido de ganancia (−30…−12 dB): lo que se declara invariante lo es
         GAIN_TOLERANCE * Math.max(1, Math.abs(r0.median)),
       );
     }
-  for (const g of [-24, -18])
+  for (const g of [PRESET_GAIN_DB - 3, PRESET_GAIN_DB + 3])
     for (const k of MUST_COMPARE) expect(compared.has(`${k}@${g}`), `${k} a ${g} dB: ${JSON.stringify(table)}`).toBe(true);
   // con el suelo de la sombra en el gris 0, N1–N3 no son medidas en ninguna ganancia del barrido; el campo profundo del
   // preajuste, en el negro, da M como cota inferior

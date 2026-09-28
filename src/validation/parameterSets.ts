@@ -9,6 +9,7 @@ import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
+import { NORMAL_CALIBRATION } from '../ultrasound/normalCalibration';
 import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
 
@@ -31,6 +32,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   LUNG_PRESET,
   TGC_REFERENCE,
   BONE_TRANSMISSION,
+  NORMAL_CALIBRATION,
   DIAPHRAGM_EXCURSION,
   RESPIRATORY_WALL,
   FIDELITY_BENCH,

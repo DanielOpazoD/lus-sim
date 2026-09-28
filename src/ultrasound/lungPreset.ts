@@ -38,20 +38,22 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
       '`lungPreset.test.ts` la vuelve a medir: si la anatomía cambia, la prueba falla y el foco se recalcula',
   },
   gainDb: {
-    value: -21,
+    value: -20,
     unit: 'dB',
     range: [-24, -18],
     evidence: 'estimado',
     sources: ['demi-guias-2023', 'volpicelli-actualizacion-2026'],
     note:
-      'Sin saturar la línea pleural (Demi 2023, enunciado 15; `docs/knowledge/physics.md` §2.2): la ganancia que deja el ' +
-      'eco pleural intercostal más brillante de los tres puntos de partida BLUE bajo el blanco. Medido en la envolvente de ' +
-      'la GPU con 0 dB (ciclo 2, decisión 20: `ribShadow`, líneas libres en apnea espiratoria), la línea pleural llega a ' +
-      '+19,4, +20,1 y +19,5 dB sobre el blanco en el punto BLUE superior, el inferior y el PLAPS; con −21 dB queda a ' +
-      '−0,9…−1,6 dB. La e2e de la sombra costal lo vuelve a medir. El resto de la imagen baja lo mismo: la ganancia no ' +
-      'cambia la ecogenicidad (guía §13), y la pared queda gris oscura bajo una línea pleural que aún es lo más brillante. ' +
-      'Estimado (lo halló la revisión): el nivel de la línea pleural sale del simulador (el eco de interfaz, K = 55 dB, sin ' +
-      'calibrar); rango: la línea pleural más brillante entre −3 y +3 dB del blanco',
+      'Evitar la saturación de la línea pleural (Demi 2023, enunciado 15; `docs/knowledge/physics.md` §2.2). Referencia ' +
+      'histórica con K = 55 dB: en la envolvente de la GPU con ganancia 0 dB (ciclo 2, decisión 20: `ribShadow`, líneas ' +
+      'libres en apnea espiratoria), la pleura llegó a +19,4, +20,1 y +19,5 dB sobre el blanco en BLUE superior, BLUE ' +
+      'inferior y PLAPS; con −21 dB quedó a −0,9…−1,6 dB. Ajuste preliminar C3b-A (decisión 24): con K = 54 dB, la ' +
+      'ganancia −20 dB compensa nominalmente 1 dB de reducción del componente de interfaz. Medido en CI con rango ' +
+      'dinámico 70 dB y apnea a t = 60 s: el gris de pared sube 1,64–2,02 niveles y el de neblina 1,53–1,71 en los ' +
+      'tres puntos; el recorte pleural mediano es 0. Las pruebas de sombras y líneas A pasan sin cambiar sus guardas. ' +
+      'Son medidas del simulador (CI 81, 5d1b4cd), sin cierre de la fidelidad de textura o campo profundo. La ganancia ' +
+      'no sustituye el ajuste del contraste relativo (guía §13). Es una ' +
+      'estimación propia del simulador, no una ganancia clínica documentada; se conserva el dominio heredado [−24, −18] dB',
   },
   persistence: {
     value: 0,

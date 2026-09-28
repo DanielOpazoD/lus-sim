@@ -366,6 +366,15 @@ describe('recortes: la censura en el negro y en el blanco (§3.1, principio 5)',
 });
 
 describe('pila: coherencia temporal (T2), modo M reconstruido (S1) y cuadros repetidos', () => {
+  it('las réplicas simultáneas conservan métricas espaciales pero no publican medidas temporales', () => {
+    const frames = syntheticLus(O, 3, 1.5, 0.01);
+    const replicated = analyzeClip(frames, { geometry: TRUE, scale: CONT, frameIntervalS: 0 });
+    expect(replicated.stack).toBeNull();
+    expect(Number.isFinite(replicated.summary['M.wall'].median)).toBe(true);
+    expect(analyzeClip(frames, { geometry: TRUE, scale: CONT }).stack).not.toBeNull();
+    for (const frameIntervalS of [-1, Number.NaN, Number.POSITIVE_INFINITY])
+      expect(() => analyzeClip(frames, { frameIntervalS })).toThrow(/intervalo/);
+  });
   const geometry = TRUE;
   const moving = analyzeClip(syntheticLus(O, 12, 1.5, 0.01), { geometry, scale: CONT, frameIntervalS: 1 / 30 }).stack!;
   const still = analyzeClip(syntheticLus(O, 12, 0, 0.01), { geometry, scale: CONT, frameIntervalS: 1 / 30 }).stack!;

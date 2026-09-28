@@ -12,11 +12,13 @@ import { median, medianIqr, quantile } from '../measure/fidelity/stats';
 import { pointOnLine } from '../probe/probe';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { GREY_CURVE, levelOfGrey } from '../ultrasound/greyMap';
+import { IFACE_K_DB } from '../ultrasound/interfaceEcho';
 import { PLEURA_RP, PLEURA_RT, pleuraCapMm, pleuraCoherence } from '../ultrasound/pleura';
 import { COARSE_DEPTH, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import type { Simulator } from './simulator';
 import type { StartPoint } from './startPoints';
 import type { RibShadowStats } from './testHooks';
+import { EQUIPMENT_LIMITS } from './equipment';
 
 /**
  * Banco de fidelidad, lado del simulador (decisión 21): captura la imagen MOSTRADA (el gris de 8 bits del lienzo, tras la
@@ -37,6 +39,8 @@ export interface FidelityBenchOptions {
   settleS?: number;
   /** Ganancia del equipo durante la medida (dB; la del preajuste por omisión): el barrido de ganancia. */
   gainDb?: number;
+  /** Rango dinámico experimental: copia temporal del equipo, restaurada incluso si la medida falla. */
+  dynamicRangeDb?: number;
 }
 
 /** Un nivel en la pantalla: gris (mediana o pico), dB sobre el blanco desde el gris y desde la envolvente sin recortar. */
@@ -53,6 +57,8 @@ export interface FidelityBenchReport {
   respiration: RespiratoryPattern;
   frames: number;
   frameIntervalS: number;
+  /** Procedencia de la adquisición; los tiempos distinguen réplicas de un instante de una pila temporal. */
+  acquisition: { seed: number; timesS: number[]; interfaceKDb: number; pleuraRt: number };
   display: {
     width: number;
     height: number;
@@ -111,6 +117,26 @@ export function fidelityBench(
   opts: FidelityBenchOptions,
   deps: { goTo: (id: StartPoint['id']) => void; ribShadow: () => RibShadowStats },
 ): FidelityBenchReport {
+  if (sim.frozen) throw new Error('fidelityBench: la imagen está congelada; no se adquieren cuadros');
+  const range = opts.dynamicRangeDb;
+  const limits = EQUIPMENT_LIMITS.dynamicRangeDb;
+  if (range !== undefined && (!Number.isFinite(range) || range < limits.min || range > limits.max))
+    throw new RangeError(`fidelityBench: rango dinámico ${range} fuera de ${limits.min}–${limits.max} dB`);
+  const equipment = sim.equipment;
+  try {
+    // Instrumentación del banco, sin notificar ni modificar controles. La instantánea original nunca se muta.
+    if (range !== undefined) sim.equipment = { ...equipment, bmode: { ...equipment.bmode, dynamicRangeDb: range } };
+    return measureFidelity(sim, opts, deps);
+  } finally {
+    sim.equipment = equipment;
+  }
+}
+
+function measureFidelity(
+  sim: Simulator,
+  opts: FidelityBenchOptions,
+  deps: { goTo: (id: StartPoint['id']) => void; ribShadow: () => RibShadowStats },
+): FidelityBenchReport {
   const n = Math.max(1, Math.round(opts.frames ?? 1));
   const dt = opts.frameIntervalS ?? 1 / 30;
   deps.goTo(opts.startPoint);
@@ -118,9 +144,11 @@ export function fidelityBench(
   // cuadro 0 con su verdad: la sombra (pleura del gemelo, hueso por línea), la envolvente y la transmisión
   sim.render();
   const frames: GreyFrame[] = [];
+  const timesS: number[] = [];
   const grab = (): void => {
     const d = sim.renderer.readDisplay();
     frames.push({ width: d.width, height: d.height, data: d.gray.slice() });
+    timesS.push(sim.sample.t);
   };
   grab();
   const rib = deps.ribShadow();
@@ -313,6 +341,7 @@ export function fidelityBench(
     respiration: opts.respiration,
     frames: n,
     frameIntervalS: dt,
+    acquisition: { seed: sim.patient.seed, timesS, interfaceKDb: IFACE_K_DB, pleuraRt: PLEURA_RT },
     display: {
       width: frames[0].width,
       height: frames[0].height,

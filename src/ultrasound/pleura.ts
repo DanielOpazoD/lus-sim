@@ -1,6 +1,7 @@
 import { INTERFACES, Interface, interfaceReflectivity } from '../anatomy/interfaces';
 import { cross, normalize, type Vec3 } from '../core/vec3';
 import { IFACE_SHIFT_MM, interfaceEchoField, roughnessCoherence } from './interfaceEcho';
+import { NORMAL_CALIBRATION } from './normalCalibration';
 import { RECEIVER_NOISE, glslFloat } from './receiver';
 import { scattererField } from './speckleField';
 
@@ -50,11 +51,12 @@ import { scattererField } from './speckleField';
 /** Reflexión de la pleura R_p: |Fresnel| músculo/gas de la tabla de caras (≈ 0,9995). */
 export const PLEURA_RP = interfaceReflectivity(Interface.PleuraWall);
 /**
- * Reflexión efectiva de la cara de la sonda y la piel, R_t [ESTIMADO 0,3; calibrable 0,2–0,5]: fija la
- * ganancia de cada ida y vuelta de la reverberación (líneas A y copias directas de la pared).
+ * Reflexión efectiva de amplitud de la cara de la sonda y la piel, R_t: fija la ganancia de cada ida
+ * y vuelta de la reverberación (líneas A y copias directas de la pared). Estimación heredada; valor,
+ * rango y fundamento en `normalCalibration.ts`, compartidos por este gemelo y el GLSL.
  */
-export const PLEURA_RT = 0.3;
-export const PLEURA_RT_RANGE = [0.2, 0.5] as const;
+export const PLEURA_RT = NORMAL_CALIBRATION.params.pleuraRt.value;
+export const PLEURA_RT_RANGE = NORMAL_CALIBRATION.params.pleuraRt.range!;
 /** Estrechamiento del borde del pulmón en el receso, σ_taper (mm) [ESTIMADO 3–5]. */
 export const CURTAIN_TAPER_MM = 4;
 export const CURTAIN_TAPER_RANGE_MM = [3, 5] as const;

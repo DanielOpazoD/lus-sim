@@ -91,13 +91,14 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   test.setTimeout(240_000);
   const errors = await boot(page);
   const hud = page.locator('#hud-tr');
+  const initialGain = await page.evaluate(() => window.__lusTest!.sim().equipment.bmode.gainDb);
   await expect(hud).toContainText('12,0 cm');
   await page.locator('#sector-wrap').click({ position: { x: 5, y: 5 } }); // foco en la página, no en un control
   await page.keyboard.press(']');
   await expect(hud).toContainText('13,0 cm');
   await page.keyboard.press('-');
-  // el preajuste pulmonar arranca en −21 dB (decisión 20) y − baja 2
-  await expect(hud).toContainText('G -23 dB');
+  // El atajo baja 2 dB desde el preajuste vigente; el HUD debe reflejar el nuevo valor.
+  await expect(hud).toContainText(`G ${initialGain - 2} dB`);
   // la consola: el deslizador de la profundidad sigue al equipo
   await expect(page.getByLabel('Profundidad', { exact: true })).toHaveValue('130');
   // Espacio congela (el reloj se detiene)

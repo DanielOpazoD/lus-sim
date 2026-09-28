@@ -230,6 +230,8 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
         [startPoint, compound] as const,
       );
       const tag = `${startPoint}${compound ? ' (compuesto)' : ''}: ${JSON.stringify(a)}`;
+      // Conservar detectabilidad y geometría también en ejecuciones verdes de calibración.
+      console.log(`ALINES_JSON ${JSON.stringify({ startPoint, compound, stats: a })}`);
       expect(a.groups, tag).toBeGreaterThanOrEqual(6);
       // la pleura a 14–17 mm (la pared torácica por región, decisión 17; antes, la del abdomen de VExUS, a 25–29 mm, con 4
       // órdenes): caben 6–8 órdenes en los 12 cm del preajuste. Se exigen los 1–4; los de más allá, a 6–8 dB de

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "id": "normal-convex-c3b-a",
+  "created_utc": "2026-09-28T19:37:52.188305+00:00",
+  "baseline_commit": "e28aaa0c4deb092d3fd76b52d3d2032de8aa5ae8",
+  "manifest_sha256": "1f2807d6e6363bc1326553fd05320253ae4aff6547f05f1c7a3f4ecbcaf376fa",
+  "reference_stats_sha256": "a84b92d79b53f1f7f4ac633705089e8f97261dd9c175dbb70f158a50a3138996",
+  "scope": {
+    "pattern": "normal",
+    "probe": "convex",
+    "qa_usable": true,
+    "gate_failures": 0
+  },
+  "purpose": "Exploración de ajustes del simulador y comprobación posterior con sujetos separados; no establece umbrales clínicos.",
+  "prior_exposure": "Las estadísticas agregadas del banco ya se habían consultado antes de fijar esta partición; no constituye validación clínica, externa ni ciega.",
+  "assignment_basis": "Se reservan born-pat3 y born-pat4 antes de explorar ajustes de C3b-A. Los ocho clips aptos restantes, de cuatro sujetos, forman exploración. No se eligió la partición por el resultado de candidatos.",
+  "exploration": {
+    "subjects": ["born-pat1", "born-pat2", "born-voluntario", "vieira-video1"],
+    "clips": ["LUS-01", "LUS-04b", "LUS-04f", "LUS-04g", "LUS-35f", "LUS-35g", "LUS-35i", "LUS-35k"]
+  },
+  "checking": {
+    "subjects": ["born-pat3", "born-pat4"],
+    "clips": ["LUS-35n", "LUS-35o", "LUS-35q", "LUS-35r", "LUS-35s", "LUS-35u", "LUS-35w", "LUS-35x"]
+  },
+  "constraints": [
+    "Todos los clips elegibles de un sujeto permanecen en el mismo grupo.",
+    "Elegir los parámetros con exploración y comprobarlos después con el grupo reservado. Un ajuste posterior que use comprobación debe declararse como nueva exploración.",
+    "Las dos sombras costales convexas aptas pertenecen a born-pat2: no hay comprobación reservada de sombra costal.",
+    "Los equipos, frecuencias y escalas físicas de adquisición no están documentados por clip; la revisión humana del banco sigue pendiente.",
+    "Las distribuciones se describen con cuentas por clip y sujeto y su censura; no son rangos clínicos ni un objetivo obligatorio de todas las ventanas."
+  ]
+}

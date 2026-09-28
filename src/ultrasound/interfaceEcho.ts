@@ -1,4 +1,5 @@
 import { INTERFACES, INTERFACE_COUNT, Interface, interfaceReflectivity } from '../anatomy/interfaces';
+import { NORMAL_CALIBRATION } from './normalCalibration';
 
 /**
  * Eco de interfaz (decisión 57): la reflexión determinista de una cara lisa, sumada en la pasada B de
@@ -16,9 +17,9 @@ import { INTERFACES, INTERFACE_COUNT, Interface, interfaceReflectivity } from '.
  *                                                     desde la decisión 62, costillas: `hasCurvatureCoherence`)
  *   g    = N(δ'; 0, σh), δ' = ifd/(|∇|·cosθ) − (dos lados ? 0 : 2,5σh), |δ'| ≤ 3,5σh
  *
- * Escala: con S = 1 el pico de la envolvente iguala la envolvente RMS del hígado. K es el de un plano
- * liso frente al moteado del hígado: 56,5 dB (Madsen, Insana y Zagzebski 1984; Chen, Phillips y Parker
- * 1997) menos 1,5 dB de aberración de la pared (K₀ = 55 dB, calibrable en la GPU dentro de [53; 57]).
+ * Escala: con S = 1 el pico de la envolvente iguala la envolvente RMS del hígado. K normaliza un plano
+ * liso frente al moteado del hígado: el valor y el dominio de calibración son estimaciones heredadas,
+ * registradas en `normalCalibration.ts`; las fuentes allí citadas no dan un valor numérico de K.
  * β pasa de S al campo de la pasada B: lo mide el gemelo B→C→D (`interfaceTwin.test.ts`) con una cara en
  * arco a 80 mm y 180 mm de profundidad; si cambian C, D o la retícula del moteado, se re-deriva.
  *
@@ -43,9 +44,9 @@ export const IFACE_REACH_MM = 3.5 * IFACE_SIGMA_H_MM;
 /** Pendiente rms de referencia: Λ(0; s_ref) = 1 (la de la VSH, cuyo nivel no cambia con el lóbulo). */
 export const IFACE_SLOPE_REF = 0.14;
 /** K (dB): cara Γ = 1, s = s_ref, plana y normal, sobre la envolvente RMS del hígado. */
-export const IFACE_K_DB = 55;
-/** Rango de calibración de K en la GPU (dB): fuera de él es un error de modelo, no de calibración. */
-export const IFACE_K_RANGE_DB = [53, 57] as const;
+export const IFACE_K_DB = NORMAL_CALIBRATION.params.interfaceKDb.value;
+/** Dominio heredado de calibración de K en la GPU (dB), no intervalo medido en pacientes. */
+export const IFACE_K_RANGE_DB = NORMAL_CALIBRATION.params.interfaceKDb.range!;
 /** Campo de la pasada B por unidad de S (β, campo·mm): gemelo, 180 mm de profundidad, cara a 80 mm. */
 export const IFACE_BETA = 0.2903;
 /** Por debajo de este |cosθ| la cara no devuelve nada (rasante). */

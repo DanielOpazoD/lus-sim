@@ -159,7 +159,9 @@ conservan su identificador (decisiones 10 y 11).
   línea pleural.
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
-  fina; su nivel sale de K = 55 dB, que se calibra con la GPU.
+  fina. Su nivel depende de K, una escala estimada del modelo registrada en `normalCalibration.ts`; las fuentes del
+  mecanismo no documentan su valor numérico. C3b-A usa 54 dB dentro del dominio heredado [53, 57], un ajuste preliminar
+  medido en la cadena gráfica del simulador (decisión 24), sin resolver la parte difusa ausente.
 - **La costilla es una lente de fase fina, de hueso homogéneo** (`rib-acoustics-simplified`, decisión 20): la sombra costal
   sale de la transmisión de la pasada A con la fase que el hueso añade a cada toma de su cono (la cuerda recta de la costilla
   en la línea de la toma, de la entrada y la salida exactas de A0, por 2π·f·(1/c_músculo − 1/c_hueso), promediada en la banda
@@ -170,7 +172,9 @@ conservan su identificador (decisiones 10 y 11).
   esponjoso por separado, ni el desplazamiento por velocidad del eco que atraviesa el hueso (llegaría ≈ 2,5 mm antes). La
   fase solo es la de la primera costilla de cada línea antes del espejo, y en las miradas dirigidas, la de la línea que el
   camino cruza en su primer hueso; en armónica, el cono de emisión pierde la coherencia de p₁ al cuadrado (la fuente del
-  armónico), sin el resto de la física de la armónica a través del hueso. En la sombra completa, el eco de la pleura queda a −68,7…−86,1 dB del intercostal en el
+  armónico), sin el resto de la física de la armónica a través del hueso. Las mediciones de imagen que siguen son
+  históricas de la decisión 20, con K = 55 dB, R_t = 0,3 y preajuste de ganancia −21 dB; no se atribuyen al ajuste C3b-A.
+  En la sombra completa, el eco de la pleura queda a −68,7…−86,1 dB del intercostal en el
   núcleo (negro en la pantalla del preajuste) y la línea A de orden 2 a más de 100 dB bajo el blanco; la línea pleural se ve
   en la penumbra, el semiancho del cono de emisión en la costilla (6,6–10,5 líneas) más el lóbulo principal de la PSF (1–3
   líneas), por los rayos que pasan junto a la costilla o por su borde redondo, que es fino. Los lóbulos laterales de una
@@ -179,7 +183,7 @@ conservan su identificador (decisiones 10 y 11).
   la línea hasta la muestra vecina, que no sigue los rayos, y la cota más favorable. Con la transmisión de la línea donde el
   camino recto cruza la costilla (la revisión la probó), el núcleo sube 1,4–3,8 dB y en el BLUE inferior y el PLAPS llega a
   gris 9. La penumbra la fija la apertura de emisión de VExUS (26 mm con el foco a 16 mm, F# 0,6, `NEEDS_CALIBRATION`): la
-  pleura se ve en 5–8 mm de cada sombra de 14–17 mm. F-T08 se cumple con el preajuste en los tres puntos de partida y en los
+  pleura se ve en 5–8 mm de cada sombra de 14–17 mm. En esa medición, F-T08 se cumple con el preajuste en los tres puntos de partida y en los
   cortes longitudinales de la LAM, del lado izquierdo y de 1,2π; en la LAM a z 20 el núcleo llega a gris 2 y en un corte
   oblicuo de 60° (la costilla más ancha y de cuerda más plana: menos lente), a gris 6 (10 en armónica). Con más ganancia la
   pleura del núcleo reaparece: con 0 dB, en gris 25–40; con −10, 6–18 (sin el hueso esponjoso, que dispersa, una costilla
@@ -187,11 +191,19 @@ conservan su identificador (decisiones 10 y 11).
   imagen baja lo mismo, la pared queda gris oscura y, sin tocar la TGC, las líneas A se ven hasta ≈ 5 cm y el campo lejano
   es negro, sin suelo de ruido; se sube con la TGC del usuario (el consenso pide ganancia creciente hacia el campo lejano sin
   fijar la pendiente).
-- **Estadística del moteado sin calibrar** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
-  asimetría del moteado no se han medido contra clips reales de pulmón; el banco de referencia (decisión 5)
-  lo hará. Desde la decisión 21 el banco de fidelidad mide el grano de la pared (T1) en la pantalla del simulador y en los
-  clips; la comparación y la calibración son del ciclo 3b.
-- **La presentación no está calibrada frente a la imagen real** (`display-uncalibrated`, decisión 21): el rango dinámico
+- **Estadística del moteado sin calibración completa** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
+  asimetría del moteado no tienen una calibración conjunta frente a clips reales de pulmón. Desde la decisión 21 el banco
+  mide el grano de la pared (T1) en el simulador y en los clips; el ajuste preliminar del contraste no resuelve por sí solo
+  esta limitación.
+- **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
+  K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
+  dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;
+  el recorte pleural mediano es 0 y las pruebas de sombras y líneas A pasan sin cambiar sus guardas
+  ([CI 81, 5d1b4cd](https://github.com/DanielOpazoD/lus-sim/actions/runs/36480592122)). No establece fidelidad completa ni
+  validación clínica. La comparación con sujetos reservados se documenta por separado; los agregados ya eran conocidos,
+  por lo que la partición no constituye validación independiente o ciega.
+
+  Referencia histórica de la decisión 21, con K = 55 dB y R_t = 0,3: el rango dinámico
   (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido
   con el banco de fidelidad en la imagen mostrada, la pared y la neblina subpleural a 1,6–1,9 y 1,8–2,0 caídas de línea A bajo
   la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,53 y 0,92–1,36 (p10–p90) en 9 clips convexos de 4
@@ -202,8 +214,12 @@ conservan su identificador (decisiones 10 y 11).
   vez el nivel y la reverberación. El moteado de la pared es tenue frente a la pleura (T1 σ/prominencia 0,035–0,042 frente a
   0,11–0,31) y la pared, quieta hasta el escalón de 8 bits (σ temporal 0,004–0,16 grises; T2 1,000; en un clip real sería un
   vídeo que repite cuadros), así que S1 es una cota (≥ 11–16 frente a 0,76–1,68). Las métricas son invariantes a lo afín en el
-  gris, que en el simulador es la ganancia pero no el rango dinámico (la curva de grises es exponencial en el nivel). No se
-  sabe aún si es la física (la neblina, un suelo de ruido, R_t, χ) o la presentación: es la pregunta del ciclo 3b.
+  gris, que en el simulador es la ganancia pero no el rango dinámico (la curva de grises es exponencial en el nivel).
+
+  El campo profundo, el moteado (incluido T1 lateral) y la dinámica temporal siguen como limitaciones abiertas. Las réplicas de anatomía fija
+  de C3b-A no evalúan T2/S1. Un descenso de M puede reflejar su denominador de reverberación: se contrasta también con
+  niveles, prominencia de líneas A y recorte, sin deducir por sí solo que la pared se haya aclarado.
+
 - **Lóbulos laterales simplificados, sin lóbulos de rejilla ni en elevación** (`no-sidelobes`, heredada con
   `src/ultrasound/clutter.ts`, decisión 11): el núcleo lateral lleva un pedestal gaussiano con una pantalla de
   fase fija (ISLR −24 dB con los 14 mm de grasa del paciente por omisión), no el diagrama real de la apertura; la
