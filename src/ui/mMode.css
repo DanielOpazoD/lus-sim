@@ -1,0 +1,91 @@
+/* M es una vista opcional; el modo B y los controles conservan sus propietarios. */
+.modebar {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+.mmode-toggle {
+  min-height: 56px;
+  padding-inline: 8px;
+}
+.center.mmode-active {
+  grid-template-rows: minmax(200px, 1fr) auto auto;
+  overflow-y: auto;
+}
+.mmode-pane {
+  min-width: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+.mmode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.mmode-controls h2 {
+  margin: 0 auto 0 0;
+  font-size: 14px;
+}
+.mmode-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.mmode-controls select {
+  min-height: 44px;
+  font-size: 16px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+#mmode-canvas {
+  display: block;
+  width: 100%;
+  height: 164px;
+  margin-top: 6px;
+}
+.mmode-fine {
+  margin-block: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mmode-fine summary {
+  min-height: 44px;
+  padding-block: 12px;
+  cursor: pointer;
+}
+.mmode-fine output {
+  float: right;
+  font-family: var(--mono);
+}
+.mmode-selecting {
+  cursor: crosshair;
+}
+@media (max-width: 800px) {
+  .modebar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .mmode-toggle {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 44px;
+  }
+  .settings-button {
+    grid-column: 3;
+  }
+  .mmode-pane {
+    padding-inline: 8px;
+  }
+  .mmode-controls h2 {
+    flex-basis: 100%;
+  }
+  .mmode-controls button {
+    flex: 1;
+  }
+  #mmode-canvas {
+    height: 144px;
+  }
+}
