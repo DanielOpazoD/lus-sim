@@ -1648,18 +1648,20 @@ conservan sus pruebas. Espesor pleural limitado por resolución, desfase A1 con 
 sombras procedentes de un único sujeto y cocientes temporales censurados no son objetivos de ajuste.
 No se añaden mandos al usuario ni se declara cerrada la fidelidad del normal.
 
-El candidato conserva rango dinámico 70 dB y curva 3,5, reduce K de 55 a 53 dB y R_t de 0,3 a 0,27,
-y compensa nominalmente la interfaz con ganancia −19 dB en lugar de −21. Los valores siguen siendo
-estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. R_t añade 0,92 dB de pérdida
-por ida y vuelta; la compensación K/ganancia conserva solo nominalmente la interfaz y debe comprobarse
-en imagen. `normalCalibration.ts` registra valores, fuentes de mecanismo y límites; TS y GLSL consumen
-la misma configuración. Las fuentes no se presentan como mediciones de estos valores concretos.
+El último candidato conserva rango dinámico 70 dB, curva 3,5 y R_t = 0,3. Reduce K de 55 a 54 dB y
+compensa nominalmente la interfaz con ganancia −20 dB en lugar de −21. Los valores siguen siendo
+estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. `normalCalibration.ts`
+registra valores, fuentes del mecanismo y límites; TS y GLSL consumen la misma configuración. Las
+fuentes no se presentan como mediciones de estos valores concretos. La suma coherente obliga a
+comprobar en imagen la compensación nominal de 1 dB.
 
-El primer ensayo con R_t = 0,2 se descarta: en CI 79 el cuarto orden solo se detectó en 1–2 de los
-12 grupos del BLUE superior, frente a los 6 exigidos. Se mantienen el detector de 6 dB, los recuentos
-y todas las tolerancias geométricas; se ensaya 0,27, más próximo a la base 0,3, para recuperar margen.
-`ALINES_JSON` conserva detectabilidad y geometría también cuando la prueba pasa. El grupo de
-comprobación no interviene en esta revisión del candidato.
+Se descartan dos ensayos previos con K = 53 dB y ganancia −19 dB. Con R_t = 0,2 (CI 79), el cuarto
+orden se detectó solo en 1–2 de 12 grupos del BLUE superior; con R_t = 0,27 (CI 80), en 4 de 12 en
+ambos intentos, con un máximo desplazado 1,37 mm. Ambos incumplen los 6 grupos exigidos pese a aclarar
+pared y neblina. Se conservan el detector de 6 dB, los recuentos y todas las tolerancias geométricas.
+`ALINES_JSON` registra detectabilidad y geometría también cuando la prueba pasa. El último ensayo
+restituye R_t = 0,3 y limita la redistribución a 1 dB; si falla, se conserva la física de la línea base
+sin continuar acercándose al umbral. El grupo de comprobación no interviene en estas revisiones.
 
 El barrido exploratorio también mostró 40–41 columnas útiles de coherencia en una presentación de
 PLAPS. Ese recuento corresponde al detector del primer cuadro, no a líneas GPU independientes ni a la

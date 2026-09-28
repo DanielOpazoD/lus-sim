@@ -263,7 +263,7 @@ con la respiración elegida producen un error explícito.
 ### Alcance del banco abdominal heredado
 
 `src/validation/interfaceTwin.test.ts` conserva K = 55 dB solamente en `runCase`, que reproduce las bandas históricas M1–M8
-y sus regresiones. M9 y las llamadas directas a `simulate` usan el valor vigente de producción (K = 53 dB en el candidato
+y sus regresiones. M9 y las llamadas directas a `simulate` usan el valor vigente de producción (K = 54 dB en el candidato
 C3b-A). Las bandas no se amplían; reproducir el banco histórico no verifica el contraste pulmonar nuevo.
 
 ## Invariantes previstas

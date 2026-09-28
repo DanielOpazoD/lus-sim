@@ -38,7 +38,7 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
       '`lungPreset.test.ts` la vuelve a medir: si la anatomía cambia, la prueba falla y el foco se recalcula',
   },
   gainDb: {
-    value: -19,
+    value: -20,
     unit: 'dB',
     range: [-24, -18],
     evidence: 'estimado',
@@ -47,8 +47,8 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
       'Evitar la saturación de la línea pleural (Demi 2023, enunciado 15; `docs/knowledge/physics.md` §2.2). Referencia ' +
       'histórica con K = 55 dB: en la envolvente de la GPU con ganancia 0 dB (ciclo 2, decisión 20: `ribShadow`, líneas ' +
       'libres en apnea espiratoria), la pleura llegó a +19,4, +20,1 y +19,5 dB sobre el blanco en BLUE superior, BLUE ' +
-      'inferior y PLAPS; con −21 dB quedó a −0,9…−1,6 dB. Candidato C3b-A (decisión 24): con K = 53 dB, la ganancia ' +
-      '−19 dB compensa los 2 dB de reducción del componente de interfaz y busca conservar ese margen pleural nominal. ' +
+      'inferior y PLAPS; con −21 dB quedó a −0,9…−1,6 dB. Candidato C3b-A (decisión 24): con K = 54 dB, la ganancia ' +
+      '−20 dB compensa 1 dB de reducción del componente de interfaz y busca conservar ese margen pleural nominal. ' +
       'No es una nueva medición: la suma coherente con el moteado y las reverberaciones exige volver a medir los niveles ' +
       'y el recorte en la GPU. La e2e de la sombra costal lo comprueba y el banco de calibración compara también pared, ' +
       'neblina y prominencia de líneas A. La ganancia no sustituye el ajuste del contraste relativo (guía §13). Es una ' +

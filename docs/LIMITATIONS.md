@@ -160,7 +160,7 @@ conservan su identificador (decisiones 10 y 11).
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina. Su nivel depende de K, una escala estimada del modelo registrada en `normalCalibration.ts`; las fuentes del
-  mecanismo no documentan su valor numérico. C3b-A propone 53 dB dentro del dominio heredado [53, 57], pendiente de
+  mecanismo no documentan su valor numérico. C3b-A propone 54 dB dentro del dominio heredado [53, 57], pendiente de
   comprobar en GPU (decisión 24).
 - **La costilla es una lente de fase fina, de hueso homogéneo** (`rib-acoustics-simplified`, decisión 20): la sombra costal
   sale de la transmisión de la pasada A con la fase que el hueso añade a cada toma de su cono (la cuerda recta de la costilla
@@ -196,7 +196,7 @@ conservan su identificador (decisiones 10 y 11).
   mide el grano de la pared (T1) en el simulador y en los clips; el ajuste preliminar del contraste no resuelve por sí solo
   esta limitación.
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): C3b-A compara el candidato
-  K = 53 dB, R_t = 0,27 y ganancia −19 dB para el pulmón normal convexo; sus resultados GPU están pendientes. No establece
+  K = 54 dB, R_t = 0,3 y ganancia −20 dB para el pulmón normal convexo; sus resultados GPU están pendientes. No establece
   fidelidad completa del normal ni validación clínica. La partición por sujeto conserva agregados ya conocidos y no es una
   validación independiente o ciega.
 
