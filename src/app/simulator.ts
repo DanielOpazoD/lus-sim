@@ -1,4 +1,5 @@
 import { CONVEX_C35_PROFILE, type TransducerProfile } from '../ultrasound/transducerProfile';
+import type { AcquisitionState } from '../ultrasound/cine';
 import type { ProbeCompression } from '../anatomy/compression';
 import { AnatomyQuery } from '../anatomy/query';
 import { AnatomyScene } from '../anatomy/scene';
@@ -93,6 +94,21 @@ export class Simulator {
   get displayed(): { bmode: Readonly<BModeSettings> } {
     return (this.frozen && this.renderer.cineShownFrame) || this.equipment;
   }
+  /**
+   * Navegación del cuadro que se ve: su adquisición histórica en cine o la del último render vivo completado.
+   * Antes de la primera imagen (también al recuperar GPU), usa el contacto actual, sin reutilizar otro paciente.
+   */
+  get displayedAcquisition(): AcquisitionState {
+    return (
+      (this.frozen && this.renderer.cineShownFrame?.acquisition) ||
+      this.renderer.liveAcquisition || {
+        pose: this.contactPose,
+        frame: this.lastFrame,
+        sample: this.sample,
+        respiratoryPattern: this.patient.respiratoryPattern,
+      }
+    );
+  }
   get sample(): PhysiologySample {
     return this.physiology.sample;
   }
@@ -131,15 +147,16 @@ export class Simulator {
     if (this.frozen) return;
     const clock = this.physiology.clock;
     const steps = clock.requestSteps(elapsedSeconds);
-    if (steps === 0) return;
     // la compresión sigue a la sonda (decisión 63): todo el cuadro (CPU y GPU) ve el mismo tejido y el mismo marco,
-    // el efectivo (la sonda hundida). Con la sonda quieta el contacto no cambia (sale solo de la pose): se reutiliza
+    // el efectivo (la sonda hundida). Se actualiza aun sin paso fisiológico: un gesto no puede llegar con el marco previo.
+    // Con la sonda quieta el contacto no cambia (sale solo de la pose): se reutiliza.
     if (!samePose(this.pose, this.contactPose)) {
       this.lastContact = probeContact(this.pose, this.transducer, this.scene.torso);
       this.contactPose = this.pose;
       this.anatomy.setProbeCompression(this.lastContact);
     }
     this.lastFrame = this.lastContact.frame;
+    if (steps === 0) return;
     for (let i = 0; i < steps; i++) this.physiology.step();
   }
 
@@ -151,6 +168,7 @@ export class Simulator {
         sample: this.sample,
         frame: this.lastFrame,
         pose: this.pose,
+        respiratoryPattern: this.patient.respiratoryPattern,
         compression: this.lastContact,
         transducer: this.transducer,
         bmode: this.bmode,

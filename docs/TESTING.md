@@ -223,3 +223,29 @@ la salida actual no protege nada.
 
 Las de la guía (§18) que aún no tienen módulo (líneas B, modo M, puntaje, ganancia y mapa de grises frente al
 estado físico) entran como pruebas cuando llega su módulo; cada una con su mutación.
+
+## Adquisición con navegación 3D (decisión 23)
+
+`src/validation/acquisitionHistory.test.ts` recorre el renderizador con WebGL registrador para comprobar
+que cada cuadro conserva pose, contacto efectivo, muestra y maniobra respiratoria. Incluye el frame visible que todavía no
+había vencido para el cine, copia independiente de vectores/respiración, vuelta del anillo y sustitución de
+escena/GPU. El gesto sin paso fisiológico debe actualizar el plano sin adelantar el reloj.
+
+Las pruebas puras del navegador comprueban el adaptador de coordenadas, la continuidad al cruzar π,
+el rechazo de regiones no explorables y la huella/sector sobre el mismo marco de la adquisición.
+`src/validation/uiInput.test.ts` instala juntos los oyentes reales de la sonda y de los atajos: la
+activación nativa de Espacio no debe cancelarse al enfocar un botón. `e2e/adquisicion.spec.ts` verifica
+los mandos contextuales, congelado/cine y distribución móvil sobre el build de producción. El recorrido
+histórico cambia ganancia, ubicación y maniobra; cambiar profundidad inicia un anillo nuevo por la regla
+de persistencia entre escalas polares, y se comprueba como una operación distinta.
+`e2e/navegacion3d.spec.ts` recorre los gestos y botones del navegador, la independencia de la cámara,
+el bloqueo de la sonda en cine y la pérdida/restauración del contexto 3D sin reiniciar el ecógrafo.
+La inyección de pérdida/restauración y las capturas se realizan con la adquisición pausada, como en
+el humo del ecógrafo. Entre ambas operaciones se reanuda con el 3D todavía perdido y se exige que
+ese mismo renderizador ecográfico adquiera cuadros nuevos; después de restaurar se comprueba otro
+avance. Esta prueba no demuestra la inyección de pérdida bajo carga simultánea de ambos contextos: en
+SwiftShader, la evaluación posterior a una captura en vivo agotó el plazo y no se pudo atribuir el
+bloqueo a la llamada nativa o al transporte de la evaluación. Se conservan los plazos y umbrales.
+
+El build controla entrada inicial y módulo 3D diferido por separado y también la suma. Estas pruebas
+no establecen rendimiento en GPU física ni certifican fidelidad anatómica o visual del modelo.

@@ -19,13 +19,14 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 
 ## Estado (v0.1.0, fase 0 cerrada)
 
-Cimientos terminados: repositorio, integración continua, misión y objetivos, documentos rectores,
-base de conocimiento verificada y guardas automáticas. La fase 1 porta el motor de VExUS en tres pasos (decisión 10;
-`docs/ROADMAP.md`). Sin publicar: el paso A porta la física en TypeScript, el B1 la pone al día con el main de VExUS
-(decisión 11), el B2a forma la imagen del tórax en la GPU, igual a la de TypeScript y comprobada en la e2e
-(decisión 12), y el B2b la muestra con una interfaz mínima del modo B (decisión 13): la primera imagen, con la
-línea pleural, las líneas A, la sombra costal y el deslizamiento. La interfaz es mínima (`ui-minimal`) y el
-tórax conserva la pared y las dimensiones heredadas de VExUS hasta el paso C.
+La rama principal forma la ecografía del pulmón normal con el motor TypeScript/WebGL2 y añade un navegador
+3D del tórax para mover y orientar la sonda (decisión 23). La imagen, el contacto efectivo y el cine comparten
+la misma adquisición. Profundidad, ganancia y foco se editan desde una barra compacta; orientación fina,
+respiración y procesamiento están en ajustes contextuales. En móvil el navegador se puede plegar.
+
+El alcance sigue siendo modo B con un adulto sintético y un transductor convexo. La navegación representa
+la anatomía paramétrica del motor; no constituye un atlas anatómico segmentado ni valida por sí sola la
+fidelidad clínica. Las limitaciones vigentes están en `docs/LIMITATIONS.md`.
 
 Ya existe:
 
@@ -43,6 +44,8 @@ Ya existe:
   (`e2e/imagen.spec.ts`): equivalencia TS ↔ GLSL, moteado de Rayleigh y líneas A a múltiplos de la pleura;
 - (fase 1, paso B2b) la aplicación (`src/main.ts`): la imagen a la vista con la sonda libre, los puntos de partida
   BLUE, la consola del equipo, el HUD y la recuperación de la pérdida del contexto WebGL (`e2e/smoke.spec.ts`);
+- (decisión 23) navegador torácico 3D con transductor, marcador y plano de corte coherentes; controles
+  contextuales y cine con estado espacial y respiratorio histórico;
 - las guardas: capas (`src/validation/layers.test.ts`), documentación y bibliografía
   (`src/validation/docs.test.ts`), evidencia (`src/validation/evidence.test.ts`) y procedencia del código
   portado (`src/validation/provenance.test.ts`, `tools/provenance/drift.ts`).

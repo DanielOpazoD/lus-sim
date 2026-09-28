@@ -12,9 +12,9 @@ type StartPointId = StartPoint['id'];
  * del paciente, guía §5); sin el color del anillo del navegador 3D de VExUS.
  */
 const CARD_SUB: Record<StartPointId, string> = {
-  blueUpper: 'Medioclavicular, 2.º espacio intercostal',
-  blueLower: 'Axilar anterior, 4.º espacio intercostal',
-  plaps: 'Posterolateral, en supino',
+  blueUpper: 'Anterior',
+  blueLower: 'Anterolateral',
+  plaps: 'Posterolateral',
 };
 
 /**

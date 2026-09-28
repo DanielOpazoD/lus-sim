@@ -15,8 +15,11 @@ export function bindKeyboardShortcuts(store: Store, dispatch: (cmd: EquipmentCom
     const el = e.target as HTMLElement | null;
     const tag = el?.tagName;
     if ((tag === 'INPUT' && (el as HTMLInputElement).type !== 'range') || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (el?.isContentEditable || el?.closest?.('dialog[open]')) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === ' ' && tag === 'BUTTON') return;
+    if (e.key === ' ' && (tag === 'BUTTON' || tag === 'SUMMARY' || tag === 'A' || e.repeat)) return;
+    // Una imagen histórica conserva su adquisición; los ajustes se cambian al reanudar.
+    if (store.get().frozen && e.key !== ' ') return;
     switch (e.key) {
       case ' ':
         store.set({ frozen: !store.get().frozen });

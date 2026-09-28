@@ -2,6 +2,7 @@ import type { AnatomyScene } from '../anatomy/scene';
 import { TISSUES, TISSUE_COUNT } from '../anatomy/tissues';
 import { transmissionAlphaDbPerCm } from './boneTransmission';
 import type { PhysiologySample } from '../physiology/engine';
+import type { RespiratoryPattern } from '../physiology/patientState';
 import type { ProbeCompression } from '../anatomy/compression';
 import { contactCoupling } from '../probe/contact';
 import { lineAngle, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
@@ -32,7 +33,7 @@ import { boneCoherence } from './aperture';
 import { bmodeBeam } from './transducerProfile';
 import { FRAME_PASSES, type PassId } from './passGraph';
 import { CompoundRing, compoundActive, lookTheta, type CompoundLook } from './compound';
-import { CINE_FRAMES, CineRing, persistenceReplay } from './cine';
+import { CINE_FRAMES, CineRing, persistenceReplay, snapshotAcquisition, type AcquisitionState } from './cine';
 import { M_COLUMNS, M_SAMPLES, MColumnRing, mLineU } from './mmode';
 import { lookWavenumber } from './steering';
 import type { SegmentGrid } from './transmission';
@@ -162,6 +163,8 @@ export interface FrameInputs {
   sample: PhysiologySample;
   frame: ProbeFrame;
   pose: ProbePose;
+  /** Simulator siempre lo declara; las llamadas directas de bancos antiguos asumen respiración tranquila. */
+  respiratoryPattern?: RespiratoryPattern;
   /**
    * Contacto de la sonda del cuadro (decisión 63, `probe/contact.ts`): la compresión del tejido (uniforms
    * `uComp*`, la misma que la CPU en `AnatomyQuery`) y el acoplamiento por línea.
@@ -183,6 +186,8 @@ export interface CineFrame {
   /** Cuadro dibujado (`frameCount`): entre dos guardados puede haber varios, y la persistencia los pesa todos. */
   n: number;
   bmode: BModeSettings;
+  /** La misma pose, marco efectivo y respiración de la envolvente guardada. */
+  acquisition: AcquisitionState;
 }
 
 /**
@@ -710,7 +715,18 @@ export class UltrasoundRenderer {
    * columna de su línea.
    */
   private afterFrame(inputs: FrameInputs): void {
-    const frame: CineFrame = { t: inputs.sample.t, n: this.frameCount, bmode: inputs.bmode };
+    const frame: CineFrame = {
+      t: inputs.sample.t,
+      n: this.frameCount,
+      bmode: inputs.bmode,
+      // El motor reemplaza estos valores entre cuadros; la copia histórica se hace al entrar en el anillo.
+      acquisition: {
+        pose: inputs.pose,
+        frame: inputs.frame,
+        sample: inputs.sample,
+        respiratoryPattern: inputs.respiratoryPattern ?? 'quiet',
+      },
+    };
     this.lastFrame = frame;
     this.liveValid = true;
     this.envIsLive = true;
@@ -727,6 +743,7 @@ export class UltrasoundRenderer {
   /** Guarda en el anillo la envolvente que tiene ahora `tEnv`. */
   private cineStore(frame: CineFrame): void {
     const gl = this.gl;
+    frame.acquisition = snapshotAcquisition(frame.acquisition);
     const slot = this.cine.push(frame.t, frame);
     this.cineEnv ??= this.cineLayers(gl.R16F, this.lines, FINE_DEPTH);
     this.blitLayer(this.cineEnv, slot, this.tEnv, true);
@@ -781,6 +798,11 @@ export class UltrasoundRenderer {
   /** Cuadro del cine en pantalla, o null en vivo. */
   get cineShownFrame(): CineFrame | null {
     return this.cineShown ? this.cine.at(this.cineShown.index) : null;
+  }
+
+  /** Adquisición del último cuadro dibujado en vivo, aunque todavía no venciera la cadencia de guardado del cine. */
+  get liveAcquisition(): AcquisitionState | null {
+    return this.lastFrame?.acquisition ?? null;
   }
 
   /**

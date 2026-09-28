@@ -3,16 +3,13 @@ import type { Store } from '../app/store';
 import { controlId, type Syncable } from './controls';
 import { bindCollapsible } from './disclosure';
 import { buildAcquireTab, type AcquireActions } from './panel/acquireTab';
+import { buildImageBasics } from './panel/imageControls';
 import type { EquipmentCommand } from '../app/equipment';
 import type { PanelContext, SectionOptions } from './panel/context';
 
 /**
- * Consola derecha (guía §16–§17): cada control actúa en su etapa física. Se ordena en secciones plegables: lo
- * básico arriba y abierto, lo avanzado plegado, y las explicaciones largas detrás del ⓘ de la sección.
- *
- * lus-sim (decisión 13): una sola pestaña, Adquirir (la imagen, la sonda y la respiración), sin la barra de pestañas
- * ni las de Doppler, Medir y Docente de VExUS; la raíz le pasa cómo mover la sonda y reiniciar el paciente
- * (`AcquireActions`).
+ * Equipo junto a la imagen: tres valores siempre visibles; los ajustes de cada uno se abren al tocarlos.
+ * Maniobras, orientación fina y avanzado comparten un diálogo contextual con foco nativo.
  */
 export class ControlPanel implements PanelContext {
   private syncables: Syncable[] = [];
@@ -25,18 +22,36 @@ export class ControlPanel implements PanelContext {
     actions: AcquireActions,
   ) {
     root.replaceChildren();
+    buildImageBasics(this, root);
+    const dialog = document.getElementById('acquisition-settings') as HTMLDialogElement;
+    const settingsHost = document.getElementById('settings-content')!;
+    const settingsToggle = document.getElementById('settings-toggle') as HTMLButtonElement;
+    const close = document.getElementById('settings-close') as HTMLButtonElement;
     const scroll = document.createElement('div');
     scroll.className = 'console-scroll';
-    root.append(scroll);
+    settingsHost.replaceChildren(scroll);
     const p = document.createElement('div');
     p.className = 'tab-panel';
     p.setAttribute('aria-label', 'Adquirir');
     scroll.appendChild(p);
+    settingsToggle.addEventListener('click', () => {
+      dialog.showModal();
+      settingsToggle.setAttribute('aria-expanded', 'true');
+    });
+    close.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => {
+      settingsToggle.setAttribute('aria-expanded', 'false');
+      settingsToggle.focus();
+    });
+    dialog.addEventListener('click', (e) => {
+      const r = dialog.getBoundingClientRect();
+      if (e.target === dialog && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dialog.close();
+    });
 
     // Esc descarta el ⓘ que se esté viendo (WCAG 1.4.13) y, si había uno, no sigue hasta los atajos
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      const shown = [...root.querySelectorAll<HTMLElement>('.info')].filter(
+      const shown = [...dialog.querySelectorAll<HTMLElement>('.info')].filter(
         (i) =>
           !i.classList.contains('dismissed') &&
           (i.classList.contains('show') || i.matches(':hover, :focus-visible') || !!i.nextElementSibling?.matches(':hover')),
@@ -45,10 +60,31 @@ export class ControlPanel implements PanelContext {
         i.classList.remove('show');
         i.classList.add('dismissed');
       }
-      if (shown.length) e.stopPropagation();
+      if (shown.length) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     });
 
     buildAcquireTab(this, p, actions);
+    const syncFrozen = () => {
+      const frozen = store.get().frozen;
+      const active = document.activeElement as HTMLElement | null;
+      for (const host of [root, settingsHost]) {
+        for (const el of host.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, [data-acquisition-command]')) {
+          el.disabled = frozen;
+        }
+      }
+      for (const id of ['acquisition-lock-note', 'settings-lock-note']) document.getElementById(id)!.hidden = !frozen;
+      this.sync();
+      if (frozen && active && root.contains(active)) document.getElementById('freeze')!.focus();
+      else if (frozen && active && settingsHost.contains(active) && active.matches(':disabled')) close.focus();
+    };
+    store.subscribe((st, prev) => {
+      if (st.frozen !== prev.frozen) syncFrozen();
+    });
+    syncFrozen();
+    bindNavigatorDisclosure();
     this.sync();
   }
 
@@ -98,6 +134,7 @@ export class ControlPanel implements PanelContext {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = label;
+      b.dataset['acquisitionCommand'] = 'true';
       b.addEventListener('click', () => {
         set(v);
         this.sync();
@@ -116,6 +153,25 @@ export class ControlPanel implements PanelContext {
     });
     return seg;
   }
+}
+
+/** En móvil el tórax se despliega sin enviar los mandos del equipo al final de la página. */
+function bindNavigatorDisclosure(): void {
+  const toggle = document.getElementById('navigator-toggle') as HTMLButtonElement;
+  const content = document.getElementById('navigator-content')!;
+  const mobile = window.matchMedia('(max-width: 800px)');
+  let expanded = false;
+  const sync = () => {
+    content.hidden = mobile.matches && !expanded;
+    toggle.setAttribute('aria-expanded', String(!content.hidden));
+    toggle.textContent = content.hidden ? 'Mostrar tórax' : 'Ocultar tórax';
+  };
+  toggle.addEventListener('click', () => {
+    expanded = !expanded;
+    sync();
+  });
+  mobile.addEventListener('change', sync);
+  sync();
 }
 
 /**

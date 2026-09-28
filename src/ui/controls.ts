@@ -2,7 +2,7 @@
 export interface SliderSpec {
   label: string;
   min: number;
-  max: number;
+  max: number | (() => number);
   step: number;
   get: () => number;
   set: (v: number) => void;
@@ -33,7 +33,7 @@ export function slider(parent: HTMLElement, spec: SliderSpec, onChange: () => vo
   input.type = 'range';
   input.id = controlId(spec.label);
   input.min = String(spec.min);
-  input.max = String(spec.max);
+  input.max = String(typeof spec.max === 'function' ? spec.max() : spec.max);
   input.step = String(spec.step);
   const l = document.createElement('label');
   l.htmlFor = input.id;
@@ -42,12 +42,14 @@ export function slider(parent: HTMLElement, spec: SliderSpec, onChange: () => vo
   out.htmlFor.add(input.id);
   const fmt = spec.format ?? ((v: number) => v.toFixed(0));
   const sync = () => {
+    input.max = String(typeof spec.max === 'function' ? spec.max() : spec.max);
     input.value = String(spec.get());
     out.textContent = fmt(spec.get());
+    input.setAttribute('aria-valuetext', fmt(spec.get()));
   };
   input.addEventListener('input', () => {
     spec.set(Number(input.value));
-    out.textContent = fmt(Number(input.value));
+    sync(); // el equipo puede normalizar el valor; el control muestra el valor aplicado
     onChange();
   });
   row.append(l, out, input);
@@ -66,6 +68,7 @@ export function button(
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = label;
+  b.dataset['acquisitionCommand'] = 'true';
   const sync = () => {
     if (isOn) setPressed(b, isOn());
   };

@@ -26,3 +26,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [20](DECISIONS.md#L1086) | La costilla apaga la pleura: lente de fase, lóbulos laterales por su apertura y el preajuste sin saturar (F-T08) | vigente |
 | [21](DECISIONS.md#L1201) | El banco de fidelidad: las mismas métricas para la pantalla del simulador y para los clips reales | vigente |
 | [22](DECISIONS.md#L1380) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
+| [23](DECISIONS.md#L1546) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |

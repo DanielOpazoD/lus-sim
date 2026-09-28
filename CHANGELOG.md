@@ -7,6 +7,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- Adquisición con navegación torácica 3D (23): transductor y plano desde el marco efectivo, desplazamiento
+  continuo y cine con pose y respiración históricas. Dos superficies, barra compacta de profundidad/ganancia/foco,
+  ajustes contextuales y navegador plegable en móvil. Corrige profundidad de 65 mm, límite del foco,
+  Espacio sobre botones y sincronización del contacto sin paso de reloj; HUD estable y FPS de tiempo real.
+
 - Fase 1, paso A: el motor de imagen de VExUS portado en TypeScript con cortes para el tórax (10). Fisiología
   recortada (núcleo del paciente, ritmo, respiración y motor con el reloj único), anatomía del tórax (tejidos,
   caras de interfaz, primitivas, compresión, deformación, pared en capas, costillas, diafragma, cortina y

@@ -45,8 +45,18 @@ export function bindCine(opts: {
   });
   slider.addEventListener('input', () => go(Number(slider.value)));
   window.addEventListener('keydown', (e) => {
-    const tag = (e.target as HTMLElement | null)?.tagName;
-    if (!store.get().frozen || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    const target = e.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (
+      !store.get().frozen ||
+      ['INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY'].includes(tag ?? '') ||
+      target?.isContentEditable ||
+      target?.closest?.('dialog[open]') ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.altKey
+    )
+      return;
     const n = count();
     const next = e.key === 'ArrowLeft' ? pos - 1 : e.key === 'ArrowRight' ? pos + 1 : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : null;
     if (next === null) return;

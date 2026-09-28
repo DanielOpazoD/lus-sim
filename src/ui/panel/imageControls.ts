@@ -1,58 +1,113 @@
 import { EQUIPMENT_LIMITS } from '../../app/equipment';
 import { COMPOUND } from '../../ultrasound/compound';
-import { button, controlId, note, row, slider } from '../controls';
+import { button, controlId, note, row, slider, type SliderSpec } from '../controls';
+import { formatDepthMm } from '../format';
 import type { PanelContext } from './context';
 
 /**
  * Mandos básicos de la imagen 2D (profundidad, ganancia, foco), a mano mientras se busca la ventana.
  *
- * lus-sim (decisión 13): el foco llega hasta la profundidad máxima del equipo (`EQUIPMENT_LIMITS.focusMm`) y las
- * explicaciones no nombran el color ni el PW, que lus-sim no tiene.
+ * Valores de la adquisición mostrada; el foco solo llega hasta la profundidad actual. Un ajuste abierto
+ * cada vez, con controles nativos y unidades iguales a las del HUD.
  */
 export function buildImageBasics(ctx: PanelContext, sec: HTMLElement): void {
   const s = ctx.sim;
-  const ch = () => undefined;
-  ctx.track(
-    slider(
-      sec,
+  const controls: Array<[string, SliderSpec]> = [
+    [
+      'depth',
       {
         label: 'Profundidad',
         ...EQUIPMENT_LIMITS.depthMm,
-        get: () => s().bmode.depthMm,
+        get: () => s().displayed.bmode.depthMm,
         set: (v) => ctx.dispatch({ type: 'bmode', patch: { depthMm: v } }),
-        format: (v) => `${(v / 10).toFixed(0)} cm`,
+        format: formatDepthMm,
       },
-      ch,
-    ),
-  );
-  ctx.track(
-    slider(
-      sec,
+    ],
+    [
+      'gain',
       {
         label: 'Ganancia',
         ...EQUIPMENT_LIMITS.gainDb,
-        get: () => s().bmode.gainDb,
+        get: () => s().displayed.bmode.gainDb,
         set: (v) => ctx.dispatch({ type: 'bmode', patch: { gainDb: v } }),
         format: (v) => `${v} dB`,
       },
-      ch,
-    ),
-  );
-  ctx.track(
-    slider(
-      sec,
+    ],
+    [
+      'focus',
       {
         label: 'Foco',
         min: EQUIPMENT_LIMITS.focusMm.min,
-        max: EQUIPMENT_LIMITS.focusMm.max,
-        step: 5,
-        get: () => s().bmode.focusMm,
+        max: () => s().displayed.bmode.depthMm,
+        step: 1,
+        get: () => s().displayed.bmode.focusMm,
         set: (v) => ctx.dispatch({ type: 'bmode', patch: { focusMm: v } }),
-        format: (v) => `${(v / 10).toFixed(1)} cm`,
+        format: formatDepthMm,
       },
-      ch,
-    ),
-  );
+    ],
+  ];
+  const closers: Array<() => void> = [];
+  for (const [id, spec] of controls) {
+    const host = document.createElement('div');
+    host.className = 'quick-control';
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.id = `quick-${id}`;
+    toggle.className = 'quick-toggle';
+    toggle.dataset['acquisitionCommand'] = 'true';
+    const label = document.createElement('span');
+    label.textContent = spec.label;
+    const value = document.createElement('strong');
+    toggle.append(label, value);
+    const pop = document.createElement('div');
+    pop.id = `quick-${id}-panel`;
+    pop.className = 'quick-popover';
+    pop.hidden = true;
+    pop.setAttribute('role', 'group');
+    pop.setAttribute('aria-label', `Ajustar ${spec.label.toLowerCase()}`);
+    toggle.setAttribute('aria-controls', pop.id);
+    toggle.setAttribute('aria-expanded', 'false');
+    ctx.track(slider(pop, spec, () => undefined));
+    if (id === 'depth') note(pop, 'Cambiar la profundidad inicia un nuevo cine.');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'quick-close';
+    close.textContent = 'Listo';
+    close.setAttribute('aria-label', `Cerrar ${spec.label.toLowerCase()}`);
+    pop.append(close);
+    const setOpen = (open: boolean, focus = false) => {
+      pop.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      if (focus) (open ? pop.querySelector('input') : toggle)?.focus();
+    };
+    closers.push(() => setOpen(false));
+    toggle.addEventListener('click', () => {
+      const open = pop.hidden;
+      for (const dismiss of closers) dismiss();
+      setOpen(open, true);
+    });
+    close.addEventListener('click', () => setOpen(false, true));
+    document.addEventListener('pointerdown', (e) => {
+      if (!host.contains(e.target as Node)) setOpen(false);
+    });
+    host.addEventListener('focusout', (e) => {
+      if (e.relatedTarget && !host.contains(e.relatedTarget as Node)) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || pop.hidden) return;
+      setOpen(false, true);
+      e.stopPropagation();
+    });
+    ctx.track({
+      sync: () => {
+        const text = spec.format?.(spec.get()) ?? String(spec.get());
+        if (value.textContent !== text) value.textContent = text;
+        if (ctx.store.get().frozen) setOpen(false);
+      },
+    });
+    host.append(toggle, pop);
+    sec.append(host);
+  }
 }
 
 /** Explicación de los mandos avanzados (el ⓘ de su sección). */
@@ -76,7 +131,7 @@ export function buildImageAdvanced(ctx: PanelContext, sec: HTMLElement): void {
         min: EQUIPMENT_LIMITS.dynamicRangeDb.min,
         max: EQUIPMENT_LIMITS.dynamicRangeDb.max,
         step: 2,
-        get: () => s().bmode.dynamicRangeDb,
+        get: () => s().displayed.bmode.dynamicRangeDb,
         set: (v) => ctx.dispatch({ type: 'bmode', patch: { dynamicRangeDb: v } }),
         format: (v) => `${v} dB`,
       },
@@ -91,7 +146,7 @@ export function buildImageAdvanced(ctx: PanelContext, sec: HTMLElement): void {
         min: EQUIPMENT_LIMITS.persistence.min,
         max: EQUIPMENT_LIMITS.persistence.max,
         step: 0.05,
-        get: () => s().bmode.persistence,
+        get: () => s().displayed.bmode.persistence,
         set: (v) => ctx.dispatch({ type: 'bmode', patch: { persistence: v } }),
         format: (v) => v.toFixed(2),
       },
@@ -104,7 +159,7 @@ export function buildImageAdvanced(ctx: PanelContext, sec: HTMLElement): void {
       row(sec),
       'Composición espacial',
       () => ctx.dispatch({ type: 'compound', enabled: !s().bmode.compound }),
-      () => s().bmode.compound,
+      () => s().displayed.bmode.compound,
     ),
   );
   // Armónica tisular (decisión 77 de VExUS): el conmutador
@@ -113,7 +168,7 @@ export function buildImageAdvanced(ctx: PanelContext, sec: HTMLElement): void {
       row(sec),
       'Armónica (THI)',
       () => ctx.dispatch({ type: 'harmonic', enabled: !s().bmode.harmonic }),
-      () => s().bmode.harmonic,
+      () => s().displayed.bmode.harmonic,
     ),
   );
   note(sec, 'TGC · superficial → profundo');
@@ -137,7 +192,13 @@ export function buildImageAdvanced(ctx: PanelContext, sec: HTMLElement): void {
     l.textContent = String(i + 1);
     band.append(inp, l);
     bank.appendChild(band);
-    ctx.track({ sync: () => (inp.value = String(s().bmode.tgcDb[i])) });
+    ctx.track({
+      sync: () => {
+        const value = String(s().displayed.bmode.tgcDb[i]);
+        inp.value = value;
+        inp.setAttribute('aria-valuetext', `${value} dB`);
+      },
+    });
   }
   sec.appendChild(bank);
 }

@@ -31,11 +31,20 @@ export class ProbeInput {
     el.addEventListener('wheel', this.onWheel, { passive: false });
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
-      if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || (e.target as HTMLElement | null)?.tagName === 'SELECT') return;
+      const target = e.target as HTMLElement | null;
+      if (
+        ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'SUMMARY', 'A'].includes(target?.tagName ?? '') ||
+        target?.isContentEditable ||
+        target?.closest?.('dialog[open]')
+      )
+        return;
       // lus-sim (decisión 13): ⌘A, Ctrl+D… son del navegador, no de la sonda (mantener ⌘A la deslizaba)
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      this.keys.add(e.key.toLowerCase());
-      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) e.preventDefault();
+      if (e.metaKey || e.ctrlKey || e.altKey || !this.live()) return;
+      const key = e.key.toLowerCase();
+      // Espacio pertenece a la congelación o a la activación nativa del botón, nunca a la sonda.
+      if (!['w', 'a', 's', 'd', 'q', 'e', 'r', 'f', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(key)) return;
+      this.keys.add(key);
+      if (key.startsWith('arrow')) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
     window.addEventListener('blur', () => this.keys.clear());
@@ -99,7 +108,13 @@ export class ProbeInput {
 
   /** Integra las teclas mantenidas (llamar cada cuadro con dt en segundos). */
   tick(dt: number): void {
-    if (this.keys.size === 0 || !this.live()) return;
+    if (!this.live()) {
+      this.keys.clear();
+      this.dragging = null;
+      this.touches.clear();
+      return;
+    }
+    if (this.keys.size === 0) return;
     const p = { ...this.getPose() };
     const fine = this.keys.has('shift') ? 0.3 : 1;
     const slide = 40 * dt * fine; // mm/s

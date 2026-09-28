@@ -27,7 +27,8 @@ import { compoundActive } from './ultrasound/compound';
  * degrada, no muere). Todo el tiempo procede del reloj de la simulación.
  *
  * lus-sim (decisión 13): solo el modo B, con el preajuste pulmonar y la sonda en el punto BLUE superior, y el cine al
- * congelar; sin casos, Doppler, audio, modo M, medición, docente ni navegador 3D de VExUS. La e2e (`?e2e`) ve la misma aplicación
+ * congelar. El navegador 3D comparte la adquisición efectiva y se carga después de la primera imagen.
+ * Sin casos, Doppler, audio, modo M ni medición. La e2e (`?e2e`) ve la misma aplicación
  * y sus ganchos (`window.__lusTest`).
  */
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -76,6 +77,38 @@ const sim = (): Simulator => session.sim;
 const dispatch = session.equipment.dispatch.bind(session.equipment);
 const banner = new Banner(sectorWrap);
 
+// El navegador es opcional para la formación de imagen y no bloquea el primer modo B.
+let navigator3D: { sync(): void; dispose(): void } | null = null;
+let navigatorRequested = false;
+function navigatorFailed(error: unknown): void {
+  errorLog.report('ui', error);
+  navigator3D?.dispose();
+  navigator3D = null;
+  const host = $('thorax-navigator');
+  host.dataset.ready = 'error';
+  const message = document.createElement('p');
+  message.setAttribute('role', 'status');
+  message.textContent = 'El navegador 3D no está disponible. Puedes mover la sonda desde la imagen y los ajustes.';
+  host.replaceChildren(message);
+}
+function requestNavigator(): void {
+  if (navigatorRequested) return;
+  navigatorRequested = true;
+  requestAnimationFrame(() => {
+    void import('./ui/thorax/index')
+      .then(({ createThoraxNavigator }) => {
+        const host = $('thorax-navigator');
+        navigator3D = createThoraxNavigator(host, {
+          getSim: sim,
+          setPose: setPoseManual,
+          onError: (error) => errorLog.report('ui', error),
+        });
+        navigator3D.sync();
+      })
+      .catch(navigatorFailed);
+  });
+}
+
 // --- Vistas ------------------------------------------------------------------
 const probeAnimator = new ProbeAnimator(
   () => sim().pose,
@@ -104,7 +137,7 @@ const windows = new StartPointCards($('start-points'), {
   onPick: (sp) => {
     if (!store.get().frozen) probeAnimator.goTo(sp);
   },
-  getPose: () => sim().pose,
+  getPose: () => sim().displayedAcquisition.pose,
   getTorso: () => sim().scene.torso,
   animating: () => probeAnimator.active,
   locked: () => store.get().frozen,
@@ -178,9 +211,13 @@ store.subscribe((st, prev) => {
     sim().frozen = st.frozen;
     app.classList.toggle('frozen', st.frozen);
     setPressed(freezeBtn, st.frozen);
-    liveChip.textContent = st.frozen ? 'FREEZE' : 'LIVE';
+    liveChip.textContent = st.frozen ? 'Congelada' : 'En vivo';
     liveChip.className = `chip ${st.frozen ? 'freeze' : 'live'}`;
+    $('freeze-label').textContent = st.frozen ? 'Reanudar' : 'Congelar';
+    freezeBtn.title = st.frozen ? 'Reanudar la adquisición (Espacio)' : 'Congelar la imagen (Espacio)';
+    if (st.frozen) probeAnimator.cancel();
     windows.sync();
+    panel.sync();
   }
 });
 
@@ -197,33 +234,46 @@ function fitCanvases(): void {
   }
 }
 window.addEventListener('resize', fitCanvases);
+new ResizeObserver(fitCanvases).observe(sectorWrap);
 
 // --- Bucle principal ---------------------------------------------------------
 let last = performance.now();
 let frames = 0;
-let frameTime = 0;
+let fpsWindowStarted = last;
 let lastStatus = 0;
 const errorBudget = new ErrorBudget();
 let loopDegraded = false;
 const heartRate = new HeartRateDisplay();
+let lastDisplayedAcquisition: Simulator['displayedAcquisition'] | null = null;
 
 function frame(now: number, dt: number): void {
   const s = sim();
-  fitCanvases();
   input.tick(dt);
   if (!store.get().frozen) probeAnimator.tick(dt);
   s.advance(dt);
   if (!gpu.lost) {
     s.render();
     cine.tick();
+    requestNavigator();
+  }
+  try {
+    navigator3D?.sync();
+  } catch (error) {
+    navigatorFailed(error);
   }
   drawOverlay(overlay, s);
   const t = s.physiology.clock.t;
   const shown = s.displayed.bmode;
+  const acquired = s.displayedAcquisition;
+  if (s.frozen && acquired !== lastDisplayedAcquisition) {
+    panel.sync();
+    windows.sync();
+  }
+  lastDisplayedAcquisition = acquired;
   const h = hudText({
     patientLabel: 'Paciente sintético',
     frozen: s.frozen,
-    heartRateBpm: heartRate.update(s.sample.rr, dt),
+    heartRateBpm: s.frozen ? 60 / acquired.sample.rr : heartRate.update(acquired.sample.rr, dt),
     atrialFibrillation: s.patient.rhythm === 'atrial-fibrillation',
     transducerMHz: s.transducer.f0B / 1e6,
     depthMm: shown.depthMm,
@@ -231,20 +281,19 @@ function frame(now: number, dt: number): void {
     dynamicRangeDb: shown.dynamicRangeDb,
     compound: compoundActive(shown, { enabled: false }), // sin color: la composición se forma si está encendida
     harmonic: shown.harmonic,
-    respVolume: s.sample.resp.volume,
   });
   renderLines(hud.tl, h.topLeft);
   renderLines(hud.tr, h.topRight);
   renderLines(hud.br, h.bottomRight);
   frames++;
-  frameTime += dt;
   if (now - lastStatus > 250) {
     lastStatus = now;
-    lastFps = frames / Math.max(1e-3, frameTime);
+    // Telemetría en tiempo real: limitar dt para el motor no debe esconder pausas de la interfaz.
+    lastFps = (frames * 1000) / Math.max(1, now - fpsWindowStarted);
     // con la imagen congelada no se forman cuadros: el bucle sigue (HUD, cine), pero sus fps no son los de la imagen
     status.textContent = `${s.frozen ? 'congelada' : `${lastFps.toFixed(0)} fps`} · t ${t.toFixed(1)} s`;
     frames = 0;
-    frameTime = 0;
+    fpsWindowStarted = now;
     panel.sync(); // la pose y el acoplamiento cambian con el ratón; el equipo avisa por su cuenta
     windows.sync();
   }
