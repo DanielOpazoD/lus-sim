@@ -13,6 +13,11 @@ Mantén la sonda quieta para adquirir una franja. Congelar detiene B, M y el rel
 mueve el instante derecho de M al del cuadro B mostrado. **Nueva franja** borra el registro M,
 no el paciente ni el cine. Apagar y reactivar M inicia otro registro.
 
+La ayuda distingue selección, adquisición viva, imagen congelada, ausencia de historia y
+pérdida de GPU. El ajuste fino y la explicación técnica permanecen plegados al inicio;
+la ayuda viva sigue indicando que M se muestrea a la cadencia de B. La imagen B conserva
+un mínimo de 240 píxeles CSS al mostrar M: es jerarquía visual, no resolución acústica.
+
 ## Decisiones de implementación
 
 - Se reutilizan `MColumnRing`, `mCapture`, `drawMStrip` y `represent` del renderizador ya
@@ -69,7 +74,8 @@ Esta nota registra el delta respecto de `aed9401`; no declara una nueva sincroni
   conserva la orquestación, paciente, contacto y adquisición histórica existentes.
 - `src/main.ts` sigue **adaptado**: conecta la vista M al renderizado y al overlay existentes.
 - `.github/workflows/ci.yml` sigue **adaptado**: conserva todos los gates, añade el diff del
-  formateador cuando falla y archiva capturas M del paciente sintético.
+  formateador cuando falla, archiva capturas M del paciente sintético y redistribuye las pruebas
+  en seis fragmentos. No modifica los requisitos del agregador.
 - `src/ultrasound/renderer.ts`, `src/ultrasound/mmode.ts` y sus shaders **no se modifican**.
 - `src/app/mModeAcquisition.ts`, `src/ui/mMode.ts`, `src/ui/mMode.css` y sus pruebas son
   integración nueva de lus-sim. No se copian nuevos módulos de otros repositorios.
@@ -82,12 +88,26 @@ Las pruebas históricas del anillo siguen cubriendo capacidad, orden, cadencia y
 
 `e2e/mmode.spec.ts` recorre controles reales y lee el estado resultante: señal interior de M,
 B congelado idéntico tras cambiar el barrido, reloj común, cine anterior sin datos M,
-selección táctil emulada sin mover sonda, teclado, reflow y recuperación de GPU.
+selección táctil emulada sin mover sonda, teclado, estados de ayuda, reflow y recuperación de GPU.
 Las lecturas de píxeles se limitan a la prueba; el umbral de contraste detecta una franja negra,
 no es un criterio clínico. Las capturas se archivan como evidencia, no como auditoría humana.
 
+### Distribución de CI tras ampliar la suite
+
+CI87, sobre `98e1da0`, agotó el plazo de 15 minutos del fragmento 2/5: había completado
+calibración PLAPS y las tres ventanas de fidelidad, pero no terminó el quinto recorrido.
+No hubo una aserción fallida en sus cuatro pruebas completadas. Se conservó el rechazo del
+agregador; no se integró esa ejecución cancelada.
+
+La suite pasa a seis fragmentos con un trabajador cada uno, las mismas pruebas, sus plazos y
+sus tolerancias. El denominador del comando sale de la matriz. Esta actualización sustituye
+el reparto histórico de cinco fragmentos descrito en `docs/TESTING.md`; no es una mejora de
+rendimiento del simulador ni una reducción de cobertura. El resultado final debe comprobarse
+en el SHA del PR, incluidos todos los fragmentos y el agregador `check`.
+
 Comandos del repositorio: `npm run check` y, tras `npx vite build`, `npm run e2e`.
 El resultado efectivo es el de CI del SHA revisado, no la mera existencia de las pruebas.
-La comprobación local aislada de la frontera rechazó siete mutaciones: omitir pose, ganancia,
-TGC, paciente, renderizador, congelación o límites del sector. No equivale a ejecutar localmente
-la suite completa ni a una revisión clínica independiente.
+La comprobación local aislada inicial de la frontera rechazó siete mutaciones: omitir pose,
+ganancia, TGC, paciente, renderizador, congelación o límites del sector. No equivale a ejecutar
+localmente la suite completa ni a una revisión clínica independiente. En la revisión de cierre,
+el entorno local no pudo resolver el dominio de GitHub: la verificación completa usa CI.

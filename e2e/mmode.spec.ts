@@ -7,6 +7,8 @@ async function boot(page: Page): Promise<string[]> {
     if (message.type() === 'error') errors.push(message.text());
   });
   await page.goto('/?e2e=1');
+  await expect(page).toHaveURL(/\/\?e2e=1$/);
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   await expect(page.locator('#status')).toContainText(/\d+ fps/, { timeout: 120_000 });
   await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 60_000 }).toBe('object');
   return errors;
@@ -33,9 +35,12 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   });
   await page.getByRole('button', { name: 'Modo B + M', exact: true }).click();
   await acquired(page);
+  await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia de B. Congela para revisar con el cine.');
+  await expect(page.locator('.mmode-fine')).not.toHaveAttribute('open');
   expect(await page.evaluate(() => ({ pose: window.__lusTest!.sim().pose, bmode: window.__lusTest!.sim().bmode }))).toEqual(initial);
   await page.locator('#freeze').click();
   await expect(page.locator('#live-chip')).toHaveText('Congelada');
+  await expect(page.locator('#mmode-status')).toHaveText('Imagen congelada. Revisa B y M con el cine.');
   await frame(page);
   const sealed = await page.evaluate(() => {
     const sim = window.__lusTest!.sim();
@@ -73,9 +78,11 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   await page.locator('#cine').press('End');
   await frame(page);
   await expect(page.locator('#mmode-pane')).toHaveAttribute('data-available', 'true');
+  await expect(page.locator('#mmode-status')).toHaveText('Imagen congelada. Revisa B y M con el cine.');
   const canvas = info.outputPath('mmode-desktop.png');
   await page.locator('.center').screenshot({ path: canvas });
   await info.attach('B y M congelados', { path: canvas, contentType: 'image/png' });
+  await page.screenshot({ path: info.outputPath('mmode-workspace.png'), fullPage: true });
   console.log('MMODE_EVIDENCE', JSON.stringify({ sealed, pixels, bRestoredExactly: true }));
   expect(errors).toEqual([]);
 });
@@ -93,8 +100,10 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     const pose = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
     await page.locator('#mmode-place').click();
     await expect(page.locator('#sector-wrap')).toBeFocused();
+    await expect(page.locator('#mmode-status')).toHaveText('Toca el sector para colocar la línea; Escape cancela.');
     await page.locator('#sector-wrap').press('Escape');
     await expect(page.locator('#mmode-place')).toBeFocused();
+    await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia de B. Congela para revisar con el cine.');
     await page.locator('#mmode-place').click();
     // Coordenada obtenida del marco real, no de una imagen o geometría paralela.
     const point = await page.evaluate(() => {
@@ -108,6 +117,7 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     await expect(page.locator('#mmode-place')).toHaveAttribute('aria-pressed', 'false');
     expect(await page.evaluate(() => window.__lusTest!.sim().pose)).toEqual(pose);
     await page.getByText('Ajuste fino de la línea', { exact: true }).click();
+    await expect(page.locator('#mmode-note')).toBeVisible();
     await page.locator('#mmode-line').press('Home');
     await expect(page.locator('#mmode-line')).toHaveValue('-100');
     await page.locator('#mmode-line').press('End');
@@ -126,6 +136,7 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     await frame(page);
     expect(await first(page), 'una maniobra respiratoria continúa la misma línea temporal').toBe(gainStart);
     await page.getByText('Ajuste fino de la línea', { exact: true }).click();
+    await expect(page.locator('#mmode-note')).toBeHidden();
     for (const width of [320, 390, 720]) {
       await page.setViewportSize({ width, height: 844 });
       await frame(page);
@@ -139,6 +150,7 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#freeze').click();
+    await expect(page.locator('#mmode-status')).toHaveText('Imagen congelada. Revisa B y M con el cine.');
     const screenshot = info.outputPath('mmode-mobile.png');
     await page.locator('.center').screenshot({ path: screenshot });
     await info.attach('B más M a 390 px', { path: screenshot, contentType: 'image/png' });

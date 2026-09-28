@@ -56,9 +56,9 @@ export class MModeView {
         <label for="mmode-line">Ángulo de línea M</label>
         <output id="mmode-angle" for="mmode-line">0°</output>
         <input id="mmode-line" type="range" min="-100" max="100" step="1" value="0" />
-      </details>
-      <p id="mmode-note" class="note">Muestreo a la cadencia del modo B, sin persistencia temporal.
-        Mover la sonda, cambiar la línea o el equipo inicia otra franja. Los huecos no se interpolan.</p>`;
+        <p id="mmode-note" class="note">Muestreo a la cadencia del modo B, sin persistencia temporal.
+          Mover la sonda, cambiar la línea o el equipo inicia otra franja. Los huecos no se interpolan.</p>
+      </details>`;
     host.after(this.pane);
     this.canvas = this.pane.querySelector<HTMLCanvasElement>('#mmode-canvas')!;
     const ctx = this.canvas.getContext('2d');
@@ -192,8 +192,9 @@ export class MModeView {
     }
     let message = 'Mantén la sonda quieta para registrar la franja.';
     if (lost) message = 'GPU no disponible. La recuperación iniciará otra franja.';
-    else if (valid) message = 'Línea adquirida. Congela para revisar con el cine.';
-    else if (sim.frozen) message = 'Sin datos M para este cuadro del cine.';
+    else if (this.placing) message = 'Toca el sector para colocar la línea; Escape cancela.';
+    else if (sim.frozen) message = valid ? 'Imagen congelada. Revisa B y M con el cine.' : 'Sin datos M para este cuadro del cine.';
+    else if (valid) message = 'M a la cadencia de B. Congela para revisar con el cine.';
     if (this.status.textContent !== message) this.status.textContent = message;
     this.pane.dataset.columns = String(ring.count);
     this.pane.dataset.time = String(t);
