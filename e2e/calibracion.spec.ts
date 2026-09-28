@@ -1,9 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { compareToReference, simValuesOf } from '../src/measure/fidelity/compare';
-import { calibrationReference } from '../tools/fidelity/calibration';
+import { calibrationReference, type CalibrationGroup } from '../tools/fidelity/calibration';
 import type { ReferenceStats } from '../tools/fidelity/reference';
-import split from '../docs/reference-bank/calibration-split.json';
 
 /**
  * C3b-A: barrido experimental de presentación, sin escoger ni aceptar un nuevo preajuste.
@@ -33,6 +32,10 @@ const CLIPPING = [
   'levels.haze.clippedLow',
   'levels.deep.clippedLow',
 ] as const;
+const split = JSON.parse(readFileSync('docs/reference-bank/calibration-split.json', 'utf8')) as {
+  id: string;
+  exploration: CalibrationGroup;
+};
 const reference = calibrationReference(
   JSON.parse(readFileSync('docs/reference-bank/reference-stats.json', 'utf8')) as ReferenceStats,
   split.exploration,
