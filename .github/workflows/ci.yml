@@ -30,6 +30,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run format:check
+        id: format
+      - name: Mostrar las diferencias si falla el formato
+        if: failure() && steps.format.outcome == 'failure'
+        run: |
+          npm run format > /dev/null
+          git diff --exit-code
       - run: npm run lint
       - run: npm run typecheck
       - name: Pruebas (todos los niveles) con umbrales de cobertura
@@ -75,6 +81,14 @@ jobs:
         run: npx playwright install-deps chromium
       - run: npx vite build
       - run: npm run e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - name: Capturas de B más M (solo paciente sintético)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mmode-${{ matrix.shard }}
+          path: test-results/**/mmode-*.png
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Guardar el informe si falla
         if: failure()
         uses: actions/upload-artifact@v7
