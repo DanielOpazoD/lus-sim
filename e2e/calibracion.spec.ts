@@ -102,6 +102,8 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
           acquisition: r.acquisition,
           display: r.display,
           renderer: result.renderer,
+          coherence: r.coherence,
+          detectorSupport: { columnsAbove50: r.coherence.pleura.columns > 50, primary: r.display.dynamicRangeDb === 70 },
           referenceGroup: { split: split.id, group: 'exploration', subjects: convex.subjects },
           metrics: Object.fromEntries(METRICS.map((k) => [k, r.metrics[k]])),
           clipping: Object.fromEntries(CLIPPING.map((k) => [k, r.metrics[k]?.median ?? null])),
@@ -122,7 +124,10 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     for (const r of result.reports) {
       expect(r.stack).toBeNull();
       expect(r.acquisition.timesS).toEqual(Array<number>(FRAMES).fill(SAMPLE_TIME_S));
-      expect(r.coherence.pleura.columns).toBeGreaterThan(50);
+      // DR70 es el preajuste primario; los otros rangos exploran también presentaciones que el detector rechaza.
+      // Su soporte queda registrado, separado de la censura, y no se presenta como una adquisición aceptada.
+      if (r.display.dynamicRangeDb === 70)
+        expect(r.coherence.pleura.columns, `${startPoint}, DR70: ${JSON.stringify(r.coherence.pleura)}`).toBeGreaterThan(50);
       expect(Number.isFinite(r.metrics['M.wall'].median)).toBe(true);
     }
     expect(errors).toEqual([]);

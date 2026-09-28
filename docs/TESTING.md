@@ -208,9 +208,11 @@ la salida actual no protege nada.
   en todas las columnas, las líneas A de orden 2 y 3 a k veces la línea pleural mostrada (F-T01) y las sombras donde las
   líneas cruzan hueso, y adjunta el informe (`fidelidad-<punto>.json`) con las métricas con la geometría verdadera y con la
   detectada, los niveles en dB (desde el gris y desde la envolvente sin recortar), la caída por orden frente a F-T02 y la
-  comparación con la referencia (solo informada). El **barrido de ganancia** (−30…−12 dB en el BLUE superior) exige que lo
-  declarado invariante no se mueva más del 5 % mientras no esté censurado, que a ±3 dB del preajuste se compare de verdad y
-  que N1–N3, con el suelo en el negro, salgan censuradas en todas las ganancias. `LUS_E2E_GPU=1` lo corre con la GPU real.
+  comparación con la referencia (solo informada). El **barrido de ganancia** en BLUE superior usa desplazamientos de
+  [−9, −3, 0, +3, +6, +9] dB respecto a `LUNG_PRESET.params.gainDb.value`, con la corrida central como referencia. Exige que lo
+  declarado invariante no se mueva más del 5 % mientras no esté censurado, que las métricas de `MUST_COMPARE` se comparen
+  sin censura a ±3 dB del preajuste y que N1–N3, con el suelo en el negro, salgan censuradas en todas las ganancias.
+  `LUS_E2E_GPU=1` lo corre con la GPU real.
 - **La referencia** (`src/validation/fidelityReference.test.ts`): el manifiesto (licencias abiertas, `in_repo: false`,
   sujeto, geometría fijada y revisada, control de calidad) y el archivo de estadísticas (solo números derivados, sin rutas ni
   listas de píxeles, cada clip entero) tienen su forma; las compuertas automáticas atrapan lo que dicen, y un clip apto que
@@ -218,6 +220,51 @@ la salida actual no protege nada.
   entre sujetos, y la comparación nunca marca ↓ o ↑ con un valor censurado o con menos de 3 clips o 2 sujetos.
   `src/validation/fidelityReferenceBank.test.ts` (nivel lento, prueba dorada) vuelve a medir el banco real y exige las
   estadísticas del repositorio número a número; se salta sin la carpeta o sin ffmpeg.
+
+### Calibración fija del contraste normal (decisión 24)
+
+`e2e/calibracion.spec.ts` alcanza t = 60 s en apnea espiratoria con el reloj fisiológico existente y lo pausa para adquirir
+tres réplicas por rango dinámico (50, 60, 70 y 80 dB) en BLUE superior, BLUE inferior y PLAPS. Con `frameIntervalS = 0` y
+`settleS = 0`, la anatomía permanece en el mismo instante, pero el ruido del receptor sigue dependiendo del cuadro. No son
+envolventes idénticas ni una serie temporal: el informe devuelve `stack: null`; T2/S1 se evalúan por separado en las series
+respiratorias de `e2e/fidelidad.spec.ts`.
+
+Cada réplica atraviesa el renderizador y `readDisplay`, sin remapear gris ya recortado. `calibracion-<punto>.json` registra
+semilla, tiempos, K, R_t, equipo, GPU, niveles, métricas y censura. La prueba exige las cuatro configuraciones, tres tiempos
+iguales a 60 s, medidas finitas, restitución del equipo y ausencia de errores. Exige más de 50 columnas de soporte pleural
+en DR70, el preajuste primario; registra la coherencia completa y ese mismo criterio en todos los rangos. Una alternativa
+diagnóstica sin soporte no es una adquisición aceptada; el soporte no se confunde con la censura de métricas. Verifica el protocolo,
+sin afirmar concordancia con el banco ni sustituir las pruebas de sombras, líneas A, adquisición y saturación.
+
+La comparación integrada usa el grupo de exploración de `docs/reference-bank/calibration-split.json`, con cada sujeto
+ponderado una vez. `calibrationReference` reagrega sus clips con las mismas compuertas y censura. La comprobación posterior
+usa sujetos separados; ajustar parámetros a partir de ella se declara como nueva exploración. Los agregados ya eran
+conocidos: no constituye validación clínica independiente ni ciega.
+
+### Opciones de comparación
+
+`npm run fidelity:compare -- [opciones] informe.json ...` admite informes con una lista `reports`:
+
+| Opción          | Valores                            | Por omisión                                | Efecto                                                                                         |
+| --------------- | ---------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `--basis`       | `clips`, `subjects`                | `clips`                                    | Elige el p10–p90 entre clips o sujetos. C3b-A usa `subjects`.                                  |
+| `--reference`   | Ruta a estadísticas con `strata`   | `docs/reference-bank/reference-stats.json` | Permite usar un grupo reagregado; el manifiesto de partición no es un archivo de estadísticas. |
+| `--respiration` | `quiet`, `apnea-expiratory`, `all` | `quiet`                                    | Selecciona los informes; el protocolo fijo requiere `apnea-expiratory`.                        |
+
+Para comparar una adquisición fija contra estadísticas derivadas de un grupo, con las variables apuntando a esos archivos:
+
+```sh
+npm run fidelity:compare -- --basis subjects --reference "$LUS_REFERENCE_STATS" --respiration apnea-expiratory "$LUS_CALIBRATION_REPORT"
+```
+
+La CLI conserva la censura y los mínimos del banco descritos arriba. Opciones inválidas, valores ausentes o ningún informe
+con la respiración elegida producen un error explícito.
+
+### Alcance del banco abdominal heredado
+
+`src/validation/interfaceTwin.test.ts` conserva K = 55 dB solamente en `runCase`, que reproduce las bandas históricas M1–M8
+y sus regresiones. M9 y las llamadas directas a `simulate` usan el valor vigente de producción (K = 53 dB en el candidato
+C3b-A). Las bandas no se amplían; reproducir el banco histórico no verifica el contraste pulmonar nuevo.
 
 ## Invariantes previstas
 

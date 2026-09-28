@@ -23,15 +23,15 @@ export const NORMAL_CALIBRATION = defineParameters('ultrasound.normalCalibration
       'niveles de pared y neblina, prominencia de las líneas A y recorte; la ganancia no sustituye esa comparación',
   },
   pleuraRt: {
-    value: 0.2,
+    value: 0.27,
     unit: 'fracción',
     range: [0.2, 0.5],
     evidence: 'estimado',
     sources: ['demi-guias-2023', 'soldati-trampas-2020', 'francisco-lineas-2016'],
     note:
       'R_t es el coeficiente efectivo de reflexión de amplitud de la cara sonda/piel en cada ida y vuelta de la ' +
-      'reverberación. Base 0,3 y dominio [0,2, 0,5] heredados de VExUS; se ensaya 0,2 (decisión 24), que añade ' +
-      '3,52 dB de pérdida por ida y vuelta sin cambiar sus retardos. No se encontró una medición numérica de ' +
+      'reverberación. Base 0,3 y dominio [0,2, 0,5] heredados de VExUS; se ensaya 0,27 (decisión 24), que añade ' +
+      '0,92 dB de pérdida por ida y vuelta respecto a la base sin cambiar sus retardos. No se encontró una medición numérica de ' +
       'R_t (docs/knowledge/physics.md §2.3). Demi 2023, enunciado 8, respalda la periodicidad de las líneas A; ' +
       'Soldati 2020, §2 y figura 1, las copias de la pared; Francisco 2016, sección A lines, su pérdida cualitativa ' +
       'de ecogenicidad con la profundidad. Ninguna de esas fuentes fija R_t ni su rango. Calibrar contra la caída ' +

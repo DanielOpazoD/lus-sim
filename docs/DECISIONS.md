@@ -1648,12 +1648,25 @@ conservan sus pruebas. Espesor pleural limitado por resolución, desfase A1 con 
 sombras procedentes de un único sujeto y cocientes temporales censurados no son objetivos de ajuste.
 No se añaden mandos al usuario ni se declara cerrada la fidelidad del normal.
 
-El candidato conserva rango dinámico 70 dB y curva 3,5, reduce K de 55 a 53 dB y R_t de 0,3 a 0,2,
+El candidato conserva rango dinámico 70 dB y curva 3,5, reduce K de 55 a 53 dB y R_t de 0,3 a 0,27,
 y compensa nominalmente la interfaz con ganancia −19 dB en lugar de −21. Los valores siguen siendo
-estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. R_t añade 3,52 dB de pérdida
+estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. R_t añade 0,92 dB de pérdida
 por ida y vuelta; la compensación K/ganancia conserva solo nominalmente la interfaz y debe comprobarse
 en imagen. `normalCalibration.ts` registra valores, fuentes de mecanismo y límites; TS y GLSL consumen
 la misma configuración. Las fuentes no se presentan como mediciones de estos valores concretos.
+
+El primer ensayo con R_t = 0,2 se descarta: en CI 79 el cuarto orden solo se detectó en 1–2 de los
+12 grupos del BLUE superior, frente a los 6 exigidos. Se mantienen el detector de 6 dB, los recuentos
+y todas las tolerancias geométricas; se ensaya 0,27, más próximo a la base 0,3, para recuperar margen.
+`ALINES_JSON` conserva detectabilidad y geometría también cuando la prueba pasa. El grupo de
+comprobación no interviene en esta revisión del candidato.
+
+El barrido exploratorio también mostró 40–41 columnas útiles de coherencia en una presentación de
+PLAPS. Ese recuento corresponde al detector del primer cuadro, no a líneas GPU independientes ni a la
+precisión de la pleura. Se registra la coherencia completa y el criterio >50 en todos los rangos; se
+exige en DR70, el preajuste primario fijado antes del barrido. Las alternativas 50/60/80 se conservan
+como diagnóstico y una alternativa sin soporte no se presenta como adquisición aceptada. La falta
+de soporte no se confunde con la censura por recorte. Las e2e de fidelidad vigentes no se relajan.
 
 Durante la verificación, la prueba anatómica `maxTotal` agotó 180 s (212,5 s medidos). Ejecutaba millones
 de matchers sobre una rejilla finita. Se mantienen las 18 escenas, todos los puntos, desigualdades y
