@@ -14,19 +14,20 @@ function samePose(a: ProbePose, b: ProbePose): boolean {
   return a.phi === b.phi && a.z === b.z && a.lift === b.lift && a.yaw === b.yaw && a.rock === b.rock && a.tilt === b.tilt;
 }
 
-/** Ajustes del equipo: lus-sim (decisión 12) solo tiene el modo B, sin el color, el PW ni el modo M de VExUS. */
+/** Ajustes del equipo: M comparte la envolvente y el mapa de grises de B; sin color ni PW. */
 export interface EquipmentSettings {
   bmode: BModeSettings;
 }
 
 /**
- * Opciones de medida de `Simulator.render`, solo para los ganchos de prueba y el banco (la aplicación
- * llama a `render()` sin ellas, así que su comportamiento no cambia):
- *  - `repeat`: repite el dibujo de una pasada dentro del cuadro (`PassRepeat`).
- * lus-sim: sin `forceColor` (no hay color).
+ * Opciones de `Simulator.render`:
+ *  - `mline`: línea M opcional, capturada de este mismo cuadro B y de su reloj; no añade una pasada física.
+ *  - `repeat`: solo para los ganchos de medida, repite una pasada dentro del cuadro (`PassRepeat`).
+ * Se conserva el nombre del contrato para los bancos existentes; sin `forceColor` (no hay color).
  */
 export interface RenderMeasureOptions {
   repeat?: PassRepeat;
+  mline?: number;
 }
 
 /** El equipo en su preajuste (el pulmonar, `DEFAULT_BMODE`). */
@@ -41,7 +42,7 @@ export function defaultEquipment(): EquipmentSettings {
  * Responsabilidades separadas (guía §3, §19):
  *  - PhysiologyEngine: estado del paciente y señales continuas;
  *  - AnatomyScene/AnatomyQuery: geometría y deformación;
- *  - UltrasoundRenderer: adquisición/imagen en GPU (modo B).
+ *  - UltrasoundRenderer: adquisición/imagen en GPU (modo B y su línea M opcional).
  * La UI solo lee estado y modifica sonda y ajustes del equipo; nunca toca el PatientState en marcha salvo
  * maniobras respiratorias explícitas. lus-sim (decisión 12): sin la cadena del PW, el audio, la puerta ni la
  * cadencia del color de VExUS.
@@ -160,7 +161,7 @@ export class Simulator {
     for (let i = 0; i < steps; i++) this.physiology.step();
   }
 
-  /** Dibuja un cuadro con el estado actual; `measure` solo lo pasan los ganchos de medida. */
+  /** Dibuja B y, si se pide, registra su línea M; solo `repeat` es exclusivo del banco de medida. */
   render(measure?: RenderMeasureOptions): void {
     if (this.frozen) return;
     this.renderer.render(
@@ -173,6 +174,7 @@ export class Simulator {
         transducer: this.transducer,
         bmode: this.bmode,
         seed: this.patient.seed,
+        mline: measure?.mline,
       },
       measure?.repeat,
     );
