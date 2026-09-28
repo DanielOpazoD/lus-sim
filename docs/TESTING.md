@@ -240,6 +240,12 @@ histórico cambia ganancia, ubicación y maniobra; cambiar profundidad inicia un
 de persistencia entre escalas polares, y se comprueba como una operación distinta.
 `e2e/navegacion3d.spec.ts` recorre los gestos y botones del navegador, la independencia de la cámara,
 el bloqueo de la sonda en cine y la pérdida/restauración del contexto 3D sin reiniciar el ecógrafo.
+La inyección de pérdida/restauración y las capturas se realizan con la adquisición pausada, como en
+el humo del ecógrafo. Entre ambas operaciones se reanuda con el 3D todavía perdido y se exige que
+ese mismo renderizador ecográfico adquiera cuadros nuevos; después de restaurar se comprueba otro
+avance. Esta prueba no demuestra la inyección de pérdida bajo carga simultánea de ambos contextos: en
+SwiftShader, la evaluación posterior a una captura en vivo agotó el plazo y no se pudo atribuir el
+bloqueo a la llamada nativa o al transporte de la evaluación. Se conservan los plazos y umbrales.
 
 El build controla entrada inicial y módulo 3D diferido por separado y también la suma. Estas pruebas
 no establecen rendimiento en GPU física ni certifican fidelidad anatómica o visual del modelo.

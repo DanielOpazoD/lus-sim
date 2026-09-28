@@ -117,10 +117,16 @@ test('navegador 3D: botones, arrastre sobre el tórax, orientación y cámara in
   expect(errors).toEqual([]);
 });
 
-test('navegador 3D: su contexto se recupera mientras el ecógrafo sigue adquiriendo', async ({ page }) => {
+test('navegador 3D: adquisición con contexto perdido y recuperación, con inyección en pausa', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
   const navigator = page.locator('#thorax-navigator');
+  // Como en el humo de WebGL, se preparan las inyecciones de pérdida/restauración y capturas en pausa.
+  // En CI con SwiftShader, la evaluación posterior a la captura en vivo agotó el plazo; no se conoce
+  // el punto interno del bloqueo. Se comprueba adquisición durante la pérdida, no su inyección en vivo.
+  await page.locator('#freeze').click();
+  await expect(page.locator('#live-chip')).toHaveText('Congelada');
+  await twoFrames(page);
   const extension = await page.locator('.thorax-canvas').evaluateHandle((element) => {
     const gl = (element as HTMLCanvasElement).getContext('webgl2');
     if (!gl) throw new Error('El navegador listo no tiene contexto WebGL2');
@@ -131,30 +137,58 @@ test('navegador 3D: su contexto se recupera mientras el ecógrafo sigue adquirie
   test.skip(!supported, 'Este navegador no ofrece WEBGL_lose_context; los demás flujos 3D se prueban igualmente.');
   const ultrasoundRenderer = await page.evaluateHandle(() => window.__lusTest!.sim().renderer);
   const before = await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t);
-  expect(await navigatorContrast(page)).toBeGreaterThan(60);
+  await test.step('Captura 3D antes de perder el contexto', async () => {
+    expect(await navigatorContrast(page)).toBeGreaterThan(60);
+  });
   try {
     // Solo se provoca la pérdida del canvas 3D; la imagen #gl conserva su contexto y su renderizador.
-    await extension.evaluate((ext) => ext!.loseContext());
+    await test.step('Solicitar pérdida del contexto 3D en pausa', () => extension.evaluate((ext) => ext!.loseContext()));
     await expect(navigator).toHaveAttribute('data-ready', 'lost', { timeout: 30_000 });
     await expect(navigator.locator('.thorax-caption')).toContainText('La imagen ecográfica continúa');
-    await expect(page.locator('#live-chip')).toHaveText('En vivo');
+    await expect(page.locator('#live-chip')).toHaveText('Congelada');
     expect(await page.locator('#gl').evaluate((element) => (element as HTMLCanvasElement).getContext('webgl2')!.isContextLost())).toBe(
       false,
     );
     expect(await ultrasoundRenderer.evaluate((renderer) => window.__lusTest!.sim().renderer === renderer)).toBe(true);
+    expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t)).toBe(before);
+
+    await page.locator('#freeze').click();
+    await expect(page.locator('#live-chip')).toHaveText('En vivo');
+    await expect(navigator).toHaveAttribute('data-ready', 'lost');
+    const duringLoss = await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t);
     await expect
       .poll(() => page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t), { timeout: 60_000 })
-      .toBeGreaterThan(before);
+      .toBeGreaterThan(duringLoss);
+    await expect(navigator).toHaveAttribute('data-ready', 'lost');
+    expect(
+      await ultrasoundRenderer.evaluate((renderer) => ({
+        same: window.__lusTest!.sim().renderer === renderer,
+        lost: (document.getElementById('gl') as HTMLCanvasElement).getContext('webgl2')!.isContextLost(),
+      })),
+    ).toEqual({ same: true, lost: false });
 
-    await extension.evaluate((ext) => ext!.restoreContext());
+    await page.locator('#freeze').click();
+    await expect(page.locator('#live-chip')).toHaveText('Congelada');
+    await twoFrames(page);
+    await test.step('Solicitar restauración del contexto 3D en pausa', () => extension.evaluate((ext) => ext!.restoreContext()));
     await expect(navigator).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
     await twoFrames(page);
-    expect(await navigatorContrast(page), 'el contexto restaurado debe volver a dibujar el tórax').toBeGreaterThan(60);
+    await test.step('Captura 3D después de restaurar el contexto', async () => {
+      expect(await navigatorContrast(page), 'el contexto restaurado debe volver a dibujar el tórax').toBeGreaterThan(60);
+    });
     expect(await ultrasoundRenderer.evaluate((renderer) => window.__lusTest!.sim().renderer === renderer)).toBe(true);
+    await page.locator('#freeze').click();
+    await expect(page.locator('#live-chip')).toHaveText('En vivo');
     const restored = await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t);
     await expect
       .poll(() => page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.sample.t), { timeout: 60_000 })
       .toBeGreaterThan(restored);
+    expect(
+      await ultrasoundRenderer.evaluate((renderer) => ({
+        same: window.__lusTest!.sim().renderer === renderer,
+        lost: (document.getElementById('gl') as HTMLCanvasElement).getContext('webgl2')!.isContextLost(),
+      })),
+    ).toEqual({ same: true, lost: false });
     await navigator.locator('.thorax-fine > summary').click();
     const previous = await pose(page);
     await navigator.getByRole('button', { name: 'Craneal', exact: true }).click();
