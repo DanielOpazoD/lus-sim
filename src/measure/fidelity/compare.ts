@@ -54,6 +54,7 @@ export interface SimValue {
 
 export interface MetricComparison {
   metric: string;
+  basis: ReferenceBasis;
   simulator: SimValue;
   reference: StratumMetric;
   /**
@@ -63,6 +64,9 @@ export interface MetricComparison {
   position: 'below' | 'inside' | 'above' | 'bound' | 'small' | 'n/a';
 }
 
+/** Cada sujeto pesa una vez al calibrar; «clips» conserva la comparación histórica de la decisión 21. */
+export type ReferenceBasis = 'clips' | 'subjects';
+
 /**
  * Compara el simulador con el p10–p90 entre clips de un estrato, métrica a métrica: las de `metrics` (`COMPARED_METRICS`
  * por omisión) que existen en los dos lados, en ese orden.
@@ -71,13 +75,14 @@ export function compareToReference(
   simulator: Record<string, SimValue>,
   reference: Record<string, StratumMetric>,
   metrics: readonly string[] = COMPARED_METRICS,
+  basis: ReferenceBasis = 'clips',
 ): MetricComparison[] {
   return metrics
     .filter((k) => k in reference && k in simulator)
     .map((metric) => {
       const s = simulator[metric];
       const r = reference[metric];
-      const q = r.betweenClips;
+      const q = basis === 'subjects' ? r.betweenSubjects : r.betweenClips;
       const v = s.value;
       let position: MetricComparison['position'];
       if (v === null || !Number.isFinite(v) || q.p10 === null || q.p90 === null) position = 'n/a';
@@ -86,6 +91,7 @@ export function compareToReference(
       else position = v < q.p10 ? 'below' : v > q.p90 ? 'above' : 'inside';
       return {
         metric,
+        basis,
         simulator: { value: v === null || !Number.isFinite(v) ? null : num(v), censored: s.censored },
         reference: r,
         position,

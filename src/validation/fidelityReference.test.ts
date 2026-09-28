@@ -19,7 +19,7 @@ import {
   type ManifestItem,
   type ReferenceStats,
 } from '../../tools/fidelity/reference';
-import { comparisonTable, simCell, type Stratum } from '../../tools/fidelity/compare';
+import { comparisonArgs, comparisonTable, simCell, type Stratum } from '../../tools/fidelity/compare';
 import {
   compareToReference,
   COMPARED_METRICS,
@@ -367,6 +367,41 @@ describe('estadísticas de referencia', () => {
 });
 
 describe('comparación simulador frente a referencia', () => {
+  it('la comparación entre sujetos evita que numerosas ventanas de un sujeto dominen la distribución', () => {
+    const metric: StratumMetric = {
+      betweenClips: quantilesOf([1, 1, 1, 1, 1, 1, 1, 1, 1, 9]),
+      betweenSubjects: quantilesOf([1, 9]),
+      clips: 10,
+      subjects: 2,
+      censoredClips: 0,
+    };
+    const sim = { 'M.wall': { value: 5, censored: null } };
+    expect(compareToReference(sim, { 'M.wall': metric }, ['M.wall'])[0].position).toBe('above');
+    expect(compareToReference(sim, { 'M.wall': metric }, ['M.wall'], 'subjects')[0]).toMatchObject({
+      basis: 'subjects',
+      position: 'inside',
+    });
+    expect(
+      compareToReference({ 'M.wall': { value: 5, censored: 'lower' } }, { 'M.wall': metric }, ['M.wall'], 'subjects')[0].position,
+    ).toBe('bound');
+    expect(compareToReference(sim, { 'M.wall': { ...metric, subjects: 1 } }, ['M.wall'], 'subjects')[0].position).toBe('small');
+  });
+
+  it('el CLI permite un banco reservado y apnea, y rechaza opciones mal escritas o informes ausentes', () => {
+    expect(comparisonArgs(['a.json'])).toMatchObject({ files: ['a.json'], basis: 'clips', respiration: 'quiet' });
+    expect(comparisonArgs(['--basis', 'subjects', '--reference', 'reservado.json', '--respiration', 'all', 'a.json', 'b.json'])).toEqual({
+      files: ['a.json', 'b.json'],
+      basis: 'subjects',
+      reference: 'reservado.json',
+      respiration: 'all',
+    });
+    expect(comparisonArgs(['--respiration', 'apnea-expiratory', 'a.json']).respiration).toBe('apnea-expiratory');
+    expect(() => comparisonArgs([])).toThrow(/pasa los informes/);
+    expect(() => comparisonArgs(['--basis'])).toThrow(/falta el valor/);
+    expect(() => comparisonArgs(['--basis', '--reference'])).toThrow(/falta el valor/);
+    expect(() => comparisonArgs(['--basis', 'subject', 'a.json'])).toThrow(/desconocido/);
+    expect(() => comparisonArgs(['--unknown', 'value', 'a.json'])).toThrow(/desconocido/);
+  });
   const stratum = (values: number[], subjects: number, censoredClips = 0): StratumMetric => ({
     betweenClips: quantilesOf(values),
     betweenSubjects: quantilesOf(values.slice(0, subjects)),
@@ -435,6 +470,9 @@ describe('comparación simulador frente a referencia', () => {
       stack: null,
     };
     const t = comparisonTable(strata, [sim]);
+    const subjects = comparisonTable(strata, [sim], 'convex', 'subjects');
+    expect(subjects).toContain('p10–p90 entre sujetos');
+    expect(subjects).toContain('1.02–1.18 [1.10] (4/3)');
     expect(t).toMatch(/\| M\.wall \| 1\.03–1\.27 \[1\.15\] \(4\/3\) \| 0\.800–0\.800 \[0\.800\] \(1\/1\) \| 0\.500 ↓ \|/);
     expect(t).toMatch(/\| M\.haze \| .* \| ≥ 1\.90 \|/);
     expect(t).toMatch(/\| N4 \| .* \| 4\.00 \|/);

@@ -1612,3 +1612,43 @@ y 820 KiB totales. La medición en GPU de usuario y la revisión visual humana s
   conservar cuadros a través de un cambio de profundidad; el recorrido comprueba equipo histórico con
   ganancia y verifica por separado el reinicio al cambiar profundidad. La inspección visual manual no se declara realizada cuando
   el navegador de la sesión está bloqueado. No se modifican shaders ni parámetros clínicos.
+
+## 24. Calibración acotada del contraste del pulmón normal convexo (C3b-A)
+
+**Fecha.** 2026-09-28.
+
+**Contexto.** Tras la navegación y el cine de la decisión 23, la discrepancia de mayor valor pendiente
+es la imagen normal: pared y neblina tenues frente a la pleura y reverberaciones demasiado prominentes
+en gris (decisión 21). Objetivos O3 y O6, conservando O1. Los cocientes M comparten denominador con la
+primera línea A: reducir M por sí solo no demuestra que se haya aclarado la pared.
+
+**Opciones.** Subir solo la ganancia no corrige las relaciones invariantes a una transformación afín
+del gris. Se compara primero el rango dinámico existente (50, 60, 70 y 80 dB) y después un candidato
+acústico dentro de los intervalos heredados. No se amplían los rangos para alcanzar los percentiles
+del banco. La sonda lineal se reserva para un bloque de geometría, contacto y adquisición completo.
+
+**Decisión.** El protocolo de `e2e/calibracion.spec.ts` fija la anatomía a un instante de apnea y mide
+tres réplicas por rango dinámico en BLUE superior, BLUE inferior y PLAPS. Cada réplica atraviesa el
+renderizador y la conversión de barrido reales; no se remapea un gris ya recortado. El ruido del receptor
+sigue dependiendo del cuadro, de modo que son réplicas de una anatomía fija, no una envolvente idéntica.
+Se registran semilla, tiempos, K, R_t, ajustes, GPU, métricas, censura y niveles de pared, neblina,
+pleura y reverberaciones. Las series de respiración tranquila y apnea de la decisión 21 siguen midiendo
+la dinámica de forma separada.
+
+`tools/fidelity/compare.ts` admite distribución entre sujetos, banco alternativo y selección de
+respiración. La comparación histórica entre clips sigue disponible. La partición versionada en
+`docs/reference-bank/calibration-split.json` mantiene todas las ventanas de cada sujeto juntas:
+exploración y comprobación nunca comparten un sujeto. Los agregados del banco ya eran conocidos;
+esta comprobación no es ciega ni constituye validación clínica independiente. Los clips originales
+permanecen fuera del repositorio; solo se versionan identificadores y estadísticas derivadas.
+
+**Consecuencias.** La aceptación exige leer conjuntamente M, prominencia de A2, textura mural, niveles
+y recorte. La geometría k·D, la pleura anatómica, las sombras costales y la adquisición histórica
+conservan sus pruebas. Espesor pleural limitado por resolución, desfase A1 con referencias recortadas,
+sombras procedentes de un único sujeto y cocientes temporales censurados no son objetivos de ajuste.
+No se añaden mandos al usuario ni se declara cerrada la fidelidad del normal.
+
+**Verificación.** En curso: línea base del protocolo sobre la física de `e28aaa0`, comparación del
+candidato y revisión independiente antes de integrar. El navegador local de esta sesión está bloqueado;
+la ejecución gráfica se verifica en la CI del repositorio y no se presenta como inspección visual
+humana ni medición de rendimiento en GPU de usuario.

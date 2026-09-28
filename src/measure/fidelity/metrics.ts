@@ -717,6 +717,12 @@ export function stackMetrics(
  */
 export function analyzeClip(frames: readonly GreyFrame[], opts: AnalyzeOptions = {}): ClipAnalysis {
   if (!frames.length) throw new RangeError('analyzeClip: sin cuadros');
+  if (
+    opts.frameIntervalS !== undefined &&
+    opts.frameIntervalS !== null &&
+    (!Number.isFinite(opts.frameIntervalS) || opts.frameIntervalS < 0)
+  )
+    throw new RangeError('analyzeClip: intervalo entre cuadros inválido');
   const scale = opts.scale ?? GREY_8BIT;
   const sector = opts.geometry ? { geometry: opts.geometry, maskSource: 'given' as const } : detectSector(frames, scale);
   const { width, height } = frames[0];
@@ -744,6 +750,8 @@ export function analyzeClip(frames: readonly GreyFrame[], opts: AnalyzeOptions =
     ]),
   );
   const meanM = frameMetrics(meanBeam, sampler, scale, opts.mmPerPx ?? null, meanSt, skinAtTop);
-  const stack = beams.length >= 3 ? stackMetrics(beams, meanSt, opts.frameIntervalS ?? null, scale) : null;
+  // dt=0 identifica réplicas simultáneas: sus diferencias de receptor no son movimiento temporal.
+  // dt desconocido conserva las medidas por cuadro del banco, sin convertirlas a segundos.
+  const stack = beams.length >= 3 && opts.frameIntervalS !== 0 ? stackMetrics(beams, meanSt, opts.frameIntervalS ?? null, scale) : null;
   return { sector, frames: frames.length, analyzedFrames: chosen.length, perFrame, summary, stack, meanStructures: meanM.structures };
 }

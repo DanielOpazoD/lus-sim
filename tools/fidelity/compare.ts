@@ -11,12 +11,21 @@
  * calibración es del ciclo 3b.
  */
 import { readFileSync } from 'node:fs';
-import { COMPARED_METRICS, compareToReference, simValuesOf, type SimValue, type StratumMetric } from '../../src/measure/fidelity/compare';
+import {
+  COMPARED_METRICS,
+  compareToReference,
+  simValuesOf,
+  type ReferenceBasis,
+  type SimValue,
+  type StratumMetric,
+} from '../../src/measure/fidelity/compare';
 import type { MetricSummary, StackMetrics } from '../../src/measure/fidelity/metrics';
 
 export interface SimReport {
   startPoint: string;
   respiration: string;
+  display?: { gainDb: number; dynamicRangeDb: number; greyCurve: number };
+  acquisition?: { interfaceKDb: number; pleuraRt: number };
   metrics: Record<string, Pick<MetricSummary, 'median' | 'censored'>>;
   stack: StackMetrics | null;
 }
@@ -42,24 +51,27 @@ export function simCell(v: SimValue, position: string | undefined): string {
 }
 
 /** La tabla en Markdown: estratos de referencia y columnas del simulador, con la posición frente a `sameProbe`. */
-export function comparisonTable(strata: Stratum[], sims: SimReport[], sameProbe = 'convex'): string {
+export function comparisonTable(strata: Stratum[], sims: SimReport[], sameProbe = 'convex', basis: ReferenceBasis = 'clips'): string {
   const ref = strata.find((g) => g.probe === sameProbe);
   const head = [
     'Métrica',
-    ...strata.map((g) => `Ref. ${g.probe}: p10–p90 [mediana] (clips/sujetos)`),
-    ...sims.map((s) => `Sim. ${s.startPoint}`),
+    ...strata.map((g) => `Ref. ${g.probe}: p10–p90 entre ${basis === 'subjects' ? 'sujetos' : 'clips'} [mediana] (clips/sujetos)`),
+    ...sims.map(
+      (s) =>
+        `Sim. ${s.startPoint} (${s.respiration}${s.display ? `; G=${s.display.gainDb}, DR=${s.display.dynamicRangeDb} dB, c=${s.display.greyCurve}` : ''}${s.acquisition ? `; K=${s.acquisition.interfaceKDb} dB, Rt=${s.acquisition.pleuraRt}` : ''})`,
+    ),
   ];
   const lines = [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`];
   for (const m of COMPARED_METRICS) {
     const cells = strata.map((g) => {
       const r = g.metrics[m];
-      const q = r?.betweenClips;
+      const q = basis === 'subjects' ? r?.betweenSubjects : r?.betweenClips;
       return q ? `${fmt(q.p10)}–${fmt(q.p90)} [${fmt(q.median)}] (${r.clips}/${r.subjects})` : '—';
     });
     const simCells = sims.map((s) => {
       const v = simValuesOf(s.metrics, s.stack);
       const sv = v[m] ?? { value: null, censored: null };
-      const cmp = ref ? compareToReference(v, ref.metrics, [m])[0] : undefined;
+      const cmp = ref ? compareToReference(v, ref.metrics, [m], basis)[0] : undefined;
       return simCell(sv, cmp?.position);
     });
     if (cells.every((c) => c === '—') && simCells.every((c) => c === '—')) continue;
@@ -68,16 +80,43 @@ export function comparisonTable(strata: Stratum[], sims: SimReport[], sameProbe 
   return lines.join('\n');
 }
 
+/** Opciones explícitas para comparar las mismas adquisiciones con un grupo de referencia reservado. */
+export function comparisonArgs(args: readonly string[]): {
+  files: string[];
+  reference: string;
+  basis: ReferenceBasis;
+  respiration: 'quiet' | 'apnea-expiratory' | 'all';
+} {
+  const options: ReturnType<typeof comparisonArgs> = {
+    files: [],
+    reference: 'docs/reference-bank/reference-stats.json',
+    basis: 'clips',
+    respiration: 'quiet',
+  };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) {
+      options.files.push(arg);
+      continue;
+    }
+    const value = args[++i];
+    if (!value || value.startsWith('--')) throw new Error(`fidelity:compare — falta el valor de ${arg}`);
+    if (arg === '--reference') options.reference = value;
+    else if (arg === '--basis' && (value === 'clips' || value === 'subjects')) options.basis = value;
+    else if (arg === '--respiration' && (value === 'quiet' || value === 'apnea-expiratory' || value === 'all')) options.respiration = value;
+    else throw new Error(`fidelity:compare — opción o valor desconocido: ${arg} ${value}`);
+  }
+  if (!options.files.length) throw new Error('fidelity:compare — pasa los informes de la e2e (fidelidad-<punto>.json)');
+  return options;
+}
+
 const isMain = process.argv[1]?.endsWith('compare.ts');
 if (isMain) {
-  const files = process.argv.slice(2);
-  if (!files.length) {
-    console.error('fidelity:compare — pasa los informes de la e2e (fidelidad-<punto>.json)');
-    process.exit(1);
-  }
-  const { strata } = JSON.parse(readFileSync('docs/reference-bank/reference-stats.json', 'utf8')) as { strata: Stratum[] };
-  const sims = files
+  const opts = comparisonArgs(process.argv.slice(2));
+  const { strata } = JSON.parse(readFileSync(opts.reference, 'utf8')) as { strata: Stratum[] };
+  const sims = opts.files
     .flatMap((f) => (JSON.parse(readFileSync(f, 'utf8')) as { reports: SimReport[] }).reports)
-    .filter((r) => r.respiration === 'quiet');
-  console.log(comparisonTable(strata, sims));
+    .filter((r) => opts.respiration === 'all' || r.respiration === opts.respiration);
+  if (!sims.length) throw new Error(`fidelity:compare — ningún informe con respiración ${opts.respiration}`);
+  console.log(comparisonTable(strata, sims, 'convex', opts.basis));
 }
