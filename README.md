@@ -11,7 +11,7 @@ consolidación o el derrame **emerjan** de la física y no se pinten.
 > **No es un dispositivo médico y no debe usarse para decidir nada sobre un paciente real.** Todos los
 > pacientes son sintéticos y paramétricos. El repositorio es público: no contiene, ni contendrá, datos
 > ni imágenes de personas reales (decisión 5). Las limitaciones conocidas están en
-> `docs/LIMITATIONS.md`.
+> `docs/LIMITATIONS.md` y el alcance de la ampliación B + M en `docs/MMODE.md`.
 
 Es el tercer simulador de una familia, junto a EchoTwin (ecocardiografía) y VExUS (Doppler venoso), y
 nace preparado para unirse a ellos (decisión 1, `docs/UNIFICATION.md`): comparte la pila, las
@@ -24,9 +24,10 @@ La rama principal forma la ecografía del pulmón normal con el motor TypeScript
 la misma adquisición. Profundidad, ganancia y foco se editan desde una barra compacta; orientación fina,
 respiración y procesamiento están en ajustes contextuales. En móvil el navegador se puede plegar.
 
-El alcance sigue siendo modo B con un adulto sintético y un transductor convexo. La navegación representa
-la anatomía paramétrica del motor; no constituye un atlas anatómico segmentado ni valida por sí sola la
-fidelidad clínica. Las limitaciones vigentes están en `docs/LIMITATIONS.md`.
+El alcance es modo B con una línea M opcional, un adulto sintético y un transductor convexo. La navegación
+representa la anatomía paramétrica del motor; no constituye un atlas anatómico segmentado ni valida por sí
+sola la fidelidad clínica. M registra una línea del mismo cuadro, a la cadencia de B, no como un modo M
+dedicado de alta frecuencia. Uso, límites y procedencia incremental de esta ampliación: `docs/MMODE.md`.
 
 Ya existe:
 
@@ -46,6 +47,8 @@ Ya existe:
   BLUE, la consola del equipo, el HUD y la recuperación de la pérdida del contexto WebGL (`e2e/smoke.spec.ts`);
 - (decisión 23) navegador torácico 3D con transductor, marcador y plano de corte coherentes; controles
   contextuales y cine con estado espacial y respiratorio histórico;
+- vista B + M con selección de línea, teclado, barrido 4/8 s y revisión por el cine; sin mezclar
+  posiciones o ajustes diferentes ni reconstruir un registro que no se adquirió (`docs/MMODE.md`);
 - las guardas: capas (`src/validation/layers.test.ts`), documentación y bibliografía
   (`src/validation/docs.test.ts`), evidencia (`src/validation/evidence.test.ts`) y procedencia del código
   portado (`src/validation/provenance.test.ts`, `tools/provenance/drift.ts`).
@@ -64,6 +67,10 @@ La misión y los objetivos que ordenan el trabajo están en `docs/MISSION.md`.
    calibración.
 
 ## Uso
+
+En la aplicación, activa **B + M**, coloca la línea en el sector y mantén la sonda quieta para registrar
+su movimiento. Congelar permite revisar la franja con el mismo cine de B. El ajuste fino de línea está
+plegado de inicio y puede manejarse con teclado; el modo B permanece como vista inicial.
 
 Requiere Node 22 o superior (`.nvmrc`: 24).
 
