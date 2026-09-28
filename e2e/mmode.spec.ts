@@ -80,9 +80,11 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   expect(errors).toEqual([]);
 });
 
-test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y respiración conservan sus contratos', async ({ browser }, info) => {
+test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y respiración conservan sus contratos', async ({
+  browser,
+}, info) => {
   test.setTimeout(240_000);
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const context = await browser.newContext({ baseURL: info.project.use.baseURL, viewport: { width: 390, height: 844 }, hasTouch: true });
   const page = await context.newPage();
   try {
     const errors = await boot(page);
