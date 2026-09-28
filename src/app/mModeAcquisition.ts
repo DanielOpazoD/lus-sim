@@ -1,7 +1,11 @@
 import type { Simulator } from './simulator';
 
 /** Una franja pertenece a una línea, una pose y unos ajustes; no a una etiqueta clínica. */
-type Source = Pick<Simulator, 'frozen' | 'pose' | 'bmode'> & {
+type Source = {
+  frozen: boolean;
+  pose: Simulator['pose'];
+  bmode: Simulator['bmode'];
+  transducer: Pick<Simulator['transducer'], 'halfSector'>;
   renderer: { mStrip: { clear(): void } };
 };
 
@@ -22,7 +26,9 @@ export class MModeAcquisition {
       return undefined;
     }
     if (source.frozen) return undefined;
-    if (!Number.isFinite(theta)) throw new RangeError('Modo M: ángulo no finito');
+    if (!Number.isFinite(theta) || Math.abs(theta) > source.transducer.halfSector) {
+      throw new RangeError('Modo M: ángulo no finito o fuera del sector');
+    }
     const { pose: p, bmode: b, renderer } = source;
     const values = [
       theta,
