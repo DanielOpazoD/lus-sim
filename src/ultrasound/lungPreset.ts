@@ -47,11 +47,12 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
       'Evitar la saturación de la línea pleural (Demi 2023, enunciado 15; `docs/knowledge/physics.md` §2.2). Referencia ' +
       'histórica con K = 55 dB: en la envolvente de la GPU con ganancia 0 dB (ciclo 2, decisión 20: `ribShadow`, líneas ' +
       'libres en apnea espiratoria), la pleura llegó a +19,4, +20,1 y +19,5 dB sobre el blanco en BLUE superior, BLUE ' +
-      'inferior y PLAPS; con −21 dB quedó a −0,9…−1,6 dB. Candidato C3b-A (decisión 24): con K = 54 dB, la ganancia ' +
-      '−20 dB compensa 1 dB de reducción del componente de interfaz y busca conservar ese margen pleural nominal. ' +
-      'No es una nueva medición: la suma coherente con el moteado y las reverberaciones exige volver a medir los niveles ' +
-      'y el recorte en la GPU. La e2e de la sombra costal lo comprueba y el banco de calibración compara también pared, ' +
-      'neblina y prominencia de líneas A. La ganancia no sustituye el ajuste del contraste relativo (guía §13). Es una ' +
+      'inferior y PLAPS; con −21 dB quedó a −0,9…−1,6 dB. Ajuste preliminar C3b-A (decisión 24): con K = 54 dB, la ' +
+      'ganancia −20 dB compensa nominalmente 1 dB de reducción del componente de interfaz. Medido en CI con rango ' +
+      'dinámico 70 dB y apnea a t = 60 s: el gris de pared sube 1,64–2,02 niveles y el de neblina 1,53–1,71 en los ' +
+      'tres puntos; el recorte pleural mediano es 0. Las pruebas de sombras y líneas A pasan sin cambiar sus guardas. ' +
+      'Son medidas del simulador (CI 81, 5d1b4cd), sin cierre de la fidelidad de textura o campo profundo. La ganancia ' +
+      'no sustituye el ajuste del contraste relativo (guía §13). Es una ' +
       'estimación propia del simulador, no una ganancia clínica documentada; se conserva el dominio heredado [−24, −18] dB',
   },
   persistence: {

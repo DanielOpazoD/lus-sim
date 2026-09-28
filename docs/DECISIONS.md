@@ -1648,7 +1648,7 @@ conservan sus pruebas. Espesor pleural limitado por resolución, desfase A1 con 
 sombras procedentes de un único sujeto y cocientes temporales censurados no son objetivos de ajuste.
 No se añaden mandos al usuario ni se declara cerrada la fidelidad del normal.
 
-El último candidato conserva rango dinámico 70 dB, curva 3,5 y R_t = 0,3. Reduce K de 55 a 54 dB y
+El ajuste preliminar seleccionado conserva rango dinámico 70 dB, curva 3,5 y R_t = 0,3. Reduce K de 55 a 54 dB y
 compensa nominalmente la interfaz con ganancia −20 dB en lugar de −21. Los valores siguen siendo
 estimados dentro de los dominios heredados: K [53, 57] y R_t [0,2, 0,5]. `normalCalibration.ts`
 registra valores, fuentes del mecanismo y límites; TS y GLSL consumen la misma configuración. Las
@@ -1659,9 +1659,8 @@ Se descartan dos ensayos previos con K = 53 dB y ganancia −19 dB. Con R_t = 0,
 orden se detectó solo en 1–2 de 12 grupos del BLUE superior; con R_t = 0,27 (CI 80), en 4 de 12 en
 ambos intentos, con un máximo desplazado 1,37 mm. Ambos incumplen los 6 grupos exigidos pese a aclarar
 pared y neblina. Se conservan el detector de 6 dB, los recuentos y todas las tolerancias geométricas.
-`ALINES_JSON` registra detectabilidad y geometría también cuando la prueba pasa. El último ensayo
-restituye R_t = 0,3 y limita la redistribución a 1 dB; si falla, se conserva la física de la línea base
-sin continuar acercándose al umbral. El grupo de comprobación no interviene en estas revisiones.
+`ALINES_JSON` registra detectabilidad y geometría también cuando la prueba pasa. El ensayo seleccionado
+restituye R_t = 0,3 y limita la redistribución a 1 dB; cumple las guardas sin continuar acercándose al umbral. El grupo de comprobación no interviene en estas revisiones.
 
 El barrido exploratorio también mostró 40–41 columnas útiles de coherencia en una presentación de
 PLAPS. Ese recuento corresponde al detector del primer cuadro, no a líneas GPU independientes ni a la
@@ -1676,7 +1675,51 @@ tolerancias, pero se acumula el peor exceso de cada desigualdad y su ubicación 
 Los no finitos se registran y hacen fallar la prueba. El caso aislado con cobertura pasó en 11,1 s;
 esa ejecución aislada no alcanza por sí sola la cobertura global y no sustituye `check` completo.
 
-**Verificación.** En curso: línea base del protocolo sobre la física de `e28aaa0`, comparación del
-candidato y revisión independiente antes de integrar. El navegador local de esta sesión está bloqueado;
-la ejecución gráfica se verifica en la CI del repositorio y no se presenta como inspección visual
-humana ni medición de rendimiento en GPU de usuario.
+**Resultados del ajuste.** `docs/reference-bank/normal-calibration-c3b-a.json` conserva la línea base,
+los dos rechazos y el ajuste seleccionado, con sus commits, ejecuciones, parámetros, métricas, censura
+y soporte del detector. A t = 60 s y DR70: M y A2 son medianas de tres réplicas; los niveles de gris
+de 8 bits corresponden al primer cuadro:
+
+| Ventana       | Pared base → ajuste | Neblina base → ajuste | M pared base → ajuste | M neblina base → ajuste | A2.r2 base → ajuste |
+| ------------- | ------------------- | --------------------- | --------------------- | ----------------------- | ------------------- |
+| BLUE superior | 28,993 → 31,015     | 13,862 → 15,573       | 1,8822 → 1,8587       | 2,0376 → 2,0169         | 0,5647 → 0,5613     |
+| BLUE inferior | 39,191 → 40,831     | 16,973 → 18,609       | 1,6565 → 1,6387       | 1,8864 → 1,8695         | 0,5083 → 0,5014     |
+| PLAPS         | 28,540 → 30,544     | 14,962 → 16,487       | 1,8585 → 1,8374       | 1,9862 → 1,9697         | 0,5407 → 0,5370     |
+
+La mejora es pequeña: las cuatro métricas primarias (M pared, M neblina, A2.r2 y T1 σ/prominencia)
+se acercan a la descripción exploratoria en las tres ventanas, a DR70 y DR80, pero siguen fuera de
+sus p10–p90. A DR70 esas métricas no están censuradas; los niveles de pared y neblina suben y su recorte
+negro baja. El recorte blanco mediano del pico pleural sigue en 0. El campo profundo permanece
+censurado a DR70. La longitud lateral de textura T1 se aleja algo de la referencia en BLUE superior
+(y en dos ventanas a DR80): no se declara calibrada la célula de moteado.
+
+El cuarto orden se detecta en 10/12, 8/12 y 7/10 grupos de BLUE superior, inferior y PLAPS, tanto con
+composición como sin ella, frente a mínimos de 6, 6 y 5. Los órdenes 1–3 se detectan en todos los grupos.
+F-T01 frente a la pleura mostrada cumple en todos los picos del cuarto orden (peor error 0,407 mm frente
+a ±0,5 mm); la separación cumple ±0,2 mm. Respecto a k·D, un pico del BLUE inferior compuesto queda
+−0,2028 mm: 7/8 cumplen ±0,2 mm, cumpliendo el criterio histórico `floor(0,9 · n) = 7` sin modificarlo.
+
+**Comprobación por sujetos reservados.** Con K54/R_t0,3/ganancia −20 fijados y la CI 81 terminada,
+se abrió el grupo de comprobación sin reajustar parámetros. Las cuatro métricas primarias también se
+acercan en las tres ventanas a DR70, sin censura, pero permanecen alejadas del banco. M pared, M neblina
+y A2.r2 cuentan con 6 clips de 2 sujetos (dos clips excluidos por QA); T1 σ/prominencia, con 8 clips de
+2 sujetos. En exploración, los respectivos tamaños efectivos son 3 clips/2 sujetos y 8 clips/4 sujetos.
+La longitud lateral T1 empeora algo frente a comprobación en BLUE superior y PLAPS. Se acepta una mejora
+preliminar y modesta del contraste; no se da por calibrada la textura ni por validado clínicamente el normal.
+
+**Referencia y reproducibilidad.** Se verificaron los SHA256 de los 34 clips del manifiesto fuera del
+repositorio. La regeneración con FFmpeg 6.1.1 procesó los 8277 cuadros, sin omisiones, truncado ni fallos
+de compuertas, pero no reprodujo exactamente los números del archivo canónico: 1446 diferencias escalares,
+un máximo de 1,986 grises en niveles y cambios pequeños en los cuantiles de las métricas primarias.
+La versión del decodificador original no estaba registrada y no se atribuye la causa sin prueba. Se
+conservó `reference-stats.json` congelado por SHA para todos los ensayos, sin sustituirlo por la regeneración.
+La prueba dorada del banco no se presenta como aprobada; el detalle agregado consta en la evidencia.
+
+**Verificación.** CI 81 (`5d1b4cd`, ejecución `36480592122`) completa en verde: 705 pruebas aprobadas,
+un fallo esperado de regresión y dos omisiones condicionales (banco clínico externo y comparación con el
+repositorio de origen); cobertura 95,33 % de sentencias y 89,91 % de ramas. Las 21 e2e de Chromium con
+SwiftShader pasan, incluidas sombras, geometría, fidelidad, ganancia, adquisición, cine, navegación 3D
+y recuperación de contexto. El presupuesto de tamaño pasa y la auditoría de producción informa cero
+vulnerabilidades. La revisión adversarial independiente comprueba protocolo, física, conservación de
+guardas y evidencia. La ejecución gráfica se verifica en CI; no se presenta como inspección visual humana
+ni medición de rendimiento en GPU de usuario. La integración exige también CI verde sobre el árbol final.

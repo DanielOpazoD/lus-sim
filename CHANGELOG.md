@@ -7,6 +7,12 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- C3b-A, calibración preliminar del contraste normal (24): protocolo fijo de tres réplicas por rango dinámico y punto de
+  partida, registro de parámetros y comparación por sujetos separados. Ajuste K = 54 dB, R_t = 0,3 y ganancia −20 dB:
+  mejora modesta del gris de pared y neblina, con pruebas de sombras y líneas A conservadas; la fidelidad sigue abierta.
+  La prueba anatómica `maxTotal` acumula el peor exceso antes de afirmarlo, conservando escenas, rejilla, tolerancias y
+  detección de no finitos, para evitar millones de llamadas de aserción.
+
 - Adquisición con navegación torácica 3D (23): transductor y plano desde el marco efectivo, desplazamiento
   continuo y cine con pose y respiración históricas. Dos superficies, barra compacta de profundidad/ganancia/foco,
   ajustes contextuales y navegador plegable en móvil. Corrige profundidad de 65 mm, límite del foco,
