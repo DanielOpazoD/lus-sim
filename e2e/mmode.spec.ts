@@ -159,6 +159,7 @@ test('M: pérdida de GPU congelada descarta la franja y recupera adquisición vi
   await acquired(page);
   await page.locator('#freeze').click();
   const before = await first(page);
+  expect(errors).toEqual([]);
   await page.evaluate(() => {
     const r = window.__lusTest!.sim().renderer;
     const ext = r.gl.getExtension('WEBGL_lose_context');
@@ -170,5 +171,6 @@ test('M: pérdida de GPU congelada descarta la franja y recupera adquisición vi
   await acquired(page);
   expect(await first(page)).toBeGreaterThan(before);
   await expect(page.locator('#mmode-place')).toBeEnabled();
-  expect(errors).toEqual([]);
+  // Exactamente el aviso de la pérdida inyectada, sin admitir errores adicionales ni silenciamiento.
+  expect(errors).toEqual(['[gpu] contexto WebGL perdido']);
 });
