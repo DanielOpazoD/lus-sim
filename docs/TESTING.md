@@ -235,7 +235,9 @@ Las pruebas puras del navegador comprueban el adaptador de coordenadas, la conti
 el rechazo de regiones no explorables y la huella/sector sobre el mismo marco de la adquisición.
 `src/validation/uiInput.test.ts` instala juntos los oyentes reales de la sonda y de los atajos: la
 activación nativa de Espacio no debe cancelarse al enfocar un botón. `e2e/adquisicion.spec.ts` verifica
-los mandos contextuales, congelado/cine y distribución móvil sobre el build de producción.
+los mandos contextuales, congelado/cine y distribución móvil sobre el build de producción. El recorrido
+histórico cambia ganancia, ubicación y maniobra; cambiar profundidad inicia un anillo nuevo por la regla
+de persistencia entre escalas polares, y se comprueba como una operación distinta.
 `e2e/navegacion3d.spec.ts` recorre los gestos y botones del navegador, la independencia de la cámara,
 el bloqueo de la sonda en cine y la pérdida/restauración del contexto 3D sin reiniciar el ecógrafo.
 

@@ -1,4 +1,11 @@
+import { createRequire } from 'node:module';
 import { expect, test, type Page } from '@playwright/test';
+
+// Playwright 1.63.0 ya incluye y exporta pngjs para sus comparaciones de capturas.
+// Decodificar en Node evita una segunda tarea asíncrona en el renderer ocupado por SwiftShader.
+const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utilsBundle') as {
+  PNG: { sync: { read(buffer: Buffer): { data: Buffer } } };
+};
 
 /** Los mandos y gestos recorren la UI real. __lusTest solo observa; no coloca la sonda ni avanza el reloj. */
 async function boot(page: Page): Promise<string[]> {
@@ -30,26 +37,15 @@ async function canvasBox(page: Page) {
 
 /** Humo visual, no métrica clínica: distingue un modelo con luces de un canvas uniforme tras restaurar WebGL. */
 async function navigatorContrast(page: Page): Promise<number> {
-  const png = (await page.locator('.thorax-canvas').screenshot()).toString('base64');
-  return page.evaluate(async (b64) => {
-    const image = new Image();
-    image.src = `data:image/png;base64,${b64}`;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const context = canvas.getContext('2d')!;
-    context.drawImage(image, 0, 0);
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    let low = 255;
-    let high = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const grey = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
-      low = Math.min(low, grey);
-      high = Math.max(high, grey);
-    }
-    return high - low;
-  }, png);
+  const { data: pixels } = PNG.sync.read(await page.locator('.thorax-canvas').screenshot());
+  let low = 255;
+  let high = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const grey = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+    low = Math.min(low, grey);
+    high = Math.max(high, grey);
+  }
+  return high - low;
 }
 
 test('navegador 3D: botones, arrastre sobre el tórax, orientación y cámara independiente al congelar', async ({ page }) => {

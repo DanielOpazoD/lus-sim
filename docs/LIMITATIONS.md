@@ -10,7 +10,9 @@ conservan su identificador (decisiones 10 y 11).
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
   sintético, navegador torácico 3D y cine con pose y respiración históricas. Sin casos patológicos, modo M,
   medición ni modo docente/examen. Los puntos BLUE son referencias aproximadas derechas, no posiciones
-  anatómicas universales ni una garantía de obtener la ventana correcta.
+  anatómicas universales ni una garantía de obtener la ventana correcta. Cambiar la profundidad inicia un
+  cine nuevo para evitar mezclar persistencia entre escalas polares distintas; no hay revisión continua
+  entre profundidades diferentes.
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
   el motor, con las simplificaciones de `thorax-cylindrical-cage`. No es un atlas segmentado ni amplía la cobertura
   posterior permitida por la pose. La piel permanece fija y las costillas opcionales son una guía rotulada en

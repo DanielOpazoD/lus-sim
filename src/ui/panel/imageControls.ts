@@ -68,6 +68,7 @@ export function buildImageBasics(ctx: PanelContext, sec: HTMLElement): void {
     toggle.setAttribute('aria-controls', pop.id);
     toggle.setAttribute('aria-expanded', 'false');
     ctx.track(slider(pop, spec, () => undefined));
+    if (id === 'depth') note(pop, 'Cambiar la profundidad inicia un nuevo cine.');
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'quick-close';

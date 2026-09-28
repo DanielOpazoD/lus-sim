@@ -1571,6 +1571,8 @@ Una reescritura de la aplicación o del renderizador ecográfico no es necesaria
 - `AcquisitionState` en `src/ultrasound/cine.ts` guarda pose, marco efectivo, muestra fisiológica y maniobra respiratoria. El
   renderizador conserva el último estado mostrado y lo copia profundamente al guardar cada cuadro del
   anillo. `Simulator.displayedAcquisition` selecciona el mismo cuadro que la imagen y los ajustes.
+  Se conserva la regla del renderizador: cambiar profundidad inicia un cine nuevo para no mezclar
+  persistencia entre escalas polares distintas; se explica en el control contextual de profundidad.
 - `advance(0)` actualiza el contacto al cambiar la pose aunque no venza un paso fisiológico: el reloj no
   avanza y ya no se entrega una pose nueva con un plano previo. Congelar mantiene su retorno inicial.
 - La interfaz tiene dos superficies, una barra básica de profundidad/ganancia/foco y un diálogo para
@@ -1606,5 +1608,7 @@ y 820 KiB totales. La medición en GPU de usuario y la revisión visual humana s
   no de coordenadas elegidas para parecer un tórax. La revisión independiente contrasta también la malla
   costal con la distancia implícita del modelo.
 - La CI mantiene todas las pruebas, los umbrales de cobertura y sus cinco fragmentos E2E. La interfaz
-  tiene pruebas de adquisición y navegación; la inspección visual manual no se declara realizada cuando
+  tiene pruebas de adquisición y navegación. La primera ejecución detectó una expectativa incorrecta de
+  conservar cuadros a través de un cambio de profundidad; el recorrido comprueba equipo histórico con
+  ganancia y verifica por separado el reinicio al cambiar profundidad. La inspección visual manual no se declara realizada cuando
   el navegador de la sesión está bloqueado. No se modifican shaders ni parámetros clínicos.

@@ -80,8 +80,10 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await page.locator('#settings-toggle').click();
   await page.getByRole('button', { name: 'Profunda', exact: true }).click();
   await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
-  await page.locator('#quick-depth').click();
-  await page.getByLabel('Profundidad', { exact: true }).press('Home');
+  // El historial mezcla ajustes de ganancia a la misma escala polar. Cambiar profundidad inicia
+  // otro cine por diseño; esa frontera se comprueba al final del recorrido.
+  await page.locator('#quick-gain').click();
+  await page.getByLabel('Ganancia', { exact: true }).press('ArrowRight');
   await page.keyboard.press('Escape');
   await page.locator('[data-start-point="plaps"]').click();
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().pose.phi), { timeout: 60_000 }).toBeGreaterThan(1.14 * Math.PI);
@@ -93,7 +95,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
           const n = sim.renderer.cineCount;
           if (!n) return false;
           const f = sim.renderer.cineFrame(n - 1);
-          return f.acquisition.pose.phi > 1.14 * Math.PI && f.bmode.depthMm === 60 && f.acquisition.respiratoryPattern === 'deep';
+          return f.acquisition.pose.phi > 1.14 * Math.PI && f.bmode.gainDb === -20 && f.acquisition.respiratoryPattern === 'deep';
         }),
       { timeout: 60_000 },
     )
@@ -102,7 +104,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await expect(page.locator('#live-chip')).toHaveText('Congelada');
   const currentPose = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
   await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
-  await expect(page.locator('#quick-depth')).toContainText('6,0 cm');
+  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
 
   // Escoge con el cine nativo un cuadro adquirido al inicio; el índice se encuentra por sus metadatos,
   // sin modificar ni el anillo ni la pose, y se recorre con las mismas teclas que usa el alumno.
@@ -112,6 +114,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
       const f = r.cineFrame(i);
       if (
         f.bmode.depthMm === 120 &&
+        f.bmode.gainDb === -21 &&
         Math.abs(f.acquisition.pose.phi - initial.phi) < 0.001 &&
         f.acquisition.respiratoryPattern === 'quiet'
       ) {
@@ -126,7 +129,10 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   for (let i = 0; i < old!.index; i++) await cine.press('ArrowRight');
   await frame(page);
   await expect(page.locator('#quick-depth')).toContainText('12,0 cm');
+  await expect(page.locator('#quick-gain')).toContainText('-21 dB');
+  await expect(page.locator('#quick-gain')).toBeDisabled();
   await expect(page.locator('#hud-tr')).toContainText('12,0 cm');
+  await expect(page.locator('#hud-tr')).toContainText('G -21 dB');
   await expect(page.locator('[data-start-point="blueUpper"]')).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('[data-start-point="plaps"]')).not.toHaveAttribute('aria-current', 'true');
   expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.pose)).toEqual(old!.pose);
@@ -138,11 +144,26 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
 
   await cine.press('End');
   await frame(page);
-  await expect(page.locator('#quick-depth')).toContainText('6,0 cm');
+  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
   await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
   await page.locator('#freeze').click();
   expect(await page.evaluate(() => window.__lusTest!.sim().pose)).toEqual(currentPose);
-  await expect(page.locator('#quick-depth')).toContainText('6,0 cm');
+  await expect(page.locator('#quick-gain')).toContainText('-20 dB');
+  // Una profundidad distinta inicia un historial nuevo: no conserva cuadros de la escala anterior.
+  await page.locator('#quick-depth').click();
+  await expect(page.locator('#quick-depth-panel')).toContainText('Cambiar la profundidad inicia un nuevo cine.');
+  await page.getByLabel('Profundidad', { exact: true }).press('Home');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const r = window.__lusTest!.sim().renderer;
+          if (!r.cineCount) return false;
+          return Array.from({ length: r.cineCount }, (_, i) => r.cineFrame(i).bmode.depthMm).every((depth) => depth === 60);
+        }),
+      { timeout: 60_000 },
+    )
+    .toBe(true);
   expect(errors).toEqual([]);
 });
 
