@@ -74,3 +74,12 @@ avanzar el reloj fisiológico. Los ajustes visibles utilizan los valores histór
 La barra básica y el diálogo de ajustes usan el mismo controlador del equipo. El núcleo mantiene las fronteras
 de capas existentes; Three.js solo se importa desde la UI. El HUD conserva sus nodos y el tamaño del sector
 sigue un ResizeObserver; las mediciones de FPS utilizan tiempo real, separado del intervalo limitado del motor.
+
+### Presentación humana (decisión 25)
+
+`src/ui/thorax/humanTorso.ts` posee las mallas del maniquí y una deformación privada para el cuadro
+histórico; nunca modifica `Simulator.anatomy`. `src/ui/thorax/convexProbe.ts` posee carcasa, lente,
+marcador y cable. La matriz rígida conserva el marco efectivo. `index.ts` solo coordina su vida,
+cámara y selección por primera superficie visible. El cuerpo se reconstruye por escena, la sonda
+por perfil y el sector por profundidad/pose. Orbitar no actualiza geometrías. Las costillas se crean
+al primer uso. Las medidas de autoría se documentan separadas del paciente acústico.

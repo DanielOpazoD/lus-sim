@@ -22,7 +22,9 @@ convenciones y el motor de VExUS, portado con registro de procedencia.
 La rama principal forma la ecografía del pulmón normal con el motor TypeScript/WebGL2 y añade un navegador
 3D del tórax para mover y orientar la sonda (decisión 23). La imagen, el contacto efectivo y el cine comparten
 la misma adquisición. Profundidad, ganancia y foco se editan desde una barra compacta; orientación fina,
-respiración y procesamiento están en ajustes contextuales. En móvil el navegador se puede plegar.
+respiración y procesamiento están en ajustes contextuales. En móvil el navegador se puede plegar. La decisión 25 incorpora un maniquí humano procedural y una
+sonda convexa con lente, mango, marcador y cable, sin modificar la anatomía acústica; Centrar modelo
+restablece solamente la cámara.
 
 El alcance es modo B con una línea M opcional, un adulto sintético y un transductor convexo. La navegación
 representa la anatomía paramétrica del motor; no constituye un atlas anatómico segmentado ni valida por sí

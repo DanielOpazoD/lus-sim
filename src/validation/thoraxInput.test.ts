@@ -49,7 +49,7 @@ function setup() {
     pose: defaultPose(),
     mode: 'move' as 'move' | 'orient',
     frozen: false,
-    point: torsoSkinPoint(1.15 * Math.PI, 50, scene.torso) as Vec3 | null,
+    point: torsoSkinPoint(1.15 * Math.PI, 50, scene.torso) as Vec3 | 'probe' | 'blocked' | null,
     orbits: [] as number[][],
     unavailable: 0,
   };
@@ -160,5 +160,57 @@ describe('Gestos del navegador del tórax', () => {
     dispose();
     for (const handlers of canvas.handlers.values()) expect(handlers.size).toBe(0);
     for (const handlers of win.handlers.values()) expect(handlers.size).toBe(0);
+  });
+  it('el cuerpo de contexto bloquea la selección y no inicia un arrastre a través de él', () => {
+    const { canvas, state, dispose } = setup();
+    const before = state.pose;
+    state.point = 'blocked';
+    canvas.fire('pointerdown');
+    canvas.fire('pointermove', { clientX: 35 });
+    expect(state.pose).toEqual(before);
+    expect(state.unavailable).toBe(1);
+    expect(canvas.captured.size).toBe(0);
+    expect(state.orbits).toEqual([]);
+    dispose();
+  });
+  it('agarrar la sonda no la teletransporta; el arrastre continúa sobre piel válida', () => {
+    const { canvas, scene, state, dispose } = setup();
+    const before = state.pose;
+    state.point = 'probe';
+    canvas.fire('pointerdown');
+    expect(state.pose).toEqual(before);
+    state.point = torsoSkinPoint(0.4 * Math.PI, 40, scene.torso);
+    canvas.fire('pointermove');
+    expect(state.pose.z).toBe(40);
+    dispose();
+  });
+  it('la sincronización puede cancelar al congelar aunque no llegue otro pointermove', () => {
+    const { canvas, state, dispose } = setup();
+    state.mode = 'orient';
+    canvas.fire('pointerdown');
+    state.frozen = true;
+    dispose.cancel();
+    expect(canvas.captured.size).toBe(0);
+    state.frozen = false;
+    const before = state.pose;
+    canvas.fire('pointermove', { clientX: 100 });
+    expect(state.pose).toEqual(before);
+    dispose();
+  });
+  it('Escape y congelar durante el gesto cancelan sin reactivar un arrastre viejo', () => {
+    const { canvas, win, state, dispose } = setup();
+    state.mode = 'orient';
+    canvas.fire('pointerdown');
+    win.fire('keydown', { key: 'Escape' });
+    expect(canvas.captured.size).toBe(0);
+    canvas.fire('pointerdown');
+    state.frozen = true;
+    canvas.fire('pointermove');
+    expect(canvas.captured.size).toBe(0);
+    state.frozen = false;
+    const before = state.pose;
+    canvas.fire('pointermove', { clientX: 100 });
+    expect(state.pose).toEqual(before);
+    dispose();
   });
 });

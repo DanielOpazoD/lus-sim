@@ -8,18 +8,22 @@ conservan su identificador (decisiones 10 y 11).
 ## Estado del proyecto
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
-  sintético, navegador torácico 3D y cine con pose y respiración históricas. Sin casos patológicos, modo M,
-  medición ni modo docente/examen. Los puntos BLUE son referencias aproximadas derechas, no posiciones
+  sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
+  sin casos patológicos ni modo docente/examen. Los puntos BLUE son referencias aproximadas derechas, no posiciones
   anatómicas universales ni una garantía de obtener la ventana correcta. Cambiar la profundidad inicia un
   cine nuevo para evitar mezclar persistencia entre escalas polares distintas; no hay revisión continua
   entre profundidades diferentes.
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
   el motor, con las simplificaciones de `thorax-cylindrical-cage`. No es un atlas segmentado ni amplía la cobertura
-  posterior permitida por la pose. La piel permanece fija y las costillas opcionales son una guía rotulada en
-  reposo; las terminaciones esquemáticas de hombros y cuello quedan fuera del dominio explorable. La envolvente
-  y el marcador visible de la sonda son ayudas de interacción; la huella y el plano se calculan con la geometría
-  y el marco efectivos de la adquisición. La validación visual humana y el
-  presupuesto de fluidez en GPU de usuario requieren medición; la CI con SwiftShader comprueba comportamiento.
+  posterior permitida por la pose. Desde la decisión 25, un maniquí procedural añade cabeza, hombros,
+  brazos y terminación abdominal no explorables. La piel funcional conserva la elipse acústica y muestra
+  el contacto del cuadro por la deformación existente; entre vértices es una aproximación teselada.
+  Las costillas opcionales permanecen como guía en reposo. La carcasa y cable son contexto de interfaz,
+  no nuevos transductores ni una simulación mecánica del cable. La lente y el plano se calculan con la
+  geometría activa y el marco efectivo de la adquisición. La cuerda activa derivada es 67,10 mm frente
+  al ancho nominal de 62 mm: se documenta, no se concilia cambiando la física por estética.
+  La validación con participantes y la fluidez en GPU de usuario requieren medición; SwiftShader
+  comprueba comportamiento, no rendimiento de un Mac o iPhone.
 
 ## Anatomía y fisiología
 
