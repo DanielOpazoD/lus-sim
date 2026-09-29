@@ -47,7 +47,12 @@ async function mark(page: Page, touch: boolean): Promise<number> {
 
 test('revisión B: medida, historial y exportación local coherentes sin cambiar la adquisición', async ({ page }, info) => {
   test.setTimeout(240_000);
+  const reviewRequests: string[] = [];
+  page.on('request', (request) => {
+    if (/\/frozenReview-.*\.js/.test(request.url())) reviewRequests.push(request.url());
+  });
   const errors = await boot(page);
+  expect(reviewRequests).toHaveLength(0);
   // Un ajuste posterior hace distintos los datos vivos y los del primer cuadro del cine.
   await page.locator('#quick-gain').click();
   await page.getByLabel('Ganancia', { exact: true }).press('ArrowRight');
@@ -55,6 +60,7 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
   await page.locator('#mmode-toggle').click();
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().renderer.mStrip.count), { timeout: 60_000 }).toBeGreaterThan(5);
   await freeze(page);
+  expect(reviewRequests).toHaveLength(1);
   const before = await page.evaluate(() => {
     const s = window.__lusTest!.sim();
     return { acquisition: s.displayedAcquisition, bmode: s.displayed.bmode, clock: s.physiology.clock.t, pose: s.pose };
@@ -73,7 +79,9 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
   expect(data.acquisition).toEqual(before.acquisition);
   expect(data.bmode).toEqual(before.bmode);
   expect(data.measurement.distanceMm).toBeCloseTo(expected, 5);
-  const dimensions = await page.locator('#gl').evaluate((c) => ({ width: (c as HTMLCanvasElement).width, height: (c as HTMLCanvasElement).height }));
+  const dimensions = await page
+    .locator('#gl')
+    .evaluate((c) => ({ width: (c as HTMLCanvasElement).width, height: (c as HTMLCanvasElement).height }));
   const pngDownload = page.waitForEvent('download');
   await page.locator('#review-png').click();
   const png = await pngDownload;
@@ -121,7 +129,12 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
 
 test('revisión táctil y teclado: geometría estable al rotar y sin mediciones sobre otro cuadro', async ({ browser }, info) => {
   test.setTimeout(240_000);
-  const context = await browser.newContext({ baseURL: info.project.use.baseURL, viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+  const context = await browser.newContext({
+    baseURL: info.project.use.baseURL,
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    hasTouch: true,
+  });
   const page = await context.newPage();
   try {
     const errors = await boot(page);

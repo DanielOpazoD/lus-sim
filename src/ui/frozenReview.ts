@@ -142,8 +142,10 @@ export class FrozenReview {
       const r = s.renderer;
       const point = r.beamToPixel(this.cursor.theta, this.cursor.r, s.transducer);
       const step = event.shiftKey ? 10 : 1; // Píxeles CSS; no precisión acústica declarada.
-      const x = point.x + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0) * (r.canvas.width / this.host.clientWidth);
-      const y = point.y + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0) * (r.canvas.height / this.host.clientHeight);
+      const x =
+        point.x + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0) * (r.canvas.width / this.host.clientWidth);
+      const y =
+        point.y + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0) * (r.canvas.height / this.host.clientHeight);
       const next = r.pixelToBeam(x, y, s.transducer, s.displayed.bmode.depthMm);
       if (next && validPoint(next, s.transducer, s.displayed.bmode.depthMm)) this.cursor = next;
     }
@@ -158,16 +160,21 @@ export class FrozenReview {
     if (this.caliper.bind(allowed ? s.renderer : null, allowed ? s.renderer.cineShownFrame : null)) {
       this.finish();
       this.painted = '';
-      this.notice = hadPoints ? 'Medición borrada al cambiar de cuadro o reanudar.' : 'Distancia manual sobre B. Sin interpretación diagnóstica.';
+      this.notice = hadPoints
+        ? 'Medición borrada al cambiar de cuadro o reanudar.'
+        : 'Distancia manual sobre B. Sin interpretación diagnóstica.';
     }
-    for (const button of [this.measure, this.aButton, this.bButton, this.clearButton, this.png, this.json]) button.disabled = !allowed || this.busy;
+    for (const button of [this.measure, this.aButton, this.bButton, this.clearButton, this.png, this.json])
+      button.disabled = !allowed || this.busy;
     this.layer.hidden = !allowed;
     const [a, b] = this.caliper.endpoints;
-    this.aButton.hidden = !a;
-    this.bButton.hidden = !b;
-    this.clearButton.hidden = !a && !b;
+    const editing = this.active || !!a || !!b;
+    this.aButton.hidden = this.bButton.hidden = this.clearButton.hidden = !editing;
+    this.aButton.disabled ||= !a;
+    this.bButton.disabled ||= !b;
     this.measure.setAttribute('aria-pressed', String(this.active));
-    this.measure.textContent = this.active ? 'Terminar medición' : 'Medir distancia';
+    const label = this.active ? 'Terminar medición' : 'Medir distancia';
+    if (this.measure.textContent !== label) this.measure.textContent = label;
     const result = this.caliper.snapshot(s.transducer);
     const value = result ? `${result.distanceMm.toFixed(1).replace('.', ',')} mm` : 'Sin medición';
     if (this.value.value !== value) this.value.value = value;
@@ -287,11 +294,16 @@ export class FrozenReview {
           'lus-sim · B · Paciente sintético · Uso educativo',
           `t ${metadata.acquisition.sample.t.toFixed(3)} s · ${metadata.build.commit.slice(0, 7)}`,
           `${b.depthMm / 10} cm · G ${b.gainDb} dB · RD ${b.dynamicRangeDb} dB · F ${b.focusMm} mm`,
-          metadata.measurement ? `Distancia manual: ${metadata.measurement.distanceMm.toFixed(1)} mm · Sin diagnóstico` : 'Sin medición · No es un dispositivo médico',
+          metadata.measurement
+            ? `Distancia manual: ${metadata.measurement.distanceMm.toFixed(1)} mm · Sin diagnóstico`
+            : 'Sin medición · No es un dispositivo médico',
         ];
         lines.forEach((line, i) => ctx.fillText(line, 10, 19 + i * 23, W - 20));
         blob = await new Promise<Blob>((resolve, reject) => {
-          image.toBlob((result) => (result ? resolve(result) : reject(new Error('Captura PNG: el navegador no produjo un archivo'))), 'image/png');
+          image.toBlob(
+            (result) => (result ? resolve(result) : reject(new Error('Captura PNG: el navegador no produjo un archivo'))),
+            'image/png',
+          );
         });
       }
       const url = URL.createObjectURL(blob);
