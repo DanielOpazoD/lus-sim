@@ -1,0 +1,62 @@
+/* Cine y herramientas fuera de la imagen; filas ocultas no ocupan espacio. */
+.center.review-layout {
+  grid-template-rows: minmax(240px, 1fr) auto auto;
+  overflow-y: auto;
+}
+.center.review-layout.mmode-active {
+  grid-template-rows: minmax(240px, 1fr) auto auto auto;
+}
+.review-layout > #cine-bar {
+  position: static;
+  transform: none;
+  width: auto;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 12px;
+  flex-wrap: wrap;
+  background: var(--panel);
+}
+.review-layout > #cine-bar > input {
+  flex: 1 1 160px;
+  min-height: 44px;
+}
+.review-layout > #cine-bar > p {
+  flex-basis: 100%;
+}
+.app.frozen .review-layout .hud-br {
+  bottom: 8px;
+}
+#review-tools {
+  display: flex;
+  flex: 1 1 100%;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#review-tools button {
+  min-height: 44px;
+}
+#review-value {
+  margin-left: auto;
+  font: 600 14px var(--mono);
+  color: var(--accent-2);
+}
+#review-help {
+  flex-basis: 100%;
+}
+#caliper-layer {
+  pointer-events: none;
+}
+.review-measuring {
+  cursor: crosshair;
+}
+@media (max-width: 800px) {
+  #review-tools button {
+    flex: 1 1 auto;
+  }
+  #review-value {
+    flex-basis: 100%;
+    margin: 2px 0;
+  }
+}

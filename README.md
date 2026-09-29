@@ -72,6 +72,11 @@ En la aplicación, activa **B + M**, coloca la línea en el sector y mantén la 
 su movimiento. Congelar permite revisar la franja con el mismo cine de B. El ajuste fino de línea está
 plegado de inicio y puede manejarse con teclado; el modo B permanece como vista inicial.
 
+Al congelar, **Medir distancia** permite colocar dos extremos con toques o teclado. **Guardar PNG**
+y **Datos JSON** exportan el cuadro B mostrado y sus metadatos históricos. Cambiar de cuadro o
+reanudar borra el calibre; redimensionar conserva su geometría. Uso, contratos y límites en
+`docs/REVIEW.md`. Es una distancia manual en la imagen, no una medida clínica validada.
+
 Requiere Node 22 o superior (`.nvmrc`: 24).
 
 ```bash

@@ -18,14 +18,15 @@ import { bindKeyboardShortcuts } from './ui/keyboardShortcuts';
 import { MModeView } from './ui/mMode';
 import { ControlPanel } from './ui/panel';
 import { ProbeInput } from './ui/probeInput';
+import { createReview } from './ui/review';
 import { StartPointCards } from './ui/startPointCards';
 import { compoundActive } from './ultrasound/compound';
 
 /**
  * Raíz de composición (Fase 1): crea la sesión de simulación, el estado de UI y las vistas, y
  * los conecta. La lógica vive en módulos con una sola responsabilidad: `SimulationSession`
- * (simulador vivo + equipo), `ui/controllers/*` (HUD, pérdida de GPU, avisos) y `ErrorBudget` (bucle que se
- * degrada, no muere). Todo el tiempo procede del reloj de la simulación.
+ * (simulador vivo + equipo), `ui/controllers/*` (HUD, cine), `ErrorBudget` y la revisión manual diferida.
+ * Todo el tiempo procede del reloj de la simulación.
  *
  * Modo B con el preajuste pulmonar y la sonda en BLUE superior, cine y una línea M opcional
  * adquirida de la misma envolvente. El navegador 3D comparte la adquisición efectiva y se carga
@@ -78,6 +79,7 @@ const sim = (): Simulator => session.sim;
 const dispatch = session.equipment.dispatch.bind(session.equipment);
 const banner = new Banner(sectorWrap);
 const mMode = new MModeView(sectorWrap, sim);
+const review = createReview(sectorWrap, $('cine-bar'), sim, (error) => errorLog.report('ui', error));
 
 // El navegador es opcional para la formación de imagen y no bloquea el primer modo B.
 let navigator3D: { sync(): void; dispose(): void } | null = null;
@@ -265,6 +267,7 @@ function frame(now: number, dt: number): void {
   }
   drawOverlay(overlay, s);
   mMode.draw(overlay, gpu.lost);
+  review.sync(gpu.lost);
   const t = s.physiology.clock.t;
   const shown = s.displayed.bmode;
   const acquired = s.displayedAcquisition;
