@@ -15,7 +15,7 @@ export interface ThoraxInputOptions {
 }
 
 /** Un puntero capturado, sin reloj propio. Los botones nativos son la alternativa al arrastre táctil. */
-export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputOptions): () => void {
+export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputOptions): (() => void) & { cancel(): void } {
   let drag: { id: number; kind: 'move' | 'orient' | 'camera'; x: number; y: number } | null = null;
   const moveTo = (point: Vec3) => {
     const p = surfacePose(point, options.getTorso(), options.getPose());
@@ -85,7 +85,7 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
   canvas.addEventListener('wheel', wheel, { passive: false });
   canvas.addEventListener('contextmenu', menu);
   window.addEventListener('blur', blur);
-  return () => {
+  const dispose = () => {
     blur();
     canvas.removeEventListener('pointerdown', down);
     canvas.removeEventListener('pointermove', move);
@@ -97,4 +97,5 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
     window.removeEventListener('blur', blur);
     window.removeEventListener('keydown', key);
   };
+  return Object.assign(dispose, { cancel: blur });
 }

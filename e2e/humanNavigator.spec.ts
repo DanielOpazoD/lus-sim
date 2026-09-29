@@ -4,8 +4,10 @@ async function boot(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/?e2e=1');
-  await expect(page.locator('#thorax-navigator')).toHaveAttribute('data-ready', 'true', { timeout: 120_000 });
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 60_000 }).toBe('object');
+  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
+  const toggle = page.locator('#navigator-toggle');
+  if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  await expect(page.locator('#thorax-navigator')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
   return errors;
 }
 const settle = (page: Page) => page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
@@ -95,6 +97,7 @@ test('humano táctil: cuerpo de contexto no seleccionable y navegador sin desbor
     const nav = page.locator('#thorax-navigator');
     await nav.getByRole('button', { name: 'Anterior', exact: true }).click();
     await settle(page);
+    await page.locator('.thorax-canvas').scrollIntoViewIfNeeded();
     const box = (await page.locator('.thorax-canvas').boundingBox())!;
     const before = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
     // Centro cefálico en el encuadre ortográfico, región no acústica: gesto real, no setter del motor.

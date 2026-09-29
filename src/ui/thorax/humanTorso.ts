@@ -1,10 +1,10 @@
-import { BufferGeometry, Float32BufferAttribute, Group, Mesh, type MeshStandardMaterial } from 'three';
+import { BufferGeometry, Float32BufferAttribute, Group, Mesh, type MeshStandardMaterial, type Object3D, type Raycaster } from 'three';
 import { compressionSample } from '../../anatomy/compression';
 import { RespiratoryDeformation } from '../../anatomy/deformation';
 import type { AnatomyScene } from '../../anatomy/scene';
 import { dist, type Vec3 } from '../../core/vec3';
 import { probeContact } from '../../probe/contact';
-import type { Transducer } from '../../probe/probe';
+import type { ProbeFrame, Transducer } from '../../probe/probe';
 import type { AcquisitionState } from '../../ultrasound/cine';
 import { loftMesh, patientToView, SCAN_LIMITS, viewToPatient, type MeshData, type VisualProfile } from './geometry';
 
@@ -19,28 +19,28 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
       [zMax, a, b, 0, 0],
     ],
     48,
-    96,
+    64,
     false,
   );
   const upper: VisualProfile[] = [
     [zMax, a, b, 0, 0],
-    [zMax + 15, a * 1.01, b * 0.99, 0, 0],
-    [zMax + 35, a * 1.08, b * 0.88, 0, -2],
-    [zMax + 55, a * 0.89, b * 0.7, 0, -4],
-    [zMax + 80, 53, 45, 0, -8],
-    [zMax + 110, 44, 40, 0, -8],
-    [zMax + 128, 47, 44, 0, 3],
-    [zMax + 145, 58, 61, 0, 8],
-    [zMax + 175, 69, 73, 0, 0],
-    [zMax + 210, 70, 77, 0, -6],
-    [zMax + 245, 57, 63, 0, -10],
-    [zMax + 263, 32, 37, 0, -10],
-    [zMax + 270, 3, 4, 0, -10],
+    [zMax + 18, a, b, 0, 0],
+    [zMax + 40, a * 1.12, b * 0.91, 0, -2],
+    [zMax + 60, a * 0.94, b * 0.73, 0, -4],
+    [zMax + 82, 55, 46, 0, -8],
+    [zMax + 112, 43, 39, 0, -8],
+    [zMax + 132, 48, 47, 0, 4],
+    [zMax + 155, 63, 66, 0, 6],
+    [zMax + 192, 72, 78, 0, -3],
+    [zMax + 225, 66, 75, 0, -10],
+    [zMax + 255, 43, 50, 0, -12],
+    [zMax + 272, 3, 4, 0, -12],
   ];
   const lower: VisualProfile[] = [
-    [zMin - 80, a * 0.61, b * 0.65, 0, -4],
-    [zMin - 63, a * 0.85, b * 0.86, 0, -2],
-    [zMin - 28, a * 0.97, b * 0.98, 0, 0],
+    [zMin - 140, a * 0.88, b * 0.88, 0, -4],
+    [zMin - 110, a * 1.04, b * 0.9, 0, -3],
+    [zMin - 60, a * 0.95, b * 0.96, 0, -1],
+    [zMin - 18, a, b, 0, 0],
     [zMin, a, b, 0, 0],
   ];
   // Los brazos se abren hacia fuera: solo se unen sobre zMax, nunca encima de una ventana acústica.
@@ -56,11 +56,21 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
         [250, 34, 45, side * (a + 16), -4],
         [258, 5, 7, side * (a + 10), -5],
       ],
-      2,
-      24,
+      3,
+      32,
     ),
   );
-  return { skin, context: [loftMesh(upper, 2, 64), loftMesh(lower, 2, 64), ...arms] };
+  const head = loftMesh(upper, 3, 64, [false, true]);
+  // Relieve facial mínimo del maniquí: nariz/mentón orientan el frente sin textura ni identidad humana.
+  // Solo contexto por encima de zMax: no mueve piel explorada ni representa una estructura acústica.
+  for (let i = 0; i < head.positions.length; i += 3) {
+    const z = head.positions[i + 1] * 1000 - zMax;
+    const x = head.positions[i] * 1000;
+    if (head.positions[i + 2] > 0 && z > 132)
+      head.positions[i + 2] +=
+        (0.018 * Math.exp(-(((z - 181) / 15) ** 2)) + 0.005 * Math.exp(-(((z - 143) / 11) ** 2))) * Math.exp(-((x / 17) ** 2));
+  }
+  return { skin, context: [head, loftMesh(lower, 3, 64, [true, false]), ...arms] };
 }
 
 /** Geometría con propietario; atributos estables durante el movimiento. */
@@ -79,7 +89,9 @@ export class HumanTorso {
   readonly occluders: Mesh<BufferGeometry, MeshStandardMaterial>[];
   readonly deformation: RespiratoryDeformation;
   private readonly surfaces: Array<{ mesh: Mesh<BufferGeometry, MeshStandardMaterial>; base: Float32Array; changed: number[] }>;
+  private readonly seams: Array<Array<{ geometry: BufferGeometry; vertex: number }>>;
   private poseKey = '';
+  private expectedFrame: ProbeFrame | null = null;
   private acquisition: AcquisitionState | null = null;
   updates = 0;
   warpedVertices = 0;
@@ -97,6 +109,20 @@ export class HumanTorso {
       m.name = ['head-shoulders', 'abdomen-end', 'right-arm', 'left-arm'][i];
     });
     this.root.add(this.skin, ...this.occluders);
+    // Las uniones comparten posición y normal, pero no material: Costillas no vuelve transparente la cabeza.
+    const shared = new Map<string, Array<{ geometry: BufferGeometry; vertex: number }>>();
+    for (const m of [this.skin, ...this.occluders.slice(0, 2)]) {
+      const p = m.geometry.getAttribute('position');
+      for (let i = 0; i < p.count; i++) {
+        if (Math.min(Math.abs(p.getY(i) - SCAN_LIMITS.zMin / 1000), Math.abs(p.getY(i) - SCAN_LIMITS.zMax / 1000)) > 1e-7) continue;
+        const key = [p.getX(i), p.getY(i), p.getZ(i)].map((v) => v.toFixed(7)).join('|');
+        const group = shared.get(key) ?? [];
+        group.push({ geometry: m.geometry, vertex: i });
+        shared.set(key, group);
+      }
+    }
+    this.seams = [...shared.values()].filter((group) => group.length > 1);
+    this.smoothSeams();
     this.deformation = new RespiratoryDeformation(scene);
     // También los bordes de contexto: así la compresión en zMin/zMax no abre una costura.
     this.surfaces = [this.skin, ...this.occluders].map((m) => ({
@@ -111,11 +137,17 @@ export class HumanTorso {
     const key = [p.phi, p.z, p.lift, p.yaw, p.rock, p.tilt, transducer.curvatureRadius, transducer.halfSector, transducer.elevationMm].join(
       '|',
     );
+    const contact = key === this.poseKey ? null : probeContact(acquisition.pose, transducer, this.scene.torso);
+    const expected = contact?.frame ?? this.expectedFrame;
+    if (
+      !expected ||
+      (['face', 'axial', 'lateral', 'elevation'] as const).some((axis) => dist(expected[axis], acquisition.frame[axis]) > 1e-5)
+    )
+      throw new Error('Navegador: contacto distinto al cuadro mostrado');
     this.acquisition = acquisition;
-    if (key === this.poseKey) return;
+    if (!contact) return;
     this.poseKey = key;
-    const contact = probeContact(acquisition.pose, transducer, this.scene.torso);
-    if (dist(contact.frame.face, acquisition.frame.face) > 1e-5) throw new Error('Navegador: contacto distinto al cuadro mostrado');
+    this.expectedFrame = expected;
     this.deformation.compression = contact;
     this.warpedVertices = 0;
     for (const surface of this.surfaces) {
@@ -136,11 +168,40 @@ export class HumanTorso {
       surface.mesh.geometry.computeVertexNormals();
       surface.mesh.geometry.computeBoundingSphere();
     }
+    this.smoothSeams();
     this.updates++;
+  }
+
+  private smoothSeams(): void {
+    for (const group of this.seams) {
+      let x = 0;
+      let y = 0;
+      let z = 0;
+      for (const { geometry, vertex } of group) {
+        const n = geometry.getAttribute('normal');
+        x += n.getX(vertex);
+        y += n.getY(vertex);
+        z += n.getZ(vertex);
+      }
+      const length = Math.hypot(x, y, z);
+      for (const { geometry, vertex } of group) {
+        const n = geometry.getAttribute('normal');
+        n.setXYZ(vertex, x / length, y / length, z / length);
+        n.needsUpdate = true;
+      }
+    }
   }
 
   materialPoint(world: Vec3): Vec3 {
     return this.acquisition ? this.deformation.toMaterial(world, this.acquisition.sample.resp) : world;
+  }
+
+  /** Primer impacto visible: ni cabeza/brazos ni la carcasa permiten seleccionar piel a través de ellos. */
+  pick(raycaster: Raycaster, probe: Object3D[], dragging = false): Vec3 | 'probe' | 'blocked' | null {
+    const hit = raycaster.intersectObjects([this.skin, ...this.occluders, ...(dragging ? [] : probe)], false)[0];
+    if (!hit) return null;
+    if (hit.object === this.skin) return this.materialPoint(viewToPatient(hit.point.toArray()));
+    return this.occluders.includes(hit.object as typeof this.skin) ? 'blocked' : 'probe';
   }
 
   dispose(): void {

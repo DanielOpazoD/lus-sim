@@ -184,6 +184,19 @@ describe('Gestos del navegador del tórax', () => {
     expect(state.pose.z).toBe(40);
     dispose();
   });
+  it('la sincronización puede cancelar al congelar aunque no llegue otro pointermove', () => {
+    const { canvas, state, dispose } = setup();
+    state.mode = 'orient';
+    canvas.fire('pointerdown');
+    state.frozen = true;
+    dispose.cancel();
+    expect(canvas.captured.size).toBe(0);
+    state.frozen = false;
+    const before = state.pose;
+    canvas.fire('pointermove', { clientX: 100 });
+    expect(state.pose).toEqual(before);
+    dispose();
+  });
   it('Escape y congelar durante el gesto cancelan sin reactivar un arrastre viejo', () => {
     const { canvas, win, state, dispose } = setup();
     state.mode = 'orient';

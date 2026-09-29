@@ -20,7 +20,7 @@ import { thoraxLinePhi } from '../../anatomy/thoraxLines';
 import type { Simulator } from '../../app/simulator';
 import { clamp } from '../../core/vec3';
 import type { ProbePose, Transducer } from '../../probe/probe';
-import { nudgePose, patientToView, probeViewAxes, ribMesh, sectorMesh, viewToPatient, type MeshData } from './geometry';
+import { nudgePose, patientToView, probeViewAxes, ribMesh, sectorMesh, type MeshData } from './geometry';
 import { bindThoraxInput } from './input';
 import { HumanTorso } from './humanTorso';
 import { ConvexProbe } from './convexProbe';
@@ -101,7 +101,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
   const raycaster = new Raycaster();
   let referenceScene: AnatomyScene | null = null;
   let mode: 'move' | 'orient' = 'move';
-  let azimuth = Math.PI / 2 + 0.32;
+  let azimuth = Math.PI / 2 + 0.55;
   let elevation = 0.1;
   let width = 0;
   let height = 0;
@@ -155,7 +155,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
     chooseView(Math.cos(options.getSim().displayedAcquisition.pose.phi) < 0 ? Math.PI : 0),
   );
   button(views, 'Posterior', () => chooseView(-Math.PI / 2));
-  const centerButton = button(viewport, 'Centrar modelo', () => chooseView(Math.PI / 2 + 0.32));
+  const centerButton = button(viewport, 'Centrar modelo', () => chooseView(Math.PI / 2 + 0.55));
   centerButton.className = 'thorax-center';
   const ribButton = button(tools, 'Costillas', () => {
     if (!ribs.children.length) buildRibs(options.getSim().scene);
@@ -254,12 +254,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
       if (!rect.width || !rect.height) return null;
       scene.updateMatrixWorld(true);
       raycaster.setFromCamera(new Vector2(((x - rect.left) / rect.width) * 2 - 1, 1 - ((y - rect.top) / rect.height) * 2), camera);
-      const targets = [human.skin, ...human.occluders, ...(dragging ? [] : instrument.root.children)];
-      const hit = raycaster.intersectObjects(targets, false)[0];
-      if (!hit) return null;
-      if (hit.object === human.skin) return human.materialPoint(viewToPatient(hit.point.toArray()));
-      if (instrument.root.children.includes(hit.object)) return 'probe';
-      return 'blocked';
+      return human.pick(raycaster, instrument.root.children, dragging);
     },
     orbit: (dx, dy) => {
       azimuth -= dx * 0.008;
@@ -282,6 +277,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
     'webglcontextlost',
     (event) => {
       event.preventDefault();
+      unbindInput.cancel();
       lost = true;
       host.dataset.ready = 'lost';
       caption.textContent = 'Navegador 3D temporalmente no disponible. La imagen ecográfica continúa.';
@@ -330,6 +326,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
           sim.frozen ? acquisition.sample.t : 0,
         ].join('|');
         if (state !== lastState) {
+          if (sim.frozen) unbindInput.cancel();
           lastState = state;
           const nextPose = [
             pose.phi,
@@ -370,7 +367,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
         if (!dirty) return;
         if (width !== sizedWidth || height !== sizedHeight) {
           const aspect = width / height;
-          const halfHeight = Math.max(0.405, 0.305 / aspect);
+          const halfHeight = Math.max(0.43, 0.305 / aspect);
           camera.left = -halfHeight * aspect;
           camera.right = halfHeight * aspect;
           camera.top = halfHeight;

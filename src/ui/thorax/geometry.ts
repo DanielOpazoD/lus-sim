@@ -154,7 +154,12 @@ export function ribMesh(scene: AnatomyScene, index: number, rings = 72, sides = 
  * No es anatomía acústica. Anillos sin vértices duplicados en la costura angular.
  */
 export type VisualProfile = readonly [number, number, number, number, number];
-export function loftMesh(profiles: readonly VisualProfile[], subdivisions = 2, segments = 48, caps = true): MeshData {
+export function loftMesh(
+  profiles: readonly VisualProfile[],
+  subdivisions = 2,
+  segments = 48,
+  caps: boolean | readonly [boolean, boolean] = true,
+): MeshData {
   const positions: number[] = [];
   const indices: number[] = [];
   const rings: number[][] = [];
@@ -180,6 +185,7 @@ export function loftMesh(profiles: readonly VisualProfile[], subdivisions = 2, s
   }
   if (caps) {
     for (const i of [0, rings.length - 1]) {
+      if (Array.isArray(caps) && !caps[i === 0 ? 0 : 1]) continue;
       const [h, , , x, z] = rings[i];
       const center = positions.length / 3;
       positions.push(x / 1000, h / 1000, z / 1000);

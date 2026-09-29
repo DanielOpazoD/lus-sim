@@ -80,6 +80,37 @@ describe('Maniquí procedural: geometría real, contacto e historial', () => {
     human.dispose();
     mat.dispose();
   });
+  it('las uniones con hombros y abdomen comparten posiciones y normales, incluso con contacto en el borde', () => {
+    const mat = new MeshStandardMaterial();
+    const human = new HumanTorso(scene, mat, mat);
+    for (const pose of [
+      { z: 0, lift: 25 },
+      { z: 200, lift: -3 },
+      { z: -200, lift: -3 },
+    ]) {
+      human.update(acquisition(pose), tr);
+      const pos = human.skin.geometry.getAttribute('position');
+      const n = human.skin.geometry.getAttribute('normal');
+      for (const [index, first] of [
+        [0, false],
+        [1, true],
+      ] as const) {
+        const g = human.occluders[index].geometry;
+        const cp = g.getAttribute('position');
+        const cn = g.getAttribute('normal');
+        const row = first ? 0 : pos.count - 64;
+        const contextRow = first ? cp.count - 64 - 1 : 0; // solo el extremo externo tiene centro de tapa
+        for (let j = 0; j < 64; j++) {
+          const a = row + j;
+          const b = contextRow + j;
+          expect([cp.getX(b), cp.getY(b), cp.getZ(b)]).toEqual([pos.getX(a), pos.getY(a), pos.getZ(a)]);
+          expect([cn.getX(b), cn.getY(b), cn.getZ(b)]).toEqual([n.getX(a), n.getY(a), n.getZ(a)]);
+        }
+      }
+    }
+    human.dispose();
+    mat.dispose();
+  });
   it('contacto histórico, inversa y restauración del vecindario sin regenerar buffers', () => {
     const mat = new MeshStandardMaterial();
     const human = new HumanTorso(scene, mat, mat);
@@ -112,6 +143,37 @@ describe('Maniquí procedural: geometría real, contacto e historial', () => {
     old.frame = acquisition({ phi: 0 }).frame;
     expect(() => human.update(old, tr)).toThrow('contacto distinto');
     human.dispose();
+    mat.dispose();
+  });
+  it('el marco se valida también con pose en caché, sin reemplazar el último contacto válido', () => {
+    const mat = new MeshStandardMaterial();
+    const human = new HumanTorso(scene, mat, mat);
+    const valid = acquisition();
+    human.update(valid, tr);
+    const updates = human.updates;
+    const invalid = { ...valid, frame: { ...valid.frame, axial: [0, 0, 0] as Vec3 } };
+    expect(() => human.update(invalid, tr)).toThrow('contacto distinto');
+    human.update(valid, tr);
+    expect(human.updates).toBe(updates);
+    human.dispose();
+    mat.dispose();
+  });
+  it('el selector usado por la UI respeta la primera oclusión y permite agarrar la carcasa sin teletransportar', () => {
+    const mat = new MeshStandardMaterial();
+    const human = new HumanTorso(scene, mat, mat);
+    const probe = new ConvexProbe(tr);
+    human.root.updateMatrixWorld(true);
+    probe.root.position.set(0, 0.1, 0.3);
+    probe.root.updateMatrixWorld(true);
+    const headRay = new Raycaster(new Vector3(0, 0.39, 0.5), new Vector3(0, 0, -1));
+    expect(human.pick(headRay, probe.root.children)).toBe('blocked');
+    const probeRay = new Raycaster(new Vector3(0, 0.16, 0.5), new Vector3(0, 0, -1));
+    expect(human.pick(probeRay, probe.root.children)).toBe('probe');
+    const point = human.pick(probeRay, probe.root.children, true);
+    expect(Array.isArray(point)).toBe(true);
+    expect(Math.abs(torsoDepth(point as Vec3, scene.torso))).toBeLessThan(0.001);
+    human.dispose();
+    probe.dispose();
     mat.dispose();
   });
   it('veinte reconstrucciones liberan una vez cada geometría propia', () => {
