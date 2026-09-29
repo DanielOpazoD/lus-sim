@@ -166,8 +166,25 @@ export function loftMesh(
   for (let i = 0; i < profiles.length - 1; i++) {
     for (let j = 0; j < subdivisions; j++) {
       const t = j / subdivisions;
-      const w = t * t * (3 - 2 * t);
-      rings.push(profiles[i].map((v, k) => v + (profiles[i + 1][k] - v) * (k === 0 ? t : w)));
+      const dz = profiles[i + 1][0] - profiles[i][0];
+      // Hermite monótono: conserva perfiles y tangentes comunes sin escalones en cada anillo.
+      // Los extremos planos permiten unir contexto y piel funcional sin modificar esta última.
+      const slope = (row: number, k: number): number => {
+        if (row === 0 || row === profiles.length - 1) return 0;
+        const dl = (profiles[row][k] - profiles[row - 1][k]) / (profiles[row][0] - profiles[row - 1][0]);
+        const dr = (profiles[row + 1][k] - profiles[row][k]) / (profiles[row + 1][0] - profiles[row][0]);
+        return dl * dr > 0 ? (2 * dl * dr) / (dl + dr) : 0;
+      };
+      rings.push(
+        profiles[i].map((v, k) =>
+          k === 0
+            ? v + dz * t
+            : (2 * t ** 3 - 3 * t ** 2 + 1) * v +
+              (t ** 3 - 2 * t ** 2 + t) * dz * slope(i, k) +
+              (-2 * t ** 3 + 3 * t ** 2) * profiles[i + 1][k] +
+              (t ** 3 - t ** 2) * dz * slope(i + 1, k),
+        ),
+      );
     }
   }
   rings.push([...profiles[profiles.length - 1]]);

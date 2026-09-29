@@ -140,8 +140,8 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
   setMode('move');
   function updateCamera(): void {
     const radius = 0.9 * Math.cos(elevation);
-    camera.position.set(radius * Math.cos(azimuth), 0.08 + 0.9 * Math.sin(elevation), radius * Math.sin(azimuth));
-    camera.lookAt(0, 0.08, 0);
+    camera.position.set(radius * Math.cos(azimuth), 0.13 + 0.9 * Math.sin(elevation), radius * Math.sin(azimuth));
+    camera.lookAt(0, 0.13, 0);
     camera.updateMatrixWorld();
     dirty = true;
   }
@@ -367,7 +367,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
         if (!dirty) return;
         if (width !== sizedWidth || height !== sizedHeight) {
           const aspect = width / height;
-          const halfHeight = Math.max(0.43, 0.305 / aspect);
+          const halfHeight = Math.max(0.44, 0.305 / aspect);
           camera.left = -halfHeight * aspect;
           camera.right = halfHeight * aspect;
           camera.top = halfHeight;

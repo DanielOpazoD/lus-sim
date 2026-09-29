@@ -30,17 +30,18 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
     [zMax + 82, 55, 46, 0, -8],
     [zMax + 112, 43, 39, 0, -8],
     [zMax + 132, 48, 47, 0, 4],
-    [zMax + 155, 63, 66, 0, 6],
-    [zMax + 192, 72, 78, 0, -3],
-    [zMax + 225, 66, 75, 0, -10],
-    [zMax + 255, 43, 50, 0, -12],
-    [zMax + 272, 3, 4, 0, -12],
+    [zMax + 151, 58, 65, 0, 6],
+    [zMax + 192, 70, 79, 0, -3],
+    [zMax + 234, 73, 80, 0, -8],
+    [zMax + 276, 59, 68, 0, -10],
+    [zMax + 308, 39, 46, 0, -12],
+    [zMax + 324, 3, 4, 0, -12],
   ];
   const lower: VisualProfile[] = [
-    [zMin - 140, a * 0.88, b * 0.88, 0, -4],
-    [zMin - 110, a * 1.04, b * 0.9, 0, -3],
-    [zMin - 60, a * 0.95, b * 0.96, 0, -1],
-    [zMin - 18, a, b, 0, 0],
+    [zMin - 105, a * 0.86, b * 0.9, 0, -1],
+    [zMin - 80, a * 0.88, b * 0.94, 0, -1],
+    [zMin - 40, a * 0.94, b * 0.97, 0, 0],
+    [zMin - 12, a, b, 0, 0],
     [zMin, a, b, 0, 0],
   ];
   // Los brazos se abren hacia fuera: solo se unen sobre zMax, nunca encima de una ventana acústica.
@@ -68,7 +69,7 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
     const x = head.positions[i] * 1000;
     if (head.positions[i + 2] > 0 && z > 132)
       head.positions[i + 2] +=
-        (0.018 * Math.exp(-(((z - 181) / 15) ** 2)) + 0.005 * Math.exp(-(((z - 143) / 11) ** 2))) * Math.exp(-((x / 17) ** 2));
+        (0.018 * Math.exp(-(((z - 203) / 18) ** 2)) + 0.005 * Math.exp(-(((z - 145) / 13) ** 2))) * Math.exp(-((x / 17) ** 2));
   }
   return { skin, context: [head, loftMesh(lower, 3, 64, [true, false]), ...arms] };
 }
