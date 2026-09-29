@@ -39,19 +39,23 @@
 // Primer build medido: entrada 245,3 KiB y thorax 529,6 KiB (incluye Three.js 0.186.1; 133,5 KiB gzip).
 // El núcleo tiene 260 KiB de presupuesto INICIAL; el módulo opcional 560 KiB. El total de 820 KiB cuenta ambos:
 // cargar tarde no borra el coste de descarga. El navegador solo se solicita después de la primera imagen modo B.
+// Revisión del cuadro (docs/REVIEW.md): frozenReview se solicita al congelar por primera vez, no al iniciar.
+// Tiene un techo propio de 24 KiB y siempre cuenta en el total. Se conservan los límites inicial (260 KiB)
+// y total (820 KiB); la clasificación diferida no permite ocultar el coste de descarga.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
+  [/^frozenReview-.*\.js$/, 24 * KB],
   [/index-.*\.js$/, 260 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
 const INITIAL_JS_BUDGET = 260 * KB;
 const TOTAL_JS_BUDGET = 820 * KB;
-const NAVIGATOR_JS = /^thorax-.*\.js$/;
+const DEFERRED_JS = /^(?:thorax|frozenReview)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 
@@ -72,7 +76,7 @@ for (const f of files) {
   const size = statSync(join(dir, f)).size;
   if (f.endsWith('.js') && !TEST_ONLY.test(f)) {
     totalJs += size;
-    if (!NAVIGATOR_JS.test(f)) initialJs += size;
+    if (!DEFERRED_JS.test(f)) initialJs += size;
   }
   const budget = BUDGETS.find(([re]) => re.test(f));
   const max = budget ? budget[1] : Infinity;
