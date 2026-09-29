@@ -1723,3 +1723,32 @@ y recuperación de contexto. El presupuesto de tamaño pasa y la auditoría de p
 vulnerabilidades. La revisión adversarial independiente comprueba protocolo, física, conservación de
 guardas y evidencia. La ejecución gráfica se verifica en CI; no se presenta como inspección visual humana
 ni medición de rendimiento en GPU de usuario. La integración exige también CI verde sobre el árbol final.
+
+## 25. Maniquí humano procedural y sonda convexa registrada
+
+**Fecha.** 2026-09-28.
+**Contexto.** El navegador de la decisión 23 parecía un depósito: sección cilíndrica, tapa hemisférica y
+cuello tubular. El usuario aprobó la opción A: geometría procedural sin activos externos. Objetivos O5/O6.
+**Opciones.** Un GLTF importado o una piel esculpida sobre un cilindro de contacto oculto desalinearían el
+navegador de la adquisición. Cambiar la superficie acústica exige un bloque distinto con paridad TS/GLSL.
+**Decisión.** `humanTorso.ts` conserva la piel funcional del motor y agrega cabeza, transición cervical,
+hombros bilaterales, brazos despejados y continuidad abdominal como contexto no explorable. `loftMesh`
+genera anillos indexados sin duplicar la costura angular. La compresión visible se deriva de
+`probeContact` y `RespiratoryDeformation`, por pose histórica, en una instancia privada de solo lectura.
+Solo los vértices con desplazamiento no nulo recorren la inversa iterativa; se restaura el vecindario anterior.
+`convexProbe.ts` construye lente, reborde, carcasa superelíptica, mango oval, muesca y cable. El arco activo
+sale de R y alpha: cuerda 67,10 mm frente al campo nominal footprintMm=62 mm; no se cambia física para ocultar
+la discrepancia. La carcasa no sustituye la huella. El cable es encaminamiento determinista, no gravedad.
+La primera intersección visible bloquea selección a través de cabeza y brazos. Agarrar la sonda no cambia
+su pose hasta encontrar piel válida. Escape y congelación cancelan el gesto. Centrar modelo cambia solo cámara.
+**Consecuencias.** No cambian shaders, anatomía acústica, calibración B/M ni límites. Los detalles corporales
+son estimaciones visuales, no un atlas validado. Las costillas siguen en reposo y se construyen al solicitarlas.
+Cámara y estados inmóviles no regeneran cuerpo/cable; buffers y recursos tienen propietario explícito.
+Se conservan presupuestos 260/560/820 KiB, DPR 1,5 y renderizado por cambios. La teselación aproxima la
+superficie entre vértices; no se atribuye exactitud clínica a esa representación.
+**Verificación.** `thoraxAppearance.test.ts`, `thoraxGeometry.test.ts` y `thoraxInput.test.ts` protegen
+geometría, correspondencia de lente, contacto histórico, descarte de marcos incoherentes, normales,
+oclusores, control de gestos y liberación de veinte reconstrucciones. `e2e/humanNavigator.spec.ts`
+recorre vistas y revisión histórica, mide complejidad real y comprueba que la cámara no modifica B.
+La revisión visual y la CI final se registran en el PR con su SHA. Una captura o SwiftShader no validan
+fluidez en hardware físico ni reconocimiento humano mediante participantes externos.

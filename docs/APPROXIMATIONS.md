@@ -129,3 +129,15 @@ qué cuenta como pleura, sombra o línea A. No son números del paciente, pero c
 | `measure.fidelityBench.penumbraFraction`, `measure.fidelityBench.minShadowFraction` | 4 % y 2 % del ancho (2–6 %, 1–5 %)         | La penumbra que no cuenta ni como sombra ni como espacio intercostal (6–8 líneas de 192 en el simulador) y el ancho mínimo de una sombra.                                                                                                                                                                                       | Con los clips con costillas: que los núcleos detectados caigan bajo la costilla que marca un ecografista.                    |
 | `measure.fidelityBench.subPleuraTo`                                                 | 1,6 d_pl (1,4–2)                           | La banda bajo la pleura de la coherencia temporal T2 (S1 usa hasta 2 d_pl).                                                                                                                                                                                                                                                     | Con clips con y sin deslizamiento (neumotórax, apnea), cuando los haya en el banco.                                          |
 | `measure.fidelityBench.ribCrestMaxSpread`                                           | IQR/mediana ≤ 0,2 (0,1–0,3)                | Una sombra costal se acepta si las crestas de su núcleo forman una sola superficie (la costilla): en LUS-01 un tramo oscuro tenía crestas de tres poblaciones y su mediana daba un P4 y un P1 sin sentido. El tramo descartado se cuenta (`rejectedShadows`) y alimenta la compuerta `bimodal_crests`.                          | Con las hojas de contacto: que los tramos aceptados sean los que un ecografista llama sombra costal.                         |
+
+## Autoría visual del navegador humano (decisión 25)
+
+Los perfiles de cabeza, cuello, hombros, brazos y terminación abdominal en `src/ui/thorax/humanTorso.ts`
+son estimaciones visuales. No alteran la superficie funcional, la pared, los órganos ni la señal.
+La carcasa de `src/ui/thorax/convexProbe.ts` utiliza un margen de 2,5–3 mm alrededor del arco,
+secciones de mango de aproximadamente 24–32 mm y cable de 4,6 mm de diámetro. No son especificaciones de
+un fabricante. R=60 mm, alpha=34° y elevación=13 mm siguen siendo los del perfil acústico existente.
+No se incorpora otro conjunto de parámetros físicos: para cambiar superficie o contacto, deben
+seguirse el registro de evidencia y la paridad TS/GLSL, no editar una constante visual.
+El reconocimiento humano y la teselación bajo compresión se revisan mediante capturas y pruebas de
+correspondencia, sin declarar validez antropométrica ni un estudio con participantes no realizado.

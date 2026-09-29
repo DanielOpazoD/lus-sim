@@ -43,7 +43,7 @@ export function markerPoint(frame: ProbeFrame, tr: Transducer): Vec3 {
  * Las dimensiones son del objeto de interfaz: no modifican ni la huella ni el campo acústico.
  */
 export function housingMarkerPoint(frame: ProbeFrame, tr: Transducer): Vec3 {
-  return add(add(frame.face, scale(frame.lateral, tr.footprintMm * 0.25)), scale(frame.axial, -66));
+  return add(add(frame.face, scale(frame.lateral, 14.4)), scale(frame.axial, -(tr.curvatureRadius * (1 - Math.cos(tr.halfSector)) + 61)));
 }
 
 /** Paso de interfaz en mm de arco, independiente del ancho de pantalla y del lado de cámara. */
@@ -144,6 +144,49 @@ export function ribMesh(scene: AnatomyScene, index: number, rings = 72, sides = 
         const a = i * sides + j;
         const b = i * sides + ((j + 1) % sides);
         indices.push(a, b, a + sides, b, b + sides, a + sides);
+      }
+    }
+  }
+  return { positions, indices };
+}
+
+/** Perfil VISUAL en mm: altura, semiancho, semiespesor, centro lateral y anterior.
+ * No es anatomía acústica. Anillos sin vértices duplicados en la costura angular.
+ */
+export type VisualProfile = readonly [number, number, number, number, number];
+export function loftMesh(profiles: readonly VisualProfile[], subdivisions = 2, segments = 48, caps = true): MeshData {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const rings: number[][] = [];
+  for (let i = 0; i < profiles.length - 1; i++) {
+    for (let j = 0; j < subdivisions; j++) {
+      const t = j / subdivisions;
+      const w = t * t * (3 - 2 * t);
+      rings.push(profiles[i].map((v, k) => v + (profiles[i + 1][k] - v) * (k === 0 ? t : w)));
+    }
+  }
+  rings.push([...profiles[profiles.length - 1]]);
+  for (let i = 0; i < rings.length; i++) {
+    const [h, a, b, x, z] = rings[i];
+    for (let j = 0; j < segments; j++) {
+      const phi = (2 * Math.PI * j) / segments;
+      positions.push((x + a * Math.cos(phi)) / 1000, h / 1000, (z + b * Math.sin(phi)) / 1000);
+      if (i < rings.length - 1) {
+        const p = i * segments + j;
+        const q = i * segments + ((j + 1) % segments);
+        indices.push(p, p + segments, q, q, p + segments, q + segments);
+      }
+    }
+  }
+  if (caps) {
+    for (const i of [0, rings.length - 1]) {
+      const [h, , , x, z] = rings[i];
+      const center = positions.length / 3;
+      positions.push(x / 1000, h / 1000, z / 1000);
+      for (let j = 0; j < segments; j++) {
+        const p = i * segments + j;
+        const q = i * segments + ((j + 1) % segments);
+        indices.push(...(i === 0 ? [center, p, q] : [center, q, p]));
       }
     }
   }

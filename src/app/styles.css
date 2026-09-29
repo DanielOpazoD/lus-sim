@@ -284,6 +284,16 @@ kbd {
   min-width: 0;
   overflow: hidden;
 }
+.thorax-center {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  min-height: 44px;
+  padding: 6px 9px;
+  font-size: 11px;
+  background: #0c151ecc;
+  border-color: transparent;
+}
 .thorax-canvas {
   display: block;
   width: 100%;

@@ -9,7 +9,7 @@ export interface ThoraxInputOptions {
   setPose: (p: ProbePose) => void;
   frozen: () => boolean;
   mode: () => 'move' | 'orient';
-  pick: (x: number, y: number) => Vec3 | null;
+  pick: (x: number, y: number, dragging?: boolean) => Vec3 | 'probe' | 'blocked' | null;
   orbit: (dx: number, dy: number) => void;
   unavailable: () => void;
 }
@@ -25,11 +25,16 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
   const down = (event: PointerEvent) => {
     if (drag || event.button > 2) return;
     const point = options.pick(event.clientX, event.clientY);
+    if (point === 'blocked' && !event.altKey && event.button === 0 && !options.frozen()) {
+      options.unavailable();
+      event.preventDefault();
+      return;
+    }
     const kind = event.altKey || event.button !== 0 || !point || options.frozen() ? 'camera' : options.mode();
     drag = { id: event.pointerId, kind, x: event.clientX, y: event.clientY };
     canvas.setPointerCapture(event.pointerId);
     event.preventDefault();
-    if (kind === 'move' && point) moveTo(point);
+    if (kind === 'move' && Array.isArray(point)) moveTo(point);
   };
   const move = (event: PointerEvent) => {
     if (!drag || drag.id !== event.pointerId) return;
@@ -40,14 +45,15 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
     if (drag.kind === 'camera') options.orbit(dx, dy);
     else if (!options.frozen()) {
       if (drag.kind === 'move') {
-        const point = options.pick(event.clientX, event.clientY);
-        if (point) moveTo(point);
+        const point = options.pick(event.clientX, event.clientY, true);
+        if (Array.isArray(point)) moveTo(point);
+        else if (point === 'blocked') options.unavailable();
       } else {
         const p = options.getPose();
         const step = event.shiftKey ? 0.001 : 0.004;
         options.setPose({ ...p, rock: p.rock + dx * step, tilt: p.tilt + dy * step });
       }
-    }
+    } else blur();
   };
   const up = (event: PointerEvent) => {
     if (drag?.id !== event.pointerId) return;
@@ -67,6 +73,10 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
     if (drag && canvas.hasPointerCapture(drag.id)) canvas.releasePointerCapture(drag.id);
     drag = null;
   };
+  const key = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') blur();
+  };
+  window.addEventListener('keydown', key);
   canvas.addEventListener('pointerdown', down);
   canvas.addEventListener('pointermove', move);
   canvas.addEventListener('pointerup', up);
@@ -85,5 +95,6 @@ export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputO
     canvas.removeEventListener('wheel', wheel);
     canvas.removeEventListener('contextmenu', menu);
     window.removeEventListener('blur', blur);
+    window.removeEventListener('keydown', key);
   };
 }
