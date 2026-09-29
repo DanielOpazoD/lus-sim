@@ -1,6 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+interface ReviewExport {
+  synthetic: boolean;
+  containsRawSignal: boolean;
+  acquisition: unknown;
+  bmode: unknown;
+  measurement: { distanceMm: number } | null;
+}
+
 async function boot(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -73,11 +81,13 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
   const jsonDownload = page.waitForEvent('download');
   await page.locator('#review-json').click();
   const json = await jsonDownload;
-  const data = JSON.parse(await readFile((await json.path())!, 'utf8'));
+  const data = JSON.parse(await readFile(await json.path(), 'utf8')) as ReviewExport;
   expect(data.synthetic).toBe(true);
   expect(data.containsRawSignal).toBe(false);
   expect(data.acquisition).toEqual(before.acquisition);
   expect(data.bmode).toEqual(before.bmode);
+  expect(data.measurement).not.toBeNull();
+  if (!data.measurement) throw new Error('La exportación perdió el calibre confirmado');
   expect(data.measurement.distanceMm).toBeCloseTo(expected, 5);
   const dimensions = await page
     .locator('#gl')
@@ -85,7 +95,7 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
   const pngDownload = page.waitForEvent('download');
   await page.locator('#review-png').click();
   const png = await pngDownload;
-  const bytes = await readFile((await png.path())!);
+  const bytes = await readFile(await png.path());
   expect(bytes.subarray(1, 4).toString()).toBe('PNG');
   expect(bytes.readUInt32BE(16)).toBe(dimensions.width);
   expect(bytes.readUInt32BE(20)).toBe(dimensions.height + 100);
@@ -120,7 +130,7 @@ test('revisión B: medida, historial y exportación local coherentes sin cambiar
   const historicalDownload = page.waitForEvent('download');
   await page.locator('#review-json').click();
   const historicalJson = await historicalDownload;
-  const historicalData = JSON.parse(await readFile((await historicalJson.path())!, 'utf8'));
+  const historicalData = JSON.parse(await readFile(await historicalJson.path(), 'utf8')) as ReviewExport;
   expect(historicalData.acquisition).toEqual(historic.acquisition);
   expect(historicalData.bmode).toEqual(historic.bmode);
   expect(historicalData.measurement).toBeNull();
