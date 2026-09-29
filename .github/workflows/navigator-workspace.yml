@@ -1,0 +1,30 @@
+# Temporal para este PR; se elimina antes de integrar. Solo fuentes públicas y dependencias.
+name: Navigator workspace
+on:
+  pull_request:
+    paths: ['.github/workflows/navigator-workspace.yml']
+permissions:
+  contents: read
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Empaquetar únicamente fuentes versionadas y dependencias
+        run: |
+          git ls-files -z | tar --null -T - -cf /tmp/navigator-source.tar
+          tar -rf /tmp/navigator-source.tar node_modules
+          gzip /tmp/navigator-source.tar
+      - uses: actions/upload-artifact@v7
+        with:
+          name: navigator-workspace
+          path: /tmp/navigator-source.tar.gz
+          retention-days: 1
