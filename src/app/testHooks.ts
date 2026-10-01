@@ -1,5 +1,8 @@
 import type { EquipmentCommand } from './equipment';
 import {
+  APEX_VOLUME_Z_MM,
+  VOLUME_Z_MM,
+  coveragePoses,
   equivalenceSweep,
   inspirationSweepPoses,
   interfaceShellEquivalence,
@@ -52,7 +55,8 @@ export interface TestHooks {
    */
   equivalenceSweep: (opts?: { inspiration?: boolean }) => EquivalencePoseReport[];
   /** Equivalencia TS ↔ GLSL en `n` puntos aleatorios de todo el tórax. */
-  volumeEquivalence: (n?: number) => VolumeEquivalenceReport;
+  /** `apex`: el volumen del vértice (`APEX_VOLUME_Z_MM`, cobertura torácica) en lugar del del tórax. */
+  volumeEquivalence: (n?: number, apex?: boolean) => VolumeEquivalenceReport;
   /** Equivalencia de la cara de interfaz y su distancia a 0,01–0,6 mm de cada cara, en los planos de partida. */
   interfaceShell: () => InterfaceShellReport;
   /** La pleura parietal de A0 frente a su gemelo de TS, línea a línea, en los puntos de partida. */
@@ -244,9 +248,9 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
   const hooks: TestHooks = {
     equivalenceSweep: (opts) => {
       const sim = getSim();
-      return equivalenceSweep(sim, opts?.inspiration ? inspirationSweepPoses(sim.scene) : []);
+      return equivalenceSweep(sim, opts?.inspiration ? inspirationSweepPoses(sim.scene) : coveragePoses(sim.scene));
     },
-    volumeEquivalence: (n) => volumeEquivalence(getSim(), n),
+    volumeEquivalence: (n, apex) => volumeEquivalence(getSim(), n, undefined, apex ? APEX_VOLUME_Z_MM : VOLUME_Z_MM),
     interfaceShell: () => interfaceShellEquivalence(getSim()),
     ribEnds: () => ribEndsEquivalence(getSim()),
     pleuraEquivalence: () => withCompound(getSim(), dispatch, false, () => pleuraEquivalence(getSim())),

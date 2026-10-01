@@ -1,5 +1,6 @@
 import * as chestWall from './chestWall';
 import * as heart from './heart';
+import * as lungApex from './lungApex';
 import * as lungBorder from './lungBorder';
 import * as lungCurtain from './lungCurtain';
 import * as ribcage from './ribcage';
@@ -30,6 +31,8 @@ export interface OrganModule {
 }
 
 export const ORGAN_MODULES: readonly OrganModule[] = [
+  // lus-sim (cobertura torácica): la cúpula pleural, que la pared torácica suma a su grosor
+  { id: 'lungApex', exports: lungApex, glsl: lungApex.LUNG_APEX_GLSL },
   {
     id: 'chestWall',
     exports: chestWall,

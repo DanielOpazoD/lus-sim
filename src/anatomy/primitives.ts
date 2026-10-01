@@ -156,6 +156,11 @@ export interface ChestWallLookup {
   total(u: number, z: number): number;
   /** Engrosamiento inspiratorio de la banda intercostal (mm) con el descenso del diafragma `caudalMm`. */
   inspiration(u: number, z: number, caudalMm: number): number;
+  /**
+   * Lo que la cúpula pleural suma al grosor de la pared en (u, z) (lus-sim, cobertura torácica; `organs/lungApex.ts`): las
+   * partes blandas del cuello y del hombro, que el contacto de la sonda no trata como pared rígida.
+   */
+  cupola?(u: number, z: number): number;
 }
 
 /** Los bordes del pulmón que lee la cúpula (u: arco de la piel con signo). */

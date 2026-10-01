@@ -1,10 +1,11 @@
 import { defineParameters } from '../core/evidence';
 import type { Vec3 } from '../core/vec3';
 import { AnatomyQuery } from '../anatomy/query';
+import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { LUNG_BORDER } from '../anatomy/organs/lungBorder';
-import { RIBCAGE, ribLineArc, ribTableZ } from '../anatomy/organs/ribcage';
+import { CLAVICLE, RIBCAGE, ribLineArc, ribTableZ } from '../anatomy/organs/ribcage';
 import { wallArc } from '../anatomy/organs/wall';
-import { torsoDepth } from '../anatomy/primitives';
+import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
@@ -35,43 +36,6 @@ import { pleuraCrossingLine } from '../ultrasound/transmission';
  * misma anatomía (equivalencia TS ↔ GLSL de la e2e): lo que se mide aquí es lo que se ve.
  */
 export const COVERAGE = defineParameters('app.coverage', {
-  clavicleAboveNotchMm: {
-    value: 10,
-    unit: 'mm',
-    range: [5, 15],
-    evidence: 'derivado',
-    sources: ['gray-anatomia-1918', 'yang-clavicula-2017'],
-    note:
-      'Borde superior del tercio medial de la clavícula sobre la escotadura yugular: la clavícula se articula con el manubrio a ' +
-      'los lados de la escotadura (Gray), con su eje a esa altura; su extremo esternal mide 2,5 ± 0,3 cm y su tercio medio 1,4 ' +
-      '± 0,1 en varones (Yang, TAC de 50 varones, tabla 2): el tercio medial, ≈ 2 cm, su semialto 10 mm',
-  },
-  apexAboveClavicleMm: {
-    value: 25,
-    unit: 'mm',
-    range: [25, 50],
-    evidence: 'consenso',
-    sources: ['gray-anatomia-1918'],
-    note: 'El vértice del pulmón ≈ 2,5 cm sobre el tercio medial de la clavícula, a veces hasta 4–5 cm (anatomy.md §1.5)',
-  },
-  clavicleMedialEndXMm: {
-    value: 20,
-    unit: 'mm',
-    range: [15, 27],
-    evidence: 'estimado',
-    sources: ['gray-anatomia-1918'],
-    note:
-      'Distancia a la línea media del extremo esternal de la clavícula, en la escotadura clavicular del manubrio, a los lados ' +
-      'de la yugular (Gray, sin cifra) [SUPUESTO: dentro del semiancho del manubrio de la parrilla, 27 mm]',
-  },
-  clavicleLengthMm: {
-    value: 156,
-    unit: 'mm',
-    range: [147, 165],
-    evidence: 'documentado',
-    sources: ['yang-clavicula-2017'],
-    note: 'Largo de la clavícula del varón, 15,6 ± 0,9 cm (Yang, TAC de 50 varones de 34,8 años, tabla 2)',
-  },
   supraclavicularXMm: {
     value: 70,
     unit: 'mm',
@@ -437,20 +401,25 @@ function judge(expected: CellExpectation, side: CoverageSide, m: CenterContent):
   }
 }
 
-/** z del borde superior del tercio medial de la clavícula (la escotadura yugular de la parrilla más su semialto). */
+/** z del borde superior del tercio medial de la clavícula según la base (`anatomy.clavicle`: sobre la escotadura yugular). */
 export function clavicleTopZ(scene: AnatomyScene): number {
-  return scene.ribCage.sternum.zTop + COVERAGE.params.clavicleAboveNotchMm.value;
+  return scene.ribCage.sternum.zTop + CLAVICLE.params.medialTopAboveNotchMm.value;
 }
 
 /** La z más alta (mm) a la que la base admite pulmón: el vértice, con el tope de su rango (4–5 cm sobre la clavícula). */
 export function apexMaxZ(scene: AnatomyScene): number {
-  return clavicleTopZ(scene) + COVERAGE.params.apexAboveClavicleMm.range![1];
+  return clavicleTopZ(scene) + LUNG_APEX.params.apexAboveClavicleMm.range![1];
 }
 
 /** |x| (mm) del final del tercio medial de la clavícula: el vértice está tras él (Gray). */
-export function clavicleMedialThirdX(): number {
-  const C = COVERAGE.params;
-  return C.clavicleMedialEndXMm.value + C.clavicleLengthMm.value / 3;
+export function clavicleMedialThirdX(scene: AnatomyScene): number {
+  return CLAVICLE.params.medialEndXMm.value + clavicleLengthMm(scene) / 3;
+}
+
+/** El largo de la clavícula según la base, por sexo (Yang). */
+function clavicleLengthMm(scene: AnatomyScene): number {
+  const C = CLAVICLE.params;
+  return scene.chestWall.habitus.sex === 'female' ? C.lengthFemaleMm.value : C.lengthMm.value;
 }
 
 /** Paso (mm) de la búsqueda del pulmón sobre el vértice: en z y hacia dentro. */
@@ -458,13 +427,27 @@ const APEX_SCAN_STEP_MM = 3;
 
 /**
  * La z más alta que la base admite para el pulmón en el punto MATERIAL m: bajo el tercio medial de la clavícula (por delante,
- * |x| hasta su final), el vértice (`apexMaxZ`); en el resto, la 1.ª costilla de su columna más `BORDER_MARGIN_MM`.
+ * |x| hasta su final), el vértice (`apexMaxZ`); bajo el tercio medio, de él a la 1.ª costilla de su columna más
+ * `BORDER_MARGIN_MM`, en recta; en el resto, la 1.ª costilla.
  */
 export function lungTopAllowedZ(scene: AnatomyScene, m: Vec3): number {
-  if (m[1] > 0 && Math.abs(m[0]) <= clavicleMedialThirdX()) return apexMaxZ(scene);
   const side: CoverageSide = m[0] < 0 ? -1 : 1;
   const k = scene.ribs.findIndex((r) => r.number === 1 && r.side === side);
-  return ribTableZ(scene.ribCage, k, Math.abs(wallArc(m, scene.torso))) + scene.ribs[k].halfWidth + BORDER_MARGIN_MM;
+  const rib = ribTableZ(scene.ribCage, k, Math.abs(wallArc(m, scene.torso))) + scene.ribs[k].halfWidth + BORDER_MARGIN_MM;
+  if (m[1] <= 0) return rib;
+  const x = Math.abs(m[0]);
+  // por delante de la articulación esternoclavicular, la tráquea: nada sobre la escotadura yugular (en la columna de la piel,
+  // la radial del tronco: la de la escotadura clavicular del manubrio)
+  const t = scene.torso;
+  const uSc = Math.abs(wallArc(torsoSkinPoint(Math.acos(CLAVICLE.params.medialEndXMm.value / t.a), 0, t), t));
+  if (Math.abs(wallArc(m, t)) < uSc) return scene.ribCage.sternum.zTop + BORDER_MARGIN_MM;
+  const x1 = clavicleMedialThirdX(scene);
+  const x2 = CLAVICLE.params.medialEndXMm.value + (2 * clavicleLengthMm(scene)) / 3;
+  if (x <= x1) return apexMaxZ(scene);
+  // bajo el tercio medio, la ladera de la cúpula baja hasta la 1.ª costilla [SUPUESTO: la base no da su forma; la pleura sobre
+  // la 1.ª costilla se ve por la fosa, sobre el tercio medio: el «corner pocket» de Yadav, a 1,7 ± 0,8 cm de la piel]
+  if (x < x2) return Math.max(rib, apexMaxZ(scene) + ((rib - apexMaxZ(scene)) * (x - x1)) / (x2 - x1));
+  return rib;
 }
 
 /**
@@ -474,7 +457,7 @@ export function lungTopAllowedZ(scene: AnatomyScene, m: Vec3): number {
  */
 function aboveApexCell(scene: AnatomyScene, side: CoverageSide, zone: 'medial' | 'lateral'): CoverageCell {
   const t = scene.torso;
-  const xm = clavicleMedialThirdX();
+  const xm = clavicleMedialThirdX(scene);
   // por debajo, la 1.ª costilla y el vértice quedan siempre más arriba de lo que se busca
   const zFloor = scene.ribCage.sternum.zTop - 40;
   let top: number | null = null;
@@ -523,7 +506,7 @@ function supraclavicularCell(
   const t = scene.torso;
   const right = Math.PI - Math.acos(x / t.a);
   const phi = side < 0 ? right : Math.PI - right;
-  const z = clavicleTopZ(scene) + 0.5 * COVERAGE.params.apexAboveClavicleMm.value;
+  const z = clavicleTopZ(scene) + 0.5 * LUNG_APEX.params.apexAboveClavicleMm.value;
   const cell = blankCell(
     `${side < 0 ? 'D' : 'I'} fosa supraclavicular`,
     side,

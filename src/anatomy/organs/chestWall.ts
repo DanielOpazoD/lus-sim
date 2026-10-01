@@ -4,6 +4,7 @@ import { DIAPHRAGM_EXCURSION } from '../../physiology/respiratory';
 import { torsoDepthGradient, torsoSkinPoint, type ChestWallLookup, type Torso, type WallLayersAt } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
+import { cupolaMm } from './lungApex';
 import { wallArc, wallPerimeter } from './wall';
 
 /**
@@ -277,9 +278,10 @@ export const CHEST_WALL_DU_MM = 8;
 export const CHEST_WALL_COLS = 56;
 /**
  * Téxeles por columna: (W alta, W baja, z del reborde costal, peso inspiratorio), (piel, grasa, complejo, banda) altas y
- * las mismas bajas; todo en la métrica radial de la pared (mm).
+ * las mismas bajas; todo en la métrica radial de la pared (mm). Y (lus-sim, cobertura torácica: la cúpula pleural,
+ * `organs/lungApex.ts`) (zApex, zTop, 0, 0): desde zApex la pared engruesa hasta cerrarse sobre el vértice en zTop.
  */
-export const CHEST_WALL_TEXELS_PER_COL = 3;
+export const CHEST_WALL_TEXELS_PER_COL = 4;
 export const CHEST_WALL_TEXELS = CHEST_WALL_COLS * CHEST_WALL_TEXELS_PER_COL;
 /** Téxel de la textura de escena donde empieza la tabla: tras la de la parrilla costal. */
 export const CHEST_WALL_BASE = RIB_TABLE_BASE + RIB_TABLE_TEXELS;
@@ -316,6 +318,11 @@ export interface ChestWall extends ChestWallLookup {
   zLow: number;
   /** Capas del abdomen (radiales): piel, grasa, músculo (con la preperitoneal), preperitoneal. */
   abdomen: [number, number, number, number];
+  /**
+   * La cúpula pleural más baja de la tabla (mm): por encima, la pared puede pasar de `maxTotal` (lus-sim, cobertura torácica:
+   * la cúpula pleural, `setChestWallApex`); 1e4 sin cúpula.
+   */
+  apexMinZ: number;
   /**
    * Cota superior del grosor de la pared en todo el tronco (mm, radial): la GLSL no lee la tabla para las muestras más
    * hondas que ella más lo que miran la cortina, el «resto» y el peso respiratorio (ahí el resultado no depende del grosor).
@@ -564,6 +571,8 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     table.set([hi.W, lo.W, -1e4, inspW(u) * metricAt(u, 0.5 * lo.W, t)], o);
     table.set(hi.v, o + 4);
     table.set(lo.v, o + 8);
+    // sin cúpula hasta que la pone `setChestWallApex`
+    table.set([1e4, 1e4, 0, 0], o + 12);
   }
   let maxTotal = t.skinMm + t.fatMm + t.muscleMm;
   for (let j = 0; j < CHEST_WALL_COLS; j++) {
@@ -575,12 +584,14 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     zHigh: 1e4,
     zLow: 1e4 - 1,
     abdomen: [t.skinMm, t.fatMm, t.muscleMm, t.preperitonealMm],
+    apexMinZ: 1e4,
     maxTotal,
     stations: st,
     habitus,
     layers: (u, z) => wallLayersAt(cw, u, z),
     total: (u, z) => wallTotalAt(cw, u, z),
     inspiration: (u, z, caudalMm) => chestWallInspiration(cw, u, z, caudalMm),
+    cupola: (u, z) => wallCupolaMm(cw, u, z),
   };
   return cw;
 }
@@ -628,6 +639,22 @@ export function setChestWallCage(
   }
 }
 
+/**
+ * La cúpula pleural por columna (lus-sim, cobertura torácica; `organs/lungApex.ts`): `zApex(u)`, la altura desde la que la
+ * pared engruesa (la pleura deja la cara interna de la pared), y `zTop(u)`, la del techo de la cúpula. Se pone con la parrilla
+ * y el borde del pulmón construidos (los da `lungApexColumns`).
+ */
+export function setChestWallApex(cw: ChestWall, zApex: (u: number) => number, zTop: (u: number) => number): void {
+  let lo = 1e4;
+  for (let j = 0; j < CHEST_WALL_COLS; j++) {
+    const u = j * CHEST_WALL_DU_MM;
+    const a = zApex(u);
+    cw.table.set([a, Math.max(zTop(u), a), 0, 0], (j * CHEST_WALL_TEXELS_PER_COL + 3) * 4);
+    lo = Math.min(lo, a);
+  }
+  cw.apexMinZ = Math.fround(lo);
+}
+
 /** Semiancho (columnas) de la media móvil del reborde costal. */
 const MARGIN_SMOOTH_COLS = 3;
 
@@ -651,9 +678,33 @@ function weights(cw: ChestWall, z: number, margin: number): [number, number] {
   return [smoothstep(cw.zLow, cw.zHigh, z), 1 - smoothstep(margin - CHEST_WALL.params.abdomenBlendMm.value, margin, z)];
 }
 
-/** Grosor total de la pared (mm, métrica radial) en (u, z) (gemelo GLSL con el mismo nombre). */
+/** Grosor total de la pared (mm, métrica radial) en (u, z), con la cúpula pleural (gemelo GLSL con el mismo nombre). */
 export function wallTotalAt(cw: ChestWall, u: number, z: number): number {
-  return wallTotalOf(cw, wallColumnTexel(cw, u), z);
+  return wallTotalOf(cw, wallColumnTexel(cw, u), z) + wallCupolaMm(cw, u, z);
+}
+
+/**
+ * Cota de la distancia a la frontera de una muestra de la pared sobre la cúpula pleural (lus-sim, cobertura torácica; gemelo
+ * GLSL con el mismo nombre): bajando en vertical hasta `zApex` la pared vuelve a su grosor y lo más hondo que ella es pulmón,
+ * así que la frontera está a lo sumo a z − zApex (las capas solo miden en la radial, y el techo de la cúpula es horizontal);
+ * 1e3 sin cúpula.
+ */
+export function wallCupolaBd(cw: ChestWall, u: number, z: number): number {
+  if (z <= cw.apexMinZ) return 1e3;
+  const [j, f] = column(u);
+  const a = texelAt(cw, j, f, 3);
+  return z > a[0] ? z - a[0] : 1e3;
+}
+
+/**
+ * Lo que la cúpula pleural engruesa la pared (mm, radial) en (u, z) (lus-sim, cobertura torácica; gemelo GLSL con el mismo
+ * nombre): las partes blandas del cuello y del hombro entre la piel y la pleura cervical.
+ */
+export function wallCupolaMm(cw: ChestWall, u: number, z: number): number {
+  if (z <= cw.apexMinZ) return 0;
+  const [j, f] = column(u);
+  const a = texelAt(cw, j, f, 3);
+  return cupolaMm(a[0], a[1], z);
 }
 
 /**
@@ -706,7 +757,8 @@ export function wallLayersAt(cw: ChestWall, u: number, z: number): WallLayersAt 
   const H = texelAt(cw, j, f, 1);
   const Lo = texelAt(cw, j, f, 2);
   const [hi, abd] = weights(cw, z, a[2]);
-  const W = mix(a[1], a[0], hi);
+  // la cúpula pleural (lus-sim, cobertura torácica): su grosor es músculo (las partes blandas del cuello)
+  const W = mix(a[1], a[0], hi) + wallCupolaMm(cw, u, z);
   const skin = mix(Lo[0], H[0], hi);
   const fat = mix(Lo[1], H[1], hi);
   const pre = mix(Lo[2], H[2], hi);
@@ -769,7 +821,21 @@ float wallTotalOf(vec4 a, float z) {
   float abd = 1.0 - smoothstep(a.z - CW_ABD_BLEND, a.z, z);
   return mix(mix(a.y, a.x, hi), uWall.x + uWall.y + uWall.z, abd);
 }
-float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z); }
+// la cúpula pleural (lus-sim, cobertura torácica; organs/lungApex.ts): desde uCupola.x, la menor zApex de la tabla
+float wallCupolaMm(float u, float z) {
+  if (z <= uCupola.x) return 0.0;
+  int j;
+  float f = cwColumn(u, j);
+  return cupolaMm(cwTexel(j, f, 3).xy, z);
+}
+float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z) + wallCupolaMm(u, z); }
+float wallCupolaBd(float u, float z) {
+  if (z <= uCupola.x) return 1e3;
+  int j;
+  float f = cwColumn(u, j);
+  float za = cwTexel(j, f, 3).x;
+  return z > za ? z - za : 1e3;
+}
 // la pared que mira el campo respiratorio (decisión 22): el paso al abdomen alargado hasta la pendiente CW_RESP_SLOPE
 float respiratoryWallBlendMm(vec4 a) {
   return max(CW_ABD_BLEND, 1.5 * max(uWall.x + uWall.y + uWall.z - min(a.x, a.y), 0.0) / CW_RESP_SLOPE);
@@ -790,7 +856,7 @@ vec4 wallLayersAt(float u, float z, out vec4 extra) {
   vec4 L = cwTexel(j, f, 2);
   float hi = smoothstep(uChestWall.y, uChestWall.x, z);
   float abd = 1.0 - smoothstep(a.z - CW_ABD_BLEND, a.z, z);
-  float W = mix(a.y, a.x, hi);
+  float W = mix(a.y, a.x, hi) + wallCupolaMm(u, z);
   vec4 s = mix(L, H, hi);
   extra = vec4(s.w, a.w * min(uChestWall.z * max(uResp.x, 0.0), CW_INSP_MM), abd, 0.0);
   return mix(vec4(s.x, s.y, W - s.x - s.y, s.z), uWall, abd);

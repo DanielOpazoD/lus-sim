@@ -44,7 +44,7 @@ viva, un store, otro reloj ni dependencias de producción. Mantiene un único pa
 un canvas de superposición y copias temporales solo al exportar. El calibre se repinta cuando
 cambian extremos, cursor o dimensiones, no por cada cuadro sin cambios.
 
-El presupuesto de JavaScript inicial sigue en 260 KiB y el total en 820 KiB. `frozenReview`
+El presupuesto de JavaScript inicial sigue en 260 KiB y el total en 820 KiB (desde la decisión 27, 270 y 830). `frozenReview`
 tiene un techo propio de 24 KiB, se clasifica como diferido y sigue contando en el total.
 La carga diferida real se comprueba mediante las peticiones del navegador.
 

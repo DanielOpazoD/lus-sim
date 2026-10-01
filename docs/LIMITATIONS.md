@@ -34,7 +34,7 @@ conservan su identificador (decisiones 10 y 11).
 - **La parrilla forra un tronco cilíndrico** (`thorax-cylindrical-cage`, decisión 16): el tronco es el cilindro elíptico
   de VExUS (320 × 210 mm de piel) a todas las alturas, así que la parrilla no se estrecha hacia la abertura superior (Gray:
   10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la
-  medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula, que no existe en la escena) y el esternón es
+  medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula; desde la decisión 27 la clavícula existe, pero su eje queda ≈ 24 mm sobre el de la 1.ª costilla en la LMC) y el esternón es
   vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
   hombres: 303 × 195 × 366); con la pared torácica por región (decisión 17: 12,8 mm al lado), 304 × 176 mm. La 1.ª costilla cae lo que la real
   (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de los 150 mm de profundidad del cilindro: 17,6°
@@ -88,8 +88,26 @@ conservan su identificador (decisiones 10 y 11).
   cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma (la base en supino, decisión 22: 16 mm en respiración
   tranquila y 53 en la profunda), sin pasar de la reflexión (junto a la columna se detiene a 23 mm). El borde anterior se ancla en la línea
   paraesternal (el centro del 6.º cartílago, z 1,5) y sigue igual hasta la línea media: junto al borde del esternón, donde
-  Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba no hay vértice: la lámina y la
-  pleura siguen hasta el tope del tronco (z 300), por encima del vértice pulmonar (≈ 2,5 cm sobre la clavícula).
+  Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba, desde la decisión 27, el vértice
+  es la cúpula pleural (`apex-cupola-wall`).
+- **La cúpula pleural es la pared que se cierra** (`apex-cupola-wall`, decisión 27): sobre la piel fija del tronco cilíndrico,
+  por encima de la 1.ª costilla de cada columna las partes blandas del cuello y del hombro engruesan la pared (músculo genérico,
+  sin escalenos, esternocleidomastoideo, vasos subclavios ni plexo braquial) y su cara interna, la pleura cervical, se curva hacia
+  dentro hasta el techo de la cúpula (25 mm sobre el borde superior del tercio medial de la clavícula, Gray; 5 mm sobre la 1.ª
+  costilla fuera de los tercios medial y medio). La forma de la curva (30 mm hacia dentro) es [SUPUESTO]. Como el tronco no se
+  estrecha hacia la abertura superior (`thorax-cylindrical-cage`), la cúpula ocupa todo el ancho de la parrilla y no hay dos
+  vértices separados por la tráquea (no hay mediastino). Por encima de la cúpula, la sonda ve solo músculo, también en el
+  hombro (z ≤ 200 en todo φ). En el cuello, junto a la línea media (por delante de las articulaciones esternoclaviculares y
+  delante de la columna) no hay pulmón sobre la escotadura yugular, pero más adentro las columnas radiales del vértice convergen
+  y el centro del corte sigue siendo pulmón (no hay mediastino). El contacto de la sonda toma por pared rígida la del tórax, sin
+  lo que la cúpula le suma. Por la fosa supraclavicular la pleura queda 1,1 DE más honda que en Yadav (la pared de la columna es
+  la de delante, con el pectoral); en la variante obesa de mujer, más que 2 DE (40,4 mm frente a ≤ 39,6: A-T24 pendiente). Ahí
+  el deslizamiento es nulo (`sliding-linear-height`). Desde la decisión 27, por encima de ≈ z 160 (el vértice y lo que se ve por la fosa supraclavicular) el deslizamiento
+  es nulo: Lichtenstein lo da «mínimo» en el vértice, no ausente, y un alumno podría leer ahí un neumotórax.
+- **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
+  tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
+  mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,
+  sin los extremos de 25–26 mm, sin articulaciones ni acromion; sigue la piel del cilindro, no la del hombro.
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
@@ -101,7 +119,7 @@ conservan su identificador (decisiones 10 y 11).
   y 50 mm; la de la pared y la de la columna, [EXTRAPOLACIÓN PROPIA] de VExUS) y, por encima de la cúpula más alta, baja en
   recta hasta 0 a 147 mm, en z 161, sobre la 1.ª costilla de la LMC [SUPUESTO: el tramo del deslizamiento llevado a la cúpula;
   el deslizamiento se apaga más abajo, a 128–145 mm]. Por encima de z 161 el pulmón del campo no baja ni se estira, aunque el
-  del modelo llega a z 300. No hay movimiento anterior ni lateral (la pared del abdomen no
+  del modelo llega a z 212 (la cúpula pleural, decisión 27). No hay movimiento anterior ni lateral (la pared del abdomen no
   sale al inspirar y la parrilla no se expande: la piel es fija) ni cizalla en la pleura: el pulmón junto a la pared baja con la
   rampa de la pared, sin deslizar (el deslizamiento de la imagen es un modelo aparte, `sliding-linear-height`). La rampa de la
   pared, donde el abdomen es más grueso que el tórax, no mira la pared de verdad sino una cuyo paso al abdomen bajo el reborde

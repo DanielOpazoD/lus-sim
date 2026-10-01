@@ -1,6 +1,8 @@
 import { chai, describe, expect, it } from 'vitest';
 import { Interface } from '../anatomy/interfaces';
-import { MAX_RIBS, RIBCAGE, probeHitPoint, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import { CLAVICLE, MAX_RIBS, RIBCAGE, probeHitPoint, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import { LUNG_APEX } from '../anatomy/organs/lungApex';
+import { probeCenterContent } from '../app/coverage';
 import { torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
@@ -8,7 +10,7 @@ import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { LUNG_BORDER, lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
 import { wallArc } from '../anatomy/organs/wall';
-import { defaultPatient, type PatientState } from '../physiology/patientState';
+import { defaultPatient, type ChestHabitus, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { PhysiologyEngine } from '../physiology/engine';
 import { AnatomyQuery } from '../anatomy/query';
@@ -675,7 +677,8 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     expect(z!).toBeLessThanOrEqual(intercostalZ(scene, n - 1, phi));
     expect(z!).toBeGreaterThanOrEqual(intercostalZ(scene, n, phi));
   };
-  const at = (phi: number, caudal = 0) => lungBorderZ(scene, phi, 1.5, 250, -250, 0.5, { diaphragmCaudalMm: caudal });
+  // desde z 140: por encima, la cúpula pleural (cobertura torácica) ya no deja pulmón junto a la pared en todas las líneas
+  const at = (phi: number, caudal = 0) => lungBorderZ(scene, phi, 1.5, 140, -250, 0.5, { diaphragmCaudalMm: caudal });
   const border = ([-1, 1] as const).map((side) => ({
     side,
     lmc: at(line('midclavicular', side)),
@@ -949,4 +952,151 @@ describe('A-T11: grosor de la línea pleural frente a la profundidad', () => {
     expect(slopePerCm).toBeGreaterThanOrEqual(0.67 - 0.12);
     expect(slopePerCm).toBeLessThanOrEqual(0.67 + 0.12);
   });
+});
+
+describe('A-T23 y A-T24: el vértice, la clavícula y la fosa supraclavicular (cobertura torácica, decisión 27)', () => {
+  const t = scene.torso;
+  const C = CLAVICLE.params;
+  /** Borde superior del tercio medial de la clavícula según la base (Gray y Yang: 10 mm sobre la escotadura yugular). */
+  const clavicleTop = scene.ribCage.sternum.zTop + C.medialTopAboveNotchMm.value;
+  const lung = (sc: AnatomyScene, m: Vec3) => sc.classify(m, BASELINE_INSTANT).tissue === Tissue.Lung;
+  /** La z más alta con pulmón en el corte, en los puntos que cumplen `where` (rejilla de 4° y 3 mm hacia dentro, z cada 1 mm). */
+  const lungTop = (where: (m: Vec3) => boolean): number => {
+    for (let z = 260; z > 120; z -= 1)
+      for (let deg = -180; deg < 180; deg += 4) {
+        const tau = (deg * Math.PI) / 180;
+        const sx = t.a * Math.sin(tau);
+        const sy = t.b * Math.cos(tau);
+        const R = Math.hypot(sx, sy);
+        for (let d = 1; d < R; d += 3) {
+          const m: Vec3 = [sx * (1 - d / R), sy * (1 - d / R), z];
+          if (where(m) && lung(scene, m)) return z;
+        }
+      }
+    return -Infinity;
+  };
+  const medialThird = C.medialEndXMm.value + C.lengthMm.value / 3;
+  const skinArcOf = (phi: number) => Math.abs(wallArc(torsoSkinPoint(phi, 0, t), t));
+  /** La columna de la piel de la articulación esternoclavicular, por delante. */
+  const uSc = skinArcOf(Math.acos(C.medialEndXMm.value / t.a));
+
+  /** La z más alta del pulmón 1,5 mm bajo la pleura a lo largo de la línea φ (desde la 2.ª costilla hacia arriba). */
+  const lungBorderTopZ = (phi: number): number => {
+    let top = -Infinity;
+    for (let z = ribZ(scene, 2, phi); z < 260; z += 0.5) {
+      let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
+      p = probeHitPoint(phi, scene.wallThicknessAt(p) + 1.5, t, z);
+      if (!lung(scene, p)) break;
+      top = z;
+    }
+    return top;
+  };
+
+  it('A-T23: el pulmón más alto, bajo el tercio medial de la clavícula, queda ≈ 2,5 cm sobre ella (≤ 5), y en ningún sitio más', () => {
+    // Gray: «about 2,5 cm», a veces 4–5 y a veces apenas por encima; el modelo pone el techo a 25 mm del borde de la clavícula y
+    // la curva de la pleura cervical lo redondea: ≥ 20 mm
+    const hi = LUNG_APEX.params.apexAboveClavicleMm.range![1];
+    const top = lungTop((m) => m[1] > 0 && Math.abs(m[0]) <= medialThird && Math.abs(wallArc(m, t)) >= uSc);
+    expect(top - clavicleTop).toBeGreaterThanOrEqual(20);
+    expect(top - clavicleTop).toBeLessThanOrEqual(hi);
+    expect(lungTop(() => true) - clavicleTop).toBeLessThanOrEqual(hi);
+  });
+
+  it('A-T23: en la línea media del cuello, la tráquea: ni pulmón bajo la piel ni en la imagen sobre la escotadura yugular', () => {
+    // bajo la piel de delante de la articulación esternoclavicular (hasta 35 mm de hondo); más adentro el tronco no tiene
+    // mediastino (`heart-simplified`): las columnas radiales del vértice convergen ahí
+    const notch = scene.ribCage.sternum.zTop;
+    for (const y of [95, 85, 75])
+      for (const x of [-5, 0, 5]) for (let z = notch + 8; z < 240; z += 4) expect(lung(scene, [x, y, z]), `(${x}, ${y}, ${z})`).toBe(false);
+    // la sonda en la línea media sobre la escotadura no ve pulmón
+    const m = probeCenterContent(scene, longitudinalPose(Math.PI / 2, notch + 15));
+    expect(m.content).not.toBe('lung');
+  });
+
+  it('A-T23: en la axila y detrás, el pulmón junto a la pared llega a la 1.ª costilla de su línea y no la pasa (medio espacio, 8 mm)', () => {
+    for (const side of [-1, 1] as const)
+      for (const l of ['anteriorAxillary', 'midaxillary', 'posteriorAxillary', 'scapular', 'paravertebral'] as const) {
+        const phi = line(l, side);
+        const top = lungBorderTopZ(phi);
+        const half = ribOf(scene, 1, side).halfWidth;
+        expect(top, `${l} ${side}`).toBeLessThanOrEqual(ribZ(scene, 1, phi) + half + 8);
+        expect(top, `${l} ${side}`).toBeGreaterThanOrEqual(ribZ(scene, 1, phi) - half);
+      }
+  });
+
+  it('A-T24: la clavícula, subcutánea, mide 15,6 ± 0,9 cm de largo y 14 ± 1 mm de grosor en la clasificación', () => {
+    const c = scene.ribCage.clavicle;
+    for (const side of [-1, 1] as const) {
+      const phi = line('midclavicular', side);
+      const zc = c.z0 + c.rise * ((skinArcOf(phi) - c.u0) / (c.u1 - c.u0));
+      // por la normal de la piel: el hueso empieza a 2–6 mm (subcutánea) y su grosor es el de su sección (la métrica de la pared
+      // lo alarga hasta 1,1 veces)
+      let first = -1;
+      let last = -1;
+      for (let d = 0.25; d < 40; d += 0.25)
+        if (Tissue[scene.classify(probeHitPoint(phi, d, t, zc), BASELINE_INSTANT).tissue] === 'Bone') {
+          if (first < 0) first = d;
+          last = d;
+        }
+      expect(first, `${side}`).toBeGreaterThanOrEqual(2);
+      expect(first, `${side}`).toBeLessThanOrEqual(6);
+      expect(last - first + 0.25, `${side}`).toBeGreaterThanOrEqual(12);
+      expect(last - first + 0.25, `${side}`).toBeLessThanOrEqual(16 * 1.1);
+      // y la sonda sobre ella ve su sombra
+      expect(probeCenterContent(scene, longitudinalPose(phi, zc)).content).toBe('bone');
+    }
+    // el largo, a lo largo de la piel por su eje: del extremo esternal al acromial
+    const atU = (u: number) => c.z0 + c.rise * Math.min(1, Math.max(0, (u - c.u0) / (c.u1 - c.u0)));
+    let span = 0;
+    for (let u = 0; u < 300; u += 0.5) {
+      // el punto de la piel de arco u por delante (derecha) y su eje a `depth` por la normal
+      let lo = Math.PI / 2;
+      let hi = Math.PI;
+      for (let i = 0; i < 40; i++) {
+        const mid = 0.5 * (lo + hi);
+        if (skinArcOf(mid) < u) lo = mid;
+        else hi = mid;
+      }
+      const p = probeHitPoint(0.5 * (lo + hi), c.depth, t, atU(u));
+      if (Tissue[scene.classify(p, BASELINE_INSTANT).tissue] === 'Bone') span += 0.5;
+    }
+    expect(span).toBeGreaterThanOrEqual(147);
+    expect(span).toBeLessThanOrEqual(165 + 2 * c.radius);
+  });
+
+  /** Profundidad (mm) de la pleura de la cúpula por la fosa supraclavicular, con el haz 20° hacia los pies. */
+  const fossaDepth = (sc: AnatomyScene, side: -1 | 1): number | null => {
+    const right = Math.PI - Math.acos(70 / sc.torso.a);
+    const phi = side < 0 ? right : Math.PI - right;
+    const top = sc.ribCage.sternum.zTop + C.medialTopAboveNotchMm.value;
+    const m = probeCenterContent(sc, { ...longitudinalPose(phi, top + 12.5), rock: -0.35 });
+    return m.content === 'lung' ? m.pleuraMm : null;
+  };
+  // Yadav: piel → «corner pocket» (cm) ≈ 0,068·IMC + 0,085, DE 0,8; el IMC de cada hábito de la base (§2.3–2.5)
+  const yadav = (bmi: number) => [(0.068 * bmi + 0.085 - 1.6) * 10, (0.068 * bmi + 0.085 + 1.6) * 10] as const;
+  const BMI = { average: 22.9, thin: 18.5, obese: 33.5 } as const;
+  const fossaCases: Array<[ChestHabitus, boolean]> = [
+    [{ build: 'average', sex: 'male' }, true],
+    [{ build: 'average', sex: 'female' }, true],
+    [{ build: 'thin', sex: 'male' }, true],
+    [{ build: 'obese', sex: 'male' }, true],
+    // medido: 40,4 mm frente a ≤ 39,6 (la pared de delante, con el pectoral, la grasa de la obesa y la mama, bajo la fosa)
+    [{ build: 'obese', sex: 'female' }, false],
+  ];
+  for (const [chest, met] of fossaCases) {
+    const title = `A-T24: por la fosa supraclavicular la cúpula pleural, a la profundidad de Yadav ± 2 DE (${chest.build}, ${chest.sex})`;
+    const body = () => {
+      const p = defaultPatient();
+      const sc = chest.build === 'average' && chest.sex === 'male' ? scene : new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } });
+      const [lo, hi] = yadav(BMI[chest.build]);
+      for (const side of [-1, 1] as const) {
+        const d = fossaDepth(sc, side);
+        expect(d, `${side}`).not.toBeNull();
+        expect(d!, `${side}`).toBeGreaterThanOrEqual(Math.max(lo, 1));
+        expect(d!, `${side}`).toBeLessThanOrEqual(hi);
+      }
+    };
+    if (met) it(title, body);
+    else notYetMet(title, body);
+  }
 });

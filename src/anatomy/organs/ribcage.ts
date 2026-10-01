@@ -410,6 +410,93 @@ export const RIBCAGE = defineParameters('anatomy.ribcage', {
   },
 });
 
+/**
+ * La clavícula (lus-sim, cobertura torácica: el vértice está tras su tercio medial y la fosa supraclavicular, sobre ella): un hueso
+ * subcutáneo bajo la piel de delante, de la escotadura clavicular del manubrio hacia fuera a lo largo de la piel del tronco, con
+ * su sombra acústica. Va en la clasificación de la parrilla (`ribScan`) con el índice `CLAVICLE_INDEX`.
+ */
+export const CLAVICLE = defineParameters('anatomy.clavicle', {
+  medialEndXMm: {
+    value: 20,
+    unit: 'mm',
+    range: [15, 27],
+    evidence: 'estimado',
+    sources: ['gray-anatomia-1918'],
+    note:
+      'Distancia a la línea media del extremo esternal, en la escotadura clavicular del manubrio, a los lados de la yugular (Gray, ' +
+      'sin cifra) [SUPUESTO: dentro del semiancho del manubrio de la parrilla, 27 mm]',
+  },
+  lengthMm: {
+    value: 156,
+    unit: 'mm',
+    range: [147, 165],
+    evidence: 'documentado',
+    sources: ['yang-clavicula-2017'],
+    note: 'Largo del varón, 15,6 ± 0,9 cm (Yang, TAC de 50 varones de 34,8 años, tabla 2); en el modelo, a lo largo de la piel',
+  },
+  lengthFemaleMm: {
+    value: 143,
+    unit: 'mm',
+    range: [130, 156],
+    evidence: 'documentado',
+    sources: ['yang-clavicula-2017'],
+    note: 'Largo de la mujer, 14,3 ± 1,3 cm (Yang, TAC de 50 mujeres, tabla 2)',
+  },
+  radiusMm: {
+    value: 7,
+    unit: 'mm',
+    range: [6.5, 7.5],
+    evidence: 'documentado',
+    sources: ['yang-clavicula-2017'],
+    note:
+      'Semidiámetro del tercio medio, 1,4 ± 0,1 cm en varones (Yang, tabla 2); el modelo lleva la misma sección en toda la clavícula ' +
+      '(los extremos miden 2,5 y 2,6 cm: `clavicle-section-uniform`)',
+  },
+  medialTopAboveNotchMm: {
+    value: 10,
+    unit: 'mm',
+    range: [5, 15],
+    evidence: 'derivado',
+    sources: ['gray-anatomia-1918', 'yang-clavicula-2017'],
+    note:
+      'Borde superior del tercio medial sobre la escotadura yugular: se articula a sus lados (Gray), con el extremo esternal de 2,5 ' +
+      '± 0,3 cm y el tercio medio de 1,4 (Yang): el tercio medial mide ≈ 2 cm, y su borde queda ≈ 10 mm sobre la escotadura. Con la ' +
+      'sección uniforme, el eje va 3 mm sobre la escotadura',
+  },
+  lateralRiseMm: {
+    value: 15,
+    unit: 'mm',
+    range: [0, 30],
+    evidence: 'estimado',
+    sources: [],
+    note: 'Lo que sube el extremo acromial sobre el esternal [SUPUESTO: NO ENCONTRADO en la base ni en la búsqueda del 01-10-2026]',
+  },
+  coverMm: {
+    value: 3,
+    unit: 'mm',
+    range: [2, 6],
+    evidence: 'estimado',
+    sources: ['laurent-piel-2007'],
+    note: 'Piel y tejido subcutáneo sobre la clavícula (subcutánea, Gray): piel ≈ 1,8–2 mm (Laurent) y ≈ 1 de tejido [SUPUESTO]',
+  },
+});
+
+/** Índice de la clavícula en la clasificación de la parrilla (`ribScan`, `ribSd`, `faceRib`): tras el esternón (`MAX_RIBS`). */
+export const CLAVICLE_INDEX = MAX_RIBS + 1;
+
+/** La clavícula construida (las dos, simétricas): en |u| de la piel, con el eje a `cover + radius` bajo ella por la normal. */
+export interface ClavicleSpec {
+  /** |u| del extremo esternal y del acromial (mm de piel). */
+  u0: number;
+  u1: number;
+  /** z del eje en el extremo esternal y lo que sube hasta el acromial (mm). */
+  z0: number;
+  rise: number;
+  radius: number;
+  /** Profundidad del eje bajo la piel, por la normal (mm). */
+  depth: number;
+}
+
 /** Una costilla de la parrilla: su número, su lado y dónde empieza y acaba a lo largo de |u|. */
 export interface RibSpec {
   /** Número anatómico, 1–12. */
@@ -465,6 +552,8 @@ export interface RibCage {
   calcifiedRim: number;
   /** Alturas de las líneas medias: `RIB_TABLE_TEXELS` téxeles RGBA (float32, como en la GPU). */
   table: Float32Array;
+  /** La clavícula (lus-sim, cobertura torácica). */
+  clavicle: ClavicleSpec;
   stations: RibCageStations;
 }
 
@@ -476,6 +565,8 @@ export interface RibCageOptions {
    * −`femaleIcsNarrowingMm`.
    */
   icsDeltaMm?: number;
+  /** La clavícula de la mujer (lus-sim, cobertura torácica: `anatomy.clavicle.lengthFemaleMm`). */
+  female?: boolean;
 }
 
 // --- Geometría de la cáscara costal (TS; solo construcción y pruebas) ---------------------------------------------
@@ -610,6 +701,42 @@ export function sternumHalfWidth(z: number, cage: RibCage): number {
   if (z >= s.zAngle) return s.halfWidthBody + ((s.halfWidthTop - s.halfWidthBody) * (z - s.zAngle)) / (s.zTop - s.zAngle);
   if (z >= 0) return s.halfWidthBody;
   return s.halfWidthXiphoid * (1 - (2 / 3) * Math.min(1, z / s.zTip));
+}
+
+/** La clavícula del tronco `t`, con el eje a la altura que da su borde superior medial sobre la escotadura `notchZ`. */
+function buildClavicle(t: Torso, notchZ: number, female: boolean): ClavicleSpec {
+  const C = CLAVICLE.params;
+  const u0 = Math.abs(wallArc(torsoSkinPoint(Math.acos(C.medialEndXMm.value / t.a), 0, t), t));
+  const r = C.radiusMm.value;
+  return {
+    u0,
+    u1: u0 + (female ? C.lengthFemaleMm.value : C.lengthMm.value),
+    z0: notchZ + C.medialTopAboveNotchMm.value - r,
+    rise: C.lateralRiseMm.value,
+    radius: r,
+    depth: C.coverMm.value + r,
+  };
+}
+
+/** z del borde superior de la clavícula sobre su tercio medial (el que mira el vértice, Gray). */
+export function clavicleMedialTopZ(cage: Pick<RibCage, 'clavicle'>): number {
+  const c = cage.clavicle;
+  return c.z0 + c.radius;
+}
+
+/**
+ * Distancia (mm; la de la clasificación: por la normal de la piel, en z y a lo largo de la piel) de un punto a la clavícula de
+ * su lado; 1e3 lejos de ella. Gemelo GLSL con el mismo nombre.
+ */
+export function clavicleSd(m: Vec3, t: Torso, cage: Pick<RibCage, 'clavicle'>): number {
+  const c = cage.clavicle;
+  if (m[1] <= 0 || m[2] < c.z0 - c.radius - 4 || m[2] > c.z0 + c.rise + c.radius + 4) return 1e3;
+  const au = Math.abs(wallArc(m, t));
+  if (au > c.u1 + c.radius + 4) return 1e3;
+  const s = Math.min(1, Math.max(0, (au - c.u0) / (c.u1 - c.u0)));
+  const nd = -torsoDepth(m, t) / ribMetric(m, t);
+  const du = au < c.u0 ? c.u0 - au : au > c.u1 ? au - c.u1 : 0;
+  return Math.hypot(nd - c.depth, m[2] - (c.z0 + c.rise * s), du) - c.radius;
 }
 
 /**
@@ -751,6 +878,7 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
     calcifiedRim: 1 - Math.sqrt(1 - calcified),
     table: new Float32Array(RIB_TABLE_TEXELS * 4),
     stations: st,
+    clavicle: buildClavicle(t, P.jugularNotchZMm.value, opts.female ?? false),
   };
   const specs: Omit<RibSpec, 'side'>[] = [];
   for (let n = 1; n <= RIBS_PER_SIDE; n++) {
@@ -890,12 +1018,20 @@ export interface RibScan {
 export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage, wall = wallTotalMm(m, t)): RibScan {
   const out: RibScan = { inside: -1, inD: 1e3, cartilage: false, ribD: 1e3, ribI: 0, ribAny: 1e3 };
   if (d >= wall) return out;
+  // la clavícula (lus-sim, cobertura torácica): subcutánea, delante y arriba
+  const cd = clavicleSd(m, t, cage);
+  if (cd < 0) return { ...out, inside: CLAVICLE_INDEX, inD: cd };
+  if (cd < 1e3) {
+    out.ribAny = cd;
+    out.ribD = cd;
+    out.ribI = CLAVICLE_INDEX;
+  }
   const nP = pleuraNormalDepth(m, d, t, wall);
   if (nP < cage.pleuraComplex + cage.sternum.thickness + WALL.ribSearchMarginMm) {
     const sd = sternumSd(m, nP, cage);
     if (sd.d < 0) return { ...out, inside: MAX_RIBS, inD: sd.d, cartilage: sd.cartilage };
-    out.ribAny = sd.d;
-    if (!sd.cartilage) {
+    out.ribAny = Math.min(out.ribAny, sd.d);
+    if (!sd.cartilage && sd.d < out.ribD) {
       out.ribD = sd.d;
       out.ribI = MAX_RIBS;
     }
@@ -923,6 +1059,7 @@ export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage, 
 
 /** Distancia (la de la clasificación) a la costilla k, o al esternón con k = `MAX_RIBS`. */
 export function ribSd(m: Vec3, k: number, t: Torso, cage: RibCage): number {
+  if (k === CLAVICLE_INDEX) return clavicleSd(m, t, cage);
   const nP = pleuraNormalDepth(m, -torsoDepth(m, t), t);
   if (k === MAX_RIBS) return sternumSd(m, nP, cage).d;
   const u = wallArc(m, t);
@@ -949,6 +1086,7 @@ export function faceRib(m: Vec3, t: Torso, cage: RibCage): number {
  */
 export function ribTangent(p: Vec3, k: number, t: Torso, cage: RibCage): Vec3 {
   if (k === MAX_RIBS) return [0, 0, 1];
+  if (k === CLAVICLE_INDEX) return clavicleTangent(p, t, cage);
   const tau = Math.atan2(p[0] / t.a, p[1] / t.b);
   const sx = t.a * Math.sin(tau);
   const sy = t.b * Math.cos(tau);
@@ -962,12 +1100,24 @@ export function ribTangent(p: Vec3, k: number, t: Torso, cage: RibCage): Vec3 {
   return [v[0] / l, v[1] / l, v[2] / l];
 }
 
+/** Eje de la clavícula en el punto: a lo largo de la piel (la tangente de la elipse) y subiendo `rise` en su largo. */
+export function clavicleTangent(p: Vec3, t: Torso, cage: Pick<RibCage, 'clavicle'>): Vec3 {
+  const c = cage.clavicle;
+  const tau = Math.atan2(p[0] / t.a, p[1] / t.b);
+  const speed = Math.hypot(t.a * Math.cos(tau), t.b * Math.sin(tau));
+  const dz = c.rise / (c.u1 - c.u0);
+  const v: Vec3 = [t.a * Math.cos(tau), -t.b * Math.sin(tau), Math.sign(p[0]) * dz * speed];
+  const l = Math.hypot(v[0], v[1], v[2]);
+  return [v[0] / l, v[1] / l, v[2] / l];
+}
+
 /**
  * Curvatura (1/mm) de la sección elíptica de la costilla k (semiejes por la normal y craneocaudal) en el punto del contorno
  * en la dirección del punto: a·b/(a²sin²t + b²cos²t)^{3/2}. El esternón, plano (0).
  */
 export function ribCurvature(p: Vec3, k: number, t: Torso, cage: RibCage): number {
   if (k === MAX_RIBS) return 0;
+  if (k === CLAVICLE_INDEX) return 1 / cage.clavicle.radius;
   const a = cage.halfThickness;
   const b = cage.ribs[k].halfWidth;
   const nP = pleuraNormalDepth(p, -torsoDepth(p, t), t);
@@ -997,6 +1147,23 @@ float ribMetric(vec3 m) {
   return length(m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy));
 }
 float pleuraNormalDepth(vec3 m, float d, float wall) { return (wall - d) / ribMetric(m); }
+// la clavícula (lus-sim, cobertura torácica): uClavicle = (u0, u1, z0, subida), uClavicleR = (radio, profundidad del eje, 0, 0)
+#define CLAVICLE_INDEX ${CLAVICLE_INDEX}
+float clavicleSd(vec3 m) {
+  if (m.y <= 0.0 || m.z < uClavicle.z - uClavicleR.x - 4.0 || m.z > uClavicle.z + uClavicle.w + uClavicleR.x + 4.0) return 1e3;
+  float au = abs(wallArc(m));
+  if (au > uClavicle.y + uClavicleR.x + 4.0) return 1e3;
+  float s = clamp((au - uClavicle.x) / (uClavicle.y - uClavicle.x), 0.0, 1.0);
+  float nd = -torsoDepth(m) / ribMetric(m);
+  float du = au < uClavicle.x ? uClavicle.x - au : (au > uClavicle.y ? au - uClavicle.y : 0.0);
+  return length(vec3(nd - uClavicleR.y, m.z - (uClavicle.z + uClavicle.w * s), du)) - uClavicleR.x;
+}
+vec3 clavicleTangent(vec3 p) {
+  float tau = atan(p.x / uTorso.x, p.y / uTorso.y);
+  float speed = length(vec2(uTorso.x * cos(tau), uTorso.y * sin(tau)));
+  float dz = uClavicle.w / (uClavicle.y - uClavicle.x);
+  return normalize(vec3(uTorso.x * cos(tau), -uTorso.y * sin(tau), sign(p.x) * dz * speed));
+}
 float ribCenterDepth(vec3 m) { return wallTotalMm(m) - ribMetric(m) * (uRibParams.y + uRibParams.x); }
 vec4 ribZGroup(int s, int g, float au) {
   float tc = min(au / RIB_DU, float(RIB_COLS - 1) - 1e-4);
@@ -1040,13 +1207,16 @@ float sternumSd(vec3 m, float nP, out bool cartilage) {
 int ribScan(vec3 m, float d, float u, float wall, out float inD, out bool cartilage, out float ribD, out int ribI, out float ribAny) {
   inD = 1e3; cartilage = false; ribD = 1e3; ribI = 0; ribAny = 1e3;
   if (d >= wall) return -1;
+  float cd = clavicleSd(m);
+  if (cd < 0.0) { inD = cd; return CLAVICLE_INDEX; }
+  if (cd < 1e3) { ribAny = cd; ribD = cd; ribI = CLAVICLE_INDEX; }
   float nP = pleuraNormalDepth(m, d, wall);
   if (nP < uRibParams.y + uSternum.w + RIB_SEARCH_MARGIN_MM) {
     bool xc;
     float sd = sternumSd(m, nP, xc);
     if (sd < 0.0) { inD = sd; cartilage = xc; return MAX_RIBS; }
-    ribAny = sd;
-    if (!xc) { ribD = sd; ribI = MAX_RIBS; }
+    ribAny = min(ribAny, sd);
+    if (!xc && sd < ribD) { ribD = sd; ribI = MAX_RIBS; }
   }
   if (nP >= uRibParams.y + 2.0 * uRibParams.x + RIB_SEARCH_MARGIN_MM) return -1;
   float au = abs(u);
@@ -1072,6 +1242,7 @@ int ribScan(vec3 m, float d, float u, float wall, out float inD, out bool cartil
   return -1;
 }
 float ribSd(vec3 m, int k) {
+  if (k == CLAVICLE_INDEX) return clavicleSd(m);
   float nP = pleuraNormalDepth(m, -torsoDepth(m), wallTotalMm(m));
   bool c;
   if (k == MAX_RIBS) return sternumSd(m, nP, c);
@@ -1089,6 +1260,7 @@ int faceRib(vec3 m) {
 }
 vec3 ribTangent(vec3 p, int k) {
   if (k == MAX_RIBS) return vec3(0.0, 0.0, 1.0);
+  if (k == CLAVICLE_INDEX) return clavicleTangent(p);
   float tau = atan(p.x / uTorso.x, p.y / uTorso.y);
   float sx = uTorso.x * sin(tau);
   float sy = uTorso.y * cos(tau);
@@ -1101,6 +1273,7 @@ vec3 ribTangent(vec3 p, int k) {
 }
 float ribCurvature(vec3 p, int k) {
   if (k == MAX_RIBS) return 0.0;
+  if (k == CLAVICLE_INDEX) return 1.0 / uClavicleR.x;
   float a = uRibParams.x;
   float b = uRibs[k].w;
   float nP = pleuraNormalDepth(p, -torsoDepth(p), wallTotalMm(p));

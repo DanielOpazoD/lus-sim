@@ -14,8 +14,8 @@ describe('Módulos de órgano', () => {
   it('el registro tiene solo los módulos del tórax, en su orden de dependencia GLSL', () => {
     // lus-sim (decisión 16): la parrilla costal, propia, tras la pared (usa su `wallArc`); (decisión 17) la pared torácica
     // por región, antes de la pared (la pared lee sus capas); (decisión 18) los bordes del pulmón y el corazón, antes de la
-    // cortina (que los lee)
-    expect(ORGAN_MODULES.map((o) => o.id)).toEqual(['chestWall', 'wall', 'ribcage', 'lungBorder', 'heart', 'lungCurtain']);
+    // cortina (que los lee); (cobertura torácica) la cúpula pleural, antes de la pared torácica (que suma su grosor)
+    expect(ORGAN_MODULES.map((o) => o.id)).toEqual(['lungApex', 'chestWall', 'wall', 'ribcage', 'lungBorder', 'heart', 'lungCurtain']);
   });
 
   for (const o of ORGAN_MODULES) {

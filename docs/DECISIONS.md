@@ -1824,3 +1824,90 @@ llegaría al 100 %); el borde de la LAP y la escapular tomaba la 8.ª costilla e
 un borde dos costillas alto); la fosa supraclavicular pasaba sin vértice; el órgano bajo el diafragma no se miraba; el vértice
 solo se buscaba 3 mm bajo la pared y con la cúpula también en la LMC; aserciones que no veían mover el borde; el cartílago como
 hueso. Todo aplicado; las cifras recalculadas coinciden.
+
+## 27. El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula
+
+**Fecha.** 2026-10-01.
+
+**Contexto.** La cobertura de exploración (decisión 26) medía el pulmón subiendo hasta el tope del tronco (z 299) en todas las
+líneas: sin vértice, sin clavícula y con la fosa supraclavicular viendo pulmón solo porque no había techo
+(`lung-border-table`: «hacia arriba no hay vértice»). La base pone el vértice ≈ 2,5 cm (hasta 4–5, a veces apenas) sobre el
+tercio medial de la clavícula y la pleura cervical 2,5–5 cm sobre la 1.ª costilla, con la cúpula dentro del anillo de la 1.ª
+costilla y, detrás, en el cuello de la 1.ª costilla (Gray); la clavícula del varón mide 15,6 ± 0,9 cm y 1,4 ± 0,1 de diámetro en
+su tercio medio, la de la mujer 14,3 ± 1,3 (Yang); por la fosa supraclavicular la pleura sobre la 1.ª costilla está a 1,7 ± 0,8
+cm de la piel (Yadav). La caja es el cilindro elíptico de VExUS, que no se estrecha hacia la abertura superior
+(`thorax-cylindrical-cage`), y no tiene mediastino (`heart-simplified`).
+
+**Opciones.** Para el techo: (a) un borde superior por columna como el inferior (una cortina hacia arriba): la pleura del techo
+no sería la cara interna de la pared y A0 no la registraría (en la pasada A, el pulmón que no toca la pared es un espejo, el de
+la cúpula del diafragma); (b) la pared que engruesa por encima de la 1.ª costilla hasta cerrarse sobre el vértice: su cara
+interna es la pleura cervical y la registra la A0 de siempre, sin un segundo mecanismo de la pleura; (c) estrechar el tronco
+hacia la abertura superior: rehace la piel, el contacto y la parrilla. Para la clavícula: (i) una sección por extremo (25 y 26
+mm) o (ii) la del tercio medio en toda ella.
+
+**Decisión.** (b) y (ii).
+
+- **La cúpula** (`src/anatomy/organs/lungApex.ts`, `anatomy.lungApex`, con su gemelo GLSL): por columna de |u|, un cuarto téxel en
+  la tabla de la pared torácica con `zApex`, el borde superior de la 1.ª costilla más 2 mm, y `zTop`, el techo. Sobre `zApex` la
+  pared engruesa Rc·(1 − √(1 − h)), con h la fracción de la altura hasta `zTop` y Rc 30 mm [SUPUESTO]: la pleura cervical sale
+  vertical de la pared y llega horizontal a Rc mm por dentro; sobre `zTop`, la columna es pared hasta el centro. `zTop` es el
+  vértice de la base bajo el tercio medial de la clavícula (25 mm sobre su borde superior, que está 10 mm sobre la escotadura:
+  z 198) y baja bajo el tercio medio hasta 5 mm sobre la 1.ª costilla, la de las demás columnas [SUPUESTO: la base no da la forma
+  de la ladera]. Detrás, la 1.ª costilla está en T1 y el pulmón llega a su cuello. Junto a la línea media del cuello (delante de
+  las articulaciones esternoclaviculares, la tráquea; detrás, delante de la columna) la cúpula empieza en la escotadura yugular:
+  sin pulmón sobre ella ni pared engrosada sobre el manubrio. El grosor extra es músculo (las partes blandas del cuello y del
+  hombro, genéricas). `wallTotalAt` y `wallLayersAt` lo suman (TS y GLSL); la GLSL lee siempre la tabla por encima de la menor
+  `zApex` (`uCupola.x`), donde la pared puede pasar de su grosor máximo, y la distancia a la frontera de sus capas tiene la cota
+  vertical hasta `zApex` (`wallCupolaBd`: las capas solo miden en la radial y el techo es horizontal). Sobre el techo, más hondo
+  que la pared del tórax, músculo sin caras (las de la pared quedarían más allá del centro del tronco).
+- **La clavícula** (`anatomy.clavicle`, en `organs/ribcage.ts`, con su gemelo GLSL): un hueso subcutáneo de 14 mm de diámetro
+  (Yang) a 3 mm de la piel, a lo largo de la piel del tronco desde 20 mm de la línea media (la escotadura clavicular del
+  manubrio) en 156 mm (143 en la mujer; Yang), con el borde superior 10 mm sobre la escotadura y subiendo 15 mm hasta el
+  extremo acromial [SUPUESTO: NO ENCONTRADO]. Entra en la clasificación de la parrilla (`ribScan`, índice `CLAVICLE_INDEX`): su
+  cortical la dibuja el tejido blando de fuera y hace sombra como una costilla. No cuenta como costilla en las cuentas por línea.
+- **El contacto de la sonda** (`probe/contact.ts`) busca como pared rígida la del tórax, sin lo que la cúpula le suma (las partes
+  blandas del cuello se aplastan bajo la cara): con la cúpula de hasta 200 mm de grosor, la sonda en la fosa no encontraba la
+  pared paralela y la mitad del sector no acoplaba.
+- **La pose** sigue hasta z 200: alcanza la fosa supraclavicular (z ≈ 186, sobre la clavícula) y el vértice.
+- **La cobertura** (decisión 26) juzga en la línea media del cuello (la columna de la articulación esternoclavicular) nada sobre
+  la escotadura y bajo el tercio medio de la clavícula la ladera de la cúpula, de 5 cm sobre ella a la 1.ª costilla, en recta
+  [SUPUESTO; Yadav ve la pleura sobre la 1.ª costilla por la fosa, bajo el tercio medio]; antes la regla saltaba de golpe al final
+  del tercio medial. Usa el largo de la clavícula de cada sexo.
+- **Las metas** A-T23 (vértice) y A-T24 (clavícula y fosa supraclavicular) entran en la base (§3) y en `anatomyTargets.test.ts`.
+
+**Consecuencias.**
+
+- **Cobertura: 62 → 68 de 138** (vértice 0/6 → 6/6): las cuatro celdas del vértice y las dos de la fosa supraclavicular. Lo
+  pendiente: la cara posterior (44) y el órgano bajo el diafragma (26).
+- El pulmón más alto bajo el tercio medial de la clavícula, a 24,7 mm de su borde (A-T23: ≈ 2,5 cm, ≤ 5), y el más alto de todo
+  el tronco, detrás (el cuello de la 1.ª costilla), a 39 mm; en la axila y detrás, el pulmón junto a la pared llega a la 1.ª
+  costilla y no la pasa; en la línea media del cuello la sonda no ve pulmón. Sobre la clavícula, su sombra (14–16 mm de hueso por
+  la normal, desde 3 mm bajo la piel; en la LMC, su eje 25 mm sobre el de la 1.ª costilla).
+- Por la fosa, con el haz 20° hacia los pies, la pleura de la cúpula a 25,7 mm en el avatar (Yadav, 16,4 ± 8 con su IMC: +1,1 DE;
+  la pared de la columna es la de delante, con el pectoral), 21,8 en la delgada, 31,1 en la mujer y 32,7 en el obeso, dentro de
+  ± 2 DE de Yadav con el IMC de cada hábito; en la mujer obesa, 40,4 frente a ≤ 39,6 (A-T24 pendiente, `notYetMet`). Ahí el
+  deslizamiento es nulo (la recta de la decisión 19 se apaga a ≈ z 160): Lichtenstein lo da mínimo en el vértice, no ausente
+  (`sliding-linear-height`).
+- **Las bases** se verificaron con la decisión 26: el borde de Gray en FRC (z −17,5 en la LMC y −35 en la LAM y detrás) y la
+  reflexión (T12, z −58) ya estaban; no cambian.
+- `lung-border-table` ya no dice «hacia arriba no hay vértice»; nuevas `apex-cupola-wall` y `clavicle-section-uniform`.
+- Las pruebas que buscaban el borde inferior del pulmón desde z 250 lo buscan desde z 140 (por encima, la cúpula). Tres uniforms
+  nuevos (`uCupola`, `uClavicle`, `uClavicleR`): la pasada B declara 115 ranuras (117 la dirigida; tope 130). La entrada del
+  bundle pasa de 258,9 a 266,2 kB (la evidencia de los parámetros nuevos y los gemelos GLSL): su presupuesto sube a 270 y el
+  total a 830.
+- **Costo por cuadro** (`frameCostMs`, GPU real M4, intercalado con main): en el punto BLUE superior, main 3,0–3,1 ms y esta
+  decisión 2,8–3,0; en la fosa supraclavicular, 3,3–3,4. O6 (≥ 30 FPS) holgado.
+
+**Verificación.** `npm run check`; `coverage.test.ts` (las 6 celdas del vértice pasan a `it`), `anatomyTargets.test.ts` (A-T23 y
+A-T24, con la clavícula medida en la clasificación y la fosa por hábito frente a la recta de Yadav con su IMC),
+`chestWall.test.ts` (la cota `maxTotal` por debajo de la cúpula), `shaderLimits.test.ts`, `organs.test.ts`. En la e2e, la
+equivalencia TS ↔ GLSL suma la fosa supraclavicular, la clavícula y la axila alta al barrido de planos (acuerdo 1) y la fosa a la
+pleura de A0 (dos pasos finales de la bisección en la cúpula oblicua, uno en los demás planos); un volumen aparte del vértice (z
+150–230, 10 000 puntos) con las exigencias del del tórax, salvo la distancia a la cara sobre la cúpula, que se mide aparte (en la
+ladera la pared cambia deprisa con el arco u y el error de float32 de `wallArc` pesa más: GPU real 2·10⁻⁴ mm, SwiftShader 0,032; se
+exige < 0,05, y < 0,02 en el resto). Mutación: la GLSL sin la cúpula en `wallTotalAt` deja el plano de la
+fosa en 0,71 de acuerdo (falla). Revisión adversarial de contexto limpio (ejecutando): sin bloqueantes; la distancia a la frontera
+del músculo sobre la cúpula hasta 90 mm (la cota vertical), el deslizamiento nulo en la fosa sin declarar, pulmón en la línea
+media del cuello (la sonda lo veía sobre la escotadura), A-T24 solo en el avatar, la ladera de la cobertura sin etiqueta de
+supuesto, una cifra sin fuente, el manubrio empujado 2 mm por la cúpula, dos definiciones del borde de la clavícula, pruebas
+que repetían parámetros; aplicado (ver la PR).
