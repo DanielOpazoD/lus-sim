@@ -69,7 +69,7 @@ Objetivos: O1, O3.
 Objetivos: O2, O1, O5.
 
 - Las zonas de exploración de ambos hemitórax (anteriores, laterales y posteriores, con la escápula),
-  bases con diafragma, hígado y bazo (signo de la cortina, imagen en espejo, signo de la columna).
+  **adelantadas a la fase 1 por el requisito de cobertura de `docs/MISSION.md` (v0.2.0)**; bases con diafragma, hígado y bazo (signo de la cortina, imagen en espejo, signo de la columna).
 - Neumotórax con su geometría y el punto pulmonar; pulso pulmonar desde el reloj cardíaco.
 - Variantes de hábito corporal (delgado, obeso).
 
