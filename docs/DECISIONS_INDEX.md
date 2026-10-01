@@ -29,3 +29,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [23](DECISIONS.md#L1546) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |
 | [24](DECISIONS.md#L1616) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
 | [25](DECISIONS.md#L1727) | Maniquí humano procedural y sonda convexa registrada | vigente |
+| [26](DECISIONS.md#L1756) | La cobertura de exploración: una prueba por celda del tórax | vigente |

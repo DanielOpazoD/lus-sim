@@ -149,6 +149,11 @@ const windows = new StartPointCards($('start-points'), {
 bindPopover($<HTMLButtonElement>('nav-help'), $('nav-help-pop'));
 let lastFps = 0;
 $<HTMLButtonElement>('tech-report').addEventListener('click', () => {
+  void downloadTechReport().catch((e: unknown) => errorLog.report('ui', e));
+});
+/** El informe técnico; la cobertura de exploración (decisión 26) se carga al pedirlo, fuera de la entrada inicial. */
+async function downloadTechReport(): Promise<void> {
+  const { explorationCoverage } = await import('./app/coverage');
   const s = sim();
   const d = buildDiagnostics({
     version: __APP_VERSION__,
@@ -163,13 +168,14 @@ $<HTMLButtonElement>('tech-report').addEventListener('click', () => {
     gpuMs: s.renderer.gpuTimings(),
     equipment: s.equipment,
     errors: errorLog.recent(50),
+    coverage: (({ met, total, byRegion }) => ({ met, total, byRegion }))(explorationCoverage(s.scene)),
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
   a.download = diagnosticsFileName(d);
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-});
+}
 // con la imagen congelada la sonda no se mueve: la rueda y ← → recorren el cine (decisión 80 de VExUS)
 const input = new ProbeInput(
   sectorWrap,

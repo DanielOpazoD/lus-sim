@@ -42,6 +42,9 @@
 // Revisión del cuadro (docs/REVIEW.md): frozenReview se solicita al congelar por primera vez, no al iniciar.
 // Tiene un techo propio de 24 KiB y siempre cuenta en el total. Se conservan los límites inicial (260 KiB)
 // y total (820 KiB); la clasificación diferida no permite ocultar el coste de descarga.
+// 2026-10-01 (decisión 26): la cobertura de exploración (`app/coverage.ts`) solo la usa el informe técnico, que la importa al
+// pedirlo: chunk diferido de 6,2 kB, que cuenta en el total (809,5 kB). La entrada queda en 258,9 kB (con el chunk compartido
+// del contacto) frente a 263,8 si la cobertura entraba en ella. Los límites no cambian.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -55,7 +58,7 @@ const BUDGETS: Array<[RegExp, number]> = [
 ];
 const INITIAL_JS_BUDGET = 260 * KB;
 const TOTAL_JS_BUDGET = 820 * KB;
-const DEFERRED_JS = /^(?:thorax|frozenReview)-.*\.js$/;
+const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

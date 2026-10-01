@@ -271,6 +271,16 @@ con la respiración elegida producen un error explícito.
 y sus regresiones. M9 y las llamadas directas a `simulate` usan el valor vigente de producción (K = 54 dB en el ajuste preliminar
 C3b-A). Las bandas no se amplían; reproducir el banco histórico no verifica el contraste pulmonar nuevo.
 
+## Cobertura de exploración (decisión 26)
+
+`src/validation/coverage.test.ts` recorre con `explorationCoverage` (`src/app/coverage.ts`) las celdas del requisito de cobertura
+de `docs/MISSION.md`: por hemitórax, cada EIC de las líneas paraesternal, medioclavicular, axilares, escapular y paravertebral,
+el vértice (en una rejilla de todo el corte) y la fosa supraclavicular. En cada una, la sonda apoyada con su contacto en una posición del
+paciente admitida, la línea central y lo que la base pone ahí (los anclajes de Gray, no la tabla del modelo). Una prueba por
+celda: las que se cumplen protegen lo logrado y las pendientes van con `notYetMet` y su motivo, así que un cambio que arregla
+una celda la tiene que pasar a `it`. El total (meta v0.2.0: 100 %) también. Una mutación de la posición (la sonda en cualquier
+sitio) comprueba que el medidor ve el pulmón de la espalda: lo que falla detrás es el alcance, no la medida.
+
 ## Invariantes previstas
 
 Las de la guía (§18) que aún no tienen módulo (líneas B, modo M, puntaje, ganancia y mapa de grises frente al

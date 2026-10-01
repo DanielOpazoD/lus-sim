@@ -4,7 +4,8 @@ import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { RIBCAGE } from '../anatomy/organs/ribcage';
-import { THORAX_LINES } from '../anatomy/thoraxLines';
+import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
+import { COVERAGE } from '../app/coverage';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
@@ -22,6 +23,7 @@ import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
 export const PARAMETER_SETS: readonly ParameterSet[] = [
   RIBCAGE,
   THORAX_LINES,
+  SCAPULAR_LINE,
   CHEST_WALL,
   LUNG_BORDER,
   LUNG_SLIDING,
@@ -36,4 +38,5 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   DIAPHRAGM_EXCURSION,
   RESPIRATORY_WALL,
   FIDELITY_BENCH,
+  COVERAGE,
 ];
