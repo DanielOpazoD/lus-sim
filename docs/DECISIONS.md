@@ -2670,6 +2670,14 @@ aparte.
 - `patient-position-anatomy` y `navigator-parametric` dicen lo que hace la interfaz; nueva `chest-wall-height-transition` (la nota
   de la decisión 29).
 
+**El CI en nueve fragmentos.** Con la prueba nueva de la espalda la e2e pasa de 32 a 33 pruebas, y Playwright reparte por
+cuenta y en orden: con ocho, el 1.º recibe cinco y todo se corre una, y el 2.º juntó la calibración del PLAPS y las tres
+ventanas del banco de fidelidad (1,4 + 4,8 + 4,6 min y la cuarta en marcha): el CI de la PR lo canceló a los 15 min, sin
+ningún fallo de aserción (las tres pruebas que terminó pasaron, con las duraciones de main: 4,7 y 4,5 min las ventanas). Como
+en las decisiones anteriores (de cinco a ocho), un fragmento más y no un plazo mayor: con nueve, el 2.º (la calibración del
+BLUE inferior y del PLAPS y dos ventanas) y el 3.º (la ventana del PLAPS, el barrido de ganancia y el navegador humano) son
+los mismos que en main con 32 en ocho (12,3 y 12,5 min en su CI); comprobado con `CI=1 npx playwright test --list --shard`.
+
 **Pendientes.** Las tarjetas son del hemitórax derecho (decisión 12): la espalda izquierda se alcanza arrastrando, sin tarjetas
 (`normal-acquisition-only`). El maniquí del navegador no cambia de postura al sentar al paciente: sigue erguido con los brazos a
 los lados, la postura de la escápula del modelo, sin cruzar los brazos para abrir la espalda (`patient-position-anatomy`). La
