@@ -279,7 +279,10 @@ el vértice (en una rejilla de todo el corte) y la fosa supraclavicular. En cada
 paciente admitida, la línea central y lo que la base pone ahí (los anclajes de Gray, no la tabla del modelo). Una prueba por
 celda: las que se cumplen protegen lo logrado y las pendientes van con `notYetMet` y su motivo, así que un cambio que arregla
 una celda la tiene que pasar a `it`. El total (meta v0.2.0: 100 %) también. Una mutación de la posición (la sonda en cualquier
-sitio) comprueba que el medidor ve el pulmón de la espalda: lo que falla detrás es el alcance, no la medida.
+sitio) comprueba que el medidor ve el pulmón de la espalda: lo que falla detrás es el alcance, no la medida. Desde la
+decisión 27, el vértice (A-T23: el pulmón más alto en una rejilla de todo el corte; junto a la pared, la 1.ª costilla de cada
+línea) y la clavícula con la fosa supraclavicular (A-T24) están en `anatomyTargets.test.ts`, y la e2e compara la anatomía de
+la GPU también en la fosa, sobre la clavícula y en la axila alta, con un volumen aparte del vértice (z 150–230).
 
 ## Invariantes previstas
 

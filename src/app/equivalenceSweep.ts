@@ -138,6 +138,11 @@ export interface VolumeEquivalenceReport {
   interfaceAgreement: number;
   /** Máximo de |distancia a la cara de la GPU − la de la CPU| con la misma cara (mm). */
   interfaceDistanceMaxErr: number;
+  /**
+   * Lo mismo sobre la cúpula pleural (cobertura torácica, decisión 27: z sobre la menor `zApex`), aparte: ahí la pared cambia
+   * deprisa con el arco u (la ladera de la cúpula) y el error de float32 de `wallArc` en la GPU pesa más en la cara.
+   */
+  interfaceDistanceMaxErrCupola: number;
   /** Parejas de caras CPU → GPU con más desacuerdos. */
   interfaceWorst: string;
   /**
@@ -157,12 +162,22 @@ export interface VolumeEquivalenceReport {
  * Altura del volumen (mm, marco material; z = 0 en la unión xifoesternal): de −100 (bajo las cúpulas heredadas) a +180
  * (sobre la escotadura yugular, a 163), con la cortina, las cúpulas, el pulmón, la parrilla del paso C1 salvo las puntas
  * de la 10.ª–12.ª (hasta −140) y los extremos posteriores de la 1.ª (198), y la ventana del punto BLUE superior. VExUS
- * muestrea de −160 a +120 (el abdomen alto); los 280 mm de altura son los mismos. Los extremos de las 24 costillas, dentro
+ * muestrea de −160 a +120 (el abdomen alto); los 280 mm de altura son los mismos. El vértice, en `APEX_VOLUME_Z_MM`. Los extremos de las 24 costillas, dentro
  * y fuera de este tramo, los mira `ribEndsEquivalence`.
  */
 export const VOLUME_Z_MM = [-100, 180] as const;
+/**
+ * El volumen del vértice (cobertura torácica, decisión 27): de z 150, bajo la 1.ª costilla de delante, a 230, sobre el techo
+ * de la cúpula pleural (≈ 213 detrás), con la clavícula. Aparte del de arriba para no cambiar sus muestras.
+ */
+export const APEX_VOLUME_Z_MM = [150, 230] as const;
 
-export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): VolumeEquivalenceReport {
+export function volumeEquivalence(
+  sim: Simulator,
+  n = 20_000,
+  seed = 20260922,
+  zRange: readonly [number, number] = VOLUME_Z_MM,
+): VolumeEquivalenceReport {
   let state = seed >>> 0;
   const rnd = () => {
     // mulberry32: determinista y suficiente para muestrear
@@ -174,7 +189,7 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
   };
   const torso = sim.scene.torso;
   const pts = new Float32Array(n * 3);
-  const [z0, z1] = VOLUME_Z_MM;
+  const [z0, z1] = zRange;
   for (let i = 0; i < n; i++) {
     // dentro de la elipse del tronco (radio ≤ 1), a la altura del tórax
     const r = Math.sqrt(rnd());
@@ -187,6 +202,8 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
   const pairs = new Map<string, number>();
   const byTissue: Record<string, number> = {};
   const face = new FaceTally();
+  const faceCupola = new FaceTally();
+  const apexMinZ = sim.scene.chestWall.apexMinZ;
   let bdMax = 0;
   let bdWorst = '';
   let bdUnstable = 0;
@@ -210,17 +227,31 @@ export function volumeEquivalence(sim: Simulator, n = 20_000, seed = 20260922): 
       const k = `${Tissue[q.tissue]}→${Tissue[gpu.tissue[i]]}`;
       pairs.set(k, (pairs.get(k) ?? 0) + 1);
     }
-    face.add(q.interface, q.interfaceDistance, gpu.iface[i], gpu.ifd[i]);
+    (q.material[2] > apexMinZ ? faceCupola : face).add(
+      q.interface,
+      q.interfaceDistance,
+      gpu.iface[i],
+      gpu.ifd[i],
+      `(${p.map((x) => x.toFixed(1)).join(', ')})`,
+    );
   }
   return {
     points: n,
     interiorPoints: interior,
     tissueAgreement: interior ? same / interior : 1,
     worst: topPairs(pairs),
-    interfacePoints: face.withFace,
-    interfaceAgreement: face.points ? face.same / face.points : 1,
+    interfacePoints: face.withFace + faceCupola.withFace,
+    interfaceAgreement: face.points + faceCupola.points ? (face.same + faceCupola.same) / (face.points + faceCupola.points) : 1,
     interfaceDistanceMaxErr: face.maxErr,
-    interfaceWorst: [topPairs(face.pairs), face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`].filter(Boolean).join('; '),
+    interfaceDistanceMaxErrCupola: faceCupola.maxErr,
+    interfaceWorst: [
+      topPairs(face.pairs),
+      topPairs(faceCupola.pairs),
+      face.maxErrAt && `máx. |Δifd| en ${face.maxErrAt}`,
+      faceCupola.maxErrAt && `en la cúpula, en ${faceCupola.maxErrAt}`,
+    ]
+      .filter(Boolean)
+      .join('; '),
     boundaryDistanceMaxErr: bdMax,
     boundaryWorst: bdWorst,
     boundaryUnstable: bdUnstable,
@@ -290,7 +321,7 @@ class FaceTally {
   maxErrAt = '';
   readonly pairs = new Map<string, number>();
   /** Registra un punto; devuelve si la GPU dibuja la misma cara que la CPU. */
-  add(cpu: Interface, cpuDist: number, gpu: number, gpuDist: number): boolean {
+  add(cpu: Interface, cpuDist: number, gpu: number, gpuDist: number, where = ''): boolean {
     this.points++;
     if (cpu !== Interface.None) this.withFace++;
     const cpuFace: number = cpu;
@@ -299,7 +330,7 @@ class FaceTally {
       const err = Math.abs(gpuDist - cpuDist);
       if (cpu !== Interface.None && err > this.maxErr) {
         this.maxErr = err;
-        this.maxErrAt = `${Interface[cpu]} a ${cpuDist.toFixed(3)} mm`;
+        this.maxErrAt = `${Interface[cpu]} a ${cpuDist.toFixed(3)} mm${where ? ` en ${where}` : ''}`;
       }
       return true;
     }
@@ -406,6 +437,8 @@ export interface PleuraEquivalenceReport {
   /** Máximo de |D_GPU − D_CPU| y de |dz_GPU − dz_CPU| en las líneas registradas por las dos (mm). */
   depthMaxErrMm: number;
   edgeMaxErrMm: number;
+  /** Por plano, el máximo de |D_GPU − D_CPU| en pasos finales de la bisección (`quantumMm`). */
+  depthQuantaByPose: Record<string, number>;
   /**
    * Paso final de la bisección del cruce (mm): el paso grueso de la marcha entre 2^MIRROR_BISECTION_STEPS. Una
    * decisión de la bisección que cambia con el redondeo de float32 mueve D exactamente eso.
@@ -428,6 +461,26 @@ export function extraPleuraPoses(scene: AnatomyScene): Array<{ id: string; pose:
   return [
     { id: 'cardiacWindow', pose: { phi: Math.acos(HEART.params.windowOffsetMm.value / t.a), z: scene.heart.window.z, ...flat } },
     { id: 'leftBorder', pose: { phi: lam, z: zL, ...flat } },
+    // lus-sim (cobertura torácica): la cúpula pleural vista por la fosa supraclavicular, con el haz hacia los pies
+    coveragePoses(scene)[0],
+  ];
+}
+
+/**
+ * Planos de la cobertura torácica que el barrido de equivalencia suma a los puntos de partida: la fosa supraclavicular (la
+ * cúpula pleural, con el haz hacia los pies), la clavícula en la LMC y la axila alta sobre la 1.ª costilla (donde la pared
+ * engruesa hasta cerrarse sobre el vértice).
+ */
+export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
+  const t = scene.torso;
+  const c = scene.ribCage.clavicle;
+  const flat = { lift: 0, yaw: 0, rock: 0, tilt: 0 };
+  const fossa = Math.PI - Math.acos(70 / t.a);
+  const lam = thoraxLinePhi('midaxillary', t, -1);
+  return [
+    { id: 'supraclavicular', pose: { ...flat, phi: fossa, z: c.z0 + c.radius + 13, rock: -0.35 } },
+    { id: 'clavicle', pose: { ...flat, phi: thoraxLinePhi('midclavicular', t, 1), z: c.z0 + c.rise * 0.5 } },
+    { id: 'lateralApex', pose: { ...flat, phi: lam, z: ribTableZ(scene.ribCage, 0, Math.abs(wallArc(torsoSkinPoint(lam, 0, t), t))) } },
   ];
 }
 
@@ -442,6 +495,7 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
   let edgeMax = 0;
   let worst = '';
   const centralDepthMm: Record<string, number> = {};
+  const depthByPose: Record<string, number> = {};
   try {
     const poses: Array<{ id: string; pose: ProbePose }> = [
       ...START_POINTS.map((sp) => ({ id: sp.id, pose: poseOf(sp) })),
@@ -482,6 +536,7 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
         if (!cpu) continue;
         const dD = Math.abs(gD - cpu.D);
         const dZ = Math.abs(h2[l * 4 + 1] - cpu.dz);
+        depthByPose[sp.id] = Math.max(depthByPose[sp.id] ?? 0, dD);
         if (dD > depthMax) {
           depthMax = dD;
           worst = `${sp.id}, línea ${l}: D CPU ${cpu.D.toFixed(4)}, GPU ${gD.toFixed(4)} mm`;
@@ -500,6 +555,7 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
     registrationMismatch: mismatch,
     depthMaxErrMm: depthMax,
     edgeMaxErrMm: edgeMax,
+    depthQuantaByPose: Object.fromEntries(Object.entries(depthByPose).map(([k, v]) => [k, v / quantumMm])),
     quantumMm,
     centralDepthMm,
     worst,

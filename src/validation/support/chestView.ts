@@ -8,7 +8,16 @@
  * cuando el paso C cambie la anatomía.
  */
 import { AnatomyQuery } from '../../anatomy/query';
-import { probeHitPoint, ribCenterDepth, ribLineArc, ribLinePoint, ribScan, ribTableZ, type RibSpec } from '../../anatomy/organs/ribcage';
+import {
+  CLAVICLE_INDEX,
+  probeHitPoint,
+  ribCenterDepth,
+  ribLineArc,
+  ribLinePoint,
+  ribScan,
+  ribTableZ,
+  type RibSpec,
+} from '../../anatomy/organs/ribcage';
 import { torsoDepth, torsoSkinPoint } from '../../anatomy/primitives';
 import { wallArc } from '../../anatomy/organs/wall';
 import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../../anatomy/scene';
@@ -287,7 +296,8 @@ export function ribsAlongLine(scene: AnatomyScene, phi: number, zTop = 260, zBot
     const m: Vec3 = ribLinePoint(phi, t, scene.ribCage, z);
     const d = -torsoDepth(m, t);
     const scan = ribScan(m, d, wallArc(m, t), t, scene.ribCage);
-    const i = scan.inside;
+    // la clavícula (cobertura torácica) no es una costilla: la línea la cruza delante, sobre la 1.ª
+    const i = scan.inside === CLAVICLE_INDEX ? -1 : scan.inside;
     if (cur && cur.index === i) {
       cur.zBottom = z;
       cur.cartilage ||= scan.cartilage;
@@ -312,7 +322,7 @@ export function lungBorderZ(
   scene: AnatomyScene,
   phi: number,
   insideMm = 4,
-  zTop = 250,
+  zTop = 140,
   zBottom = -250,
   step = 0.5,
   instant: SceneInstant = BASELINE_INSTANT,

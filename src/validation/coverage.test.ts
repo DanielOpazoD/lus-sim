@@ -33,16 +33,15 @@ const ics = (s: string, line: string, from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => `${s} ${line} EIC${from + i}`);
 
 /**
- * Celdas que aún no se cumplen en main (01-10-2026, medido: 62 de 138), con su motivo:
+ * Celdas que aún no se cumplen (01-10-2026, medido: 68 de 138; en main, 62: el vértice y la fosa supraclavicular se cumplen desde
+ * la decisión 27), con su motivo:
  *  - las 44 de la cara posterior (la escapular y la paravertebral, EIC 1–11, de los dos lados): en decúbito supino la sonda no
  *    pasa de 1,2π (por detrás de la axilar posterior derecha) ni de −0,2π, y no hay otra posición del paciente;
- *  - el vértice (las 4 celdas: el pulmón sube hasta el tope del tronco, z 299) y, por eso, la fosa supraclavicular (2);
  *  - las 26 bajo el borde del pulmón: el diafragma está, pero debajo el abdomen es un tejido genérico, sin hígado ni bazo
  *    (`abdomen-generic-tissue`).
  */
 const NOT_YET_MET: ReadonlySet<string> = new Set([
   ...BOTH.flatMap((s) => [...ics(s, 'LE', 1, 11), ...ics(s, 'PV', 1, 11)]),
-  ...BOTH.flatMap((s) => [`${s} vértice, tercio medial`, `${s} vértice, fuera del tercio medial`, `${s} fosa supraclavicular`]),
   ...BOTH.flatMap((s) => [
     `${s} PE EIC6`,
     ...ics(s, 'LMC', 6, 8),
@@ -79,7 +78,7 @@ describe('cobertura de exploración: cada celda', () => {
 });
 
 describe('cobertura de exploración: el total', () => {
-  // medido en main (01-10-2026): 62/138 (anterior 20/28, lateral 42/60, posterior 0/44, vértice 0/6)
+  // medido (01-10-2026): 68/138 (anterior 20/28, lateral 42/60, posterior 0/44, vértice 6/6); en main, 62/138
   notYetMet('la cobertura es completa (meta v0.2.0: 100 %)', () => {
     expect(`${report.met}/${report.total}`).toBe(`${report.total}/${report.total}`);
   });

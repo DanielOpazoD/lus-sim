@@ -6,7 +6,7 @@ import {
   type CompressionNode,
   type ProbeCompression,
 } from '../anatomy/compression';
-import { wallTotalMm } from '../anatomy/organs/wall';
+import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
 import { torsoDepth, torsoDepthGradient, type Torso } from '../anatomy/primitives';
 import { length, smoothstep, type Vec3 } from '../core/vec3';
 import { probeFrame, skinSoftness, type ProbeFrame, type ProbePose, type Transducer } from './probe';
@@ -159,7 +159,11 @@ function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso): FaceGeometry 
     // lus-sim (decisión 17): la pared por región, con el grosor de donde la línea entra en la piel (la cara interna de la
     // pared bajo el elemento, paralela a la piel a esa profundidad radial, como en VExUS con su grosor fijo)
     const rs = skinEntry(E, dir, t, -60, 200);
-    const W = wallTotalMm(rs === null ? E : at(rs), t);
+    // lus-sim (cobertura torácica): sobre la cúpula pleural, la pared rígida que busca el contacto es la del tórax; las partes
+    // blandas del cuello que la engruesan se aplastan bajo la cara (sin esto, la cúpula de 200 mm no dejaba acoplar la sonda en
+    // la fosa supraclavicular)
+    const pW = rs === null ? E : at(rs);
+    const W = wallTotalMm(pW, t) - (t.chestWall?.cupola?.(wallArc(pW, t), pW[2]) ?? 0);
     const depthAt = (r: number): number => -torsoDepth(at(r), t) - W;
     // a lo largo de la línea la pared mide al menos ~W: la búsqueda de su cara interna empieza cerca
     const near = rs === null ? 0 : rs + 0.9 * W;

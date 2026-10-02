@@ -25,8 +25,10 @@ import {
 } from './organs/lungBorder';
 import { HEART, buildHeart, heartAtWall, heartClearance, heartDistance, heartStillWeight, type Heart } from './organs/heart';
 import {
+  CLAVICLE,
   RIBCAGE,
   RIBS_PER_SIDE,
+  clavicleMedialTopZ,
   buildRibCage,
   faceRib,
   ribCurvature,
@@ -44,11 +46,15 @@ import {
   buildChestWall,
   respiratoryWallBlendMm,
   respiratoryWallOf,
+  setChestWallApex,
   setChestWallCage,
+  wallCupolaBd,
+  wallCupolaMm,
   wallColumnTexel,
   type ChestWall,
 } from './organs/chestWall';
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
+import { CUPOLA_CAP_MM, LUNG_APEX, lungApexColumns } from './organs/lungApex';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
@@ -213,6 +219,7 @@ export class AnatomyScene {
     const female = chest.sex === 'female';
     this.ribCage = buildRibCage(walled, this.spine, {
       icsDeltaMm: female ? -RIBCAGE.params.femaleIcsNarrowingMm.value : 0,
+      female,
       ...ribOptions,
     });
     this.ribs = this.ribCage.ribs;
@@ -238,6 +245,19 @@ export class AnatomyScene {
     // lus-sim (decisión 18): los bordes del pulmón y de la pleura sobre la parrilla y la pared construidas; la cúpula baja
     // junto a la pared al borde del pulmón en FRC
     this.lungBorder = buildLungBorder(walled, cage, this.chestWall);
+    // lus-sim (cobertura torácica): la cúpula pleural (`organs/lungApex.ts`), sobre la 1.ª costilla de cada columna; el vértice,
+    // sobre el tercio medial de la clavícula (Gray), y bajando bajo el tercio medio hasta la 1.ª costilla
+    const apex = lungApexColumns(
+      { firstRibZ: (au) => ribTableZ(cage, 0, au), firstRibHalfWidth: cage.ribs[0].halfWidth },
+      clavicleMedialTopZ(cage) + LUNG_APEX.params.apexAboveClavicleMm.value,
+      cage.clavicle.u0 + (cage.clavicle.u1 - cage.clavicle.u0) / 3,
+      cage.clavicle.u0 + (2 * (cage.clavicle.u1 - cage.clavicle.u0)) / 3,
+      cage.sternum.zTop,
+      cage.clavicle.u0,
+      // detrás, la misma distancia a la línea media (delante de la columna)
+      Math.abs(wallArc(torsoSkinPoint(-Math.acos(CLAVICLE.params.medialEndXMm.value / walled.a), 0, walled), walled)),
+    );
+    setChestWallApex(this.chestWall, apex.zApex, apex.zTop);
     this.torso = { ...walled, lungBorder: this.lungBorder };
     // Las cúpulas de VExUS: sus elipses van con la cara interna de la pared (decisión 17: con la pared torácica por región se
     // escalan con ella, al lado y delante); lus-sim (decisión 18): sus vértices, el de la base en FRC (la derecha en el 5.º
@@ -504,7 +524,8 @@ export class AnatomyScene {
     // la cara de la capa más cercana; la distancia a la frontera cuenta el hueso o cartílago más cercano (|∇| ≤ 1,1)
     const layer = (tissue: Tissue, bd: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
       const [face, dist] = wallFace(d, u, m[2], ribD, torso, caudalMm);
-      const boundaryDistance = Math.min(bd, ribAny / 1.1);
+      // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (`wallCupolaBd`)
+      const boundaryDistance = Math.min(bd, ribAny / 1.1, wallCupolaBd(this.chestWall, u, m[2]));
       return { final: true, cls: { ...NONE, tissue, boundaryDistance, interface: face, interfaceDistance: dist } };
     };
     if (d < skin) return layer(Tissue.Skin, skin - d, 1e3, 1e3);
@@ -518,6 +539,13 @@ export class AnatomyScene {
         final: true,
         cls: { ...NONE, tissue: scan.cartilage ? Tissue.Cartilage : Tissue.Bone, boundaryDistance: -scan.inD, ...face },
       };
+    }
+    // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, las partes blandas
+    // del cuello y del hombro: músculo sin caras (las de la pared quedarían más allá del centro del tronco)
+    const cup = wallCupolaMm(this.chestWall, u, m[2]);
+    if (cup >= CUPOLA_CAP_MM && d < wall && d >= wall - cup) {
+      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, wallCupolaBd(this.chestWall, u, m[2]));
+      return { final: true, cls: { ...NONE, tissue: Tissue.Muscle, boundaryDistance: bd } };
     }
     if (d >= wall) {
       const dSpine = sdSpine(m, this.spine);

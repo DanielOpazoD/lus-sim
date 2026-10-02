@@ -24,7 +24,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const errors = await openBench(page);
   // Planos de los tres puntos de partida (la rejilla de VExUS, 48 × 72 hasta 16 cm): acuerdo lejos de bordes
   const sweep = await page.evaluate(() => window.__lusTest!.equivalenceSweep());
-  expect(sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps']);
+  // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
+  expect(sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps', 'supraclavicular', 'clavicle', 'lateralApex']);
   for (const r of sweep) expect(r.interiorAgreement, JSON.stringify(r)).toBeGreaterThanOrEqual(0.99);
   // Volumen: 50 000 puntos del tórax (z −100…180 mm). Lejos de interfaces (≥ 1 mm y la misma cara a ±0,02 mm) las dos
   // anatomías deben coincidir EXACTAMENTE en tejido y en cara; la distancia a la cara, a la precisión de float32
@@ -43,12 +44,26 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(vol.interfaceAgreement, vtag).toBe(1);
   // GPU real (M4): 2·10⁻⁵ mm; SwiftShader, 0,014 mm (en VExUS, la cara del diafragma): una décima del eco
   expect(vol.interfaceDistanceMaxErr, vtag).toBeLessThan(0.02);
+  // sobre la cúpula pleural (decisión 27) la pared cambia deprisa con el arco u y el error de float32 de wallArc pesa más: GPU
+  // real 2·10⁻⁴ mm, SwiftShader 0,032 (la ladera bajo la LMC, a 10 mm de la cara): 1/20 del eco
+  expect(vol.interfaceDistanceMaxErrCupola, vtag).toBeLessThan(0.05);
   // la distancia al borde del tejido, la que funde los bordes en la pasada B (hasta 10 mm, lo que puede importar;
   // lo añadió la revisión), donde es continua (`boundaryStable`: sin el salto del pulmón de la cortina al del tórax, el
   // mismo tejido, a 3 mm de la pleura): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
   expect(vol.boundaryDistanceMaxErr, vtag).toBeLessThan(0.02);
   // y lo que no se compara es poco: los puntos junto a la cara interna de la lámina de la cortina
   expect(vol.boundaryUnstable, vtag).toBeLessThan(0.005 * vol.interiorPoints);
+  // El vértice (cobertura torácica, decisión 27): 10 000 puntos de z 150 a 230, con la cúpula pleural (la pared que engruesa
+  // sobre la 1.ª costilla) y la clavícula; las mismas exigencias que el volumen del tórax
+  const apex = await page.evaluate(() => window.__lusTest!.volumeEquivalence(10_000, true));
+  const atag = JSON.stringify(apex);
+  expect(apex.interiorPoints, atag).toBeGreaterThan(7000);
+  expect(apex.tissueAgreement, atag).toBe(1);
+  for (const t of ['Lung', 'Muscle', 'Bone']) expect(apex.byTissue[t] ?? 0, `${t}: ${atag}`).toBeGreaterThan(30);
+  expect(apex.interfaceAgreement, atag).toBe(1);
+  expect(apex.interfaceDistanceMaxErr, atag).toBeLessThan(0.02);
+  expect(apex.interfaceDistanceMaxErrCupola, atag).toBeLessThan(0.05);
+  expect(apex.boundaryDistanceMaxErr, atag).toBeLessThan(0.02);
   // Los extremos de las 24 costillas (lo pidió la revisión del paso C1: el volumen apenas los toca): nubes de 22 680 puntos
   // alrededor de las uniones esternocostales, las condrocostales, las puntas y los extremos posteriores, hasta 0,05 mm de
   // los bordes. GPU real y SwiftShader, con la pared por región (decisión 17): 19 613 interiores (hueso 3450, cartílago
@@ -86,12 +101,17 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const ptag = JSON.stringify(pleura);
   // los tres puntos de partida y (lus-sim, decisión 18) la ventana cardiaca, sin pleura en su centro (el corazón toca la
   // pared), y el borde del pulmón en la axilar media izquierda
-  expect(pleura.lines, ptag).toBe(5 * 192);
+  // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular
+  expect(pleura.lines, ptag).toBe(6 * 192);
+  expect(pleura.centralDepthMm.supraclavicular, ptag).toBeGreaterThan(15);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.7 * pleura.lines);
   expect(pleura.centralDepthMm.cardiacWindow, ptag).toBe(-1);
   expect(pleura.centralDepthMm.leftBorder, ptag).toBeGreaterThan(0);
   expect(pleura.registrationMismatch, ptag).toBe(0);
-  expect(pleura.depthMaxErrMm, ptag).toBeLessThanOrEqual(pleura.quantumMm + 1e-5);
+  // un paso final de la bisección en los planos de antes; en la fosa supraclavicular (cobertura torácica), la cúpula pleural
+  // oblicua: dos con SwiftShader (0,0234 mm en una línea que la cruza rasante a 101,6 mm), 1/30 del eco
+  for (const [id, q] of Object.entries(pleura.depthQuantaByPose))
+    expect(q, `${id}: ${ptag}`).toBeLessThanOrEqual((id === 'supraclavicular' ? 2 : 1) + 1e-3);
   // (lus-sim, decisión 17: con la pared torácica por región ese paso final cae, en la línea 150 del punto BLUE superior,
   // donde el borde del pulmón sube 5 mm por mm: dz 0,061 mm con SwiftShader, 0,0006 con la GPU real; antes, 0,032)
   expect(pleura.edgeMaxErrMm, ptag).toBeLessThan(0.1);
@@ -130,7 +150,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar). Desde la decisión 22 la
   // excursión es la de la base y la inversa del campo, una bisección en la vertical (TS y GLSL): el barrido suma los planos
   // donde el campo cambia deprisa (la ventana cardiaca, el borde de la LAM izquierda y la cortina de la derecha) y la pleura
-  // de A0 en los cinco planos de la equivalencia de la pleura
+  // de A0 en los seis planos de la equivalencia de la pleura (cobertura torácica: con la fosa supraclavicular)
   const caudal = await page.evaluate(() => {
     const sim = window.__lusTest!.sim();
     sim.patient.respiratoryPattern = 'apnea-inspiratory';
@@ -149,17 +169,27 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.tissueAgreement, itag).toBe(1);
   expect(insp.vol.interfaceAgreement, itag).toBe(1);
   expect(insp.vol.interfaceDistanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.vol.interfaceDistanceMaxErrCupola, itag).toBeLessThan(0.05);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
-  expect(insp.sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps', 'cardiacWindow', 'leftBorder', 'rightCurtain']);
+  expect(insp.sweep.map((r) => r.id)).toEqual([
+    'blueUpper',
+    'blueLower',
+    'plaps',
+    'cardiacWindow',
+    'leftBorder',
+    'supraclavicular',
+    'rightCurtain',
+  ]);
   // (decisión 22) medido con GPU real y con SwiftShader: 1 en los seis planos, en la respiración tranquila y con 53 mm; con la
   // GLSL en dos pasos de punto fijo la GPU real da 0,992 en el peor: ≥ 0,999 la ve (con 0,99 no la veía)
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
-  expect(insp.pleura.lines, itag).toBe(5 * 192);
+  expect(insp.pleura.lines, itag).toBe(6 * 192);
   expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
   expect(insp.pleura.registrationMismatch, itag).toBe(0);
-  expect(insp.pleura.depthMaxErrMm, itag).toBeLessThanOrEqual(insp.pleura.quantumMm + 1e-5);
+  for (const [id, q] of Object.entries(insp.pleura.depthQuantaByPose))
+    expect(q, `${id}: ${itag}`).toBeLessThanOrEqual((id === 'supraclavicular' ? 2 : 1) + 1e-3);
   expect(insp.pleura.edgeMaxErrMm, itag).toBeLessThan(0.1);
   expect(errors).toEqual([]);
 });

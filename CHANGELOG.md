@@ -7,6 +7,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El vértice (27): la cúpula pleural sobre la 1.ª costilla (la pared engruesa hasta cerrarse a 25 mm sobre el tercio medial de
+  la clavícula, Gray) y la clavícula subcutánea con su sombra (15,6 cm y 14 mm, Yang). La fosa supraclavicular ve la cúpula
+  con su pleura; el pulmón ya no sube hasta el tope del tronco. Metas A-T23 y A-T24. Cobertura de exploración: 62 → 68 de 138.
+
 - Cobertura de exploración (26): una prueba por celda del tórax (EIC 1.º–11.º de las líneas paraesternal, medioclavicular,
   axilares, escapular y paravertebral, por hemitórax; el vértice en todo el corte y la fosa supraclavicular) con lo que la base
   pone en cada una (pulmón con pleura, ventana cardiaca, escápula, o diafragma con el hígado o el bazo), y el indicador N/M en

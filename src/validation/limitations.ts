@@ -11,6 +11,8 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'left-handed-anatomy-frame',
   'thorax-cylindrical-cage',
   'rib-section-uniform',
+  'apex-cupola-wall',
+  'clavicle-section-uniform',
   'chest-wall-regional-approx',
   'wall-generic-layers',
   'heart-simplified',

@@ -45,6 +45,9 @@
 // 2026-10-01 (decisión 26): la cobertura de exploración (`app/coverage.ts`) solo la usa el informe técnico, que la importa al
 // pedirlo: chunk diferido de 6,2 kB, que cuenta en el total (809,5 kB). La entrada queda en 258,9 kB (con el chunk compartido
 // del contacto) frente a 263,8 si la cobertura entraba en ella. Los límites no cambian.
+// 2026-10-01 (decisión 27): la cúpula pleural (`anatomy/organs/lungApex.ts`) y la clavícula (en la parrilla), con sus
+// parámetros y su evidencia (≈ 4,5 kB de notas) y sus gemelos GLSL en cada programa, llevan la entrada de 258,9 a 266,2 kB y el
+// total de 812,1 a 818,3. La entrada sube a 270 kB y el total a 830.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -52,12 +55,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 260 * KB],
+  [/index-.*\.js$/, 270 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 260 * KB;
-const TOTAL_JS_BUDGET = 820 * KB;
+const INITIAL_JS_BUDGET = 270 * KB;
+const TOTAL_JS_BUDGET = 830 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

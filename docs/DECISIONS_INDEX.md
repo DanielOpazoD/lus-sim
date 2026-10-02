@@ -30,3 +30,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [24](DECISIONS.md#L1616) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
 | [25](DECISIONS.md#L1727) | Maniquí humano procedural y sonda convexa registrada | vigente |
 | [26](DECISIONS.md#L1756) | La cobertura de exploración: una prueba por celda del tórax | vigente |
+| [27](DECISIONS.md#L1828) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |

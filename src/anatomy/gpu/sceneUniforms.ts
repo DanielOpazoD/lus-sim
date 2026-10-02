@@ -64,6 +64,14 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     },
   },
   {
+    name: 'uCupola',
+    type: 'vec4',
+    doc:
+      'lus-sim (cobertura torácica): la cúpula pleural (organs/lungApex.ts; zApex y zTop por columna en la tabla de la pared): ' +
+      'la menor zApex (desde ella la pared puede pasar de su grosor máximo), 0, 0, 0',
+    value: (s) => [s.chestWall.apexMinZ, 0, 0, 0],
+  },
+  {
     name: 'uDomeR',
     type: 'vec4',
     doc: 'hemicúpula derecha: x0, y0, rx, ry',
@@ -105,6 +113,18 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
         [1e4, 1e4, -1, 1],
       );
     },
+  },
+  {
+    name: 'uClavicle',
+    type: 'vec4',
+    doc: 'lus-sim (cobertura torácica): la clavícula (organs/ribcage.ts): |u| del extremo esternal y del acromial, z del eje en el esternal, subida',
+    value: (s) => [s.ribCage.clavicle.u0, s.ribCage.clavicle.u1, s.ribCage.clavicle.z0, s.ribCage.clavicle.rise],
+  },
+  {
+    name: 'uClavicleR',
+    type: 'vec4',
+    doc: 'la clavícula: radio y profundidad del eje bajo la piel por la normal (mm), 0, 0',
+    value: (s) => [s.ribCage.clavicle.radius, s.ribCage.clavicle.depth, 0, 0],
   },
   {
     name: 'uRibParams',

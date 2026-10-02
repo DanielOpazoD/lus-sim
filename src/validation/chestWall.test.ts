@@ -307,11 +307,15 @@ describe('pared torácica por región (decisión 17)', () => {
       const p = defaultPatient();
       const w = new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } }).chestWall;
       let max = 0;
-      for (let uu = 0; uu <= 440; uu += 2) for (let z = -300; z <= 300; z += 5) max = Math.max(max, w.total(uu, z));
+      // por encima de la cúpula pleural más baja (cobertura torácica) la pared engruesa hasta cerrarse sobre el vértice: ahí la
+      // GLSL siempre lee la tabla (uCupola.x)
+      for (let uu = 0; uu <= 440; uu += 2) for (let z = -300; z <= w.apexMinZ; z += 5) max = Math.max(max, w.total(uu, z));
       expect(w.maxTotal, chest.build).toBeGreaterThanOrEqual(max);
       expect(w.maxTotal - max, chest.build).toBeLessThan(0.5);
     }
-    expect(ANATOMY_GLSL).toContain('float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);');
+    expect(ANATOMY_GLSL).toContain(
+      'float far = m.z > uCupola.x ? 1e4 : uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);',
+    );
     // la escena lee la pared con los gemelos TS de nombre GLSL, sobre la misma tabla float32 (que el GLSL da lo mismo lo
     // comprueba la e2e: volumen, cáscara y extremos de las costillas)
     for (const [uu, z] of [

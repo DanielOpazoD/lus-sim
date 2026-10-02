@@ -211,7 +211,8 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   // todo lo que sigue (la muestra no está en la pared, ni en la lámina, ni en la ZOA, ni en el tapón, y la distancia del
   // «resto» a la pared pasa de su tope)
   float d = -depth;
-  float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);
+  // lus-sim (cobertura torácica): por encima de la cúpula pleural más baja la pared puede pasar de su grosor máximo
+  float far = m.z > uCupola.x ? 1e4 : uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w);
   u = d < far ? wallArc(m) : 0.0;
   wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;
   vec4 wx = vec4(0.0);
@@ -220,7 +221,7 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   float skin = wl.x;
   tn = torsoNormal(m);
   // Capas de la pared (decisión 62, organs/wall.ts): cada muestra dibuja la cara de su capa más cercana
-  if (d < skin) { c.tissue = T_SKIN; c.bd = skin - d; c.n = tn; c.iface = IF_SKIN_FAT; c.ifd = skin - d; return true; }
+  if (d < skin) { c.tissue = T_SKIN; c.bd = min(skin - d, wallCupolaBd(u, m.z)); c.n = tn; c.iface = IF_SKIN_FAT; c.ifd = skin - d; return true; }
   // La parrilla costal (lus-sim, decisión 16, organs/ribcage.ts), antes de la grasa subcutánea donde puede llegar (la
   // grasa no la corta): el esternón y las costillas del lado de la muestra; el hueso más cercano da la cortical al tejido
   // blando de fuera, el cartílago su pericondrio
@@ -233,11 +234,20 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
     return true;
   }
   if (d < wall) {
+    // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, músculo sin caras
+    // (gemelo: classifyWall de AnatomyScene)
+    float cup = wallCupolaMm(u, m.z);
+    if (cup >= CUPOLA_CAP && d >= wall - cup) {
+      c.tissue = T_MUSCLE; c.bd = min(min(d - (wall - cup), ribAny / 1.1), wallCupolaBd(u, m.z)); c.n = tn;
+      return true;
+    }
     // debajo de la fascia, músculo hasta la transversalis y la grasa preperitoneal hasta el peritoneo
     vec4 wd = wallDepthsOf(u, m.z, wl, wx.z);
     c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);
     c.bd = d < wd.y ? min(d - skin, wd.y - d) : (d < wd.z ? min(d - wd.y, wd.z - d) : min(d - wd.z, wall - d));
     c.bd = min(c.bd, ribAny / 1.1);
+    // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (wallCupolaBd)
+    c.bd = min(c.bd, wallCupolaBd(u, m.z));
     c.n = tn;
     vec2 wf = wallFace(d, u, m.z, ribD);
     c.iface = int(wf.x + 0.5); c.ifd = wf.y;

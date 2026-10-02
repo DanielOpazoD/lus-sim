@@ -470,7 +470,7 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     // (más hondo que la pared más gruesa, la lámina de la cortina y el tope del «resto», la tabla no cambia nada: la
     // salida barata toma la cota)
     const arc = cls.indexOf(
-      'float far = uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w); u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
+      'float far = m.z > uCupola.x ? 1e4 : uChestWall.w + max(max(uCurtain.y, BOWEL_BD_CAP_MM + LB_ZOA_TLC + 1.0), uHeartC.w); u = d < far ? wallArc(m) : 0.0; wall = d < far ? wallTotalAt(u, m.z) : uChestWall.w;',
     );
     const layers = cls.indexOf('if (d < wall) wl = wallLayersAt(u, m.z, wx);');
     const ribs = cls.indexOf('int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);');

@@ -202,7 +202,8 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
   it('la pleura de A0: una «GPU» igual al gemelo acuerda en todas las líneas; 0,05 mm de desplazamiento no pasan', () => {
     const ok = pleuraEquivalence(fakeSim());
     // los tres puntos de partida y (lus-sim, decisión 18) la ventana cardiaca y el borde del pulmón en la LAM izquierda
-    expect(ok.lines).toBe((START_POINTS.length + 2) * CONVEX_C35.lines);
+    // los puntos de partida, la ventana cardiaca, el borde de la LAM izquierda y (cobertura torácica) la fosa supraclavicular
+    expect(ok.lines).toBe((START_POINTS.length + 3) * CONVEX_C35.lines);
     // la pleura parietal se registra en todas las líneas de los tres puntos de partida (el pulmón toca la pared); en la
     // ventana cardiaca, no en su centro
     expect(ok.cpuPleura).toBeGreaterThan(START_POINTS.length * CONVEX_C35.lines);
@@ -228,9 +229,15 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(deep.resp.diaphragmCaudalMm).toBe(53);
     const ok = fakeSim(undefined, 0, deep);
     const poses = inspirationSweepPoses(ok.scene);
-    expect(poses.map((p) => p.id)).toEqual(['cardiacWindow', 'leftBorder', 'rightCurtain']);
+    expect(poses.map((p) => p.id)).toEqual(['cardiacWindow', 'leftBorder', 'supraclavicular', 'rightCurtain']);
     const good = equivalenceSweep(ok, poses);
-    expect(good.map((r) => r.id)).toEqual([...START_POINTS.map((s) => s.id), 'cardiacWindow', 'leftBorder', 'rightCurtain']);
+    expect(good.map((r) => r.id)).toEqual([
+      ...START_POINTS.map((s) => s.id),
+      'cardiacWindow',
+      'leftBorder',
+      'supraclavicular',
+      'rightCurtain',
+    ]);
     for (const r of good) expect(r.interiorAgreement, r.id).toBe(1);
     // la «GPU» clasifica el punto de los dos pasos de punto fijo desde el mismo punto sin la compresión de la sonda
     const scene = ok.scene;
