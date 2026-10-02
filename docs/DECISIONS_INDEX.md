@@ -25,10 +25,10 @@ Generado por `npm run docs:index` — no editar a mano.
 | [19](DECISIONS.md#L1040) | Paso C4: el deslizamiento por región | vigente |
 | [20](DECISIONS.md#L1086) | La costilla apaga la pleura: lente de fase, lóbulos laterales por su apertura y el preajuste sin saturar (F-T08) | vigente |
 | [21](DECISIONS.md#L1201) | El banco de fidelidad: las mismas métricas para la pantalla del simulador y para los clips reales | vigente |
-| [22](DECISIONS.md#L1380) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
-| [23](DECISIONS.md#L1546) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |
-| [24](DECISIONS.md#L1616) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
-| [25](DECISIONS.md#L1732) | Maniquí humano procedural y sonda convexa registrada | vigente |
-| [26](DECISIONS.md#L1761) | La cobertura de exploración: una prueba por celda del tórax | vigente |
-| [27](DECISIONS.md#L1833) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
-| [28](DECISIONS.md#L1920) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
+| [22](DECISIONS.md#L1404) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
+| [23](DECISIONS.md#L1570) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |
+| [24](DECISIONS.md#L1640) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
+| [25](DECISIONS.md#L1756) | Maniquí humano procedural y sonda convexa registrada | vigente |
+| [26](DECISIONS.md#L1785) | La cobertura de exploración: una prueba por celda del tórax | vigente |
+| [27](DECISIONS.md#L1857) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
+| [28](DECISIONS.md#L1944) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |

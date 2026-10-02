@@ -1251,14 +1251,16 @@ línea A» desde la pleura. Para la geometría de cada clip: detectarla en cada 
   34 archivos: LUS-01–LUS-04 y los 24 convexos «regular según el dataset» de los sujetos pat1–4 de Born, LUS-35a–x, fuente 14
   de su CSV), con su licencia, su clave de `docs/REFERENCES.md`, su SHA-256, su **sujeto** (anonimizado: los clips de un sujeto
   no son independientes), su **geometría fijada** (tipo, ápice, bordes, arcos, fila de la piel en el borde o no, zonas
-  quemadas) y su control de calidad (apto; pleura, líneas A, sombra costal y tiempo fiables). La geometría la propone el
-  detector sobre el clip entero (su media y su σ temporal: `npm run fidelity:geometry`, que deja hojas de contacto fuera del
-  repositorio, con todo lo que está fuera del sector en negro) y la fija una persona: medir con la detectada cambiaba con la
-  ganancia en un abanico cortado por el marco. Cada clip se mide entero; **compuertas automáticas** (`dpl_spread`,
+  quemadas) y su control de calidad (apto y pleura, a ojo; líneas A, sombra costal y tiempo, las que el banco mide: la mediana
+  de los cuadros y las compuertas). La geometría la propone el detector sobre el clip entero (su media y su σ temporal:
+  `npm run fidelity:geometry`, que deja hojas de contacto fuera del repositorio, con todo lo que está fuera del sector en
+  negro) y la fija una persona: medir con la detectada cambiaba con la ganancia en un abanico cortado por el marco. Cada clip se mide entero; **compuertas automáticas** (`dpl_spread`,
   `few_intercostal`, `floor_above_deep`, `bimodal_crests`, `repeated_frames`) y un clip apto que dispare una que su control de
   calidad no admite hace fallar la prueba. `docs/reference-bank/reference-stats.json` lleva solo números derivados: por clip,
   cuantiles sobre sus cuadros; por estrato de sonda, la distribución de la mediana de cada clip apto **entre clips y entre
-  sujetos**, con cuántos hay de cada uno. Con menos de 3 clips o 2 sujetos el estrato se informa sin situar al simulador.
+  sujetos**, con cuántos hay de cada uno. Un clip entra en una métrica si la mide en al menos la mitad de sus cuadros (la
+  mediana de los pocos cuadros en que asoma una línea A de orden 3 no es el valor del clip). Con menos de 3 clips o 2
+  sujetos el estrato se informa sin situar al simulador.
   `npm run fidelity:compare` da la tabla.
 
 **Consecuencias.**
@@ -1304,42 +1306,64 @@ línea A» desde la pleura. Para la geometría de cada clip: detectarla en cada 
   pleura en el blanco desde −15 dB (5 % de sus columnas; 44 % a −12 dB) y con ella M, N4, P1 y A2; el campo profundo, siempre
   (M del campo profundo es una cota inferior en todo el barrido). N1–N3 dependen de la ganancia (N1 0,068–0,201 entre −30 y
   −12 dB) y salen censuradas en todas.
-- **Referencia** (`npm run fidelity:ref`, los 34 clips enteros, 8 277 cuadros, en 3–4 min): aptos 18 —16 convexos de 6 sujetos
-  (LUS-01, LUS-04b, 04f, 04g y 12 de LUS-35), LUS-02 sectorial y LUS-03 lineal—; no aptos 16: los cuatro recortes LUS-04a y
-  LUS-04c–e, sin pleura identificable; LUS-35a y 35b (pat1) no son pulmón limpio; 35h, 35j (pat2) y 35v (pat4) traen el
-  diafragma y el hígado; y 35c–e, 35l, 35m, 35p y 35t, con la pleura que salta entre cuadros o sin forma de pulmón (control de
-  calidad del manifiesto: la pleura revisada a ojo por el agente en las hojas de contacto, lo demás por el detector y las
-  compuertas; pendiente de revisión humana). Con líneas A, 10 convexos de 5 sujetos; con una sombra costal limpia, 2 (35i y
-  35k, del mismo sujeto). El detector se aparta de la geometría fijada ≤ 4,3 px y ≤ 0,9° en los aptos salvo LUS-01 (el abanico sale del
-  cuadro: lo propone lineal) y LUS-35r (borde derecho oscuro), y en 35e, 35h, 35j, 35l, 35p y 35v toma un borde oscuro (hasta
-  38°): por eso se fija.
-- **El simulador frente a la referencia** (respiración tranquila, geometría verdadera; ↓ bajo el p10 y ↑ sobre el p90 del
-  estrato convexo; entre paréntesis, clips/sujetos; una cota no se marca, ni un estrato de menos de 3 clips o 2 sujetos):
+- **Referencia** (`npm run fidelity:ref`, los 34 clips enteros, 8 277 cuadros, en 3–4 min): aptos 19 —17 convexos de 6 sujetos
+  (LUS-01, LUS-04b, 04f, 04g y 13 de LUS-35), LUS-02 sectorial y LUS-03 lineal—; no aptos 15: los cuatro recortes LUS-04a y
+  LUS-04c–e, sin pleura identificable; LUS-35a y 35b (pat1) no son pulmón limpio; 35t (pat4) trae el diafragma o el hígado y
+  su pleura salta entre cuadros; 35h y 35j (pat2), una línea oblicua brillante honda (compatible con el diafragma, sin
+  confirmar el órgano) y la compuerta `dpl_spread` (dispersión de d_pl 0,43 y 0,25), que por sí sola los deja fuera; y 35c–e,
+  35l, 35m y 35p, con la pleura que salta entre cuadros o sin forma de pulmón. La geometría y el control de calidad los revisó
+  el agente coordinador en las hojas de contacto el 27-09-2026 (falta la revisión de un ecografista); corrigió 35v, que es
+  pulmón normal limpio y no trae diafragma: es apto (ninguna compuerta salta). Con líneas A que el banco mide, 9 convexos de
+  5 sujetos (35i sale: con los fondos en la mediana, su línea A de orden 2 se ve en 17 de 59 cuadros); con una sombra costal
+  limpia, 2 (35i y 35k, del mismo sujeto). El detector se aparta de la geometría fijada ≤ 4,3 px y ≤ 0,9° en los aptos salvo
+  LUS-01 (el abanico sale del cuadro: lo propone lineal), LUS-35r y LUS-35v (16,6° y 14,8° en el borde derecho: la sombra de
+  una costilla junto al borde parece el borde del abanico), y en 35e, 35h, 35j, 35l y 35p toma un borde oscuro (hasta 38°):
+  por eso se fija.
+- **Lo que el detector de líneas A no ve (LUS-35v).** El coordinador lo señala como probablemente el mejor clip de líneas A del
+  banco, y el perfil por filas del cuadro medio le da la razón: máximos en 39, 77, 117, 153 y 188 px, k veces la pleura desde
+  la cara. Pero el detector encuentra la línea A de orden 2 en 5 de sus 54 cuadros analizados: el perfil cae de 146 a 51
+  grises entre la pleura y 5 d_pl, y el máximo de cada ventana queda en su borde (`found` falso). Así que en el manifiesto
+  `a_lines` queda en false (no hay qué medir) y su sombra costal también (la hay, en el borde derecho, pero su cresta cae en
+  el inicio de la búsqueda, la fila 18: P1 y P4 medirían el borde de la ventana); entra con la pleura, T1, T2 y S1. Buscar
+  los picos sobre el perfil sin su tendencia es una corrección del detector que cambia todos los clips y el simulador: queda
+  para una decisión aparte.
+- **La partición de C3b-A (decisión 24).** Fijaba los SHA-256 del manifiesto y de las estadísticas: esta corrección los cambia
+  y lo registra en `docs/reference-bank/calibration-split.json` (`revisions`, con los anteriores). LUS-35v entra en comprobación
+  con los demás clips de born-pat4; la partición por sujetos no cambia. En exploración, M, A1 y T1 quedan iguales; A2 r₂ pasa
+  de 3 clips y 2 sujetos a 2 y 2 (p10–p90 entre sujetos 0,119–0,160 → 0,129–0,248) y A2 visibles de 4 y 3 (0,6–1) a 3 y 3
+  (1–1): los dos perdían el valor de LUS-35i, medido en 17 de 59 cuadros. Los ajustes de C3b-A se eligieron con la versión
+  anterior.
+- **El simulador frente a la referencia** (respiración tranquila, geometría verdadera, GPU real; ↓ bajo el p10 y ↑ sobre el
+  p90 del estrato convexo entre clips; entre paréntesis, clips/sujetos; una cota no se marca, ni un estrato de menos de 3 clips
+  o 2 sujetos). El simulador, medido el 02-10-2026 sobre main 0fab474: el preajuste de la decisión 24 (K = 54 dB, R_t = 0,3,
+  ganancia −20 dB, 70 dB de rango) y el tronco de la decisión 28 (antes, sobre 9f9fd9f, las mismas marcas salvo T1 lateral
+  del PLAPS, ahora ↓, y T2 bajo la pleura del BLUE superior, ahora ↑):
 
-  | Métrica                  | Convexa p10–p90 [mediana] (clips/sujetos) | Lineal (LUS-03) | Sectorial (LUS-02) | Simulador: BLUE sup. / BLUE inf. / PLAPS            |
-  | ------------------------ | ----------------------------------------- | --------------- | ------------------ | --------------------------------------------------- |
-  | M pared                  | 0,75–1,53 [1,11] (9/4)                    | —               | 1,55               | 1,89 ↑ / 1,59 ↑ / 1,85 ↑                            |
-  | M neblina subpleural     | 0,92–1,36 [1,04] (9/4)                    | —               | 1,10               | 2,04 ↑ / 1,79 ↑ / 1,99 ↑                            |
-  | M campo profundo         | 1,49–2,75 [2,01] (9/4)                    | —               | 2,04               | ≥ 2,19 / ≥ 1,97 / ≥ 2,12                            |
-  | N4 cociente de brechas   | 1,75–6,75 [3,06] (9/4)                    | —               | 3,66               | 2,58 · / 2,76 (cens.) / 2,82 ·                      |
-  | P1 brillo de la pleura   | 2,99–5,05 [4,02] (2/1)                    | 1,36            | —                  | 1,10 / 1,20 / 1,20                                  |
-  | P2 grosor pleural (d_pl) | — (todos al límite del muestreo)          | 0,046           | —                  | 0,076 / 0,091 / 0,085 (resolución)                  |
-  | P4 (d_pl)                | 0,35–0,38 [0,36] (2/1)                    | 0,36            | —                  | 0,37 / 0,34 / 0,31                                  |
-  | A1 (desfase)             | 0,10–0,23 [0,19] (9/4)                    | —               | 0,11               | 0,007 ↓ / 0,013 ↓ / 0,011 ↓                         |
-  | A2 r₂                    | 0,11–0,30 [0,22] (9/4)                    | —               | 0,51               | 0,56 ↑ / 0,49 ↑ / 0,53 ↑                            |
-  | A2 r₃                    | 0,01–0,12 [0,07] (10/5)                   | —               | 0,52               | 0,23 / 0,23 / 0,24 (cens.)                          |
-  | A2 líneas A visibles     | 0,9–1 [1] (10/5)                          | —               | 3                  | 2 ↑ / 2 ↑ / 2 ↑                                     |
-  | T1 grano axial (d_pl)    | — (todos al límite del muestreo)          | 0,017           | —                  | 0,050 / 0,056 / 0,053 (las dos últimas, resolución) |
-  | T1 grano lateral (d_pl)  | 0,070–0,18 [0,096] (16/6)                 | 0,035           | —                  | 0,063 ↓ / 0,079 · / 0,079 ·                         |
-  | T1 σ/prominencia pleural | 0,11–0,31 [0,19] (16/6)                   | 0,092           | 0,066              | 0,039 ↓ / 0,042 ↓ / 0,035 ↓                         |
-  | T2 pared                 | 0,971–0,993 [0,984] (15/6)                | —               | 0,995              | 1,000 ↑ / 1,000 ↑ / 1,000 ↑                         |
-  | T2 bajo la pleura        | 0,959–0,994 [0,984] (15/6)                | —               | 0,930              | 0,998 (cens.) / 0,997 (cens.) / 0,990 ·             |
-  | S1                       | 0,76–1,68 [1,18] (15/6)                   | —               | 2,14               | ≥ 12,3 / ≥ 11,3 / ≥ 16,0                            |
-  | S1 decorrelación (s)     | 0,41–1,01 [0,58] (15/6)                   | —               | 0,047              | 0,20 ↓ / 0,19 ↓ / 0,15 ↓                            |
+  | Métrica                  | Convexa p10–p90 [mediana] (clips/sujetos)                     | Lineal (LUS-03) | Sectorial (LUS-02) | Simulador: BLUE sup. / BLUE inf. / PLAPS        |
+  | ------------------------ | ------------------------------------------------------------- | --------------- | ------------------ | ----------------------------------------------- |
+  | M pared                  | 0,75–1,57 [1,02] (8/4)                                        | —               | 1,55               | 1,91 ↑ / 1,57 ↑ / 1,81 ↑                        |
+  | M neblina subpleural     | 0,91–1,42 [1,09] (8/4)                                        | —               | 1,10               | 2,07 ↑ / 1,80 ↑ / 1,98 ↑                        |
+  | M campo profundo         | 1,48–2,94 [1,87] (8/4)                                        | —               | 2,04               | ≥ 2,22 / ≥ 1,99 / ≥ 2,14                        |
+  | N4 cociente de brechas   | — (ningún clip ve la A de orden 3 en la mitad de sus cuadros) | —               | 3,66               | 2,59 / 2,65 (cens.) / 2,64                      |
+  | P1 brillo de la pleura   | 2,99–5,05 [4,02] (2/1)                                        | 1,36            | —                  | 1,12 / 1,20 / 1,18                              |
+  | P2 grosor pleural (d_pl) | — (todos al límite del muestreo)                              | 0,046           | —                  | 0,074 / 0,091 (resolución) / 0,074 (resolución) |
+  | P4 (d_pl)                | 0,35–0,38 [0,36] (2/1)                                        | 0,36            | —                  | 0,37 / 0,34 / 0,36                              |
+  | A1 (desfase)             | 0,10–0,21 [0,18] (8/4)                                        | —               | 0,11               | 0,007 ↓ / 0,013 ↓ / 0,010 ↓                     |
+  | A2 r₂                    | 0,14–0,32 [0,23] (8/4)                                        | —               | 0,51               | 0,56 ↑ / 0,50 ↑ / 0,54 ↑                        |
+  | A2 r₃                    | — (como N4)                                                   | —               | 0,52               | 0,25 / 0,22 / 0,24 (cens.)                      |
+  | A2 líneas A visibles     | 1–1 [1] (9/5)                                                 | —               | 3                  | 2 ↑ / 2 ↑ / 2 ↑                                 |
+  | T1 grano axial (d_pl)    | — (todos al límite del muestreo)                              | 0,017           | —                  | 0,043 / 0,054 (resolución) / 0,050              |
+  | T1 grano lateral (d_pl)  | 0,070–0,17 [0,092] (17/6)                                     | 0,035           | —                  | 0,063 ↓ / 0,078 · / 0,062 ↓                     |
+  | T1 σ/prominencia pleural | 0,11–0,31 [0,19] (17/6)                                       | 0,092           | 0,066              | 0,036 ↓ / 0,042 ↓ / 0,036 ↓                     |
+  | T2 pared                 | 0,972–0,994 [0,984] (16/6)                                    | —               | 0,995              | 1,000 ↑ / 1,000 ↑ / 1,000 ↑                     |
+  | T2 bajo la pleura        | 0,960–0,993 [0,985] (16/6)                                    | —               | 0,930              | 0,997 ↑ / 0,994 (cens.) / 0,987 ·               |
+  | S1                       | 0,76–1,68 [1,08] (16/6)                                       | —               | 2,14               | ≥ 12,8 / ≥ 13,9 / ≥ 15,9                        |
+  | S1 decorrelación (s)     | 0,42–1,08 [0,58] (16/6)                                       | —               | 0,047              | 0,21 ↓ / 0,17 ↓ / 0,17 ↓                        |
 
   Lo que dice, sin afirmarlo (es la entrada del ciclo 3b): en la presentación, la pared y la neblina del simulador quedan más
-  lejos de la pleura, en caídas de línea A, que en los clips convexos (M 1,6–2,0 frente a 1,0–1,1), y el campo profundo, en el
-  negro; las líneas A decaen más despacio en gris (r₂ 0,5 frente a 0,22) y se ven dos (en los clips, una); el moteado de la
+  lejos de la pleura, en caídas de línea A, que en los clips convexos (M 1,6–2,1 frente a medianas de 1,0–1,1), y el campo
+  profundo, en el negro; las líneas A decaen más despacio en gris (r₂ 0,5 frente a 0,23) y se ven dos (en los clips, una; y
+  ninguno ve la de orden 3 en la mitad de sus cuadros: N4 y r₃ no tienen distribución); el moteado de la
   pared es más tenue frente a la pleura (T1) y la pared, quieta (T2, S1). **M mezcla el nivel con la reverberación**: su
   unidad, la caída pleura → línea A, es física (R_p·χ·R_t·T(D), decisión 20) y en el simulador no es la de los clips (r₂), así
   que una M más alta puede ser una pared más oscura o una línea A más brillante; se lee con A2 al lado. Y es invariante a lo
@@ -1374,8 +1398,8 @@ cuadro, se fija y se miden los dos contrastes con el cambio solo dentro del sect
 (`src/validation/fidelityReference.test.ts`: licencias abiertas, `in_repo` false, sujetos, geometría fijada, control de
 calidad, compuertas, estratos entre clips y sujetos, la comparación con cotas y estratos pequeños; cada regla con su defecto);
 `src/validation/fidelityReferenceBank.test.ts` (dorada) vuelve a medir el banco real y exige las estadísticas del repositorio
-(se salta sin la carpeta o sin ffmpeg). Pendiente: la revisión humana de las hojas de contacto y del control de calidad, y la
-revisión adversarial de contexto limpio.
+(se salta sin la carpeta o sin ffmpeg). Las hojas de contacto y el control de calidad los revisó el agente coordinador el
+27-09-2026; falta la revisión de un ecografista y la segunda revisión adversarial de contexto limpio.
 
 ## 22. El campo respiratorio invertible por construcción y la excursión de la base (A-T13)
 
