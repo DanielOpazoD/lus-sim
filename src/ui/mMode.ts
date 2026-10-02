@@ -136,6 +136,24 @@ export class MModeView {
     this.host.classList.toggle('mmode-selecting', value);
     this.host.setAttribute('aria-label', value ? 'Selecciona una línea dentro del sector. Escape cancela.' : this.normalLabel);
     if (value) this.host.focus({ preventScroll: true });
+    // el estado dice la acción en el acto, no en el cuadro siguiente: con SwiftShader cargado un cuadro tarda segundos
+    // (decisión 29: la e2e del modo M móvil esperaba 15 s el texto y el cuadro no llegaba)
+    if (this.enabled) this.syncStatus();
+  }
+
+  /** El texto del estado del modo M con lo de ahora (lo pinta también cada cuadro, `draw`). */
+  private syncStatus(): void {
+    const sim = this.getSim();
+    const ring = sim.renderer.mStrip;
+    const t = sim.displayedAcquisition.sample.t;
+    const lost = this.lost;
+    const valid = !lost && ring.count > 1 && t >= ring.time(0) && t <= ring.time(ring.count - 1);
+    let message = 'Mantén la sonda quieta para registrar la franja.';
+    if (lost) message = 'GPU no disponible. La recuperación iniciará otra franja.';
+    else if (this.placing) message = 'Toca el sector para colocar la línea; Escape cancela.';
+    else if (sim.frozen) message = valid ? 'Imagen congelada. Revisa B y M con el cine.' : 'Sin datos M para este cuadro del cine.';
+    else if (valid) message = 'M a la cadencia de B. Congela para revisar con el cine.';
+    if (this.status.textContent !== message) this.status.textContent = message;
   }
 
   private clear(): void {
@@ -190,12 +208,7 @@ export class MModeView {
       ctx.stroke();
       ctx.restore();
     }
-    let message = 'Mantén la sonda quieta para registrar la franja.';
-    if (lost) message = 'GPU no disponible. La recuperación iniciará otra franja.';
-    else if (this.placing) message = 'Toca el sector para colocar la línea; Escape cancela.';
-    else if (sim.frozen) message = valid ? 'Imagen congelada. Revisa B y M con el cine.' : 'Sin datos M para este cuadro del cine.';
-    else if (valid) message = 'M a la cadencia de B. Congela para revisar con el cine.';
-    if (this.status.textContent !== message) this.status.textContent = message;
+    this.syncStatus();
     this.pane.dataset.columns = String(ring.count);
     this.pane.dataset.time = String(t);
     this.pane.dataset.available = String(valid);

@@ -2236,4 +2236,8 @@ los ganchos se descargó en 9 ms un segundo después de abrir la página, pero l
 más probable es la compilación síncrona de programas en SwiftShader tras el primer cuadro (las pasadas que se compilan al usarse
 y el navegador 3D), que con la máquina cargada pasa del minuto; esta decisión agranda el GLSL de la anatomía (la escápula y las
 espinosas). Queda por medir el tiempo de compilación por programa (o compilar en paralelo con `KHR_parallel_shader_compile`) antes
-de tocar los plazos. La carga de los ganchos informa ahora si falla (`app/devtools.ts`).
+de tocar los plazos. La carga de los ganchos informa ahora si falla (`app/devtools.ts`). En el CI falló `mmode.spec.ts:90` (M móvil; también en main
+`0fab474` y en la #36): en su traza, el clic en «Colocar línea» tardó 9,8 s en despacharse (el hilo principal, ocupado: un
+cuadro de SwiftShader en la pantalla móvil con el modo M) y el texto del estado, que solo se escribía al dibujar el cuadro
+siguiente, no cambió en los 15 s de la prueba. El estado del modo M se escribe ahora en el acto al colocar o cancelar la línea
+(`ui/mMode.ts`, `syncStatus`): el texto ya no depende de cuántos cuadros por segundo dibuje la máquina.

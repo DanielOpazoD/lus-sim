@@ -131,6 +131,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
+  pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
 - El tronco con la profundidad del tórax (28): 320 × 226 mm de piel (ANSUR II, varones de IMC 18,5–25; en VExUS, 320 × 210), la
   columna atada a la piel de la espalda y la pared junto a la columna de 28 mm (Folli, Okçu; antes ≈ 21 en la paravertebral). La
   caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la
