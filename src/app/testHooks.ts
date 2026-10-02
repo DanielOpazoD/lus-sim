@@ -35,6 +35,13 @@ import { COARSE_DEPTH, displayLevelDb, type CompoundState } from '../ultrasound/
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { speckleStats, type SpeckleOptions, type SpeckleStats } from './speckle';
 import { fidelityBench, type FidelityBenchOptions, type FidelityBenchReport } from './fidelityBench';
+import {
+  lungPulseEquivalence,
+  lungPulseMMode,
+  type LungPulseEquivalence,
+  type LungPulseOptions,
+  type LungPulseReport,
+} from './lungPulseBench';
 import type { RenderMeasureOptions, Simulator } from './simulator';
 import { START_POINTS, type StartPoint } from './startPoints';
 
@@ -88,6 +95,13 @@ export interface TestHooks {
    * `FidelityBenchReport`.
    */
   fidelity: (opts: FidelityBenchOptions) => FidelityBenchReport;
+  /**
+   * Pulso pulmonar (lus-sim, decisión 32): el modo M de la línea central en `site` con la respiración `respiration`, a
+   * intervalos fijos del reloj, medido en la banda bajo la pleura (S3 y F-T11). Ver `LungPulseReport`.
+   */
+  lungPulse: (opts: LungPulseOptions) => LungPulseReport;
+  /** Gemelo TS ↔ GLSL del pulso pulmonar en el pulmón junto al corazón, en la telesístole. */
+  lungPulseEquivalence: () => LungPulseEquivalence;
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -319,6 +333,8 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: gain } });
       }
     },
+    lungPulse: (opts) => withCompound(getSim(), dispatch, false, () => lungPulseMMode(getSim(), opts)),
+    lungPulseEquivalence: () => lungPulseEquivalence(getSim()),
     wallNormals: (opts) => {
       const sim = getSim();
       goTo(sim, opts.startPoint);

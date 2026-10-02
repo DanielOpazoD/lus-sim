@@ -2,6 +2,7 @@ import type { ParameterSet } from '../core/evidence';
 import { START_POINT_POSES } from '../app/startPoints';
 import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
+import { LUNG_PULSE } from '../anatomy/organs/lungPulse';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { CLAVICLE, RIBCAGE, SCAPULA } from '../anatomy/organs/ribcage';
 import { SPINE } from '../anatomy/organs/spine';
@@ -36,6 +37,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   LUNG_BORDER,
   LUNG_SLIDING,
   HEART,
+  LUNG_PULSE,
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,

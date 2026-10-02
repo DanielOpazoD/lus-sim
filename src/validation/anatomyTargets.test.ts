@@ -23,8 +23,8 @@ import { wallArc, wallPerimeter } from '../anatomy/organs/wall';
 import { defaultPatient, type ChestHabitus, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { PhysiologyEngine } from '../physiology/engine';
-import { AnatomyQuery } from '../anatomy/query';
-import { HEART } from '../anatomy/organs/heart';
+import { HEART, heartSd } from '../anatomy/organs/heart';
+import { LUNG_PULSE, lungPulseInverse } from '../anatomy/organs/lungPulse';
 import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
 import { AXIAL_SIGMA_MM } from '../ultrasound/beamModel';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
@@ -965,29 +965,42 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     expect(check(90, 5, 1).tissue).toBe(Tissue.Lung);
   });
 
-  notYetMet(
-    'A-T16: en apnea, el pulmón junto a la ventana muestra el pulso pulmonar (hoy nada se mueve con el latido: `heart-simplified`)',
-    () => {
-      // el pulmón bajo la pleura, 5 mm por fuera del borde craneal de la ventana: su punto material a lo largo de dos latidos
-      // en apnea espiratoria (el pulso pulmonar lo movería con el corazón)
-      const t = scene.torso;
-      const w = scene.heart.window;
-      const phi = Math.acos(HEART.params.windowOffsetMm.value / t.a);
-      const z = w.z + w.r + 5;
-      const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
-      expect(scene.classify(p, BASELINE_INSTANT).tissue).toBe(Tissue.Lung);
-      const engine = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory' });
-      const q = new AnatomyQuery(scene);
-      const m0 = q.deformation.toMaterial(p, engine.sample.resp);
-      let moved = 0;
-      for (let i = 0; i < Math.round(2 / engine.clock.dt); i++) {
-        const s = engine.step();
-        const m = q.deformation.toMaterial(p, s.resp);
-        moved = Math.max(moved, Math.hypot(m[0] - m0[0], m[1] - m0[1], m[2] - m0[2]));
-      }
-      expect(moved).toBeGreaterThan(0.1);
-    },
-  );
+  it('A-T16: en apnea, el pulmón junto a la ventana muestra el pulso pulmonar (decisión 32): se desliza con el latido, a la FC', () => {
+    // el pulmón bajo la pleura, 5 mm por fuera del borde craneal de la ventana: el punto del pulmón (antes del latido) que está
+    // ahí, a lo largo de cuatro latidos en apnea espiratoria; el reloj único da el latido (`cardiacEjection`)
+    const t = scene.torso;
+    const w = scene.heart.window;
+    const phi = Math.acos(HEART.params.windowOffsetMm.value / t.a);
+    const z = w.z + w.r + 5;
+    const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
+    expect(scene.classify(p, BASELINE_INSTANT).tissue).toBe(Tissue.Lung);
+    const engine = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory' });
+    const lung = (s: { cardiacEjection: number }) => lungPulseInverse(scene.heart, t, p, s.cardiacEjection);
+    const series: { t: number; d: number; beat: number }[] = [];
+    for (let i = 0; i < Math.round(4 / engine.clock.dt); i++) {
+      const s = engine.step();
+      const x = lung(s);
+      series.push({ t: s.t, d: Math.hypot(x[0] - p[0], x[1] - p[1], x[2] - p[2]), beat: s.beatIndex });
+    }
+    // la parte tangente del campo del latido junto a la cara anterior (el ventrículo derecho, casi paralela a la pared): ≈ 0,9
+    // mm, más que el ruido de la medida en apnea de Costamagna (1,2 ± 0,6 mm, sin el latido filtrado)
+    const peak = Math.max(...series.map((s) => s.d));
+    expect(peak).toBeGreaterThan(0.5);
+    expect(peak).toBeLessThan(LUNG_PULSE.params.rightVentricleMm.value);
+    // hacia el corazón: en la telesístole, el pulmón que ahora está en p venía de más lejos del corazón
+    const x = lungPulseInverse(scene.heart, t, p, 1);
+    expect(heartSd(scene.heart, x)).toBeGreaterThan(heartSd(scene.heart, p));
+    // una vez por latido: en cada latido completo un máximo y vuelta a 0 (la telediástole, el corazón lleno)
+    const beats = [...new Set(series.map((s) => s.beat))].slice(1, -1);
+    expect(beats.length).toBeGreaterThanOrEqual(3);
+    for (const b of beats) {
+      const inBeat = series.filter((s) => s.beat === b);
+      expect(Math.max(...inBeat.map((s) => s.d))).toBeCloseTo(peak, 1);
+      expect(Math.min(...inBeat.map((s) => s.d))).toBe(0);
+    }
+    // y la respiración no lo mueve: en apnea nada más cambia
+    expect(engine.sample.resp.diaphragmCaudalMm).toBe(0);
+  });
 });
 
 describe('F-T12: deslizamiento por región (paso C4, decisión 19)', () => {

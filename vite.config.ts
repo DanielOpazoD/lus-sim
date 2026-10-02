@@ -76,6 +76,7 @@ export default defineConfig({
         'src/app/devtools.ts',
         'src/app/testHooks.ts', // ganchos de la e2e (la ejecuta Playwright)
         'src/app/fidelityBench.ts', // el banco de fidelidad del simulador, un gancho de la e2e (decisión 21)
+        'src/app/lungPulseBench.ts', // el pulso pulmonar en el modo M y su gemelo GLSL, un gancho de la e2e (decisión 32)
         'src/app/session.ts', // construye el Simulator sobre un canvas WebGL: lo cubre la e2e (como en VExUS)
       ],
       reporter: ['text-summary', 'html', 'json-summary'],

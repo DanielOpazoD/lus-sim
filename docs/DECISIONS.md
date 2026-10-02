@@ -2460,3 +2460,109 @@ correcciones, confirmó B1 (sin líneas A, de 3–79 % de perfiles con una «vis
 16 × 8 de Rayleigh dan 4,2–5,1 dB y asimetría 1,56–1,66 (la región de la pared del BLUE superior y del PLAPS, 8,0–9,2 y 0,94–1,30, no lo es) y que
 `reference-stats.json` se reproduce exacto; y halló lo que queda dicho arriba (umbral efectivo, persistencia ligera, mapas
 fuera de la familia, campo profundo, grano truncado). Su resumen, en la PR.
+
+## 32. El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16)
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** La meta A-T16 pedía, en apnea, el pulso pulmonar junto a la ventana cardiaca (`notYetMet`: «hoy nada se mueve
+con el latido», `heart-simplified`). Es un signo clínico (en ese punto descarta el neumotórax; Lichtenstein 2003, D11) y la base
+de la sinusoide del derrame. La base decía NO ENCONTRADO para su amplitud (`docs/knowledge/physics.md` D12). Una búsqueda nueva
+(PubMed, Europe PMC con texto completo; las cadenas en el Anexo A de `physics.md`), con cada cifra leída en el texto completo
+(los artículos, fuera del repo):
+
+- **Ecografía: solo cotas.** Ninguna amplitud del pulso pulmonar aislada del ruido. En apnea espiratoria, el movimiento
+  lateral máximo de la línea pleural en el plano de la imagen es de 1,2 ± 0,6 mm (Costamagna 2026, 7 varones sanos, 12
+  campos, sin filtrar el latido; los autores lo atribuyen en parte al pulso), y de pico a valle 0,78–4,32 mm por zona, la
+  izquierda mayor (Fung 2025, un voluntario: lateral superior 4,32 frente a 0,78; anterior inferior 3,83 frente a 2,67).
+- **El pulmón junto al corazón, sí** (D12a–D12b). El borde mediastino–pulmón barre, entre las fases del 10 al 90 % del RR y
+  perpendicular a la pared del corazón, 6,98 ± 1,99 mm (parte alta) y 7,76 ± 3,26 (baja) junto a la pared libre del
+  ventrículo izquierdo y 2,70 ± 1,00 junto al derecho (Hsu 2017, TAC coronaria, 38 adultos, Tabla 2). Por RM con sincronía ECG
+  en apnea (White 2014, 10 sanos): máximo 17,6 mm en el pulmón junto al borde corazón–pulmón; el 84,5 % del tejido imagenado
+  se mueve menos de 1 mm y lo que pasa de 1 mm está «casi exclusivamente» junto al corazón, con una caída rápida fuera de esa
+  zona (sin la curva de distancia); el máximo, en la telesístole.
+- **Tumores** (D12c). Media 1,0 mm (0,2–2,6), mayor en el pulmón izquierdo (1,20 ± 0,68 frente a 0,65 ± 0,45), sin relación
+  con la distancia al corazón (Chen 2014, fluoroscopia, 23 pacientes); 1–4 mm, mayor en la lateral, cerca del corazón
+  (Seppenwoolde 2002, solo el resumen).
+
+**Opciones.** (a) Meter el latido en el campo respiratorio de la decisión 22: ese campo es 0 en la pared y sube en 25 mm (el
+pulmón bajo la pleura no lo usa: lo mueve el deslizamiento de la decisión 19, que ancla la arena del pulmón), es vertical y su
+inversa es una bisección en la vertical; un latido que se vea en la pleura necesitaría un campo distinto de 0 justo bajo ella,
+oblicuo, que la bisección no invierte. (b) Un campo del pulmón propio, como el deslizamiento: lo que se mueve en la imagen es la
+arena bajo la pleura, anclada al pulmón. (c) Pintar una oscilación en el modo M: prohibido (guía §5). Elegida (b), con las
+mismas garantías que la decisión 22 (invertible por construcción, inversa de error acotado y propiedades fast-check).
+
+**Decisión.**
+
+- **El latido del reloj único** (`src/physiology/ventricle.ts`, `PhysiologySample.cardiacEjection`): la fracción del volumen
+  latido expulsada, 0 en la R y 1 en la telesístole (donde White mide el máximo), con dos cosenos alzados atados a los eventos
+  mecánicos del latido de VExUS (sube hasta la onda v con su punto medio junto al descenso x; baja en el llenado rápido con el
+  punto medio en el descenso y). Sin números propios; la diástasis y la contracción auricular no cambian el volumen [SUPUESTO].
+- **El campo** (`src/anatomy/organs/lungPulse.ts`, TS y GLSL en el registro de órganos tras el corazón):
+  u = −A·e(t)·g(d)·n̂c. El pulmón sigue a la cara del corazón, que en la sístole se retira por su normal n̂c (la del elipsoide
+  en el punto: la dirección en que Hsu mide el borde). A es la del ventrículo izquierdo (`leftVentricleMm`, 7,37 mm: la media
+  de las dos zonas de Hsu; derivado, rango 4,99–11,02, la media ± una DE) en las caras de los lados y de detrás, y la del
+  derecho (`rightVentricleMm`, 2,70 mm, documentado, ± una DE) en la anterior, la de la ventana, mezcladas con la componente
+  anterior de n̂c [SUPUESTO: la mezcla]. g = 1 − smoothstep(0, `reachMm`, d), con d la distancia a la cara del elipsoide y
+  `reachMm` 40 mm (estimado, 25–60: los 7,4 mm bajan a 1 mm a ≈ 30 mm, la «caída rápida» de White). De él solo se desliza la
+  parte tangente a la pared, v = (I − n̂n̂ᵀ)u: sin derrame, la pleura visceral no se separa de la parietal y lo normal lo
+  absorbe el aire del pulmón. Por eso donde la cara del corazón es paralela a la pared (la ventana, el ápex de frente) se
+  desliza poco, y en el borde del corazón, donde su cara está oblicua, más. Lo que el borde se desliza a lo largo de la cara del
+  corazón (no medido) no entra.
+- **Invertible por construcción.** v es contractivo: |∇v| ≤ `LUNG_PULSE_INVERSE.lipschitz` = 0,8 con las mayores amplitudes
+  del rango (11,02 y 3,70 mm), comprobado con fast-check en las seis variantes del tórax en el pulmón de la banda subpleural
+  (0–10 mm bajo la pleura; la GLSL lo evalúa solo en la pleura de cada línea) al alcance del corazón (medido con la norma de
+  Frobenius en una rejilla: 0,75, en el pulmón pegado a la cara del corazón; el término del decaimiento solo, 11·1,5/40 =
+  0,41). Por eso x ↦ x + v(x) es un difeomorfismo (det ≥ (1 − L)³ > 0) y la inversa por punto fijo, x ← p − v(x), converge:
+  25 pasos dejan el error ≤ 11,02·0,8²⁵ = 0,042 mm, bajo la tolerancia de 0,05 mm (el módulo lo comprueba al cargarse, como la
+  bisección). Dos pasos (la inversa de VExUS) no llegan: la mutación falla.
+- **Lo que se ve** (`slidingField` en `src/ultrasound/pleura.ts`): la arena del deslizamiento se ancla al punto del pulmón antes
+  del latido, `lungPulseInverse(toMaterial(pD))`, como ya se anclaba al pulmón antes de la inspiración (el pulmón que está en
+  pD estaba en x, y antes, el descenso más arriba). Nada se pinta: el modo M registra la línea de la envolvente mostrada, y la
+  arena bajo la pleura cambia con el pulmón. `uLungPulse` = e(t), un escalar por cuadro; fuera del alcance del corazón la GLSL
+  no entra en el bucle. La gemela TS de `slidingField` recibe `pD` ya invertido.
+- **Medida** (`src/measure/lungPulse.ts`): F-T11, la menor correlación entre columnas del modo M de la banda 1–6 mm bajo la
+  pleura separadas ≤ 2 s; S3, el pico del espectro de esa banda. S3 pide el pico del desplazamiento pleural: se mide sobre el
+  gris de la banda (lo que el desplazamiento hace en la señal), no sobre un desplazamiento seguido. Ganchos de la e2e
+  `lungPulse` (el modo M de la línea central a intervalos fijos del reloj) y `lungPulseEquivalence` (la GLSL frente a TS:
+  `queryPoints` escribe el pulso en un cuarto adjunto).
+
+**Consecuencias.**
+
+- **Amplitud por distancia** (el deslizamiento en la telesístole, 1,5 mm bajo la pleura): 5 mm por fuera del borde craneal de
+  la ventana (d 18 mm, la cara anterior), 0,88 mm; a 10, 20 y 30 mm, 0,79, 0,52 y 0,22; sobre el ápex (5.º EIC, LMC; d 5–6
+  mm), 1,2–2,0 (2,57 bajo la línea central de la sonda); en el borde izquierdo del corazón (11 cm de la línea media, d 15–17),
+  3,2–3,5; a 13 cm (d 31–35), 0,3–0,8; a 15 cm (d > 50), 0; en los tres puntos de partida (hemitórax derecho, d 80–122), 0
+  exacto. Frente a las cotas ecográficas en apnea: por encima de Costamagna (1,2 ± 0,6 mm en el plano, en 12 campos que no
+  son el borde del corazón) junto al borde, y dentro de Fung (un sujeto, de pico a valle, a la izquierda). No se ajustó a
+  ninguna de las dos, y lo que se compara no es lo mismo: aquí es la magnitud 3D del deslizamiento, allí su componente en el
+  plano de un corte.
+- **A-T16 se cumple** (`anatomyTargets.test.ts`): en apnea, el pulmón 5 mm por fuera de la ventana se desliza 0,88 mm hacia el
+  corazón una vez por latido y vuelve a 0 en la telediástole. En la imagen (`e2e/pulso.spec.ts`, modo M sobre el ápex en
+  apnea): el pico de la banda a la FC (1,17 Hz; 762 veces la mediana con 120 columnas en GPU real, 23 con las 48 de la e2e) y
+  correlación en 2 s de 0,70: no es una estratósfera. Respirando, el deslizamiento manda (correlación 0,36 y el pico a 0,67 Hz;
+  medido una vez, sin prueba).
+- **F-T11 sigue**: con deslizamiento 0 y pulso 0 (el punto BLUE superior en apnea), correlación 0,9999 (GPU real) y 1
+  (SwiftShader). La base combina los dos: la estratósfera exige los dos en 0; junto al corazón, en apnea, ya no se cumple, como
+  en el paciente (Lichtenstein: pulso en apnea en 15/15 sanos).
+- **El gemelo**: 1405 puntos del pulmón junto al corazón, deslizamiento de hasta 5,3 mm, diferencia GLSL − TS ≤ 1,3·10⁻⁵ mm
+  (GPU real).
+- **Costo por cuadro**, sobre el ápex en la telesístole (el bucle entero), la pasada B aislada (`frameCostMs` con la pasada
+  repetida cuatro veces, mediana de 5, alternando main 6d8476d y la rama): con la GPU de este Mac (Metal), 1,92–2,14 ms en main y
+  1,90–1,97 en la rama, sin diferencia medible; con SwiftShader, 211–214 ms frente a 218–229 (+4–18 ms, ≈ +5 %, con la máquina
+  compartida). Lejos del corazón la GLSL sale en la primera distancia al elipsoide.
+- **La e2e suma una prueba**; con ocho fragmentos, las ventanas del banco de fidelidad no se juntan más que antes.
+- **Pendiente**: el corazón sigue sin moverse en la ventana (`heart-simplified`), y tampoco siguen al pulso el borde del pulmón
+  ni el de la ventana (la arena junto a la ventana se desliza hacia ella, su borde no); la sinusoide del derrame usará la parte
+  normal del campo cuando haya líquido; la amplitud ecográfica, la curva de distancia y el deslizamiento del borde a lo largo
+  del corazón siguen sin medirse (`reachMm`, estimado).
+
+**Verificación.** `lungPulse.test.ts` (contractivo con las mayores amplitudes, det ≥ (1 − L)³ y vuelta a ≤ 0,05 mm con toda
+fracción expulsada; la mutación de dos pasos falla; tangente a la pared; hacia el corazón (contra la normal de su cara: un error
+de signo falla); decae y es 0 desde su alcance; más en el borde del corazón que en el ápex y la ventana; la fracción expulsada),
+`anatomyTargets.test.ts` (A-T16, ahora `it`, con la dirección), `lungPulseMeasure.test.ts` (S3 y F-T11 sobre franjas sintéticas;
+las guardas de texto de la GLSL) y `e2e/pulso.spec.ts`. La mutación de la e2e: sin `lungPulseInverse` en `slidingField` el pico
+de la banda sobre el ápex se fue a 3 Hz y la correlación subió a 0,9999: la prueba falló en la aserción del pico. La revisión
+adversarial de contexto limpio halló la dirección (radial en el primer borrador; Hsu mide por la normal del corazón), la
+amplitud del ventrículo izquierdo aplicada a la cara anterior, el umbral del determinante, el dominio de la cota de Lipschitz,
+la falta de una prueba del signo y cifras de las fuentes mal resumidas: todo aplicado.

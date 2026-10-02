@@ -72,8 +72,10 @@ conservan su identificador (decisiones 10 y 11).
 - **El corazón es un elipsoide estático** (`heart-simplified`, decisión 18): miocardio con una sola cavidad de sangre, su
   ápex donde lo pone Gray (5.º EIC, 9 cm de la línea media, 10 mm por dentro de la pleura: la língula) y un tapón de
   miocardio que lo une a la pared en el disco de la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea
-  media en el 5.º EIC; un elipsoide que tocara la pared dejaría una ventana alargada de lado a lado). No late: no hay pulso
-  pulmonar (la segunda parte de A-T16) ni movimiento del corazón en la ventana; su pericardio no tiene cara propia y el
+  media en el 5.º EIC; un elipsoide que tocara la pared dejaría una ventana alargada de lado a lado). No late: su
+  latido solo mueve el pulmón de alrededor (el pulso pulmonar, decisión 32: el deslizamiento tangente a la pared de un campo
+  que sigue a la cara del corazón, con su alcance estimado) y no el corazón en la ventana, que sigue quieto, ni el borde del
+  pulmón ni el de la ventana; su pericardio no tiene cara propia y el
   borde de la ventana es duro (sin el volumen parcial de la cortina), aunque el pulmón que la rodea es una cuña fina sobre el
   corazón (una franja de 25 mm donde el corazón llega a la lámina de la cortina [SUPUESTO]). El corazón, con su tapón y su
   franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]), y la ventana no se
