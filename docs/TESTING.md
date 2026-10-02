@@ -331,7 +331,15 @@ y una prueba comprueba que solo en supino la espalda vuelve a quedar fuera. La e
 una rejilla de la piel de la espalda (el hueso de la lámina, no el de una costilla, a la mitad de su grosor por la normal), y la
 e2e compara la anatomía de la GPU en cuatro planos de la espalda (la escápula, la paravertebral, junto a las transversas y la
 línea media con las espinosas); el volumen del tórax ya muestrea la espalda. La compresión de la sonda (s ≤ 0, ∂s/∂ρ ≥ 0) se
-comprueba en toda la vuelta. `evidenceNotes.test.ts` comprueba que el build vacía las notas de evidencia de todos los módulos
+comprueba en toda la vuelta. Desde la decisión 33, `startPoints.test.ts` comprueba los tres puntos de la espalda (sentados; en
+supino `clampPose` los deja en 1,2π): en la paravertebral derecha, en el centro de su EIC (3.º, 8.º y 10.º) a menos de 0,1 mm, la
+pleura bajo la pared posterior (24–38 mm), el signo del murciélago en el superior y el medio y, en el basal, la cortina: las líneas
+sin pleura en un solo tramo del borde caudal. `thoraxGeometry.test.ts` y `thoraxInput.test.ts` comprueban que sentado el arrastre y
+los botones cruzan la línea media posterior (en supino, no), y que las clavículas y las escápulas del navegador son las de la
+clasificación (|d| < 0,02 mm de la clavícula; la escápula, a media lámina); la equivalencia de la pleura de A0 sienta al paciente
+en los puntos de la espalda (la «GPU» falsa acota como el simulador, así que olvidarlo deja la sonda en 1,2π y la prueba lo ve), y
+la e2e del navegador 3D recorre la interfaz real: en supino la espalda no se alcanza, Ajustes → Paciente → Sentado, el arrastre
+por la espalda y las tres tarjetas posteriores. `evidenceNotes.test.ts` comprueba que el build vacía las notas de evidencia de todos los módulos
 sin cambiar su número de líneas y que la aplicación no lee `.note` fuera de `core/evidence.ts`.
 
 ## Invariantes previstas

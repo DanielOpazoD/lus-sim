@@ -1,4 +1,4 @@
-import { START_POINTS } from './startPoints';
+import { START_POINTS, type StartPoint } from './startPoints';
 import type { Simulator } from './simulator';
 import { Interface, isRibInterface } from '../anatomy/interfaces';
 import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
@@ -355,6 +355,8 @@ export interface InterfaceShellReport {
   agreement: number;
   /** Máximo de |distancia de la GPU − la de la CPU| con la misma cara (mm). */
   distanceMaxErr: number;
+  /** Dónde (lus-sim, decisión 33): la cara, su distancia en la CPU, el plano y el punto. */
+  distanceWorst: string;
   /** Puntos por cara (en la CPU), para ver que la prueba tiene dientes. */
   byInterface: Record<string, number>;
   /** Los primeros desacuerdos: vista, cara CPU → GPU, tejido, punto del mundo y distancia de la CPU. */
@@ -402,7 +404,8 @@ export function interfaceShellEquivalence(sim: Simulator, lines = 48, stepMm = 0
       near.forEach((s, i) => {
         if (!inBand(s.iface, s.dist) && !inBand(gpu.iface[i], gpu.ifd[i])) return;
         byInterface[Interface[s.iface]] = (byInterface[Interface[s.iface]] ?? 0) + 1;
-        if (tally.add(s.iface, s.dist, gpu.iface[i], gpu.ifd[i]) || disagreements.length >= MAX_LISTED) return;
+        const where = `${sp.id} (${s.p.map((x) => x.toFixed(2)).join(', ')})`;
+        if (tally.add(s.iface, s.dist, gpu.iface[i], gpu.ifd[i], where) || disagreements.length >= MAX_LISTED) return;
         disagreements.push(
           `${sp.id}: ${Interface[s.iface]}→${Interface[gpu.iface[i]] ?? gpu.iface[i]} (${Tissue[s.tissue]}) en ` +
             `(${s.p.map((x) => x.toFixed(2)).join(', ')}), a ${s.dist.toFixed(3)} mm`,
@@ -414,6 +417,7 @@ export function interfaceShellEquivalence(sim: Simulator, lines = 48, stepMm = 0
     points: tally.points,
     agreement: tally.points ? tally.same / tally.points : 1,
     distanceMaxErr: tally.maxErr,
+    distanceWorst: tally.maxErrAt,
     byInterface,
     disagreements,
   };
@@ -495,6 +499,7 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
   const tr = sim.transducer;
   const depth = sim.bmode.depthMm;
   const pose0 = { ...sim.pose };
+  const position0 = sim.patient.position;
   let lines = 0;
   let cpuPleura = 0;
   let mismatch = 0;
@@ -504,11 +509,13 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
   const centralDepthMm: Record<string, number> = {};
   const depthByPose: Record<string, number> = {};
   try {
-    const poses: Array<{ id: string; pose: ProbePose }> = [
-      ...START_POINTS.map((sp) => ({ id: sp.id, pose: poseOf(sp) })),
+    // lus-sim (decisión 33): los puntos de la espalda, con el paciente sentado (en supino, `setPose` los dejaría en el borde)
+    const poses: Array<{ id: string; pose: ProbePose; position?: StartPoint['position'] }> = [
+      ...START_POINTS.map((sp) => ({ id: sp.id, pose: poseOf(sp), position: sp.position })),
       ...extraPleuraPoses(sim.scene),
     ];
     for (const sp of poses) {
+      sim.patient.position = sp.position ?? position0;
       sim.setPose(sp.pose);
       sim.advance(0.05);
       sim.render();
@@ -552,6 +559,7 @@ export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
       }
     }
   } finally {
+    sim.patient.position = position0;
     sim.setPose(pose0);
     sim.advance(0.05);
   }

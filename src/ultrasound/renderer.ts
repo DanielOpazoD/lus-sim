@@ -5,7 +5,7 @@ import type { PhysiologySample } from '../physiology/engine';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import type { ProbeCompression } from '../anatomy/compression';
 import { contactCoupling } from '../probe/contact';
-import { lineAngle, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
+import { lineAngle, type PatientPosition, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
 import type { TransducerProfile } from './transducerProfile';
 import { beamToPixel, pixelToBeam, sectorLayout, type SectorLayout } from './sectorGeometry';
 import { GREY_CURVE } from './greyMap';
@@ -165,6 +165,8 @@ export interface FrameInputs {
   pose: ProbePose;
   /** Simulator siempre lo declara; las llamadas directas de bancos antiguos asumen respiración tranquila. */
   respiratoryPattern?: RespiratoryPattern;
+  /** La posición del paciente (lus-sim, decisión 33); las llamadas directas de los bancos, en supino. */
+  position?: PatientPosition;
   /**
    * Contacto de la sonda del cuadro (decisión 63, `probe/contact.ts`): la compresión del tejido (uniforms
    * `uComp*`, la misma que la CPU en `AnatomyQuery`) y el acoplamiento por línea.
@@ -727,6 +729,7 @@ export class UltrasoundRenderer {
         frame: inputs.frame,
         sample: inputs.sample,
         respiratoryPattern: inputs.respiratoryPattern ?? 'quiet',
+        position: inputs.position ?? 'supine',
       },
     };
     this.lastFrame = frame;

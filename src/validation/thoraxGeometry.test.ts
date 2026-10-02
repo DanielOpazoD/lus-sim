@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { AnatomyScene } from '../anatomy/scene';
-import { ribSd } from '../anatomy/organs/ribcage';
+import { clavicleSd, ribSd, scapulaSd } from '../anatomy/organs/ribcage';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { cross, dist, dot, sub, type Vec3 } from '../core/vec3';
 import { defaultPatient } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, defaultPose, pointOnLine, probeFrame } from '../probe/probe';
 import {
+  clavicleMesh,
   footprintMesh,
   housingMarkerPoint,
   markerPoint,
@@ -14,6 +15,8 @@ import {
   patientToView,
   probeViewAxes,
   ribMesh,
+  scanArc,
+  scapulaMesh,
   SCAN_LIMITS,
   sectorMesh,
   skinMesh,
@@ -67,6 +70,30 @@ describe('Navegador del tórax: coordenadas y dominio real de adquisición', () 
     expect(surfacePose(torsoSkinPoint(0, 201, scene.torso), scene.torso, base)).toBeNull();
     expect(surfacePose(torsoSkinPoint(0, -201, scene.torso), scene.torso, base)).toBeNull();
     expect(surfacePose([NaN, 0, 0], scene.torso, base)).toBeNull();
+  });
+
+  it('sentado (decisión 33) la sonda llega a toda la espalda, con la línea media posterior como corte, y la altura no cambia', () => {
+    expect(scanArc('supine')).toEqual({ phiMin: SCAN_LIMITS.phiMin, phiMax: SCAN_LIMITS.phiMax });
+    expect(scanArc('sitting')).toEqual({ phiMin: -Math.PI / 2, phiMax: 1.5 * Math.PI });
+    let pose = { ...defaultPose(), phi: 1.15 * Math.PI };
+    // del PLAPS derecho por la espalda derecha hasta la línea media posterior
+    for (const phi of [1.2 * Math.PI, 1.3776 * Math.PI, 1.49 * Math.PI]) {
+      if (phi > SCAN_LIMITS.phiMax + 1e-9)
+        expect(surfacePose(torsoSkinPoint(phi, 50, scene.torso), scene.torso, pose), `supino ${phi}`).toBeNull();
+      pose = surfacePose(torsoSkinPoint(phi, 50, scene.torso), scene.torso, pose, 'sitting')!;
+      expect(pose.phi).toBeCloseTo(phi, 12);
+      expect(pose.z).toBeCloseTo(50, 9);
+    }
+    // al otro lado del corte, la espalda izquierda (φ cerca de −π/2), hasta el PLAPS izquierdo
+    for (const phi of [-0.49 * Math.PI, -0.3 * Math.PI, -0.15 * Math.PI]) {
+      pose = surfacePose(torsoSkinPoint(phi, 50, scene.torso), scene.torso, pose, 'sitting')!;
+      expect(pose.phi).toBeCloseTo(phi, 12);
+    }
+    expect(surfacePose(torsoSkinPoint(0, 201, scene.torso), scene.torso, pose, 'sitting')).toBeNull();
+    // el paso de los botones cruza la línea media posterior sentado; en supino se queda en el borde
+    const back = { ...defaultPose(), phi: 1.49 * Math.PI };
+    expect(nudgePose(back, scene.torso, 20, 0, 0, 'sitting').phi).toBeCloseTo(1.49 * Math.PI + 20 / scene.torso.a - 2 * Math.PI, 2);
+    expect(nudgePose(back, scene.torso, 20).phi).toBe(SCAN_LIMITS.phiMax);
   });
 
   it('la malla de selección pertenece a la misma piel que el modelo acústico', () => {
@@ -133,6 +160,33 @@ describe('Navegador del tórax: transductor, marcador y costillas compartidos', 
       for (const p of points.slice(8, -8))
         expect(Math.abs(ribSd(p, index, scene.torso, scene.ribCage)), `costilla ${index}: ${p.join(', ')}`).toBeLessThan(0.02);
       expect(Math.max(...mesh.indices)).toBeLessThan(points.length);
+    }
+  });
+
+  it('las clavículas y las escápulas visuales (decisión 33) son las de la clasificación en reposo', () => {
+    const sc = scene.ribCage.scapula;
+    for (const side of [-1, 1] as const) {
+      const clavicle = clavicleMesh(scene, side);
+      const cp = vertices(clavicle.positions);
+      for (const p of cp) {
+        expect(Math.sign(p[0]), `clavícula ${side}`).toBe(side);
+        expect(Math.abs(clavicleSd(p, scene.torso, scene.ribCage)), `clavícula ${side}: ${p.join(', ')}`).toBeLessThan(0.02);
+      }
+      expect(Math.max(...clavicle.indices)).toBeLessThan(cp.length);
+      // la lámina: cada vértice en su mitad, dentro (en el contorno, sobre él; lejos del contorno, a media lámina de las dos caras)
+      const scapula = scapulaMesh(scene, side);
+      const sp = vertices(scapula.positions);
+      let mid = 0;
+      for (const p of sp) {
+        expect(Math.sign(p[0]), `escápula ${side}`).toBe(side);
+        expect(p[1], `escápula ${side}`).toBeLessThan(0);
+        const d = scapulaSd(p, scene.torso, scene.ribCage);
+        expect(d, `escápula ${side}: ${p.join(', ')}`).toBeLessThan(0.02);
+        expect(d, `escápula ${side}: ${p.join(', ')}`).toBeGreaterThan(-0.5 * sc.thickness - 0.02);
+        if (Math.abs(d + 0.5 * sc.thickness) < 0.02) mid++;
+      }
+      expect(mid, `escápula ${side}`).toBeGreaterThan(0.5 * sp.length);
+      expect(Math.max(...scapula.indices)).toBeLessThan(sp.length);
     }
   });
 });

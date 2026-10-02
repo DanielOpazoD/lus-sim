@@ -277,6 +277,14 @@ describe('Campo respiratorio: la inversa exacta a la tolerancia declarada (decis
     expect(DIAPHRAGM_EXCURSION.params.deepMm.range![1] / 2 ** (RESPIRATORY_INVERSE.steps + 1)).toBeLessThanOrEqual(tol);
   });
 
+  it('una última decisión distinta entre la CPU y la GPU (un intervalo final, D/2^pasos) cabe en la cota de la cáscara de la e2e (decisión 33)', () => {
+    // las distancias a las caras tienen |∇d| ≤ 1: un punto material que se mueve D/2^pasos mueve la distancia a lo sumo eso, y la
+    // equivalencia de la cáscara (e2e/imagen.spec.ts) exige ≤ 0,02 mm. Con diez pasos, 53/2¹⁰ = 0,052: en el plano basal de la
+    // espalda la cara del diafragma (|∂d/∂z| 0,45) se movía 0,023
+    expect(D_MAX / 2 ** RESPIRATORY_INVERSE.steps).toBeLessThan(0.02);
+    expect(DIAPHRAGM_EXCURSION.params.deepMm.range![1] / 2 ** RESPIRATORY_INVERSE.steps).toBeLessThan(0.02);
+  });
+
   it('material → mundo → material vuelve al punto a ≤ la tolerancia, en todo el tronco y para toda excursión hasta 75 mm', () => {
     fc.assert(
       fc.property(pointArb, fc.double({ min: 0, max: D_RANGE, noNaN: true }), ({ v, m }, D) => {
@@ -299,7 +307,7 @@ describe('Campo respiratorio: la inversa exacta a la tolerancia declarada (decis
         expect(m[0]).toBe(q[0]);
         expect(m[1]).toBe(q[1]);
         // la tolerancia es la del punto material; en el mundo el residuo, |z − D·w(z) − q_z|, es el error en z por la
-        // jacobiana, que llega a 2,51 bajo el corazón (donde el tejido se aleja de él): ≤ 2,6·D/2¹¹, 0,068 mm con 53
+        // jacobiana, que llega a 2,51 bajo el corazón (donde el tejido se aleja de él): ≤ 2,6·D/2^(pasos + 1), 0,017 mm con 53
         const bound = (2.6 * D_MAX) / 2 ** (RESPIRATORY_INVERSE.steps + 1);
         expect(Math.abs(m[2] - D_MAX * s.respiratoryWeight(m) - q[2])).toBeLessThanOrEqual(bound);
       }),

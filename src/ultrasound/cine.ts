@@ -1,6 +1,6 @@
 import type { PhysiologySample } from '../physiology/engine';
 import type { RespiratoryPattern } from '../physiology/patientState';
-import type { ProbeFrame, ProbePose } from '../probe/probe';
+import type { PatientPosition, ProbeFrame, ProbePose } from '../probe/probe';
 
 /**
  * Cine (decisión 80): los últimos ~6 s de cuadros adquiridos se guardan en la GPU ANTES de la conversión de
@@ -20,6 +20,8 @@ export interface AcquisitionState {
   frame: ProbeFrame;
   sample: PhysiologySample;
   respiratoryPattern: RespiratoryPattern;
+  /** La posición del paciente al adquirirlo (lus-sim, decisión 33). */
+  position: PatientPosition;
 }
 
 /**
@@ -40,6 +42,7 @@ export function snapshotAcquisition(source: AcquisitionState): AcquisitionState 
     },
     sample: { ...source.sample, resp: { ...source.sample.resp } },
     respiratoryPattern: source.respiratoryPattern,
+    position: source.position,
   };
 }
 

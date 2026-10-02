@@ -15,7 +15,7 @@ import { Tissue } from '../anatomy/tissues';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
-import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
+import { CONVEX_C35, clampPose, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
 import { COARSE_DEPTH, DEFAULT_BMODE, type GpuPointQuery } from '../ultrasound/renderer';
 import { pleuraCrossingLine } from '../ultrasound/transmission';
 
@@ -64,9 +64,12 @@ function fakeSim(corrupt?: Corruption, pleuraShiftMm = 0, sample = new Physiolog
     transducer: CONVEX_C35,
     bmode: DEFAULT_BMODE,
     pose: defaultPose(),
+    // (decisión 33) la posición del paciente acota la pose como en el simulador (`Simulator.setPose`)
+    patient,
     frame: probeContact(defaultPose(), CONVEX_C35, scene.torso).frame,
     gpuQuery,
-    setPose(p: ProbePose) {
+    setPose(q: ProbePose) {
+      const p = clampPose(q, sim.patient.position ?? 'supine');
       sim.pose = p;
       const k = probeContact(p, CONVEX_C35, scene.torso);
       sim.frame = k.frame;
@@ -215,8 +218,25 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
     expect(ok.edgeMaxErrMm).toBeLessThan(1e-4);
     // bajo la pared torácica por región (decisión 17: 13–16 mm en estos puntos; antes, la heredada de 28)
     for (const id of START_POINTS.map((s) => s.id)) expect(ok.centralDepthMm[id]).toBeGreaterThan(10);
+    // (decisión 33) los de la espalda, con el paciente sentado: bajo la pared posterior (en supino, la sonda quedaría en el
+    // borde de la cama, 1,2π, con la pared lateral de ≈ 15 mm), y el paciente vuelve a su posición
+    for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal']) expect(ok.centralDepthMm[id], id).toBeGreaterThan(24);
     // el paso final de la bisección con la profundidad del preajuste: 120 mm / 160 / 2⁶ (la cota de la e2e)
     expect(ok.quantumMm).toBeCloseTo(120 / 160 / 64, 12);
+    // y si la lectura falla en un punto de la espalda, la posición y la pose vuelven a las de antes (en supino y sentado)
+    for (const position of [undefined, 'sitting'] as const) {
+      const failing = fakeSim();
+      failing.patient.position = position;
+      const pose0 = { ...failing.pose };
+      const read = failing.renderer.readPleuraHits.bind(failing.renderer);
+      failing.renderer.readPleuraHits = () => {
+        if (failing.patient.position === 'sitting' && failing.pose.phi > 1.3 * Math.PI) throw new Error('lectura fallida');
+        return read();
+      };
+      expect(() => pleuraEquivalence(failing)).toThrow('lectura fallida');
+      expect(failing.patient.position).toBe(position);
+      expect(failing.pose).toEqual(pose0);
+    }
     const shifted = pleuraEquivalence(fakeSim(undefined, 0.05));
     expect(shifted.depthMaxErrMm).toBeCloseTo(0.05, 5);
     expect(shifted.depthMaxErrMm).toBeGreaterThan(shifted.quantumMm);

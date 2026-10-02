@@ -1567,6 +1567,16 @@ en el avatar con 5 mm de grasa y 15,8 en la obesa: corregido, ahí mira la pared
 estimada de la ZOA sin decirlo; el deslizamiento sin evaluar frente a D1, D4 y D5; la justificación de la ley de altura; cifras
 que no cuadraban entre los documentos; el umbral de los planos nuevos de la e2e, que no veía la mutación; aplicado.
 
+**Nota (decisión 33, 2026-10-02).** La inversa pasa de 10 a 12 pasos (`RESPIRATORY_INVERSE.steps`; en la GLSL, el mismo
+número). La CPU y la GPU pueden tomar distinta la última decisión de la bisección por el redondeo de float32 y separarse un
+intervalo final, D/2^pasos: con 10 y 53 mm, 0,052 mm en el punto material. En el plano basal de la espalda (decisión 33), en la
+inspiración profunda, la cara del diafragma del receso posterior (|∂d/∂z| 0,45 en el punto material) se movía 0,023 mm en la
+cáscara de la e2e, cuya cota es 0,02: medido con SwiftShader, un intervalo final exacto (al mover el punto material 0,0518 mm,
+la distancia cambia 0,0231 en la CPU). Con 12, ≤ 0,013 mm con 53 y ≤ 0,018 con los 75 del rango, bajo esa cota para cualquier
+cara (|∇d| ≤ 1); el punto material queda a ≤ 0,0065 mm de la raíz (antes 0,026) y el residuo en el mundo a ≤ 0,017. El costo
+por cuadro no cambia de forma medible (GPU real M4, intercalado: medianas de 5,6–6,8 ms con 10 y 5,8–6,7 con 12). La cota de la
+e2e no se toca.
+
 ## 23. Adquisición normal con navegación torácica 3D y cine espacialmente coherente
 
 **Fecha.** 2026-09-28.
@@ -2242,6 +2252,17 @@ cuadro de SwiftShader en la pantalla móvil con el modo M) y el texto del estado
 siguiente, no cambió en los 15 s de la prueba. El estado del modo M se escribe ahora en el acto al colocar o cancelar la línea
 (`ui/mMode.ts`, `syncStatus`): el texto ya no depende de cuántos cuadros por segundo dibuje la máquina.
 
+**Nota (decisión 33, 2026-10-02): por qué F-T08 falla con 35 mm en la paravertebral.** Es el modelo, no la anatomía. 35 mm
+(Wada, 27 de piel a costilla en la 5.ª, más el complejo pleural de Okçu) está dentro de lo medido; lo que no cabe es la forma en
+que el modelo pasa de la espalda alta a la baja. Esa transición es la de la axila (decisión 17), del centro del EIC5 a la 4.ª
+costilla de la LAM: z 41,8 a 85,8 en el avatar, 44 mm con un `smoothstep` (la pendiente máxima, 1,5 veces la media), a la misma
+altura en toda la vuelta. Con 35 frente a los 28 de abajo, la pared crece 7 mm en esos 44: 0,16 mm por mm de media y 0,24 en el
+centro (z 63,8, en la paravertebral junto al EIC6, sobre la 7.ª costilla). A los dos lados de la 7.ª y la 8.ª costilla, la pleura
+queda a alturas distintas (un lado a 3,8 mm de la cresta, el otro a 8,2; la meta, 4–6). Con 32, 4 mm: 0,09 y 0,14, y F-T08
+cumple. En Wada la pared baja 7 mm de la 5.ª a la 8.ª costilla, unos 70 mm de altura en la paravertebral (≈ 0,1 mm por mm): con
+esa transición, 35 cumpliría. Queda como limitación (`chest-wall-height-transition`), con la espalda alta en 32; una
+transición propia de la espalda, que baje con la parrilla, la quitaría.
+
 ## 30. La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos
 
 **Fecha.** 2026-10-02.
@@ -2571,3 +2592,118 @@ de la banda sobre el ápex se fue a 3 Hz y la correlación subió a 0,9999: la p
 adversarial de contexto limpio halló la dirección (radial en el primer borrador; Hsu mide por la normal del corazón), la
 amplitud del ventrículo izquierdo aplicada a la cara anterior, el umbral del determinante, el dominio de la cota de Lipschitz,
 la falta de una prueba del signo y cifras de las fuentes mal resumidas: todo aplicado.
+
+## 33. La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Con la decisión 29 el motor ya acotaba la sonda con la posición del paciente (sentado, toda la vuelta), pero la
+interfaz no tenía cómo sentarlo y el navegador 3D seguía acotando como en supino (`surfacePose` y `nudgePose` con el arco de
+`SCAN_LIMITS`): las 38 celdas de la espalda que la cobertura alcanza sentado no las alcanzaba el alumno. Tampoco había puntos de
+partida detrás, y la clavícula (decisión 27) y la escápula (decisión 29) no se dibujaban. Objetivo O5 (el alumno encuentra cada
+zona) con lo que ya da O2.
+
+**Fuentes.** Las áreas paravertebrales del esquema de 14 de Soldati y cols. (paciente sentado si se puede; basal «por encima del
+signo de la cortina», media en el ángulo inferior de la escápula y superior en su espina; barrido intercostal de 10 s;
+`docs/knowledge/clinical.md` §3.5). Las alturas, de la decisión 29 (Gray: la raíz de la espina a la altura de la apófisis de
+T3 y el borde posterior del pulmón en T10; Cooperstein: el ángulo inferior en T8) y la paravertebral a 60 mm de la línea media
+(decisión 26). No hay número nuevo de anatomía.
+
+**Opciones.** Para la posición en la interfaz: (a) un control en los ajustes y tarjetas que sientan al paciente; (b) sentarlo
+solo al ir a la espalda (al arrastrar más allá de 1,2π); (c) un modo «espalda» aparte. Para los puntos: (i) las tres áreas
+paravertebrales derechas de Soldati, en el centro del EIC que cae a su altura; (ii) los puntos de los protocolos de
+cardiología (posterior basal); (iii) ninguno. Para dibujar la clavícula y la escápula: con las costillas, en la guía ósea, o
+aparte.
+
+**Decisión.** (a), (i) y con las costillas.
+
+- **La posición** se elige en Ajustes → Paciente (Supino/Sentado, `AcquireActions.setPosition`); la raíz
+  (`setPatientPosition`, en `main.ts`) cambia `PatientState.position` y vuelve a acotar la pose: al tumbar al paciente con la sonda
+  en la espalda, queda en el borde de la cama (1,2π o −0,2π). Las tarjetas de la espalda sientan al paciente antes de animar la
+  sonda hasta su punto; «Reiniciar paciente» conserva la posición, como conserva la sonda. (b) cambiaría el estado del paciente
+  con un gesto que no lo dice; (c), una interfaz más.
+- **El navegador 3D** acota con la posición (`scanArc`: en supino, de −0,2π a 1,2π; sentado, de −π/2 a 3π/2, con la línea media
+  posterior como corte): el arrastre (`surfacePose`) y los botones finos (`nudgePose`) recorren la espalda y la cruzan. En supino,
+  un punto de la espalda deja la sonda donde estaba y el pie dice cómo llegar («sienta al paciente»); la región del pie dice
+  «posterior» por detrás de la axilar posterior sentado, y la posición. `wrapPhi` devuelve φ sin tocarlo dentro de la vuelta (el
+  módulo movía un ulp en cada cuadro).
+- **Los puntos de partida de la espalda** (`app.posteriorStartPoses`; `StartPoint.position: 'sitting'`): las tres áreas
+  paravertebrales derechas de Soldati en la paravertebral derecha (φ = π + acos(60/160), 1,3776π), con el marcador craneal como
+  los demás: la superior en el centro del EIC3 (138,5 mm; la raíz de la espina, a la altura de T3, cae sobre la 3.ª costilla), la
+  media en el del EIC8 (18,4; el ángulo inferior, a la de T8, cae sobre el borde superior de la 9.ª costilla; el EIC8, el más próximo) y la basal en el del EIC10 (−30,8; el borde posterior
+  del pulmón en espiración, T10, a −35, cae por debajo). [DISCREPANCIA]: Soldati barre en intercostal; la tarjeta empieza en
+  longitudinal, como los puntos BLUE (el signo del murciélago), y el alumno gira. La izquierda no tiene tarjetas (los puntos de
+  partida son del hemitórax derecho, decisión 12): se llega arrastrando.
+- **La posición en el cine**: cada cuadro guarda la posición del paciente con que se adquirió (`AcquisitionState.position`, como
+  la maniobra); con la imagen congelada, el pie del navegador y el control de Ajustes muestran la del cuadro elegido. Los ganchos
+  de la e2e que van a un punto de partida (`goTo`) ponen la posición del punto (sentado en la espalda, supino en los demás), para
+  que un gancho no herede la del anterior.
+- **La inversa del campo respiratorio, con 12 pasos** (nota de la decisión 22): con los planos de la espalda, la equivalencia de
+  la cáscara en la inspiración profunda vio en el basal la cara del diafragma 0,023 mm fuera de la cota (0,02): una última
+  decisión de la bisección distinta entre la CPU y la GPU. Con 12 pasos, ese salto queda bajo la cota para cualquier cara; la
+  cota no cambia. La cota de error que queda: el punto material a ≤ D/2¹³ de la raíz (0,0065 mm con los 53 de la base, 0,0092
+  con los 75 de su rango; antes, D/2¹¹, 0,026), el residuo en el mundo a ≤ 2,6·D/2¹³ (0,017 con 53), y entre la CPU y la GPU, a
+  lo sumo un intervalo final, D/2¹² (0,013 y 0,018 mm), bajo los 0,02 de la cáscara.
+- **La clavícula y la escápula** se dibujan con las costillas (el botón «Costillas»), de otro tono (la escápula, al estar en la
+  espalda curva, se ve casi de canto y del color de las costillas no se distinguía): la clavícula, un tubo de su radio a lo largo
+  de su eje (`clavicleMesh`); la escápula, la mitad de su lámina en una rejilla del triángulo (`scapulaMesh`). Los dos, a la
+  profundidad de la clasificación por la métrica de la parrilla, como las costillas.
+
+**Consecuencias: antes → después** (main `a04ba7c` frente a esta decisión).
+
+| Medida                                                        | Antes                    | Después                                                                                       | Por qué cambia                       |
+| ------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Cobertura                                                     | 106/138                  | 106/138                                                                                       | la anatomía no cambia                |
+| Celdas de la espalda que el alumno alcanza en la interfaz     | 0 de 38                  | 38 de 38 (sentado)                                                                            | el navegador acota con la posición   |
+| Puntos de partida                                             | 3 (BLUE derecho y PLAPS) | 6 (y las tres paravertebrales derechas)                                                       | nuevos                               |
+| Piel → pleura, línea central (superior / media / basal)       | —                        | 32,1 / 27,6 / 27,6 mm (en el sector: 32,1–34,7 / 27,6–33,7 / 27,6–29,8; con la sonda hundida) | la pared de la espalda (decisión 29) |
+| Líneas con pleura en el basal                                 | —                        | 147 de 192 (las 45 caudales, bajo el borde del pulmón)                                        | la cortina                           |
+| Planos de la equivalencia TS ↔ GLSL (barrido / pleura de A0)  | 10 / 6                   | 13 / 9                                                                                        | los tres puntos de la espalda        |
+| Inversa del campo respiratorio: pasos / error material con 53 | 10 / ≤ 0,026 mm          | 12 / ≤ 0,0065 mm                                                                              | la cáscara en el plano basal         |
+
+- **Costo por cuadro** (`frameCostMs`, 60 cuadros, GPU real M4 con la ventana de 1440 × 900, tres pasadas intercaladas): los
+  puntos BLUE y el PLAPS, 4,9–6,1 ms; los de la espalda, 5,5–6,8 (el basal, el más caro: 6,6–6,8). El GLSL solo cambia en los
+  pasos de la inversa, sin costo medible (arriba). O6 (≥ 30 FPS) holgado según esta medida, pero la medida misma es dudosa: en
+  la GPU real cada medida deja un aviso de WebGL (`readPixels` RGBA/UNSIGNED_BYTE sobre el framebuffer que esté ligado en
+  `finishForTiming`, que puede ser uno de coma flotante), así que la espera de la GPU podría no estar ocurriendo y los
+  milisegundos salir bajos. Viene de main; queda como limitación (`frame-cost-timing-sync`) para una PR aparte.
+- `patient-position-anatomy` y `navigator-parametric` dicen lo que hace la interfaz; nueva `chest-wall-height-transition` (la nota
+  de la decisión 29).
+
+**Pendientes.** Las tarjetas son del hemitórax derecho (decisión 12): la espalda izquierda se alcanza arrastrando, sin tarjetas
+(`normal-acquisition-only`). El maniquí del navegador no cambia de postura al sentar al paciente: sigue erguido con los brazos a
+los lados, la postura de la escápula del modelo, sin cruzar los brazos para abrir la espalda (`patient-position-anatomy`). La
+animación hacia una tarjeta recorre φ en línea recta: sentado, de la espalda izquierda a la derecha pasa por delante del tórax y
+no por la línea media posterior (`patient-position-anatomy`). La anatomía no cambia con la postura (la misma limitación).
+
+**Verificación.** Las unitarias: los puntos de la espalda (en la paravertebral, en el centro de su EIC a menos de 0,1 mm y su
+rango entre los centros de sus costillas; sentados, y en supino `clampPose` los deja en 1,2π; la pleura bajo la pared posterior;
+el signo del murciélago en el superior y el medio; la cortina del basal en el borde caudal), el arrastre y los botones sentado
+(cruzan la línea media; en supino, no), las mallas de la clavícula y la escápula frente a la clasificación, la equivalencia de la
+pleura con una «GPU» falsa que acota como el simulador (sin sentar al paciente, la sonda se quedaba en 1,2π y la prueba lo ve). En el
+navegador real (Chromium con la GPU del M4, la aplicación servida por Vite): en supino, un clic en la espalda deja la sonda y el pie
+lo explica; Ajustes → Paciente → Sentado; un arrastre a z ≈ 50 mm pasa de −0,30π por la línea media (−0,4994π → 1,4536π) a
+1,30π (a 1,36π con el 15 % del ancho del lienzo, el arrastre de la e2e); las tres tarjetas llevan la sonda a 1,3776π y a su altura en 1,3–1,5 s y quedan como ventana actual; con «Costillas», las
+clavículas y las escápulas; al volver a supino, la sonda queda en 1,2π. La e2e del navegador 3D hace el mismo recorrido, y
+además: el pie y la ayuda cambian al sentar al paciente sin mover la sonda, el arrastre cruza la línea media (el signo de cos φ
+cambia) y «Restablecer paciente» conserva la posición y la sonda. `acquisitionHistory.test.ts`: el cuadro del cine guarda la
+posición (sentado en la espalda, aunque luego se tumbe). La equivalencia de la pleura restaura la posición y la pose si la lectura
+falla en la espalda. Revisión adversarial de contexto limpio, ejecutando: sin bloqueantes. Importantes, aplicados: el pie y la
+ayuda no cambiaban al sentar al paciente (la posición no estaba en el estado que redibuja el pie, y el aviso de supino seguía); la
+e2e no exigía cruzar la línea media; «Restablecer paciente» con la posición sin prueba; la restauración de la posición en la
+equivalencia, sin prueba que la viera. Menores, aplicados: el rango del área superior (126,6–150,3, no 126,3–150,6) y la
+precisión de su prueba; el ángulo inferior cae sobre el borde superior de la 9.ª costilla (el EIC8 es el más próximo); los
+ganchos que dejaban al paciente sentado; el cine sin la posición; cifras de la tabla y del arrastre; «la parte de abajo de la
+imagen» (es el lado caudal del sector); filas de `docs/PROVENANCE.md`. La e2e completa con SwiftShader encontró además la cáscara
+del diafragma en el plano basal (arriba). `npm run check`: 942 pruebas, un fallo esperado y una omitida; la entrada en 250,6 kB y
+el total en 803,8 (sobre `a04ba7c`). La e2e completa con SwiftShader (29 pruebas, 5 trabajadores): 28 pasan; `mmode.spec.ts:167` (el modo M tras
+perder la GPU) agotó su espera (4 cuadros de los 6 en 60 s tras restaurar el contexto) y pasa sola (1,6 min). No es de los
+pasos de la inversa: con SwiftShader, un cuadro cuesta lo mismo con 10 que con 12 (0,49–0,65 s frente a 0,50–0,53 en el punto
+BLUE superior y el basal, un navegador por medida, alternando); es la carga de las e2e en paralelo (medido
+sobre `a04ba7c`, antes de la decisión 30, que cambia esa prueba). Sobre `6d8476d` (con la decisión 30), `npm run check` igual
+(el total en 803,9) y la e2e completa (30 pruebas, 3 trabajadores): 29 pasan; el banco de fidelidad en el BLUE inferior agotó el
+arranque (`window.__lusTest` no apareció en 120 s, con otra suite de pruebas en la máquina) y pasa solo (1,1 min). Una primera
+pasada con 5 trabajadores falló casi entera por tiempo: la pasada anterior, cortada, había dejado procesos de Playwright con
+SwiftShader huérfanos (carga media 30); se terminaron y no cuenta. Sobre `85211e4` (con la decisión 31), `npm run check`: 966
+pruebas, un fallo esperado y una omitida, con los mismos kB; la e2e completa no se pudo medir en local: con la máquina a carga media 120 (otras sesiones y suites), 15 pasaron y 12
+agotaron sus plazos antes de pararla; la referencia es la del CI de la PR.

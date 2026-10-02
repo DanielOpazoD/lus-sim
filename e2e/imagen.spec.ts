@@ -26,10 +26,14 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const sweep = await page.evaluate(() => window.__lusTest!.equivalenceSweep());
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
   // y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas y la línea media con las espinosas
+  // y (decisión 33) los tres puntos de partida de la espalda, en la paravertebral derecha
   expect(sweep.map((r) => r.id)).toEqual([
     'blueUpper',
     'blueLower',
     'plaps',
+    'posteriorUpper',
+    'posteriorMiddle',
+    'posteriorBasal',
     'supraclavicular',
     'clavicle',
     'lateralApex',
@@ -113,8 +117,11 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const ptag = JSON.stringify(pleura);
   // los tres puntos de partida y (lus-sim, decisión 18) la ventana cardiaca, sin pleura en su centro (el corazón toca la
   // pared), y el borde del pulmón en la axilar media izquierda
-  // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular
-  expect(pleura.lines, ptag).toBe(6 * 192);
+  // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular; y (decisión 33) los tres de la espalda, con el paciente
+  // sentado, bajo la pared posterior
+  expect(pleura.lines, ptag).toBe(9 * 192);
+  for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'])
+    expect(pleura.centralDepthMm[id], `${id}: ${ptag}`).toBeGreaterThan(24);
   expect(pleura.centralDepthMm.supraclavicular, ptag).toBeGreaterThan(15);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.7 * pleura.lines);
   expect(pleura.centralDepthMm.cardiacWindow, ptag).toBe(-1);
@@ -162,7 +169,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // gemelos; en reposo, con el descenso en 0, un signo cambiado de su uniform solo se veía por azar). Desde la decisión 22 la
   // excursión es la de la base y la inversa del campo, una bisección en la vertical (TS y GLSL): el barrido suma los planos
   // donde el campo cambia deprisa (la ventana cardiaca, el borde de la LAM izquierda y la cortina de la derecha) y la pleura
-  // de A0 en los seis planos de la equivalencia de la pleura (cobertura torácica: con la fosa supraclavicular)
+  // de A0 en los nueve planos de la equivalencia de la pleura (cobertura torácica: con la fosa supraclavicular; decisión 33: y la espalda)
   const caudal = await page.evaluate(() => {
     const sim = window.__lusTest!.sim();
     sim.patient.respiratoryPattern = 'apnea-inspiratory';
@@ -187,6 +194,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     'blueUpper',
     'blueLower',
     'plaps',
+    'posteriorUpper',
+    'posteriorMiddle',
+    'posteriorBasal',
     'cardiacWindow',
     'leftBorder',
     'supraclavicular',
@@ -197,7 +207,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
-  expect(insp.pleura.lines, itag).toBe(6 * 192);
+  expect(insp.pleura.lines, itag).toBe(9 * 192);
   expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
   expect(insp.pleura.registrationMismatch, itag).toBe(0);
   for (const [id, q] of Object.entries(insp.pleura.depthQuantaByPose))

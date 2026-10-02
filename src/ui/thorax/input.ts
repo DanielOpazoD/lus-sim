@@ -1,11 +1,13 @@
 import type { Torso } from '../../anatomy/primitives';
 import type { Vec3 } from '../../core/vec3';
-import type { ProbePose } from '../../probe/probe';
+import type { PatientPosition, ProbePose } from '../../probe/probe';
 import { surfacePose } from './geometry';
 
 export interface ThoraxInputOptions {
   getPose: () => ProbePose;
   getTorso: () => Torso;
+  /** lus-sim (decisión 33): la posición del paciente decide hasta dónde se arrastra la sonda. */
+  getPosition: () => PatientPosition;
   setPose: (p: ProbePose) => void;
   frozen: () => boolean;
   mode: () => 'move' | 'orient';
@@ -18,7 +20,7 @@ export interface ThoraxInputOptions {
 export function bindThoraxInput(canvas: HTMLCanvasElement, options: ThoraxInputOptions): (() => void) & { cancel(): void } {
   let drag: { id: number; kind: 'move' | 'orient' | 'camera'; x: number; y: number } | null = null;
   const moveTo = (point: Vec3) => {
-    const p = surfacePose(point, options.getTorso(), options.getPose());
+    const p = surfacePose(point, options.getTorso(), options.getPose(), options.getPosition());
     if (p) options.setPose(p);
     else options.unavailable();
   };

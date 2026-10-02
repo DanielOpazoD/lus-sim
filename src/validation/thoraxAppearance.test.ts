@@ -16,7 +16,13 @@ const tr = CONVEX_C35;
 const sample = new PhysiologyEngine(defaultPatient()).sample;
 function acquisition(changes = {}) {
   const pose = { ...defaultPose(), ...changes };
-  return { pose, frame: probeContact(pose, tr, scene.torso).frame, sample, respiratoryPattern: 'quiet' as const };
+  return {
+    pose,
+    frame: probeContact(pose, tr, scene.torso).frame,
+    sample,
+    respiratoryPattern: 'quiet' as const,
+    position: 'supine' as const,
+  };
 }
 function checkMesh(data: MeshData): void {
   expect(data.positions.every(Number.isFinite)).toBe(true);

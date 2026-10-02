@@ -21,7 +21,13 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
       sim.advance(k === 0 ? 0 : 0.4);
       sim.render();
       expected.push(
-        snapshotAcquisition({ pose: sim.pose, frame: sim.frame, sample: sim.sample, respiratoryPattern: sim.patient.respiratoryPattern }),
+        snapshotAcquisition({
+          pose: sim.pose,
+          frame: sim.frame,
+          sample: sim.sample,
+          respiratoryPattern: sim.patient.respiratoryPattern,
+          position: 'supine',
+        }),
       );
     }
     expect(sim.renderer.cineCount).toBe(3);
@@ -65,7 +71,13 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
   it('el cuadro guardado no cambia al mutar los objetos de origen, incluidos los vectores y la respiración', () => {
     const { sim } = rig();
     sim.advance(0.2);
-    const source = { pose: sim.pose, frame: sim.frame, sample: sim.sample, respiratoryPattern: sim.patient.respiratoryPattern };
+    const source = {
+      pose: sim.pose,
+      frame: sim.frame,
+      sample: sim.sample,
+      respiratoryPattern: sim.patient.respiratoryPattern,
+      position: 'supine' as const,
+    };
     const expected = snapshotAcquisition(source);
     sim.render();
     source.pose.phi += 0.1;
@@ -96,6 +108,25 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
     expect(sim.patient.respiratoryPattern).toBe('deep');
     sim.renderer.showCine(1);
     expect(sim.displayedAcquisition.respiratoryPattern).toBe('deep');
+    sim.dispose();
+  });
+
+  it('la posición del paciente del cine es la adquirida (decisión 33): sentado en la espalda, aunque luego se tumbe', () => {
+    const { sim } = rig();
+    sim.patient.position = 'sitting';
+    sim.setPose({ ...sim.pose, phi: 1.4 * Math.PI });
+    sim.render();
+    expect(sim.displayedAcquisition.position).toBe('sitting');
+    sim.patient.position = 'supine';
+    sim.setPose(sim.pose);
+    sim.advance(0.4);
+    sim.render();
+    expect(sim.displayedAcquisition.position).toBe('supine');
+    expect(sim.displayedAcquisition.pose.phi).toBeCloseTo(1.2 * Math.PI, 12);
+    sim.frozen = true;
+    sim.renderer.showCine(0);
+    expect(sim.displayedAcquisition.position).toBe('sitting');
+    expect(sim.displayedAcquisition.pose.phi).toBeCloseTo(1.4 * Math.PI, 12);
     sim.dispose();
   });
 
@@ -156,6 +187,7 @@ describe('Metadatos de adquisición dentro del anillo', () => {
         frame: { ...sim.frame, face: [k, 2, 3] as [number, number, number] },
         sample: { ...sim.sample, t: k, resp: { ...sim.sample.resp, diaphragmCaudalMm: k * 2 } },
         respiratoryPattern: sim.patient.respiratoryPattern,
+        position: 'supine' as const,
       };
       ring.push(k, snapshotAcquisition(source));
       source.pose.z = -999;

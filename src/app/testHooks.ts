@@ -1050,6 +1050,9 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
 /** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
 function goTo(sim: Simulator, id: StartPoint['id']): void {
   const sp = START_POINTS.find((p) => p.id === id)!;
+  // lus-sim (decisión 33): cada punto con su posición (los de la espalda, sentado; los demás, supino), para que el resultado de
+  // un gancho no dependa del punto del gancho anterior
+  sim.patient.position = sp.position ?? 'supine';
   sim.setPose({ phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 });
   sim.advance(0.05);
 }

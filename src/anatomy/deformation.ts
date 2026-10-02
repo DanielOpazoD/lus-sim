@@ -36,11 +36,14 @@ const DIR: Vec3 = [0, 0, -1];
 /**
  * La inversa del campo respiratorio (lus-sim, decisión 22): bisección en z con `steps` pasos. El intervalo inicial mide D (la
  * excursión del instante), así que tras los pasos el punto medio queda a ≤ D/2^(steps + 1) de la raíz: con la excursión
- * profunda (53 mm), ≤ 0,026 mm, bajo la tolerancia declarada. Una bisección y no Newton: el error queda acotado con un número
+ * profunda (53 mm), ≤ 0,0065 mm, bajo la tolerancia declarada. Doce pasos y no diez (decisión 33): la CPU y la GPU pueden tomar
+ * distinta la última decisión por el redondeo de float32 y separarse un intervalo final, D/2^steps; con diez, 0,052 mm en el
+ * punto material, que en la cara del diafragma del receso posterior (|∂d/∂z| 0,45) movía su distancia 0,023 mm, sobre la cota
+ * de la cáscara de la e2e (0,02); con doce, ≤ 0,013 mm con 53 y ≤ 0,018 con los 75 del rango. Una bisección y no Newton: el error queda acotado con un número
  * fijo de pasos sin derivadas del peso (sus rampas son C¹ a trozos: la ley de altura tiene esquinas) y, con el campo
  * vertical, cada paso solo relee la tabla de la pared en la columna del punto y el corazón (lo demás no depende de z).
  */
-export const RESPIRATORY_INVERSE = Object.freeze({ steps: 10, toleranceMm: 0.05 });
+export const RESPIRATORY_INVERSE = Object.freeze({ steps: 12, toleranceMm: 0.05 });
 if (DIAPHRAGM_EXCURSION.params.deepMm.range![1] / 2 ** (RESPIRATORY_INVERSE.steps + 1) > RESPIRATORY_INVERSE.toleranceMm)
   throw new Error('la bisección del campo respiratorio no alcanza su tolerancia con la mayor excursión');
 

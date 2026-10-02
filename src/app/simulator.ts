@@ -107,6 +107,7 @@ export class Simulator {
         frame: this.lastFrame,
         sample: this.sample,
         respiratoryPattern: this.patient.respiratoryPattern,
+        position: this.patient.position ?? 'supine',
       }
     );
   }
@@ -170,6 +171,7 @@ export class Simulator {
         frame: this.lastFrame,
         pose: this.pose,
         respiratoryPattern: this.patient.respiratoryPattern,
+        position: this.patient.position ?? 'supine',
         compression: this.lastContact,
         transducer: this.transducer,
         bmode: this.bmode,

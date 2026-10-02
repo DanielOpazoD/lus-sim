@@ -7,6 +7,7 @@ import { SimulationSession } from './app/session';
 import type { Simulator } from './app/simulator';
 import { Store } from './app/store';
 import { NonFiniteStateError } from './physiology/engine';
+import type { PatientPosition } from './probe/probe';
 import { Banner } from './ui/controllers/banner';
 import { bindCine } from './ui/controllers/cine';
 import { bindGpuLifecycle } from './ui/controllers/gpuLifecycle';
@@ -128,8 +129,21 @@ function setPoseManual(p: Parameters<Simulator['setPose']>[0]): void {
   probeAnimator.cancel(); // cualquier gesto manual cancela la animación
   sim().setPose(p);
 }
+/**
+ * lus-sim (decisión 33): sentar o tumbar al paciente. La sonda se vuelve a acotar con la posición nueva (en supino, la que estaba
+ * en la espalda queda en el borde de la cama, 1,2π o −0,2π).
+ */
+function setPatientPosition(position: PatientPosition): void {
+  if (store.get().frozen) return;
+  const s = sim();
+  if ((s.patient.position ?? 'supine') === position) return;
+  probeAnimator.cancel();
+  s.patient.position = position;
+  s.setPose(s.pose);
+}
 const panel = new ControlPanel($('panel'), sim, store, dispatch, {
   setPose: setPoseManual,
+  setPosition: setPatientPosition,
   onResetPatient: () => {
     const error = session.resetPatient();
     if (error) banner.show(`No se pudo reiniciar el paciente: ${errorMessage(error)}`, 6000);
@@ -139,7 +153,10 @@ session.equipment.subscribe(() => panel.sync());
 // Carril izquierdo: los puntos de partida (la sonda se desliza hasta ellos) y la ayuda de la sonda
 const windows = new StartPointCards($('start-points'), {
   onPick: (sp) => {
-    if (!store.get().frozen) probeAnimator.goTo(sp);
+    if (store.get().frozen) return;
+    // lus-sim (decisión 33): los puntos de la espalda sientan al paciente
+    if (sp.position) setPatientPosition(sp.position);
+    probeAnimator.goTo(sp);
   },
   getPose: () => sim().displayedAcquisition.pose,
   getTorso: () => sim().scene.torso,

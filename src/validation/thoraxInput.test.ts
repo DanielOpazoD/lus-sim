@@ -3,7 +3,7 @@ import { AnatomyScene } from '../anatomy/scene';
 import { torsoSkinPoint } from '../anatomy/primitives';
 import type { Vec3 } from '../core/vec3';
 import { defaultPatient } from '../physiology/patientState';
-import { clampPose, defaultPose } from '../probe/probe';
+import { clampPose, defaultPose, type PatientPosition } from '../probe/probe';
 import { bindThoraxInput } from '../ui/thorax/input';
 
 type Handler = (event: never) => void;
@@ -52,12 +52,14 @@ function setup() {
     point: torsoSkinPoint(1.15 * Math.PI, 50, scene.torso) as Vec3 | 'probe' | 'blocked' | null,
     orbits: [] as number[][],
     unavailable: 0,
+    position: 'supine' as PatientPosition,
   };
   const dispose = bindThoraxInput(canvas as unknown as HTMLCanvasElement, {
     getPose: () => state.pose,
     getTorso: () => scene.torso,
+    getPosition: () => state.position,
     setPose: (p) => {
-      state.pose = clampPose(p);
+      state.pose = clampPose(p, state.position);
     },
     frozen: () => state.frozen,
     mode: () => state.mode,
@@ -98,6 +100,23 @@ describe('Gestos del navegador del tórax', () => {
     canvas.fire('pointerdown');
     expect(state.pose).toEqual(before);
     expect(state.unavailable).toBe(1);
+    dispose();
+  });
+
+  it('sentado (decisión 33) la misma espalda es alcanzable: el arrastre llega a la línea media posterior y la cruza', () => {
+    const { canvas, scene, state, dispose } = setup();
+    state.position = 'sitting';
+    state.point = torsoSkinPoint(1.3776 * Math.PI, 18.4, scene.torso);
+    canvas.fire('pointerdown');
+    expect(state.pose.phi).toBeCloseTo(1.3776 * Math.PI, 12);
+    expect(state.pose.z).toBeCloseTo(18.4, 9);
+    for (const phi of [1.49 * Math.PI, -0.49 * Math.PI, -0.4 * Math.PI]) {
+      state.point = torsoSkinPoint(phi, 18.4, scene.torso);
+      canvas.fire('pointermove', { clientX: 20 });
+      expect(state.pose.phi).toBeCloseTo(phi, 12);
+    }
+    canvas.fire('pointerup');
+    expect(state.unavailable).toBe(0);
     dispose();
   });
 
