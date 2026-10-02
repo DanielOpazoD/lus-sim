@@ -4,6 +4,7 @@ import * as lungApex from './lungApex';
 import * as lungBorder from './lungBorder';
 import * as lungCurtain from './lungCurtain';
 import * as ribcage from './ribcage';
+import * as spine from './spine';
 import * as wall from './wall';
 
 /**
@@ -49,6 +50,8 @@ export const ORGAN_MODULES: readonly OrganModule[] = [
     gpuOnly: { wallDepthsOf: 'gemela: `wallDepths` con las capas ya leídas (su cuarto argumento, `L`)' },
   },
   { id: 'ribcage', exports: ribcage, glsl: ribcage.RIBCAGE_GLSL },
+  // lus-sim (decisión 29): las apófisis espinosas, que la pared y la columna leen
+  { id: 'spine', exports: spine, glsl: spine.SPINE_GLSL },
   {
     id: 'lungBorder',
     exports: lungBorder,

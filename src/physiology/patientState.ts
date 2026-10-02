@@ -54,6 +54,12 @@ export interface PatientState {
   peepCmH2O: number;
   respiratoryRateMin: number;
   respiratoryPattern: RespiratoryPattern;
+  /**
+   * Posición del paciente (lus-sim, decisión 29): decúbito supino (por omisión) o sentado. Decide hasta dónde llega la sonda
+   * (`clampPose` de `probe/probe.ts`, con la misma unión): en supino, hasta por detrás de la axilar posterior; sentado, la
+   * espalda. La anatomía es la misma en las dos (ver `patient-position-anatomy` en `docs/LIMITATIONS.md`).
+   */
+  position?: 'supine' | 'sitting';
 
   // --- Hábito corporal y ventana ---
   habitus: {

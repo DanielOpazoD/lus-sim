@@ -193,6 +193,15 @@ ${ORGAN_MODULES.map((o) => o.glsl).join('\n')}
 // Profundidad bajo la cara interna de la pared (mm; 0 en la pleura parietal). Gemelo: AnatomyScene.insideWallMm
 float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }
 
+// Distancia con signo a la columna de VExUS (el cuerpo y el arco posterior; gemelo: sdSpine de primitives.ts)
+float sdSpine(vec3 m) {
+  float dBody = length(m.xy - uSpine.xy) - uSpine.z;
+  float ax = abs(m.x - uSpine.x) - uSpineArch.x;
+  float acy = 0.5 * (uSpineArch.y + uSpineArch.z);
+  float ay = abs(m.y - acy) - 0.5 * (uSpineArch.z - uSpineArch.y);
+  return min(dBody, length(max(vec2(ax, ay), 0.0)) + min(max(ax, ay), 0.0));
+}
+
 // La pared de classify: fuera del torso (aire), piel, costillas y las capas de la pared con sus caras (grasa
 // subcutánea, músculo y grasa preperitoneal, decisión 62). true si la muestra queda decidida (en c); si no,
 // depth y tn (profundidad y normal del torso) sirven al resto de classifyWith. La serie de la pleura (decisión
@@ -220,8 +229,11 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   if (d < wall) wl = wallLayersAt(u, m.z, wx);
   float skin = wl.x;
   tn = torsoNormal(m);
+  // lus-sim (decisión 29): la distancia a la columna, con las espinosas (la pared de la espalda cruza las espinosas y la cara
+  // posterior del arco)
+  float spn = min(spinousSd(m), sdSpine(m));
   // Capas de la pared (decisión 62, organs/wall.ts): cada muestra dibuja la cara de su capa más cercana
-  if (d < skin) { c.tissue = T_SKIN; c.bd = min(skin - d, wallCupolaBd(u, m.z)); c.n = tn; c.iface = IF_SKIN_FAT; c.ifd = skin - d; return true; }
+  if (d < skin) { c.tissue = T_SKIN; c.bd = min(min(skin - d, wallCupolaBd(u, m.z)), spn); c.n = tn; c.iface = IF_SKIN_FAT; c.ifd = skin - d; return true; }
   // La parrilla costal (lus-sim, decisión 16, organs/ribcage.ts), antes de la grasa subcutánea donde puede llegar (la
   // grasa no la corta): el esternón y las costillas del lado de la muestra; el hueso más cercano da la cortical al tejido
   // blando de fuera, el cartílago su pericondrio
@@ -233,19 +245,22 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
     if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -inD; c.tangent = ribTangent(m, ri); c.kc = ribCurvature(m, ri); }
     return true;
   }
+  // lus-sim (decisión 29): la columna dentro de la pared de la espalda, las espinosas y la cara posterior del arco (gemelo:
+  // classifyWall)
+  if (spn < 0.0) { c.tissue = T_VERTEBRA; c.bd = -spn; c.n = tn; return true; }
   if (d < wall) {
     // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, músculo sin caras
     // (gemelo: classifyWall de AnatomyScene)
     float cup = wallCupolaMm(u, m.z);
     if (cup >= CUPOLA_CAP && d >= wall - cup) {
-      c.tissue = T_MUSCLE; c.bd = min(min(d - (wall - cup), ribAny / 1.1), wallCupolaBd(u, m.z)); c.n = tn;
+      c.tissue = T_MUSCLE; c.bd = min(min(min(d - (wall - cup), ribAny / 1.1), spn), wallCupolaBd(u, m.z)); c.n = tn;
       return true;
     }
     // debajo de la fascia, músculo hasta la transversalis y la grasa preperitoneal hasta el peritoneo
     vec4 wd = wallDepthsOf(u, m.z, wl, wx.z);
     c.tissue = d < wd.y ? T_FAT : (d < wd.z ? T_MUSCLE : T_FAT);
     c.bd = d < wd.y ? min(d - skin, wd.y - d) : (d < wd.z ? min(d - wd.y, wd.z - d) : min(d - wd.z, wall - d));
-    c.bd = min(c.bd, ribAny / 1.1);
+    c.bd = min(min(c.bd, ribAny / 1.1), spn);
     // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (wallCupolaBd)
     c.bd = min(c.bd, wallCupolaBd(u, m.z));
     c.n = tn;
@@ -271,10 +286,12 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   float acy = 0.5 * (uSpineArch.y + uSpineArch.z);
   float ay = abs(m.y - acy) - 0.5 * (uSpineArch.z - uSpineArch.y);
   float dArch = length(max(vec2(ax, ay), 0.0)) + min(max(ax, ay), 0.0);
-  float dSpine = min(dBody, dArch);
+  // lus-sim (decisión 29): y las apófisis espinosas (su barra cruza la cara interna de la pared en la línea media)
+  float dSpinous = spinousSd(m);
+  float dSpine = min(min(dBody, dArch), dSpinous);
   if (dSpine < 0.0) {
     c.tissue = T_VERTEBRA; c.bd = -dSpine;
-    c.n = dBody < dArch ? normalize(vec3(m.xy - uSpine.xy, 0.0)) : (ax > ay ? vec3(sign(m.x - uSpine.x), 0.0, 0.0) : vec3(0.0, sign(m.y - acy), 0.0));
+    c.n = dSpinous <= min(dBody, dArch) ? vec3(0.0, -1.0, 0.0) : (dBody < dArch ? normalize(vec3(m.xy - uSpine.xy, 0.0)) : (ax > ay ? vec3(sign(m.x - uSpine.x), 0.0, 0.0) : vec3(0.0, sign(m.y - acy), 0.0)));
     return c;
   }
   // lus-sim (decisión 18): el arco de la muestra (el de classifyWall: lo calcula donde lo miran el tapón de la ventana

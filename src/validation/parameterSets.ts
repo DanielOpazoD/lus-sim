@@ -3,7 +3,8 @@ import { START_POINT_POSES } from '../app/startPoints';
 import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
-import { CLAVICLE, RIBCAGE } from '../anatomy/organs/ribcage';
+import { CLAVICLE, RIBCAGE, SCAPULA } from '../anatomy/organs/ribcage';
+import { SPINE } from '../anatomy/organs/spine';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
 import { COVERAGE } from '../app/coverage';
@@ -26,6 +27,8 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   TORSO,
   RIBCAGE,
   CLAVICLE,
+  SCAPULA,
+  SPINE,
   LUNG_APEX,
   THORAX_LINES,
   SCAPULAR_LINE,

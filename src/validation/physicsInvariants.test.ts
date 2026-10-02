@@ -224,8 +224,9 @@ describe('la sonda solo empuja: la compresión nunca estira ni tira del tejido',
     // apartó); con ∂s/∂ρ ≥ 0, dr/dd = 1 + ∂s/∂ρ ≥ 1 y nunca se estira a lo largo de la línea. Poses al azar del
     // dominio de clampPose en el tórax (φ de axilar posterior a axilar posterior, z del reborde a la clavícula),
     // con presión, flotación, basculación, inclinación y giro. Umbral: redondeo
+    // lus-sim (decisión 29): sentado, toda la vuelta (la espalda incluida)
     const poseArb = fc.record({
-      phi: fc.double({ min: -0.2 * Math.PI, max: 1.2 * Math.PI, noNaN: true }),
+      phi: fc.double({ min: -0.5 * Math.PI, max: 1.5 * Math.PI, noNaN: true }),
       z: fc.double({ min: -60, max: 140, noNaN: true }),
       lift: fc.double({ min: -6, max: 4, noNaN: true }),
       yaw: fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
@@ -234,7 +235,7 @@ describe('la sonda solo empuja: la compresión nunca estira ni tira del tejido',
     });
     fc.assert(
       fc.property(poseArb, fc.integer({ min: 0, max: CONVEX_C35.lines - 1 }), (raw: ProbePose, line) => {
-        const k = probeContact(clampPose(raw), CONVEX_C35, scene.torso);
+        const k = probeContact(clampPose(raw, 'sitting'), CONVEX_C35, scene.torso);
         const th = lineAngle(line, CONVEX_C35);
         for (let d = -2; d < k.reachMm + 5; d += 1.7) {
           const p = pointOnLine(k.frame, CONVEX_C35, th, d);

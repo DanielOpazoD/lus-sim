@@ -81,6 +81,27 @@ describe('clampPose: la sonda recorre los dos hemitórax', () => {
     expect(c.tilt).toBe(-0.7);
   });
 
+  it('sentado (decisión 29) la sonda da la vuelta al tronco: φ se envuelve en la línea media posterior, sin tope', () => {
+    const base: ProbePose = { phi: 0, z: 0, lift: 0, yaw: 0, rock: 0, tilt: 0 };
+    const at = (phi: number) => clampPose({ ...base, phi }, 'sitting').phi;
+    // la línea media posterior es el corte: 1,5π y −0,5π son el mismo sitio
+    expect(at(1.5 * Math.PI)).toBeCloseTo(-0.5 * Math.PI, 12);
+    expect(at(1.4 * Math.PI)).toBeCloseTo(1.4 * Math.PI, 12);
+    expect(at(-0.4 * Math.PI)).toBeCloseTo(-0.4 * Math.PI, 12);
+    // cualquier vuelta cae en [−π/2, 3π/2)
+    for (const phi of [-7, -2, 0.3, 3.1, 4.7, 9]) {
+      const w = at(phi);
+      expect(w).toBeGreaterThanOrEqual(-0.5 * Math.PI);
+      expect(w).toBeLessThan(1.5 * Math.PI);
+      expect(Math.cos(w)).toBeCloseTo(Math.cos(phi), 12);
+      expect(Math.sin(w)).toBeCloseTo(Math.sin(phi), 12);
+    }
+    // el resto de los límites, los del supino; y en supino, el tope de siempre
+    const c = clampPose({ phi: 1, z: 900, lift: -50, yaw: 0, rock: 2, tilt: -2 }, 'sitting');
+    expect([c.z, c.lift, c.rock, c.tilt]).toEqual([200, -6, 0.7, -0.7]);
+    expect(clampPose({ ...base, phi: 1.4 * Math.PI }).phi).toBeCloseTo(1.2 * Math.PI, 12);
+  });
+
   it('la velocidad de la sonda es el desplazamiento de su cara por segundo', () => {
     const a = probeFrame(defaultPose(), scene.torso, CONVEX_C35);
     const b = probeFrame({ ...defaultPose(), z: defaultPose().z + 2 }, scene.torso, CONVEX_C35);

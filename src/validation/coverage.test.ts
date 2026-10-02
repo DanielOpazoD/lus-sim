@@ -5,6 +5,7 @@ import { Tissue } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
 import {
   BORDER_MARGIN_MM,
+  SITTING_REACH,
   SUPINE_REACH,
   baseBorderZ,
   explorationCoverage,
@@ -33,21 +34,20 @@ const ics = (s: string, line: string, from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => `${s} ${line} EIC${from + i}`);
 
 /**
- * Celdas que aún no se cumplen (01-10-2026, medido: 68 de 138; en main, 62: el vértice y la fosa supraclavicular se cumplen desde
- * la decisión 27), con su motivo:
- *  - las 44 de la cara posterior (la escapular y la paravertebral, EIC 1–11, de los dos lados): en decúbito supino la sonda no
- *    pasa de 1,2π (por detrás de la axilar posterior derecha) ni de −0,2π, y no hay otra posición del paciente;
- *  - las 26 bajo el borde del pulmón: el diafragma está, pero debajo el abdomen es un tejido genérico, sin hígado ni bazo
- *    (`abdomen-generic-tissue`).
+ * Celdas que aún no se cumplen (02-10-2026, medido: 106 de 138; en main, 68: la cara posterior se alcanza sentado desde la
+ * decisión 29), con su motivo: las 32 bajo el borde del pulmón (13 por lado delante y al lado, y desde la decisión 29 las 3 de
+ * detrás: la escapular en los EIC 10–11 y la paravertebral en el 11): el diafragma está, pero debajo el abdomen es un tejido
+ * genérico, sin hígado ni bazo (`abdomen-generic-tissue`).
  */
 const NOT_YET_MET: ReadonlySet<string> = new Set([
-  ...BOTH.flatMap((s) => [...ics(s, 'LE', 1, 11), ...ics(s, 'PV', 1, 11)]),
   ...BOTH.flatMap((s) => [
     `${s} PE EIC6`,
     ...ics(s, 'LMC', 6, 8),
     ...ics(s, 'LAA', 7, 9),
     ...ics(s, 'LAM', 8, 10),
     ...ics(s, 'LAP', 9, 11),
+    ...ics(s, 'LE', 10, 11),
+    `${s} PV EIC11`,
   ]),
 ]);
 
@@ -78,7 +78,7 @@ describe('cobertura de exploración: cada celda', () => {
 });
 
 describe('cobertura de exploración: el total', () => {
-  // medido (01-10-2026): 68/138 (anterior 20/28, lateral 42/60, posterior 0/44, vértice 6/6); en main, 62/138
+  // medido (02-10-2026): 106/138 (anterior 20/28, lateral 42/60, posterior 38/44, vértice 6/6); en main, 68/138
   notYetMet('la cobertura es completa (meta v0.2.0: 100 %)', () => {
     expect(`${report.met}/${report.total}`).toBe(`${report.total}/${report.total}`);
   });
@@ -113,8 +113,9 @@ describe('cobertura de exploración: las celdas son las de la anatomía', () => 
       expect(cell(`${s} LMC EIC6`).expected).toBe('below');
       expect(cell(`${s} LAM EIC7`).expected).toBe('lung');
       expect(cell(`${s} LAM EIC8`).expected).toBe('below');
-      // detrás, T11 (la punta de la apófisis de T10): el EIC10 paravertebral es pulmón y el 11, lo de debajo
-      expect(cell(`${s} PV EIC10`).expected).toBe('lung');
+      // detrás, T11 (la punta de la apófisis de T10): el EIC10 paravertebral es borde (su centro, a 4,2 mm del de Gray desde que
+      // las costillas acaban junto a la transversa de 29,3 mm, decisión 29; antes, a 8,5: pulmón) y el 11, lo de debajo
+      expect(cell(`${s} PV EIC10`).expected).toBe('border');
       expect(cell(`${s} PV EIC11`).expected).toBe('below');
     }
   });
@@ -155,13 +156,13 @@ describe('cobertura de exploración: las celdas son las de la anatomía', () => 
     expect(cell('I PE EIC6').expected).toBe('heartOrBelow');
   });
 
-  it('la escápula con los brazos a los lados: la línea escapular de la 2.ª costilla al ángulo inferior (apófisis de T8)', () => {
+  it('la escápula con los brazos a los lados: la línea escapular del ángulo inferior (apófisis de T8) a la altura del superior', () => {
     for (const s of BOTH) {
       expect(cell(`${s} LE EIC1`).expected).toBe('lung');
       for (let n = 2; n <= 8; n++) expect(cell(`${s} LE EIC${n}`).expected, `${s} LE EIC${n}`).toBe('scapula');
       expect(cell(`${s} LE EIC9`).expected).toBe('lung');
-      // la paravertebral, a 6 cm de la línea media, queda por dentro del borde medial (≈ 8,5–9 cm): pulmón
-      for (let n = 1; n <= 10; n++) expect(cell(`${s} PV EIC${n}`).expected).toBe('lung');
+      // la paravertebral, a 6 cm de la línea media, queda por dentro del borde medial (≈ 9 cm, Pontin): pulmón
+      for (let n = 1; n <= 9; n++) expect(cell(`${s} PV EIC${n}`).expected).toBe('lung');
     }
   });
 });
@@ -202,6 +203,21 @@ describe('cobertura de exploración: el medidor mira lo que hay', () => {
     for (const c of back) expect(c.position, c.id).toBe('cualquiera');
     for (const c of back.filter((x) => x.expected === 'lung')) expect(c.content, c.id).toBe('lung');
     for (const c of back.filter((x) => x.expected === 'below')) expect(c.content, c.id).toBe('below');
+  });
+
+  it('sentado (decisión 29) alcanza la espalda; cada celda dice la primera posición que la alcanza (supino antes)', () => {
+    const pv = thoraxLinePhi('paravertebral', scene.torso, -1);
+    expect(SITTING_REACH.admit(longitudinalPose(pv, 0))).not.toBeNull();
+    expect(SITTING_REACH.admit(longitudinalPose(thoraxLinePhi('paravertebral', scene.torso, 1), 0))).not.toBeNull();
+    expect(SITTING_REACH.admit(longitudinalPose(1.5 * Math.PI, 0))).not.toBeNull();
+    expect(SITTING_REACH.admit(longitudinalPose(Math.PI / 2, 250))).toBeNull();
+    for (const c of report.cells.filter((x) => x.kind === 'ics')) {
+      const back = c.line === 'scapular' || c.line === 'paravertebral';
+      expect(c.position, c.id).toBe(back ? 'sitting' : 'supine');
+    }
+    // solo en supino, la espalda vuelve a quedar fuera
+    const supine = explorationCoverage(scene, [SUPINE_REACH]);
+    expect(supine.byRegion.posterior.met).toBe(0);
   });
 
   it('en supino no alcanza la espalda: el límite es el de clampPose', () => {

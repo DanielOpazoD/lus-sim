@@ -1,15 +1,25 @@
 import { chai, describe, expect, it } from 'vitest';
 import { Interface } from '../anatomy/interfaces';
-import { CLAVICLE, MAX_RIBS, RIBCAGE, probeHitPoint, ribLinePoint, ribTableZ } from '../anatomy/organs/ribcage';
+import {
+  CLAVICLE,
+  MAX_RIBS,
+  RIBCAGE,
+  SCAPULA_INDEX,
+  faceRib,
+  probeHitPoint,
+  ribLinePoint,
+  ribTableZ,
+  spinousTipZ,
+} from '../anatomy/organs/ribcage';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
-import { probeCenterContent } from '../app/coverage';
-import { torsoSkinPoint } from '../anatomy/primitives';
+import { SITTING_REACH, probeCenterContent } from '../app/coverage';
+import { torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { LUNG_BORDER, lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
-import { wallArc } from '../anatomy/organs/wall';
+import { wallArc, wallPerimeter } from '../anatomy/organs/wall';
 import { defaultPatient, type ChestHabitus, type PatientState } from '../physiology/patientState';
 import { RespiratoryModel } from '../physiology/respiratory';
 import { PhysiologyEngine } from '../physiology/engine';
@@ -346,7 +356,7 @@ describe('F-T08: la línea pleural 5 ± 1 mm bajo la superficie costal (signo de
   // línea costal»): para cada sombra costal entera del corte, la pleura de la primera línea sin hueso a cada lado frente a
   // la cresta de la costilla (`pleuraBelowRibCrestMm`), la media de los dos lados (el convexo hace el lado de fuera ≈ 1,7 mm
   // más hondo que el de dentro en una sombra lejos del centro). En los tres puntos de partida y en cortes de cada región
-  // (EIC4 de la LAA, EIC4 y EIC5 de la LAM, EIC3 de la LMC, EIC2 y EIC7 a 1,2π), con el avatar y con las variantes.
+  // (EIC4 de la LAA, EIC4 y EIC5 de la LAM, EIC3 de la LMC, EIC2 de la LAP y EIC7 a 1,2π; hasta la decisión 29, el EIC2 a 1,2π), con el avatar y con las variantes.
   // Medido (27-09-2026, decisiones 16 y 17): medias de 5,0–5,9 mm en todos; por lado, 3,9–7,6: en la subida de la pared
   // hacia la axila (del centro del EIC5 a la 4.ª costilla, `chest-wall-regional-approx`) la pleura se inclina ≈ 10° bajo
   // la 5.ª costilla y un lado queda ≈ 2,5 mm más hondo que el otro (EIC4 de la LAA, EIC5 de la LAM, el BLUE inferior). Con la
@@ -369,7 +379,12 @@ describe('F-T08: la línea pleural 5 ± 1 mm bajo la superficie costal (signo de
           ['EIC4 LAM', lam, 4],
           ['EIC5 LAM', lam, 5],
           ['EIC3 LMC', thoraxLinePhi('midclavicular', sc.torso), 3],
-          ['EIC2 1,2π', POSTERIOR, 2],
+          // (decisión 29) arriba a 1,2π la sonda está sobre la escápula (su sombra no es la de una costilla): el EIC2, en la LAP
+          ['EIC2 LAP', LAP, 2],
+          // y (decisión 29) la paravertebral, con la espalda alta más gruesa, arriba, en la transición y abajo
+          ['EIC5 PV', thoraxLinePhi('paravertebral', sc.torso), 5],
+          ['EIC7 PV', thoraxLinePhi('paravertebral', sc.torso), 7],
+          ['EIC8 PV', thoraxLinePhi('paravertebral', sc.torso), 8],
           ['EIC7 1,2π', POSTERIOR, 7],
         ]
       : [['EIC5 LAM', lam, 5]];
@@ -551,7 +566,8 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
   // 17,3–19,5; LAP EIC7–10 18,2; 1,2π EIC7–10 16,8. Fuera del rango: LMC EIC1 40,2 (el 1.er espacio bajo la medioclavicular,
   // `thorax-cylindrical-cage`) y EIC2 20,4; LAA EIC1 26,0; LAP EIC1–6 13,3–14,1 y 1,2π EIC1–6 12,4 (los espacios altos de
   // detrás, 11–12 mm de anatomía estimada: Gray los da más estrechos que delante y la base no los mide). Con el tronco de la
-  // decisión 28 (02-10-2026) cambian solo la LAA (EIC2–9 17,2–19,5; EIC1 26,5) y la LAP (EIC7–10 18,3; EIC1–6 13,6–13,9)
+  // decisión 28 (02-10-2026) cambian solo la LAA (EIC2–9 17,2–19,5; EIC1 26,5) y la LAP (EIC7–10 18,3; EIC1–6 13,6–13,9); con la escápula
+  // (decisión 29), a 1,2π los EIC1–6 quedan en parte bajo ella: 13,1; 40,0 (su sombra); 10,4; 13,1; 12,3; 12,6
   const visible = (phi: number, list: number[]) => list.map((n) => ({ n, img: intercostalImageWidthMm(scene, n, phi) }));
   const visibleOk: Array<[string, ReturnType<typeof visible>]> = [
     ['LMC', visible(LMC, [3, 6])],
@@ -579,7 +595,7 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
     expectVisible(visibleOk);
   });
 
-  notYetMet('A-T7 en los espacios altos: LMC EIC1–2, LAA EIC1, LAP EIC1 y 1,2π EIC1 (hoy 40,2 y 20,4; 26,5; 13,7; 12,4)', () => {
+  notYetMet('A-T7 en los espacios altos: LMC EIC1–2, LAA EIC1, LAP EIC1 y 1,2π EIC1 (hoy 40,2 y 20,4; 26,5; 13,7; 13,1)', () => {
     expectVisible(visibleHigh);
   });
 
@@ -605,6 +621,112 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
       for (const n of [7, 8, 9]) expect(intercostalImageWidthMm(scene, n, LAP)!, `EIC${n} LAP`).toBeLessThanOrEqual(18);
     },
   );
+});
+
+describe('A-T18: la escápula sentado, con los brazos a los lados (decisión 29)', () => {
+  // La base: el ángulo inferior a la altura de la apófisis de T8 ± 1 nivel (Cooperstein y cols., de pie; sentado, la base lo toma
+  // igual) y en la línea escapular (que pasa por él); el superior a 9,1 ± 1,1 cm de la línea media (Pontin y cols.); del uno al
+  // otro, 152,85 ± 16,77 mm (Garzón-Alfaro y cols., varones). Medido en la clasificación (el hueso a la mitad del grosor de la lámina, por la normal; las costillas quedan más
+  // hondas), no en la construcción, en una rejilla de 1 mm de piel por 1 mm de altura
+  const t = scene.torso;
+  const half = 0.5 * wallPerimeter(t);
+  /** φ de la piel a la distancia s de la línea media posterior, por la piel, en el lado `side`. */
+  const phiAtS = (s: number, side: -1 | 1): number => {
+    // de la línea media posterior (1,5π) hacia el lado: la derecha (−1) baja hacia π, la izquierda sube hacia 2π
+    let lo = 1.5 * Math.PI;
+    let hi = side < 0 ? Math.PI : 2 * Math.PI;
+    for (let i = 0; i < 60; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (half - Math.abs(wallArc(torsoSkinPoint(mid, 0, t), t)) < s) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  };
+  const plate = scene.ribCage.scapula;
+  const ndMid = plate.depth + 0.5 * plate.thickness;
+  const boneAt = (s: number, z: number, side: -1 | 1): boolean => {
+    const p = torsoSkinPoint(phiAtS(s, side), z, t);
+    const n = torsoNormal(p, t);
+    // la normal de la piel: la profundidad por la normal es la de la clasificación (la métrica de la pared, ≈ 1 detrás); el
+    // hueso de la escápula, no el de una costilla (al lado, la pared es más fina y las costillas suben a esa profundidad)
+    const m: Vec3 = [p[0] - n[0] * ndMid, p[1] - n[1] * ndMid, z];
+    if (scene.classify(m, BASELINE_INSTANT).tissue !== Tissue.Bone) return false;
+    return faceRib(m, t, scene.ribCage) === SCAPULA_INDEX;
+  };
+  const extent = (side: -1 | 1) => {
+    let zMin = Infinity;
+    let zMax = -Infinity;
+    let sAtTop = NaN;
+    let sAtAngle = NaN;
+    for (let z = -40; z <= 200; z += 1)
+      for (let s = 30; s <= 220; s += 1) {
+        if (!boneAt(s, z, side)) continue;
+        if (z < zMin) {
+          zMin = z;
+          sAtAngle = s;
+        }
+        if (z > zMax) {
+          zMax = z;
+          sAtTop = s;
+        }
+      }
+    return { zMin, zMax, sAtTop, sAtAngle };
+  };
+  const both = ([-1, 1] as const).map((side) => ({ side, ...extent(side) }));
+
+  it('el ángulo inferior, a la altura de la apófisis de T8 ± 1 nivel (Cooperstein): entre las de T7 y T9', () => {
+    for (const e of both) {
+      expect(e.zMin, `${e.side}`).toBeGreaterThanOrEqual(spinousTipZ(9) - 1);
+      expect(e.zMin, `${e.side}`).toBeLessThanOrEqual(spinousTipZ(7) + 1);
+    }
+  });
+
+  it('el ángulo superior a 9,1 ± 2 DE cm de la línea media (Pontin) y el inferior en la línea escapular (Moon y Kim; 8,5)', () => {
+    const lineS = half - Math.abs(wallArc(torsoSkinPoint(line('scapular'), 0, t), t));
+    for (const e of both) {
+      expect(e.sAtTop, `${e.side}`).toBeGreaterThanOrEqual(91 - 2 * 11);
+      expect(e.sAtTop, `${e.side}`).toBeLessThanOrEqual(91 + 2 * 11);
+      expect(Math.abs(e.sAtAngle - lineS), `${e.side}`).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('del ángulo superior al inferior, 152,85 ± 2 DE mm (Garzón-Alfaro, varones): el alto de la lámina en la clasificación', () => {
+    for (const e of both) {
+      // el alto vertical: el borde medial se inclina 24 mm en él (el largo es la recta entre los ángulos)
+      expect(e.zMax - e.zMin, `${e.side}`).toBeGreaterThanOrEqual(152.85 - 2 * 16.77 - 1);
+      expect(e.zMax - e.zMin, `${e.side}`).toBeLessThanOrEqual(152.85 + 2 * 16.77);
+    }
+  });
+
+  it('el plano horizontal por el ángulo inferior corta la 9.ª costilla junto a la columna (Treves, citado por Gray; A-T19)', () => {
+    const z9 = ribTableZ(scene.ribCage, 8, ribOf(scene, 9).uPost);
+    for (const e of both) expect(Math.abs(e.zMin - z9), `${e.side}`).toBeLessThanOrEqual(0.5 * ribHeightMm(scene, 9));
+  });
+
+  it('sentado, la sonda llega a la escápula: a 10,3 cm de la línea media, del EIC3 al 6.º, la línea central encuentra el hueso', () => {
+    // la línea escapular corre junto al borde medial (Pontin: casi vertical, a 9 cm); 1 cm por fuera, sobre la lámina
+    for (const side of [-1, 1] as const) {
+      const phi = phiAtS(103, side);
+      for (let n = 3; n <= 6; n++) {
+        const z = intercostalZ(scene, n, phi);
+        expect(SITTING_REACH.admit(longitudinalPose(phi, z)), `${side} EIC${n}`).not.toBeNull();
+        expect(probeCenterContent(scene, longitudinalPose(phi, z)).content, `${side} EIC${n}`).toBe('bone');
+      }
+    }
+  });
+
+  // Gray: con los brazos cruzados y el tronco flexionado la escápula va hacia delante y el EIC entre la 6.ª y la 7.ª costilla
+  // queda bajo la piel junto al borde medial (el triángulo de auscultación). El modelo solo tiene los brazos a los lados: 5 mm por
+  // fuera del borde medial, en ese espacio, la sonda encuentra la escápula
+  notYetMet('A-T18: con los brazos cruzados y el tronco flexionado, el EIC 6.º–7.º junto al borde medial queda libre (Gray)', () => {
+    for (const side of [-1, 1] as const) {
+      const sc = scene.ribCage.scapula;
+      const zc = intercostalZ(scene, 6, phiAtS(80, side));
+      const f = (zc - sc.inferior[1]) / (sc.superior[1] - sc.inferior[1]);
+      const sBorder = sc.inferior[0] + f * (sc.superior[0] - sc.inferior[0]);
+      expect(probeCenterContent(scene, longitudinalPose(phiAtS(sBorder + 5, side), zc)).content, `${side}`).toBe('lung');
+    }
+  });
 });
 
 describe('A-T19: oblicuidad costal', () => {
@@ -642,14 +764,15 @@ describe('A-T19: oblicuidad costal', () => {
 
   // Robinson y cols. (hombres): el ángulo sagital de la 7.ª, 61,1 ± 7,7° respecto de la línea posterior (29 ± 7,7 bajo el plano
   // transversal), y el de la 1.ª, 58,9 ± 8,2 (31 ± 8,2). Medido (27-09-2026): la 7.ª, 36,2°; la 1.ª, 17,6: cae 47,7 mm, lo
-  // que baja la real, pero a lo largo de los 150 mm de profundidad del cilindro (`thorax-cylindrical-cage`)
-  it('la 7.ª costilla desciende 29 ± 7,7° bajo el plano transversal en el plano sagital (Robinson y cols.; 36,2)', () => {
+  // que baja la real, pero a lo largo de los 150 mm de profundidad del cilindro (`thorax-cylindrical-cage`). Con el tronco de
+  // 226 mm (decisión 28), 32,2 y 15,2; con las costillas hasta la transversa de la TAC y la espalda alta (decisión 29), 31,8 y 15,0
+  it('la 7.ª costilla desciende 29 ± 7,7° bajo el plano transversal en el plano sagital (Robinson y cols.; 31,8)', () => {
     const a = ribSagittalAngleDeg(scene, 7);
     expect(a).toBeGreaterThanOrEqual(29 - 7.7);
     expect(a).toBeLessThanOrEqual(29 + 7.7);
   });
 
-  notYetMet('la 1.ª costilla desciende 31 ± 8,2° bajo el plano transversal (Robinson y cols.; hoy 17,6: el tronco cilíndrico)', () => {
+  notYetMet('la 1.ª costilla desciende 31 ± 8,2° bajo el plano transversal (Robinson y cols.; hoy 15,0: el tronco cilíndrico)', () => {
     const a = ribSagittalAngleDeg(scene, 1);
     expect(a).toBeGreaterThanOrEqual(31 - 8.2);
     expect(a).toBeLessThanOrEqual(31 + 8.2);

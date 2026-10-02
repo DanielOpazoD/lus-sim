@@ -15,7 +15,17 @@ describe('Módulos de órgano', () => {
     // lus-sim (decisión 16): la parrilla costal, propia, tras la pared (usa su `wallArc`); (decisión 17) la pared torácica
     // por región, antes de la pared (la pared lee sus capas); (decisión 18) los bordes del pulmón y el corazón, antes de la
     // cortina (que los lee); (cobertura torácica) la cúpula pleural, antes de la pared torácica (que suma su grosor)
-    expect(ORGAN_MODULES.map((o) => o.id)).toEqual(['lungApex', 'chestWall', 'wall', 'ribcage', 'lungBorder', 'heart', 'lungCurtain']);
+    // (decisión 29) las apófisis espinosas, tras la parrilla (usan la altura de sus vértebras)
+    expect(ORGAN_MODULES.map((o) => o.id)).toEqual([
+      'lungApex',
+      'chestWall',
+      'wall',
+      'ribcage',
+      'spine',
+      'lungBorder',
+      'heart',
+      'lungCurtain',
+    ]);
   });
 
   for (const o of ORGAN_MODULES) {

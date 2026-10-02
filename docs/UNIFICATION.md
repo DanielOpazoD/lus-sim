@@ -53,6 +53,11 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
   lus-sim, que lo ahonda con la profundidad del tórax de ANSUR II en los varones de IMC 18,5–25 (225,8 ± 15,8 mm) para que quepan
   la caja de Robinson y la pared posterior de sus fuentes. La columna va con la piel de la espalda. Un paciente común tendrá un
   solo tronco (o un tronco cuya sección cambie con la altura: el tórax no es el abdomen).
+- **La posición del paciente y la espalda** (decisión 29): lus-sim suma al paciente su posición (`position`: supino o
+  sentado), que solo cambia lo que alcanza la sonda (`clampPose(pose, position)`; en VExUS, el supino de siempre); la escápula
+  (una lámina en la clasificación de la parrilla) y las apófisis espinosas (un módulo de órgano nuevo, `organs/spine.ts`), y
+  las transversas hasta 29,3 mm de la línea media (en VExUS, 40). El paciente común tendrá la posición en su estado; el abdomen
+  de VExUS se explora en supino y en decúbito lateral, que lus-sim aún no tiene.
 - **La numeración de decisiones y limitaciones**: prefijo por módulo o numeración nueva.
 
 ## Pasos previstos al unir

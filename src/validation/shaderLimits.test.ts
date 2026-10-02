@@ -224,11 +224,12 @@ describe('Límites del shader con margen para crecer', () => {
     // a 8); con la parrilla del paso C1 (decisión 16: `uRibs` de 6 a 24, más `uSternum` y `uSternumW`), 105 y 107; con la
     // pared torácica por región (decisión 17: `uChestWall`), 106 y 108; con el corazón (decisión 18: sus seis `uHeart*`),
     // 112 y 114 (el miocardio, 31 tejidos, cabe en los 8 vec4 de las tablas por tejido); con la cúpula pleural y la clavícula
-    // (cobertura torácica: `uCupola`, `uClavicle`, `uClavicleR`), 115 y 117. Si el recuento dejara de ver los
+    // (cobertura torácica: `uCupola`, `uClavicle`, `uClavicleR`), 115 y 117; con la escápula (decisión 29: `uScapula`,
+    // `uScapulaB`; las apófisis espinosas van en la ranura libre de `uSpineArch`), 117 y 119. Si el recuento dejara de ver los
     // arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
-    expect(raw.slots).toBe(115);
+    expect(raw.slots).toBe(117);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);

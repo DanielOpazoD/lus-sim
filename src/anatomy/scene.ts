@@ -38,24 +38,30 @@ import {
   ribSd,
   ribTableZ,
   ribTangent,
+  setRibPosteriorEnds,
+  fitScapula,
   type RibCage,
   type RibCageOptions,
   type RibSpec,
 } from './organs/ribcage';
 import {
+  CHEST_WALL,
   DEFAULT_CHEST_HABITUS,
   buildChestWall,
   respiratoryWallBlendMm,
   respiratoryWallOf,
   setChestWallApex,
   setChestWallCage,
+  skinArc,
   wallCupolaBd,
   wallCupolaMm,
   wallColumnTexel,
+  wallLayersAt,
   type ChestWall,
 } from './organs/chestWall';
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { CUPOLA_CAP_MM, LUNG_APEX, lungApexColumns } from './organs/lungApex';
+import { SPINE, spinousSd, type SpinousSpec } from './organs/spine';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
@@ -221,6 +227,8 @@ export class AnatomyScene {
    */
   readonly respiratoryHeight: { readonly baseZ: number; readonly topZ: number };
   readonly spine: Spine;
+  /** Las apófisis espinosas (lus-sim, decisión 29). */
+  readonly spinous: SpinousSpec;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
     const fat = patient.habitus.subcutaneousFatMm;
@@ -247,18 +255,38 @@ export class AnatomyScene {
     // lo cruza en el 9.º cartílago, con su línea media a −90 mm).
     // Columna: cuerpo vertebral de 36 mm justo por detrás de cava y aorta (su cara
     // posterior queda a 42 mm de la piel dorsal); arco posterior con
-    // apófisis transversas de 40 mm a cada lado. Las costillas terminan en ellas.
+    // apófisis transversas a cada lado (lus-sim, decisión 29: hasta 29,3 mm de la línea media, `anatomy.spine`; en VExUS, 40).
+    // Las costillas terminan en ellas.
     // lus-sim (decisión 28): la columna va con la piel de la espalda (en VExUS, con b = 105: el cuerpo en −46, el arco de −78 a
     // −58)
     const back = -base.b;
-    this.spine = { kind: 'cylinderZ', x0: 0, y0: back + 59, r: 17, archHalfWidth: 40, archY0: back + 27, archY1: back + 47 };
+    const SP = SPINE.params;
+    this.spine = {
+      kind: 'cylinderZ',
+      x0: 0,
+      y0: back + 59,
+      r: 17,
+      archHalfWidth: SP.transverseTipMm.value,
+      archY0: back + 27,
+      archY1: back + 47,
+    };
+    // lus-sim (decisión 29): las apófisis espinosas, de la cara posterior del arco a su punta bajo la piel; con la piel y la grasa
+    // del hábito en la línea media posterior (la punta, en el avatar, 4,5 mm bajo ellas)
+    const midline = wallLayersAt(this.chestWall, this.chestWall.stations.posteriorMidline, 80);
+    const CW = CHEST_WALL.params;
+    const tipDepth = SP.spinousTipDepthMm.value + midline.skin + midline.fat - CW.skinPosteriorMm.value - CW.fatPosteriorMm.value;
+    this.spinous = { tipY: back + tipDepth, radius: SP.spinousRadiusMm.value };
     // La parrilla del adulto promedio (decisión 16): forra la cara interna de la pared de este hábito, con z = 0 en la
     // unión xifoesternal (el 7.º cartílago), al nivel del disco T9–T10 (Gray), y sus extremos posteriores en las
     // apófisis transversas de la columna
     const female = chest.sex === 'female';
+    // la escápula (decisión 29), bajo la piel y la grasa de la espalda del hábito: las de la línea escapular, a media altura del
+    // tórax
+    const scapulaLayers = wallLayersAt(this.chestWall, skinArc(thoraxLinePhi('scapular', walled), walled), 80);
     this.ribCage = buildRibCage(walled, this.spine, {
       icsDeltaMm: female ? -RIBCAGE.params.femaleIcsNarrowingMm.value : 0,
       female,
+      scapulaCoverMm: scapulaLayers.skin + scapulaLayers.fat,
       ...ribOptions,
     });
     this.ribs = this.ribCage.ribs;
@@ -297,6 +325,11 @@ export class AnatomyScene {
       Math.abs(wallArc(torsoSkinPoint(-Math.acos(CLAVICLE.params.medialEndXMm.value / walled.a), 0, walled), walled)),
     );
     setChestWallApex(this.chestWall, apex.zApex, apex.zTop);
+    // lus-sim (decisión 29): con la pared ya construida (la espalda alta, más gruesa), los extremos posteriores de las costillas
+    // vuelven a la punta de las transversas más 6 mm
+    setRibPosteriorEnds(cage, walled, this.spine.archHalfWidth + 6);
+    // y la escápula, recortada por fuera hasta caber sobre las costillas (la pared adelgaza hacia la axila)
+    fitScapula(cage, walled, female, scapulaLayers.skin + scapulaLayers.fat);
     this.torso = { ...walled, lungBorder: this.lungBorder };
     // Las cúpulas de VExUS: sus elipses van con la cara interna de la pared (decisión 17: con la pared torácica por región se
     // escalan con ella, al lado y delante); lus-sim (decisión 18): sus vértices, el de la base en FRC (la derecha en el 5.º
@@ -560,11 +593,14 @@ export class AnatomyScene {
     const wall = torso.chestWall ? torso.chestWall.total(u, m[2]) : torso.skinMm + torso.fatMm + torso.muscleMm;
     const L = d < wall ? wallLayers(torso, u, m[2]) : null;
     const skin = L ? L.skin : 0;
+    // lus-sim (decisión 29): la distancia a la columna, con las apófisis espinosas (la pared de la espalda, 28–35 mm, cruza las
+    // espinosas y la cara posterior del arco, a 27 mm)
+    const spine = Math.min(spinousSd(m, this.spine, this.spinous), sdSpine(m, this.spine));
     // la cara de la capa más cercana; la distancia a la frontera cuenta el hueso o cartílago más cercano (|∇| ≤ 1,1)
     const layer = (tissue: Tissue, bd: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
       const [face, dist] = wallFace(d, u, m[2], ribD, torso, caudalMm);
       // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (`wallCupolaBd`)
-      const boundaryDistance = Math.min(bd, ribAny / 1.1, wallCupolaBd(this.chestWall, u, m[2]));
+      const boundaryDistance = Math.min(bd, ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]));
       return { final: true, cls: { ...NONE, tissue, boundaryDistance, interface: face, interfaceDistance: dist } };
     };
     if (d < skin) return layer(Tissue.Skin, skin - d, 1e3, 1e3);
@@ -579,15 +615,17 @@ export class AnatomyScene {
         cls: { ...NONE, tissue: scan.cartilage ? Tissue.Cartilage : Tissue.Bone, boundaryDistance: -scan.inD, ...face },
       };
     }
+    // lus-sim (decisión 29): la columna dentro de la pared de la espalda (las espinosas y la cara posterior del arco)
+    if (spine < 0) return { final: true, cls: { ...NONE, tissue: Tissue.Vertebra, boundaryDistance: -spine } };
     // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, las partes blandas
     // del cuello y del hombro: músculo sin caras (las de la pared quedarían más allá del centro del tronco)
     const cup = wallCupolaMm(this.chestWall, u, m[2]);
     if (cup >= CUPOLA_CAP_MM && d < wall && d >= wall - cup) {
-      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, wallCupolaBd(this.chestWall, u, m[2]));
+      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]));
       return { final: true, cls: { ...NONE, tissue: Tissue.Muscle, boundaryDistance: bd } };
     }
     if (d >= wall) {
-      const dSpine = sdSpine(m, this.spine);
+      const dSpine = spine;
       if (dSpine < 0) return { final: true, cls: { ...NONE, tissue: Tissue.Vertebra, boundaryDistance: -dSpine } };
       return { final: false, wallMm: wall };
     }

@@ -7,6 +7,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- La espalda (29): el paciente sentado (`PatientState.position`; la sonda da la vuelta al tronco), la escápula con los brazos a
+  los lados (una lámina de 3 mm bajo la piel, la grasa y el trapecio, con el ángulo inferior a la altura de la apófisis de T8 en
+  la línea escapular y el superior a 9 cm de la línea media, Cooperstein, Pontin, Garzón-Alfaro; meta A-T18), las apófisis
+  espinosas (la punta a 11 mm de la piel, Grünwald) y las transversas hasta 29,3 mm de la línea media (Li; en VExUS, 40). La
+  espalda alta, con la escápula, más gruesa (32 mm de piel a pleura junto a la columna, Wada y Okçu). Cobertura de
+  exploración: 68 → 106 de 138 (la cara posterior, 0 → 38 de 44). Las notas de evidencia de los parámetros salen del build
+  (35 kB menos en la entrada, 284,1 → 249,0 kB, sin subir el presupuesto).
+
 - El vértice (27): la cúpula pleural sobre la 1.ª costilla (la pared engruesa hasta cerrarse a 25 mm sobre el tercio medial de
   la clavícula, Gray) y la clavícula subcutánea con su sombra (15,6 cm y 14 mm, Yang). La fosa supraclavicular ve la cúpula
   con su pleura; el pulmón ya no sube hasta el tope del tronco. Metas A-T23 y A-T24. Cobertura de exploración: 62 → 68 de 138.
@@ -123,6 +131,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
+  pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
 - El tronco con la profundidad del tórax (28): 320 × 226 mm de piel (ANSUR II, varones de IMC 18,5–25; en VExUS, 320 × 210), la
   columna atada a la piel de la espalda y la pared junto a la columna de 28 mm (Folli, Okçu; antes ≈ 21 en la paravertebral). La
   caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la

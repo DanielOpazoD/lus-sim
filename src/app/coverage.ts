@@ -3,7 +3,7 @@ import type { Vec3 } from '../core/vec3';
 import { AnatomyQuery } from '../anatomy/query';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { LUNG_BORDER } from '../anatomy/organs/lungBorder';
-import { CLAVICLE, RIBCAGE, ribLineArc, ribTableZ } from '../anatomy/organs/ribcage';
+import { CLAVICLE, SCAPULA, ribLineArc, ribTableZ, spinousTipZ, vertebraZ } from '../anatomy/organs/ribcage';
 import { wallArc } from '../anatomy/organs/wall';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../anatomy/scene';
@@ -11,7 +11,7 @@ import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
 import type { RespiratorySample } from '../physiology/respiratory';
 import { probeContact } from '../probe/contact';
-import { CONVEX_C35, clampPose, lineDirection, pointOnLine, type ProbePose, type Transducer } from '../probe/probe';
+import { CONVEX_C35, clampPose, lineDirection, pointOnLine, type PatientPosition, type ProbePose, type Transducer } from '../probe/probe';
 import { pleuraCrossingLine } from '../ultrasound/transmission';
 
 /**
@@ -20,7 +20,8 @@ import { pleuraCrossingLine } from '../ultrasound/transmission';
  * (paraesternal, medioclavicular, axilares anterior, media y posterior, escapular y paravertebral), el vértice y la fosa
  * supraclavicular, y en cada celda pregunta lo que pregunta el alumno con la sonda en la mano:
  *
- *  (i) ¿se puede apoyar ahí la sonda, en alguna posición del paciente admitida (hoy, el decúbito supino de `clampPose`)?
+ *  (i) ¿se puede apoyar ahí la sonda, en alguna posición del paciente admitida (el decúbito supino y, desde la decisión 29, el
+ *       paciente sentado: `clampPose`)?
  *  (ii) ¿bajo la pared está lo que la base pone ahí? Pulmón con su pleura; la ventana cardiaca; bajo el borde del pulmón en
  *       FRC, el diafragma y el órgano de debajo (el hígado a la derecha; a la izquierda, el hígado o el bazo); o, en la línea
  *       escapular con los brazos a los lados, el borde medial de la escápula. El borde se toma de los anclajes de Gray en la
@@ -45,19 +46,6 @@ export const COVERAGE = defineParameters('app.coverage', {
     note:
       'Dónde se apoya la sonda en la fosa supraclavicular para buscar el vértice: sobre la unión de los tercios medial y medio ' +
       'de la clavícula (el vértice está tras el tercio medial, Gray): 2 + 15,6/3 ≈ 7 cm [SUPUESTO: la base no sitúa la fosa]',
-  },
-  scapulaInferiorAngleSpinous: {
-    value: 8,
-    unit: 'apófisis espinosa',
-    range: [7, 9],
-    evidence: 'documentado',
-    sources: ['cooperstein-escapula-2015', 'gray-anatomia-1918'],
-    note:
-      'El ángulo inferior de la escápula, de pie y con los brazos a los lados, a la altura de la apófisis espinosa de T8 (nivel ' +
-      'medio 8,01 en el metaanálisis de 5 estudios, 343 personas; el 85,4 % a un nivel o menos de T8; Cooperstein 2015, texto ' +
-      'completo). Gray dice T7 [DISCREPANCIA]. Sentado, la base lo toma igual (A-T18). La punta de la apófisis de T8 está a la ' +
-      'altura del cuerpo de T9 (la regla de los tres, como el borde posterior del pulmón en `anatomy.lungBorder`). La escápula ' +
-      'cubre de la 2.ª a la 7.ª costilla (Gray)',
   },
 });
 
@@ -113,19 +101,25 @@ export interface PositionReach {
   admit: (pose: ProbePose) => ProbePose | null;
 }
 
+/** La sonda en la pose, si `clampPose` la deja ahí con el paciente en la posición `position` (el ángulo, en cualquier vuelta). */
+function reachIn(position: PatientPosition): PositionReach {
+  return {
+    id: position,
+    admit: (pose) => {
+      for (const k of [0, 1, -1]) {
+        const p = { ...pose, phi: pose.phi + 2 * Math.PI * k };
+        const c = clampPose(p, position);
+        if (Math.abs(c.phi - p.phi) < 1e-9 && Math.abs(c.z - p.z) < 1e-9) return c;
+      }
+      return null;
+    },
+  };
+}
+
 /** Decúbito supino: la sonda donde `clampPose` la deja (de −0,2π a 1,2π, por detrás de las axilares posteriores; z ±200). */
-export const SUPINE_REACH: PositionReach = {
-  id: 'supine',
-  admit: (pose) => {
-    // el ángulo puede darse en cualquier vuelta: se prueba la que cae en el dominio
-    for (const k of [0, 1, -1]) {
-      const p = { ...pose, phi: pose.phi + 2 * Math.PI * k };
-      const c = clampPose(p);
-      if (Math.abs(c.phi - p.phi) < 1e-9 && Math.abs(c.z - p.z) < 1e-9) return c;
-    }
-    return null;
-  },
-};
+export const SUPINE_REACH: PositionReach = reachIn('supine');
+/** Sentado (decisión 29): la sonda da toda la vuelta al tronco; la cara posterior, como en la clínica. */
+export const SITTING_REACH: PositionReach = reachIn('sitting');
 
 const END_EXPIRATION: RespiratorySample = {
   phase: 0,
@@ -222,10 +216,8 @@ function ribReaches(scene: AnatomyScene, n: number, phi: number, side: CoverageS
   return au >= r.uEnd && au <= r.uPost;
 }
 
-/** z (mm) del cuerpo de la vértebra torácica n (z = 0 en el disco T9–T10, `anatomy.ribcage.thoracicSegmentMm`). */
-export function vertebraZ(n: number): number {
-  return (9.5 - n) * RIBCAGE.params.thoracicSegmentMm.value;
-}
+/** z (mm) del cuerpo de la vértebra torácica n (lus-sim, decisión 29: la de la parrilla, `organs/ribcage.ts`). */
+export { vertebraZ };
 
 /**
  * El borde inferior del pulmón en FRC bajo la línea, según la base (los anclajes de Gray de `anatomy.lungBorder`, cada uno a
@@ -267,7 +259,10 @@ export const BORDER_MARGIN_MM = 8;
 /**
  * La cobertura de exploración de la escena con las posiciones del paciente admitidas (`positions`). Fin de espiración.
  */
-export function explorationCoverage(scene: AnatomyScene, positions: readonly PositionReach[] = [SUPINE_REACH]): CoverageReport {
+export function explorationCoverage(
+  scene: AnatomyScene,
+  positions: readonly PositionReach[] = [SUPINE_REACH, SITTING_REACH],
+): CoverageReport {
   const cells: CoverageCell[] = [];
   const t = scene.torso;
   const C = COVERAGE.params;
@@ -367,12 +362,14 @@ function expectationOf(
     if (ics === 4 || ics === 5) return 'heart';
     if (ics === 6) return 'heartOrBelow';
   }
-  // la línea escapular con los brazos a los lados pasa por el ángulo inferior de la escápula y sube por su borde medial: de
-  // la 2.ª costilla (Gray) al ángulo inferior (T8, Cooperstein), el hueso o el pulmón junto a él
+  // la línea escapular con los brazos a los lados pasa por el ángulo inferior de la escápula y sube junto a su borde medial: del
+  // ángulo inferior (la apófisis de T8, Cooperstein) a la altura del superior, su largo más arriba (Garzón-Alfaro), el hueso o el
+  // pulmón junto a él (decisión 29: antes, hasta la 2.ª costilla, atribuido a Gray; no está en la edición de 1918)
   if (line === 'scapular') {
-    // la punta de la apófisis espinosa de T7–T10 queda a la altura del cuerpo de la vértebra de debajo (la regla de los tres)
-    const angle = vertebraZ(COVERAGE.params.scapulaInferiorAngleSpinous.value + 1);
-    if (z >= angle - BORDER_MARGIN_MM && z <= ribZ(scene, 2, phi, side)) return 'scapula';
+    const S = SCAPULA.params;
+    const angle = spinousTipZ(S.inferiorAngleSpinous.value);
+    const length = scene.chestWall.habitus.sex === 'female' ? S.lengthFemaleMm.value : S.lengthMm.value;
+    if (z >= angle - BORDER_MARGIN_MM && z <= angle + length) return 'scapula';
   }
   if (z > bHi + BORDER_MARGIN_MM) return 'lung';
   if (z < bLo - BORDER_MARGIN_MM) return 'below';
