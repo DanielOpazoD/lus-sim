@@ -7,6 +7,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
+    # @types/node sigue la versión mayor del runtime (.nvmrc): su mayor se sube a mano junto con .nvmrc
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     # Los grupos solo reúnen minor/patch: cada versión mayor llega en su propia PR (es una migración)
     groups:
       desarrollo:
