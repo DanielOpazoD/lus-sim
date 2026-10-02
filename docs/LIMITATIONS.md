@@ -298,6 +298,11 @@ conservan su identificador (decisiones 10 y 11).
   validación clínica. La comparación con sujetos reservados se documenta por separado; los agregados ya eran conocidos,
   por lo que la partición no constituye validación independiente o ciega.
 
+  Decisión 35: con R_t 0,1 (el borde de abajo de su rango con fuente, ajustado con la exploración), M de la pared queda en
+  1,20–1,40 (exploración 0,85–1,40; el BLUE superior, en su borde), A2 r₂ en 0,35–0,40 (0,17–0,25) y se ve una línea A,
+  como en los clips; M de la neblina, 1,41–1,54 frente a 0,87–1,00: la neblina sigue 0,05–0,28 caídas por debajo de la
+  pared, y ningún σz, R_t ni K lo cambia. Falta un mecanismo de la neblina (decisión 34: no es lo difuso de la pleura).
+
   Referencia histórica de la decisión 21, con K = 55 dB y R_t = 0,3: el rango dinámico
   (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido
   con el banco de fidelidad en la imagen mostrada, la pared y la neblina subpleural a 1,6–1,9 y 1,8–2,0 caídas de línea A bajo

@@ -37,3 +37,5 @@ Generado por `npm run docs:index` — no editar a mano.
 | [31](DECISIONS.md#L2346) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
 | [32](DECISIONS.md#L2487) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
 | [33](DECISIONS.md#L2598) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
+| [34](DECISIONS.md#L2721) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
+| [35](DECISIONS.md#L2775) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |

@@ -404,7 +404,7 @@ float pleuraCapMm(float D, float step) { return (max(ceil(D / step - 0.5) - 1.0,
 export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
-const float PLEURA_RT = ${glslFloat(PLEURA_RT)};
+uniform float uPleuraRt; // R_t (normalCalibration.ts); el barrido de calibración la cambia
 const float SLIDING_AMP = ${glslFloat(slidingAmplitude(0))};
 const float SLIDING_EFOLD_MM = ${glslFloat(SLIDING_EFOLD_MM)};
 const float SLIDING_LAT_MM = ${glslFloat(SLIDING_LAT_MM)};
@@ -415,7 +415,7 @@ const float PLEURA_WALL_FIELD_BOUND = ${glslFloat(PLEURA_WALL_FIELD_BOUND)};
 const float WALL_COPY_FACE_GAIN = ${glslFloat(WALL_COPY_FACE_GAIN)};
 ${PLEURA_CAP_GLSL}// χ de Ament de la pleura parietal: la parte coherente de su reflexión especular
 float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }
-float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * PLEURA_RT * tD; }
+float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * uPleuraRt * tD; }
 float seriesPow(float g, float n) { return n < 0.5 ? 1.0 : pow(max(g, 1e-30), n); }
 // (n, d espejo, d directa) a la distancia s > D
 vec3 pleuraSeriesDepths(float s, float D) {
