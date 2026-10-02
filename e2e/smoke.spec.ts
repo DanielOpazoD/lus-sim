@@ -44,7 +44,7 @@ const twoFrames = (page: Page) =>
  * `lit`, la fracción de píxeles con gris > 40. lus-sim (decisión 20): con el preajuste pulmonar la línea pleural no satura
  * (consenso: Demi 2023) y queda a 1–2 dB del blanco, gris 243–249. La captura se decodifica en Node y no en la página
  * (decisión 29): en el CI, con la imagen en vivo, decodificarla en la página (una imagen y un lienzo 2D que la GPU de
- * SwiftShader, ocupada con los cuadros, tiene que devolver) tardó más de 25 s y la espera de 90 s se agotó sin una muestra.
+ * SwiftShader, ocupada con los cuadros, tiene que devolver) tarda 19–41 s, y en Node 0,02 s.
  */
 async function screen(page: Page): Promise<{ max: number; lit: number; mean: number; png: string }> {
   const buf = await page.locator('#gl').screenshot();
@@ -214,8 +214,9 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   page,
 }) => {
   // Decisión 29: se esperan hechos (el renderizador nuevo dibujó sus cuadros) y no un plazo para la pantalla. Medido en el
-  // CI (PR #38): el renderizador nuevo se arma en 20 ms y dibuja su primer cuadro a los 3,8 s de restaurar el contexto; lo
-  // lento era mirar: con la imagen en vivo, una captura del lienzo tarda ~25 s y decodificarla en la página otros ~22 s.
+  // CI (PR #38, 12 medidas en 3 corredores): el renderizador nuevo se arma en 13–22 ms y dibuja su primer cuadro a los 3,4–6,7 s
+  // de restaurar el contexto; lo lento era mirar: con la imagen en vivo, una captura del lienzo tarda 26–42 s y decodificarla en
+  // la página otros 19–41 s, y la espera de 90 s se agotaba sin terminar una sola muestra.
   test.setTimeout(240_000);
   const errors = await boot(page);
   await page.locator('#sector-wrap').click({ position: { x: 5, y: 5 } });
@@ -254,7 +255,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
   await expect(page.locator('.banner')).toHaveCount(0, { timeout: 30_000 });
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
-  // el renderizador nuevo dibuja en vivo: dos cuadros suyos en el cine (el primero llegó a los 3,8 s en el CI)
+  // el renderizador nuevo dibuja en vivo: dos cuadros suyos en el cine (el primero llega a los 3,4–6,7 s en el CI)
   await expect
     .poll(
       () =>
@@ -265,7 +266,8 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
       { timeout: 60_000 },
     )
     .toBeGreaterThanOrEqual(2);
-  // y se ve: la línea pleural vuelve a la pantalla (en el CI, la primera captura tras restaurar ya la tenía, gris 234)
+  // y se ve: la línea pleural vuelve a la pantalla. En el CI la primera captura tras restaurar ya la tenía en las 12 medidas
+  // (gris 234–243) y cada captura tardó ≤ 45 s: los 90 s cubren dos
   await expect.poll(async () => (await screen(page)).max, { timeout: 90_000 }).toBeGreaterThanOrEqual(PLEURA_GREY);
   // el registro de errores dice la pérdida (en la consola, con su origen), y nada más
   expect(errors).toEqual(['console: [gpu] contexto WebGL perdido']);

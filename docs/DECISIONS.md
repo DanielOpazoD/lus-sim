@@ -2241,3 +2241,70 @@ de tocar los plazos. La carga de los ganchos informa ahora si falla (`app/devtoo
 cuadro de SwiftShader en la pantalla móvil con el modo M) y el texto del estado, que solo se escribía al dibujar el cuadro
 siguiente, no cambió en los 15 s de la prueba. El estado del modo M se escribe ahora en el acto al colocar o cancelar la línea
 (`ui/mMode.ts`, `syncStatus`): el texto ya no depende de cuántos cuadros por segundo dibuje la máquina.
+
+## 30. La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Dos pruebas fallaban en el CI y pasaban al repetirlas. Del 29-09 al 02-10 (siete corridas con sus reintentos y
+relanzamientos), `smoke.spec.ts` «sobrevive a la pérdida del contexto WebGL» falló en 5 de 13 ejecuciones y `mmode.spec.ts`
+«M móvil» en 7 de 13; en la corrida de la PR #38 sobre el código de main, las dos fallaron en el intento y en el reintento;
+repetidas sin reintentos en cuatro corredores (dos veces cada una), 2 de 8 y 3 de 8. Las trazas de Playwright y una medición
+en los mismos corredores del CI (un script y un flujo temporales de la PR #38, en su historia y fuera de main: la compilación de main y la de 2d9cfcb
+alternadas en el mismo corredor, 12 medidas en 3 corredores) separan cuatro causas:
+
+1. **Un cuadro sobre un contexto ya perdido.** `loseContext()` pierde el contexto en el acto, pero `webglcontextlost` llega
+   en una tarea posterior: un cuadro entre los dos registraba «[bucle] FBO incompleto: 0x8cdd» y la prueba, que exige que
+   el registro diga solo la pérdida, fallaba (3 de los 5 fallos históricos y 1 de los 2 sin reintentos). Es un fallo de la
+   aplicación: una pérdida real del controlador llega igual.
+2. **Mirar costaba más que la espera.** Tras restaurar, el renderizador nuevo se arma en 13–22 ms y dibuja su primer cuadro a
+   los 3,4–6,7 s; la imagen está a la vista enseguida (en el screencast de la corrida fallida, a los 16 s). Pero con la imagen
+   en vivo una captura del lienzo tarda 26–42 s (54 s en las trazas fallidas, esperando que el elemento quede «estable»
+   entre cuadros) y decodificarla en la página, con una imagen y un lienzo 2D que la GPU de SwiftShader ocupada tiene que
+   devolver, otros 19–41 s. La espera de 90 s se agotaba sin terminar una sola muestra.
+3. **El aviso del modo M esperaba al cuadro siguiente.** En el teléfono, con B + M, un cuadro tarda de 3 a 20 s en el CI.
+   `#mmode-status` solo se escribía en `draw()`, y la espera de 15 s del aviso «Toca el sector…» se agotaba (5 de los 7
+   fallos). La prueba entera, además, pasaba en 2,7–4,0 min con un plazo de 4 (los otros 2).
+4. **El reparto.** El fragmento 7/7 no juntaba las lentas (4,2–9,5 min); los más largos son el 2/7 y el 3/7 (10–11,9 min, las
+   ventanas del banco de fidelidad). Playwright reparte por cuenta y en orden, sin mirar duraciones.
+
+Los programas GLSL nuevos (vértice, clavícula, tronco: 2d9cfcb frente a main) alargan el primer cuadro tras restaurar de
+3,95 a 4,73 s de media y el arranque de 10,7 a 11,6 s (6 pares en el mismo corredor), sin cambiar el tiempo por cuadro
+(1,16 frente a 1,11 s): medible pero no la causa. Los corredores no son iguales (AMD EPYC 7763, 9V45, 9V74; Intel Xeon
+8370C, 8573C, 6973P): la misma prueba tarda hasta 2,5 veces más en unos que en otros.
+
+**Opciones.** (a) Subir los plazos (90 → 180 s, 240 → 360 s): esconde las causas y alarga cada fallo real; descartada.
+(b) Más reintentos: ya hay uno y los dos intentos fallaban juntos; descartada. (c) Congelar antes de mirar: la captura
+congelada tarda 0,5–11 s, pero la prueba dice que la imagen vuelve en vivo; descartada. (d) Esperar hechos de la aplicación,
+decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir la prueba larga: elegida.
+
+**Decisión.**
+
+- `bindGpuLifecycle` (`src/ui/controllers/gpuLifecycle.ts`, portado de VExUS, ahora «adaptado»): `lost` pregunta también a
+  `gl.isContextLost()`. Mejora para ofrecer de vuelta a VExUS.
+- `MModeView` (`src/ui/mMode.ts`): el aviso de estado lo escribe `showStatus()`, que llaman `draw()` y `setPlacing()`; colocar
+  o cancelar la línea lo cambia en el acto. Al encender M, `clear()` va antes de `setPlacing(false)` para no mostrar la
+  franja anterior. La entrada crece 192 B (276 446 → 276 638 B): su presupuesto pasa de 270 a 271 kB.
+- `e2e/smoke.spec.ts`: `screen()` decodifica la captura en Node (pngjs de Playwright, como `navegacion3d.spec.ts`), 0,02 s.
+  La prueba de la pérdida espera dos cuadros del renderizador nuevo en su cine (`cineCount ≥ 2` de un renderizador distinto
+  del perdido, 60 s) y luego la línea pleural en la pantalla, con los mismos 90 s: en las 12 medidas la primera captura tras
+  restaurar ya la tenía (gris 234–243) y cada captura tardó ≤ 45 s, así que caben dos.
+- `e2e/mmode.spec.ts`: «M móvil» se parte en dos (selección, teclado, equipo y respiración; mandos de 320 a 720 px, congelar y
+  apagar M), con un ayudante `onPhone` que arranca el teléfono y comprueba el registro de errores. Ninguna comprobación se
+  quita ni se relaja.
+- `.github/workflows/ci.yml`: ocho fragmentos. Con 29 pruebas en siete, el segundo habría juntado tres ventanas del banco
+  (≈ 13 min); con ocho, el reparto de las demás queda como estaba (el 2.º, 11,9 min en el corredor lento).
+
+**Consecuencias.** El alumno ve el aviso del modo M al tocar «Colocar línea» aunque su GPU sea lenta, y una pérdida del
+contexto ya no deja un error espurio en el informe técnico. La e2e corre en ocho corredores (uno más) y cada «M móvil»
+tarda 1,1–2,8 min en el CI. Pendiente: el reparto por cuenta es frágil (cada prueba nueva lo desplaza; lo dice
+`docs/TESTING.md`), el 2.º fragmento sigue a ~12 min de 15 en el corredor lento, y el arranque de cada página bloquea el hilo
+principal mientras SwiftShader compila (en local, con cuatro trabajadores, la espera de 60 s a los ganchos de prueba se agotó
+una vez de seis); el primer cuadro podría no bloquear si el renderizador esperara `COMPLETION_STATUS_KHR`.
+
+**Verificación.** Con el código de main y sin reintentos, en el CI: 2 de 8 y 3 de 8 fallos; con este cambio, 0 de 8 (la
+pérdida) y 0 de 16 (las dos «M móvil»), y el CI completo de la PR en verde al primer intento. En local con un trabajador,
+0 de 6 antes y 0 de 9 después (la máquina no reproduce el CI); con cuatro trabajadores a la vez, 2 de 4 antes (la pérdida,
+plazo de 240 s agotado) y 1 de 6 después (el arranque, ver Pendiente). La carrera no tiene una prueba propia (no se puede forzar un cuadro
+entre la pérdida y su evento): la cubre la exigencia del registro de errores, que no trajo «FBO incompleto» en ninguna de las
+14 ejecuciones de la prueba con el cambio (9 en el CI, 5 en local).
