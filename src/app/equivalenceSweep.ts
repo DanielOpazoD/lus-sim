@@ -469,7 +469,8 @@ export function extraPleuraPoses(scene: AnatomyScene): Array<{ id: string; pose:
 /**
  * Planos de la cobertura torácica que el barrido de equivalencia suma a los puntos de partida: la fosa supraclavicular (la
  * cúpula pleural, con el haz hacia los pies), la clavícula en la LMC y la axila alta sobre la 1.ª costilla (donde la pared
- * engruesa hasta cerrarse sobre el vértice).
+ * engruesa hasta cerrarse sobre el vértice); y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas
+ * y la línea media posterior.
  */
 export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
   const t = scene.torso;
@@ -481,6 +482,12 @@ export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: Pr
     { id: 'supraclavicular', pose: { ...flat, phi: fossa, z: c.z0 + c.radius + 13, rock: -0.35 } },
     { id: 'clavicle', pose: { ...flat, phi: thoraxLinePhi('midclavicular', t, 1), z: c.z0 + c.rise * 0.5 } },
     { id: 'lateralApex', pose: { ...flat, phi: lam, z: ribTableZ(scene.ribCage, 0, Math.abs(wallArc(torsoSkinPoint(lam, 0, t), t))) } },
+    // lus-sim (decisión 29), la espalda (sentado): la escápula sobre la fosa infraespinosa, la paravertebral, la columna junto a
+    // las transversas y la línea media posterior con las apófisis espinosas
+    { id: 'scapula', pose: { ...flat, phi: Math.PI + Math.acos(100 / t.a), z: 90 } },
+    { id: 'paravertebral', pose: { ...flat, phi: thoraxLinePhi('paravertebral', t, -1), z: 60 } },
+    { id: 'paraspinal', pose: { ...flat, phi: Math.PI + Math.acos(25 / t.a), z: 60 } },
+    { id: 'spinous', pose: { ...flat, phi: 1.5 * Math.PI, z: 60 } },
   ];
 }
 

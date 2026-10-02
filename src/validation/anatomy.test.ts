@@ -14,7 +14,7 @@ import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling, probeContact } from '../probe/contact';
 import { CONVEX_C35, lineDirection, pointOnLine, probeFrame, skinSoftness, type ProbePose } from '../probe/probe';
-import { ribLinePoint } from '../anatomy/organs/ribcage';
+import { RIBCAGE, ribLinePoint } from '../anatomy/organs/ribcage';
 import { ribZ } from './support/chestView';
 
 /**
@@ -56,10 +56,15 @@ describe('Anatomía implícita (base B)', () => {
     // la columna, con la piel de la espalda (en VExUS, el cuerpo en −46 y la apófisis en −70)
     const back = -b;
     expect(cls([0, back + 59, 0]).tissue).toBe(Tissue.Vertebra);
-    expect(cls([30, back + 35, 0]).tissue).toBe(Tissue.Vertebra); // apófisis transversa
+    // apófisis transversa (lus-sim, decisión 29: hasta 29,3 mm de la línea media; en VExUS, 40)
+    expect(cls([25, back + 35, 0]).tissue).toBe(Tissue.Vertebra);
     // no hay arco costal por detrás de la columna: lo que hay ahí es vértebra, no costilla
-    expect(cls([-30, back + 35, 5]).tissue).toBe(Tissue.Vertebra);
-    expect(cls([-30, back + 35, 5]).tissue).not.toBe(Tissue.Bone);
+    expect(cls([-25, back + 35, 5]).tissue).toBe(Tissue.Vertebra);
+    expect(cls([-25, back + 35, 5]).tissue).not.toBe(Tissue.Bone);
+    // las apófisis espinosas (decisión 29): la punta de la de T7, bajo la piel a la altura del cuerpo de T8; a 2,8 mm por fuera de su barra, hacia arriba, músculo
+    const seg = RIBCAGE.params.thoracicSegmentMm.value;
+    expect(cls([0, back + 12, 1.5 * seg]).tissue).toBe(Tissue.Vertebra);
+    expect(cls([0, back + 12, 2 * seg]).tissue).toBe(Tissue.Muscle);
     // tórax sobre las cúpulas: pulmón en los dos lados (fuera del corazón, `heart-simplified`)
     expect(cls([-55, -5, 70]).tissue).toBe(Tissue.Lung);
     expect(cls([80, 50, 90]).tissue).toBe(Tissue.Lung);

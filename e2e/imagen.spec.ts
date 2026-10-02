@@ -25,7 +25,19 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // Planos de los tres puntos de partida (la rejilla de VExUS, 48 × 72 hasta 16 cm): acuerdo lejos de bordes
   const sweep = await page.evaluate(() => window.__lusTest!.equivalenceSweep());
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
-  expect(sweep.map((r) => r.id)).toEqual(['blueUpper', 'blueLower', 'plaps', 'supraclavicular', 'clavicle', 'lateralApex']);
+  // y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas y la línea media con las espinosas
+  expect(sweep.map((r) => r.id)).toEqual([
+    'blueUpper',
+    'blueLower',
+    'plaps',
+    'supraclavicular',
+    'clavicle',
+    'lateralApex',
+    'scapula',
+    'paravertebral',
+    'paraspinal',
+    'spinous',
+  ]);
   for (const r of sweep) expect(r.interiorAgreement, JSON.stringify(r)).toBeGreaterThanOrEqual(0.99);
   // Volumen: 50 000 puntos del tórax (z −100…180 mm). Lejos de interfaces (≥ 1 mm y la misma cara a ±0,02 mm) las dos
   // anatomías deben coincidir EXACTAMENTE en tejido y en cara; la distancia a la cara, a la precisión de float32

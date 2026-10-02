@@ -2,7 +2,7 @@ import { defineParameters } from '../../core/evidence';
 import type { Vec3 } from '../../core/vec3';
 import { torsoDepth, torsoDepthGradient, torsoNormal, torsoSkinPoint, type Spine, type Torso } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
-import { WALL, wallArc, wallTotalMm } from './wall';
+import { WALL, wallArc, wallPerimeter, wallTotalMm } from './wall';
 
 /**
  * Parrilla costal del adulto promedio (lus-sim, decisión 16) como módulo de órgano (decisión 46 de VExUS): las 12
@@ -484,6 +484,138 @@ export const CLAVICLE = defineParameters('anatomy.clavicle', {
 /** Índice de la clavícula en la clasificación de la parrilla (`ribScan`, `ribSd`, `faceRib`): tras el esternón (`MAX_RIBS`). */
 export const CLAVICLE_INDEX = MAX_RIBS + 1;
 
+/**
+ * La escápula (lus-sim, decisión 29: la cara posterior se explora con el paciente sentado y los brazos a los lados): una lámina
+ * de hueso bajo la piel de la espalda, entre el trapecio y la parrilla, con su sombra acústica. Su contorno es el triángulo del
+ * ángulo superior, el inferior y la glena, en la distancia a la línea media posterior a lo largo de la piel (s) y la altura (z);
+ * su cara posterior, a la profundidad de la piel, la grasa y el trapecio medio de la espalda, por la normal. Va en la
+ * clasificación de la parrilla (`ribScan`) con el índice `SCAPULA_INDEX`. La misma en supino (la sonda no llega).
+ */
+export const SCAPULA = defineParameters('anatomy.scapula', {
+  inferiorAngleSpinous: {
+    value: 8,
+    unit: 'apófisis espinosa',
+    range: [7, 9],
+    evidence: 'documentado',
+    sources: ['cooperstein-escapula-2015', 'gray-anatomia-1918'],
+    note:
+      'El ángulo inferior, de pie y con los brazos a los lados, a la altura de la apófisis espinosa de T8 (nivel medio 8,01 en el ' +
+      'metaanálisis de 5 estudios, 343 personas; el 85,4 % a un nivel o menos de T8; Cooperstein y cols. 2015, texto completo). ' +
+      'Gray (1918) dice T7 [DISCREPANCIA]. Sentado, NO ENCONTRADO como comparación directa: se toma el mismo (meta A-T18). La ' +
+      'punta de la apófisis de T8 está a la altura del cuerpo de T9 (la regla de los tres, como el borde posterior del pulmón en ' +
+      '`anatomy.lungBorder`)',
+  },
+  spineRootSpinous: {
+    value: 3,
+    unit: 'apófisis espinosa',
+    range: [2, 4],
+    evidence: 'consenso',
+    sources: ['gray-anatomia-1918'],
+    note:
+      'La raíz de la espina de la escápula, a la altura de la punta de la apófisis de T3 (Gray 1918, «Surface Markings of the ' +
+      'Back»); en T1–T3 la punta queda a la altura de su cuerpo (la regla de los tres)',
+  },
+  lengthMm: {
+    value: 153,
+    unit: 'mm',
+    range: [136, 170],
+    evidence: 'documentado',
+    sources: ['garzon-escapula-2024', 'vonschroeder-escapula-2001'],
+    note:
+      'Del ángulo superior al inferior en el varón: 152,85 ± 16,77 mm en 72 escápulas secas (Garzón-Alfaro y cols. 2024, tabla 3); ' +
+      '155 ± 16 en 15 pares de cadáver (von Schroeder y cols. 2001, resumen). El rango, ± 1 DE',
+  },
+  lengthFemaleMm: {
+    value: 137,
+    unit: 'mm',
+    range: [127, 146],
+    evidence: 'documentado',
+    sources: ['garzon-escapula-2024'],
+    note: 'Del ángulo superior al inferior en la mujer: 136,72 ± 9,64 mm (Garzón-Alfaro y cols. 2024, tabla 3)',
+  },
+  widthMm: {
+    value: 103.5,
+    unit: 'mm',
+    range: [99, 108],
+    evidence: 'documentado',
+    sources: ['garzon-escapula-2024'],
+    note:
+      'Del borde vertebral, en la espina, a la glena en el varón: 103,53 ± 4,57 mm (Garzón-Alfaro y cols. 2024, tabla 3). En el ' +
+      'modelo, a lo largo de la piel y con la glena a la altura de la raíz de la espina [SUPUESTO: NO ENCONTRADO]; el tronco no ' +
+      'tiene hombro, así que la lámina se recorta por fuera hasta caber sobre las costillas (`fitScapula`, `scapula-plate`)',
+  },
+  widthFemaleMm: {
+    value: 92,
+    unit: 'mm',
+    range: [86, 98],
+    evidence: 'documentado',
+    sources: ['garzon-escapula-2024'],
+    note: 'Del borde vertebral, en la espina, a la glena en la mujer: 92,03 ± 6,16 mm (Garzón-Alfaro y cols. 2024, tabla 3)',
+  },
+  superiorAngleMedialMm: {
+    value: 90,
+    unit: 'mm',
+    range: [79, 101],
+    evidence: 'documentado',
+    sources: ['pontin-escapula-2013', 'sobush-escapula-1996', 'moghadam-escapula-2012'],
+    note:
+      'Del ángulo superior a la línea de las apófisis espinosas, de pie con los brazos a los lados: 9,1 ± 1,1 cm a la derecha y 8,5 ' +
+      '± 1,2 a la izquierda (examinador 1; 9,2–9,3 y 8,9–9,0 en las otras dos tandas) en 30 sanos (Pontin y cols. 2013, tabla 5); ' +
+      'el borde medial, a 3,5–4,8° de la vertical; las raíces de las espinas, a 17,19 ± 1,85 cm entre sí (8,6 de la línea media, ' +
+      'Sobush y cols. 1996, 15 mujeres, resumen). El rango, ± 1 DE. [DISCREPANCIA]: de la raíz de la espina a la apófisis de ' +
+      'T3–T4, 6,64 ± 1,08 cm (derecha) y 6,38 ± 1,10 (izquierda) en 30 mujeres (Moghadam y Salimee 2012, tabla 3, con una cuerda ' +
+      'sobre la piel): se siguen Pontin y Sobush, que coinciden. El ángulo inferior va en la línea escapular ' +
+      '(`anatomy.scapularLine`, que pasa por él)',
+  },
+  bodyThicknessMm: {
+    value: 3,
+    unit: 'mm',
+    range: [2, 5],
+    evidence: 'documentado',
+    sources: ['burke-escapula-2006', 'vonschroeder-escapula-2001'],
+    note:
+      'Grosor de la lámina: 3,0 mm en la parte central del cuerpo (Burke y cols. 2006, 18 escápulas de cadáver, resumen); el borde ' +
+      'medial, 4 ± 1 mm a 1 cm de él (von Schroeder y cols. 2001, resumen). El modelo la lleva uniforme (`scapula-plate`): sin la ' +
+      'espina (7–18 mm), el borde lateral (9,7) ni la glena',
+  },
+  trapeziusMm: {
+    value: 7,
+    unit: 'mm',
+    range: [5, 9],
+    evidence: 'documentado',
+    sources: ['silkjaer-escapulares-2021'],
+    note:
+      'Lo que cubre la escápula bajo la piel y la grasa de la espalda: el trapecio medio, 7,1 ± 2,2 mm (lado dominante) y 6,9 ± 2,4 ' +
+      '(no dominante) en 41 adultos sanos, junto al borde medial bajo la espina (Silkjær Bak y cols. 2021, tabla 2, ecografía; los ' +
+      'dos sexos juntos). El infraespinoso, que engruesa hacia el centro de la fosa, no se lleva: la lámina va a la misma ' +
+      'profundidad en toda ella (`scapula-plate`)',
+  },
+});
+
+/** Índice de la escápula en la clasificación de la parrilla (lus-sim, decisión 29): tras la clavícula. */
+export const SCAPULA_INDEX = MAX_RIBS + 2;
+
+/**
+ * Lo que la cara posterior de la escápula queda, como poco, por encima de la cresta de las costillas (mm, por la normal). El
+ * tronco no tiene hombro y hacia fuera la pared adelgaza (16 mm en la infraescapular, 18 en la axila): la lámina se recorta por
+ * fuera hasta que ninguna costilla asoma sobre ella (`fitScapula`). Bajo su cara posterior puede cortar las costillas (no se ve:
+ * es su sombra); el subescapular y el serrato entre las dos no están (`scapula-plate`).
+ */
+export const SCAPULA_RIB_CLEAR_MM = 0.5;
+
+/**
+ * La escápula construida (las dos, simétricas): su contorno en (s, z), con s la distancia a la línea media posterior a lo largo de
+ * la piel; la cara posterior a `depth` bajo la piel por la normal y el grosor `thickness`.
+ */
+export interface ScapulaSpec {
+  /** El ángulo superior, el inferior y la glena: (s, z) en mm. */
+  superior: [number, number];
+  inferior: [number, number];
+  glenoid: [number, number];
+  depth: number;
+  thickness: number;
+}
+
 /** La clavícula construida (las dos, simétricas): en |u| de la piel, con el eje a `cover + radius` bajo ella por la normal. */
 export interface ClavicleSpec {
   /** |u| del extremo esternal y del acromial (mm de piel). */
@@ -554,6 +686,8 @@ export interface RibCage {
   table: Float32Array;
   /** La clavícula (lus-sim, cobertura torácica). */
   clavicle: ClavicleSpec;
+  /** La escápula (lus-sim, decisión 29). */
+  scapula: ScapulaSpec;
   stations: RibCageStations;
 }
 
@@ -565,8 +699,13 @@ export interface RibCageOptions {
    * −`femaleIcsNarrowingMm`.
    */
   icsDeltaMm?: number;
-  /** La clavícula de la mujer (lus-sim, cobertura torácica: `anatomy.clavicle.lengthFemaleMm`). */
+  /** La clavícula de la mujer (lus-sim, cobertura torácica: `anatomy.clavicle.lengthFemaleMm`) y su escápula (decisión 29). */
   female?: boolean;
+  /**
+   * Piel y grasa de la espalda sobre la escápula (mm, por la normal; lus-sim, decisión 29): las del hábito, que da la pared
+   * torácica. Sin ellas, las del avatar (`anatomy.chestWall`: 2,5 y 4).
+   */
+  scapulaCoverMm?: number;
 }
 
 // --- Geometría de la cáscara costal (TS; solo construcción y pruebas) ---------------------------------------------
@@ -716,6 +855,178 @@ function buildClavicle(t: Torso, notchZ: number, female: boolean): ClavicleSpec 
     radius: r,
     depth: C.coverMm.value + r,
   };
+}
+
+/** z (mm) del cuerpo de la vértebra torácica n (z = 0 en el disco T9–T10, `anatomy.ribcage.thoracicSegmentMm`). */
+export function vertebraZ(n: number): number {
+  return (9.5 - n) * RIBCAGE.params.thoracicSegmentMm.value;
+}
+
+/**
+ * z (mm) de la punta de la apófisis espinosa de la vértebra torácica n, por la regla de los tres: en T1–T3 a la altura de su
+ * cuerpo, en T4–T6 medio nivel más abajo, en T7–T10 uno (la del cuerpo de debajo), T11 medio y T12 el suyo.
+ */
+export function spinousTipZ(n: number): number {
+  const drop = n <= 3 ? 0 : n <= 6 ? 0.5 : n <= 10 ? 1 : n === 11 ? 0.5 : 0;
+  return vertebraZ(n + drop);
+}
+
+/**
+ * La escápula (decisión 29): el ángulo inferior en la línea escapular a la altura de la apófisis de T8; el superior, a su largo
+ * de él, a la distancia de Pontin de la línea media por la piel (el borde medial, casi vertical); la glena a su ancho del borde
+ * medial en la raíz de la espina y a su altura, o a `maxGlenoidS` de la línea media por la piel si es menos (`fitScapula`); la
+ * cara posterior bajo la piel y la grasa (`cover`) y el trapecio medio. Las distancias de la base se miden sobre la piel, encima del hueso (por su normal); el
+ * modelo sitúa la lámina con el arco de la pared (`wallArc`, la dirección radial de la elipse), que detrás se abre hacia fuera
+ * con la profundidad: cada vértice va al arco del punto de la mitad de la lámina bajo su piel, por la normal.
+ */
+export function buildScapula(t: Torso, female: boolean, cover: number, maxGlenoidS = Infinity): ScapulaSpec {
+  const S = SCAPULA.params;
+  const length = female ? S.lengthFemaleMm.value : S.lengthMm.value;
+  const width = female ? S.widthFemaleMm.value : S.widthMm.value;
+  const half = 0.5 * wallPerimeter(t);
+  const sOf = (phi: number) => half - Math.abs(wallArc(torsoSkinPoint(phi, 0, t), t));
+  const zInf = spinousTipZ(S.inferiorAngleSpinous.value);
+  const inferior: [number, number] = [sOf(thoraxLinePhi('scapular', t)), zInf];
+  const sSup = S.superiorAngleMedialMm.value;
+  const superior: [number, number] = [sSup, zInf + Math.sqrt(length * length - (sSup - inferior[0]) ** 2)];
+  const zRoot = spinousTipZ(S.spineRootSpinous.value);
+  const sRoot = inferior[0] + ((superior[0] - inferior[0]) * (zRoot - zInf)) / (superior[1] - zInf);
+  const glenoid: [number, number] = [Math.min(sRoot + width, maxGlenoidS), zRoot];
+  const depth = cover + S.trapeziusMm.value;
+  const thickness = S.bodyThicknessMm.value;
+  // la piel a la distancia s de la línea media posterior (la derecha: de 1,5π hacia π)
+  const skinAt = (sk: number): Vec3 => {
+    let lo = 1.5 * Math.PI;
+    let hi = Math.PI;
+    for (let i = 0; i < 60; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (half - Math.abs(wallArc(torsoSkinPoint(mid, 0, t), t)) < sk) lo = mid;
+      else hi = mid;
+    }
+    return torsoSkinPoint(0.5 * (lo + hi), 0, t);
+  };
+  const atDepth = (v: [number, number]): [number, number] => {
+    const p = skinAt(v[0]);
+    const n = torsoNormal(p, t);
+    const nd = depth + 0.5 * thickness;
+    return [half - Math.abs(wallArc([p[0] - n[0] * nd, p[1] - n[1] * nd, 0], t)), v[1]];
+  };
+  return { superior: atDepth(superior), inferior: atDepth(inferior), glenoid: atDepth(glenoid), depth, thickness };
+}
+
+/**
+ * La escápula sobre la pared construida (lus-sim, decisión 29): la glena se acerca al borde medial (bisección en su distancia a la
+ * línea media por la piel: nueve pasos, ≈ 0,7 mm) hasta que en toda la lámina su cara posterior queda `SCAPULA_RIB_CLEAR_MM` por encima de la
+ * cresta de las costillas (la pared menos `crestToPleuraMm`), en una rejilla de ≈ 2 mm de piel por 4 de altura. La lámina sigue
+ * siendo el triángulo de los dos ángulos y la glena.
+ */
+export function fitScapula(cage: RibCage, t: Torso, female: boolean, cover: number): void {
+  const crest = RIBCAGE.params.crestToPleuraMm.value;
+  const half = 0.5 * wallPerimeter(t);
+  const fits = (spec: ScapulaSpec): boolean => {
+    const probe = { scapula: spec };
+    const zTop = Math.max(spec.superior[1], spec.glenoid[1]);
+    for (let phi = Math.PI * 1.5; phi > Math.PI; phi -= 0.009) {
+      if (half - Math.abs(wallArc(torsoSkinPoint(phi, 0, t), t)) > spec.glenoid[0] + 10) break;
+      for (let z = spec.inferior[1]; z <= zTop; z += 4) {
+        const p = torsoSkinPoint(phi, z, t);
+        const n = torsoNormal(p, t);
+        const nd = spec.depth + 0.5 * spec.thickness;
+        if (scapulaSd([p[0] - n[0] * nd, p[1] - n[1] * nd, z], t, probe) >= 0) continue;
+        const top: Vec3 = [p[0] - n[0] * spec.depth, p[1] - n[1] * spec.depth, z];
+        const g = ribMetric(top, t);
+        if (wallTotalMm(top, t) - g * crest + torsoDepth(top, t) < g * SCAPULA_RIB_CLEAR_MM) return false;
+      }
+    }
+    return true;
+  };
+  const full = buildScapula(t, female, cover);
+  if (fits(full)) {
+    cage.scapula = full;
+    return;
+  }
+  // la glena en la piel: entre el borde medial en la raíz de la espina (la lámina, una línea) y su sitio
+  const S = SCAPULA.params;
+  const sRoot = scapulaRootSkinS(t, female);
+  let lo = sRoot + 1;
+  let hi = sRoot + (female ? S.widthFemaleMm.value : S.widthMm.value);
+  for (let i = 0; i < 9; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (fits(buildScapula(t, female, cover, mid))) lo = mid;
+    else hi = mid;
+  }
+  const fitted = buildScapula(t, female, cover, lo);
+  if (!fits(fitted)) throw new Error(`fitScapula: ni con la glena a ${lo.toFixed(1)} mm de la línea media cabe la escápula`);
+  cage.scapula = fitted;
+}
+
+/** La distancia por la piel a la línea media posterior del borde medial de la escápula en la raíz de la espina (decisión 29). */
+function scapulaRootSkinS(t: Torso, female: boolean): number {
+  const S = SCAPULA.params;
+  const length = female ? S.lengthFemaleMm.value : S.lengthMm.value;
+  const half = 0.5 * wallPerimeter(t);
+  const sInf = half - Math.abs(wallArc(torsoSkinPoint(thoraxLinePhi('scapular', t), 0, t), t));
+  const zInf = spinousTipZ(S.inferiorAngleSpinous.value);
+  const sSup = S.superiorAngleMedialMm.value;
+  const zSup = zInf + Math.sqrt(length * length - (sSup - sInf) ** 2);
+  return sInf + ((sSup - sInf) * (spinousTipZ(S.spineRootSpinous.value) - zInf)) / (zSup - zInf);
+}
+
+/** Distancia con signo (negativa dentro) de p al triángulo a, b, c (gemelo GLSL con el mismo nombre). */
+export function sdTriangle2(
+  p: readonly [number, number],
+  a: readonly [number, number],
+  b: readonly [number, number],
+  c: readonly [number, number],
+): number {
+  const e0 = [b[0] - a[0], b[1] - a[1]];
+  const e1 = [c[0] - b[0], c[1] - b[1]];
+  const e2 = [a[0] - c[0], a[1] - c[1]];
+  const v0 = [p[0] - a[0], p[1] - a[1]];
+  const v1 = [p[0] - b[0], p[1] - b[1]];
+  const v2 = [p[0] - c[0], p[1] - c[1]];
+  const cl = (x: number) => Math.min(1, Math.max(0, x));
+  const h0 = cl((v0[0] * e0[0] + v0[1] * e0[1]) / (e0[0] * e0[0] + e0[1] * e0[1]));
+  const h1 = cl((v1[0] * e1[0] + v1[1] * e1[1]) / (e1[0] * e1[0] + e1[1] * e1[1]));
+  const h2 = cl((v2[0] * e2[0] + v2[1] * e2[1]) / (e2[0] * e2[0] + e2[1] * e2[1]));
+  const q0 = [v0[0] - e0[0] * h0, v0[1] - e0[1] * h0];
+  const q1 = [v1[0] - e1[0] * h1, v1[1] - e1[1] * h1];
+  const q2 = [v2[0] - e2[0] * h2, v2[1] - e2[1] * h2];
+  const sg = Math.sign(e0[0] * e2[1] - e0[1] * e2[0]);
+  const dd = Math.min(q0[0] * q0[0] + q0[1] * q0[1], q1[0] * q1[0] + q1[1] * q1[1], q2[0] * q2[0] + q2[1] * q2[1]);
+  const ss = Math.min(sg * (v0[0] * e0[1] - v0[1] * e0[0]), sg * (v1[0] * e1[1] - v1[1] * e1[0]), sg * (v2[0] * e2[1] - v2[1] * e2[0]));
+  return -Math.sqrt(dd) * Math.sign(ss);
+}
+
+/** Margen (mm) fuera del contorno de la escápula en el que se mide su distancia; más lejos, 1e3. */
+export const SCAPULA_SEARCH_MM = 10;
+
+/**
+ * Distancia (mm; la de la clasificación: por la normal de la piel y, en el contorno, a lo largo de la piel a la profundidad de la
+ * mitad de la lámina) de un punto a la escápula de su lado; 1e3 a más de `SCAPULA_SEARCH_MM` de su contorno o de su grosor. A
+ * menos de 10 mm, como mucho 1,04 veces la distancia euclídea (medido frente a un muestreo denso de la lámina). Gemelo GLSL con
+ * el mismo nombre.
+ */
+export function scapulaSd(m: Vec3, t: Torso, cage: Pick<RibCage, 'scapula'>): number {
+  const c = cage.scapula;
+  const M = SCAPULA_SEARCH_MM;
+  if (m[1] >= 0 || m[2] < c.inferior[1] - M || m[2] > Math.max(c.superior[1], c.glenoid[1]) + M) return 1e3;
+  const nd = -torsoDepth(m, t) / ribMetric(m, t);
+  const mid = c.depth + 0.5 * c.thickness;
+  const dn = Math.abs(nd - mid) - 0.5 * c.thickness;
+  if (dn > M) return 1e3;
+  // el contorno se mide a la profundidad de la mitad de la lámina (la de sus vértices, `buildScapula`): el punto se lleva allí
+  // por la normal (detrás, el arco de la pared se abre con la profundidad) y a lo largo de la piel la distancia se acorta con
+  // ella (1 − nd/R, con R el radio de la elipse)
+  const nrm = torsoNormal(m, t);
+  const q: Vec3 = [m[0] + nrm[0] * (nd - mid), m[1] + nrm[1] * (nd - mid), m[2]];
+  const s = 0.5 * wallPerimeter(t) - Math.abs(wallArc(q, t));
+  if (s < Math.min(c.superior[0], c.inferior[0]) - M || s > c.glenoid[0] + M) return 1e3;
+  const tau = Math.atan2(q[0] / t.a, q[1] / t.b);
+  const speed = Math.hypot(t.a * Math.cos(tau), t.b * Math.sin(tau));
+  const k = Math.max(0.5, 1 - (mid * t.a * t.b) / (speed * speed * speed));
+  const dl = k * sdTriangle2([s, m[2]], c.superior, c.inferior, c.glenoid);
+  return Math.hypot(Math.max(dl, 0), Math.max(dn, 0)) + Math.min(Math.max(dl, dn), 0);
 }
 
 /** z del borde superior de la clavícula sobre su tercio medial (el que mira el vértice, Gray). */
@@ -879,6 +1190,7 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
     table: new Float32Array(RIB_TABLE_TEXELS * 4),
     stations: st,
     clavicle: buildClavicle(t, P.jugularNotchZMm.value, opts.female ?? false),
+    scapula: buildScapula(t, opts.female ?? false, opts.scapulaCoverMm ?? 6.5),
   };
   const specs: Omit<RibSpec, 'side'>[] = [];
   for (let n = 1; n <= RIBS_PER_SIDE; n++) {
@@ -920,6 +1232,24 @@ export function buildRibCage(t: Torso, spine: Spine, opts: RibCageOptions = {}):
       });
     }
   return cage;
+}
+
+/**
+ * Los extremos posteriores de las costillas sobre la pared construida (lus-sim, decisión 29): la parrilla se construye con la
+ * pared baja en todo el tronco (las alturas de la pared salen de ella, `setChestWallCage`), y donde la pared alta de la espalda
+ * es más gruesa la costilla queda más honda y su extremo, más cerca de la línea media. Con la pared ya construida, cada extremo
+ * vuelve a quedar a `x` mm de la línea media (la punta de la transversa más el margen) a la altura de la costilla.
+ */
+export function setRibPosteriorEnds(cage: RibCage, t: Torso, x: number): void {
+  cage.ribs.forEach((r, k) => {
+    const z = ribTableZ(cage, k, r.uPost);
+    const depth = (tau: number) => {
+      const p = radialPoint(tau, 0, t);
+      const q: Vec3 = [p[0], p[1], z];
+      return wallTotalMm(q, t) - ribMetric(q, t) * (cage.pleuraComplex + cage.halfThickness);
+    };
+    r.uPost = arcOfTau(tauOfX(x, depth, t, true), t);
+  });
 }
 
 // --- Gemelos TS de la GLSL ------------------------------------------------------------------------------------------
@@ -1026,6 +1356,14 @@ export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage, 
     out.ribD = cd;
     out.ribI = CLAVICLE_INDEX;
   }
+  // la escápula (lus-sim, decisión 29): entre el trapecio y la parrilla, detrás
+  const sc = scapulaSd(m, t, cage);
+  if (sc < 0) return { ...out, inside: SCAPULA_INDEX, inD: sc };
+  if (sc < out.ribD) {
+    out.ribAny = Math.min(out.ribAny, sc);
+    out.ribD = sc;
+    out.ribI = SCAPULA_INDEX;
+  }
   const nP = pleuraNormalDepth(m, d, t, wall);
   if (nP < cage.pleuraComplex + cage.sternum.thickness + WALL.ribSearchMarginMm) {
     const sd = sternumSd(m, nP, cage);
@@ -1060,6 +1398,7 @@ export function ribScan(m: Vec3, d: number, u: number, t: Torso, cage: RibCage, 
 /** Distancia (la de la clasificación) a la costilla k, o al esternón con k = `MAX_RIBS`. */
 export function ribSd(m: Vec3, k: number, t: Torso, cage: RibCage): number {
   if (k === CLAVICLE_INDEX) return clavicleSd(m, t, cage);
+  if (k === SCAPULA_INDEX) return scapulaSd(m, t, cage);
   const nP = pleuraNormalDepth(m, -torsoDepth(m, t), t);
   if (k === MAX_RIBS) return sternumSd(m, nP, cage).d;
   const u = wallArc(m, t);
@@ -1085,7 +1424,7 @@ export function faceRib(m: Vec3, t: Torso, cage: RibCage): number {
  * esternón, vertical.
  */
 export function ribTangent(p: Vec3, k: number, t: Torso, cage: RibCage): Vec3 {
-  if (k === MAX_RIBS) return [0, 0, 1];
+  if (k === MAX_RIBS || k === SCAPULA_INDEX) return [0, 0, 1];
   if (k === CLAVICLE_INDEX) return clavicleTangent(p, t, cage);
   const tau = Math.atan2(p[0] / t.a, p[1] / t.b);
   const sx = t.a * Math.sin(tau);
@@ -1116,7 +1455,7 @@ export function clavicleTangent(p: Vec3, t: Torso, cage: Pick<RibCage, 'clavicle
  * en la dirección del punto: a·b/(a²sin²t + b²cos²t)^{3/2}. El esternón, plano (0).
  */
 export function ribCurvature(p: Vec3, k: number, t: Torso, cage: RibCage): number {
-  if (k === MAX_RIBS) return 0;
+  if (k === MAX_RIBS || k === SCAPULA_INDEX) return 0;
   if (k === CLAVICLE_INDEX) return 1 / cage.clavicle.radius;
   const a = cage.halfThickness;
   const b = cage.ribs[k].halfWidth;
@@ -1157,6 +1496,37 @@ float clavicleSd(vec3 m) {
   float nd = -torsoDepth(m) / ribMetric(m);
   float du = au < uClavicle.x ? uClavicle.x - au : (au > uClavicle.y ? au - uClavicle.y : 0.0);
   return length(vec3(nd - uClavicleR.y, m.z - (uClavicle.z + uClavicle.w * s), du)) - uClavicleR.x;
+}
+// la escápula (lus-sim, decisión 29): uScapula = (s y z del ángulo superior, del inferior), uScapulaB = (s y z de la glena,
+// profundidad de la cara posterior, grosor)
+#define SCAPULA_INDEX ${SCAPULA_INDEX}
+#define SCAPULA_SEARCH_MM ${SCAPULA_SEARCH_MM.toFixed(4)}
+float sdTriangle2(vec2 p, vec2 a, vec2 b, vec2 c) {
+  vec2 e0 = b - a; vec2 e1 = c - b; vec2 e2 = a - c;
+  vec2 v0 = p - a; vec2 v1 = p - b; vec2 v2 = p - c;
+  vec2 q0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
+  vec2 q1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
+  vec2 q2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
+  float sg = sign(e0.x * e2.y - e0.y * e2.x);
+  float dd = min(min(dot(q0, q0), dot(q1, q1)), dot(q2, q2));
+  float ss = min(min(sg * (v0.x * e0.y - v0.y * e0.x), sg * (v1.x * e1.y - v1.y * e1.x)), sg * (v2.x * e2.y - v2.y * e2.x));
+  return -sqrt(dd) * sign(ss);
+}
+float scapulaSd(vec3 m) {
+  if (m.y >= 0.0 || m.z < uScapula.w - SCAPULA_SEARCH_MM || m.z > max(uScapula.y, uScapulaB.y) + SCAPULA_SEARCH_MM) return 1e3;
+  float nd = -torsoDepth(m) / ribMetric(m);
+  float mid = uScapulaB.z + 0.5 * uScapulaB.w;
+  float dn = abs(nd - mid) - 0.5 * uScapulaB.w;
+  if (dn > SCAPULA_SEARCH_MM) return 1e3;
+  vec3 nrm = torsoNormal(m);
+  vec3 q = vec3(m.xy + nrm.xy * (nd - mid), m.z);
+  float s = 0.5 * wallPerimeter() - abs(wallArc(q));
+  if (s < min(uScapula.x, uScapula.z) - SCAPULA_SEARCH_MM || s > uScapulaB.x + SCAPULA_SEARCH_MM) return 1e3;
+  float tau = atan(q.x / uTorso.x, q.y / uTorso.y);
+  float speed = length(vec2(uTorso.x * cos(tau), uTorso.y * sin(tau)));
+  float k = max(0.5, 1.0 - mid * uTorso.x * uTorso.y / (speed * speed * speed));
+  float dl = k * sdTriangle2(vec2(s, m.z), uScapula.xy, uScapula.zw, uScapulaB.xy);
+  return length(vec2(max(dl, 0.0), max(dn, 0.0))) + min(max(dl, dn), 0.0);
 }
 vec3 clavicleTangent(vec3 p) {
   float tau = atan(p.x / uTorso.x, p.y / uTorso.y);
@@ -1210,6 +1580,9 @@ int ribScan(vec3 m, float d, float u, float wall, out float inD, out bool cartil
   float cd = clavicleSd(m);
   if (cd < 0.0) { inD = cd; return CLAVICLE_INDEX; }
   if (cd < 1e3) { ribAny = cd; ribD = cd; ribI = CLAVICLE_INDEX; }
+  float sc = scapulaSd(m);
+  if (sc < 0.0) { inD = sc; return SCAPULA_INDEX; }
+  if (sc < ribD) { ribAny = min(ribAny, sc); ribD = sc; ribI = SCAPULA_INDEX; }
   float nP = pleuraNormalDepth(m, d, wall);
   if (nP < uRibParams.y + uSternum.w + RIB_SEARCH_MARGIN_MM) {
     bool xc;
@@ -1243,6 +1616,7 @@ int ribScan(vec3 m, float d, float u, float wall, out float inD, out bool cartil
 }
 float ribSd(vec3 m, int k) {
   if (k == CLAVICLE_INDEX) return clavicleSd(m);
+  if (k == SCAPULA_INDEX) return scapulaSd(m);
   float nP = pleuraNormalDepth(m, -torsoDepth(m), wallTotalMm(m));
   bool c;
   if (k == MAX_RIBS) return sternumSd(m, nP, c);
@@ -1259,7 +1633,7 @@ int faceRib(vec3 m) {
   return ri >= 0 ? ri : ribI;
 }
 vec3 ribTangent(vec3 p, int k) {
-  if (k == MAX_RIBS) return vec3(0.0, 0.0, 1.0);
+  if (k == MAX_RIBS || k == SCAPULA_INDEX) return vec3(0.0, 0.0, 1.0);
   if (k == CLAVICLE_INDEX) return clavicleTangent(p);
   float tau = atan(p.x / uTorso.x, p.y / uTorso.y);
   float sx = uTorso.x * sin(tau);
@@ -1272,7 +1646,7 @@ vec3 ribTangent(vec3 p, int k) {
   return normalize(vec3(sc * uTorso.x * cos(tau), -sc * uTorso.y * sin(tau), sign(u) * dz * speed));
 }
 float ribCurvature(vec3 p, int k) {
-  if (k == MAX_RIBS) return 0.0;
+  if (k == MAX_RIBS || k == SCAPULA_INDEX) return 0.0;
   if (k == CLAVICLE_INDEX) return 1.0 / uClavicleR.x;
   float a = uRibParams.x;
   float b = uRibs[k].w;

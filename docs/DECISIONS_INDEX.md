@@ -28,7 +28,8 @@ Generado por `npm run docs:index` — no editar a mano.
 | [22](DECISIONS.md#L1404) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
 | [23](DECISIONS.md#L1570) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |
 | [24](DECISIONS.md#L1640) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
-| [25](DECISIONS.md#L1756) | Maniquí humano procedural y sonda convexa registrada | vigente |
-| [26](DECISIONS.md#L1785) | La cobertura de exploración: una prueba por celda del tórax | vigente |
-| [27](DECISIONS.md#L1857) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
-| [28](DECISIONS.md#L1944) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
+| [25](DECISIONS.md#L1761) | Maniquí humano procedural y sonda convexa registrada | vigente |
+| [26](DECISIONS.md#L1790) | La cobertura de exploración: una prueba por celda del tórax | vigente |
+| [27](DECISIONS.md#L1862) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
+| [28](DECISIONS.md#L1949) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
+| [29](DECISIONS.md#L2084) | La espalda: el paciente sentado, la escápula y la columna | vigente |

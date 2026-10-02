@@ -38,9 +38,10 @@ conservan su identificador (decisiones 10 y 11).
   medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula; desde la decisión 27 la clavícula existe, pero su eje queda ≈ 24 mm sobre el de la 1.ª costilla en la LMC) y el esternón es
   vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
   hombres: 303 × 195 × 366); con la pared torácica por región (decisión 17: 12,8 mm al lado), 303 × 182 mm, y con el tronco de
-  226 mm y la pared paravertebral de sus fuentes (decisión 28), 303 × 189 (−0,4 DE de Robinson). La 1.ª costilla cae lo que la
-  real (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de la profundidad del cilindro: 15,2° bajo el
-  plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 32,2 frente a 29 ± 7,7).
+  226 mm y la pared paravertebral de sus fuentes (decisión 28), 303 × 189 (−0,4 DE de Robinson); con las costillas hasta la
+  punta de la transversa de la TAC y la espalda alta (decisión 29), 303 × 192. La 1.ª costilla cae lo que la
+  real (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de la profundidad del cilindro: 15,0° bajo el
+  plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 31,8 frente a 29 ± 7,7).
 - **Una sola sección para todas las costillas** (`rib-section-uniform`, decisión 16): las 24 costillas y sus cartílagos
   tienen la misma elipse de 14 mm de alto (medido en vertical, el corte longitudinal de la ecografía: la sección
   perpendicular de una costilla oblicua es más estrecha) y 4,7 mm de grosor, de hueso homogéneo, sin cortical ni esponjosa
@@ -56,7 +57,9 @@ conservan su identificador (decisiones 10 y 11).
   se inclina bajo la 5.ª costilla y el signo del murciélago del EIC5 lateral queda a 4,2 mm (el de F-T08 del punto BLUE
   inferior, con un lado a 7,4). Sobre el esternón, piel y grasa presternal sobre el hueso (5,5 mm; 3,6 la delgada), sin el
   pectoral que cubre sus bordes. El contacto de la sonda toma, en cada línea, la pared donde entra en la piel, no la de cada
-  profundidad. Sin escápula (la pared de detrás arriba es la infraescapular), sin los límites
+  profundidad. Detrás, arriba (sobre la 4.ª costilla de la LAM, decisión 29), la espalda con la escápula: 32 mm de la línea
+  media a la escapular (Wada, Okçu) y 20 en la infraescapular [SUPUESTO], con la misma transición en altura que la axila
+  (del centro del EIC5 a la 4.ª costilla de la LAM), que detrás no tiene fuente; sin los límites
   craneocaudales de la mama (la variante de mujer suma sus 2 mm a toda altura, del esternón a la axilar anterior), con la
   pared junto a la columna de 28 mm por la normal (decisión 28: Folli, piel → costilla en prono, más la costilla; Okçu, el punto
   más fino por dentro de la escápula en la TAC en supino), la misma de la paravertebral a la línea media, en un solo músculo (sin
@@ -112,6 +115,36 @@ conservan su identificador (decisiones 10 y 11).
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,
   sin los extremos de 25–26 mm, sin articulaciones ni acromion; sigue la piel del cilindro, no la del hombro.
+- **La escápula es una lámina** (`scapula-plate`, decisión 29): un triángulo de hueso de 3 mm (la parte central del cuerpo,
+  Burke) bajo la piel, la grasa y el trapecio medio de la espalda (13,9 mm por la normal), a la misma profundidad en toda ella,
+  con el ángulo inferior en la línea escapular a la altura de la apófisis de T8 y el superior a 9 cm de la línea media. Sin la
+  espina (7–18 mm de grosor), el borde lateral (9,7), la glena ni el acromion; sin el infraespinoso, que engruesa hacia el
+  centro de la fosa (≈ 2 cm, Ortega-Santamaría, sin unidad declarada), ni el subescapular y el serrato entre ella y la parrilla
+  (NO ENCONTRADO). La espalda alta, más gruesa (32 mm de la línea media a la escapular, Wada y Okçu), adelgaza hacia la axila (20
+  en la infraescapular [SUPUESTO], 18 en la LAP): como el tronco no tiene hombro, la lámina se recorta por fuera hasta que
+  ninguna costilla asoma sobre su cara posterior (`fitScapula`), y mide 54 mm de ancho en la raíz de la espina, no 103,5 (la
+  glena de Garzón-Alfaro quedaría 49 mm más allá): falta la mitad lateral de la fosa infraespinosa. Bajo su cara posterior la
+  lámina llega a la cresta de las costillas (en su extremo de fuera corta hasta 2 mm de ellas; no se ve, es su sombra). En la
+  mujer (la escápula de 137 mm), la glena, a la altura de la raíz de la espina, queda 3 mm sobre el ángulo superior [SUPUESTO].
+  Solo con los
+  brazos a los lados: con los brazos cruzados (A-T18, el triángulo de auscultación) o el brazo levantado no se mueve. En los
+  varones, las distancias a la línea media son de poblaciones mixtas o de mujeres (NO ENCONTRADO en varones sanos en acceso
+  abierto).
+- **La columna por detrás es un arco continuo** (`spine-arch-slab`, decisión 29): las láminas y las apófisis transversas, una
+  caja de la cara posterior a 27 mm de la piel hasta 47 (VExUS), hasta 29,3 mm de la línea media (Li, TAC) en toda la altura:
+  sin transversas por nivel (en la TAC, 14 mm de hueco entre dos en T8–T10), sin articulaciones costotransversas ni cuellos
+  costales. La pared junto a la columna es la de la espalda (28 mm abajo, 32 arriba): la columna se clasifica también dentro de
+  ella, pero por fuera del arco, a partir de esa profundidad, hay pulmón (en el cadáver, la apófisis transversa queda 12–21 mm
+  por detrás de la pleura, Tan). Las apófisis espinosas, barras de 6 mm [SUPUESTO] con la punta a 11 mm de la piel en el
+  avatar (Grünwald, TAC de mayores con escoliosis; con la piel y la grasa de cada hábito) y la inclinación de la regla de los
+  tres; sin cara cortical propia (como el resto de la columna de VExUS): en la línea media la imagen es su sombra.
+- **La posición del paciente no cambia la anatomía** (`patient-position-anatomy`, decisión 29): sentado, la sonda alcanza la
+  espalda, pero el pulmón, el diafragma, la pared y la escápula son los del supino. Sentado, la capacidad residual funcional
+  sube (806 ± 293 mL más que en supino en 13 varones, Lumb y Nunn, resumen; el volumen pulmonar espiratorio, un 9,5 % más en la
+  TAC sentada que en la de supino, Yamada y cols.) y el diafragma baja (en supino queda más craneal, Traser y cols., RM
+  dinámica de 3 cantantes); cuánto baja el borde posterior del pulmón, NO ENCONTRADO. La pared de la espalda no cambia en
+  la ecografía sentado frente a en prono (Wada y cols., 18 varones). La escápula, de pie según Cooperstein; sentado, NO
+  ENCONTRADO como comparación directa.
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara

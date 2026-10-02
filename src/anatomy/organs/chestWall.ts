@@ -23,7 +23,9 @@ import { wallArc, wallPerimeter } from './wall';
  *  - al lado, bajo (EIC5 LAA/LAM, 12,8): piel 1,8, grasa 3,2, serrato 4,5, intercostales 3,0;
  *  - al lado, alto (EIC4-LAM, la axila, 18): piel 1,8, grasa 4,0, músculo el resto, intercostales 3,7 (EIC3 lateral);
  *  - detrás (infraescapular, 16,1): piel 2,5, grasa 4, dorsal ancho 5, intercostales 4,3;
- *  - junto a la columna y en la línea media posterior, 28 (la pared heredada: los paravertebrales, sin cifra en la base).
+ *  - junto a la columna y en la línea media posterior, 28 (decisión 28: Folli, Okçu);
+ *  - detrás, arriba (decisión 29: sobre la 4.ª costilla de la LAM), 32 de la línea media a la escapular: la espalda con la
+ *    escápula y sus músculos (Wada, Okçu); en la infraescapular, 20 [SUPUESTO].
  * Entre estaciones, interpolación monótona en |u|; en altura, las de la axila alta desde la 4.ª costilla de la LAM hacia
  * arriba y las bajas desde el centro del EIC5 hacia abajo (una transición suave entre los dos: `setChestWallCage`); bajo el reborde
  * costal, en 100 mm, la pared del abdomen del hábito. La banda
@@ -163,6 +165,36 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
       '(Okçu, 296 adultos; 31,0 ± 8,3 en los varones de todo IMC; el artículo no da la distancia de ese punto a la línea media). ' +
       '28, entre las dos [elegido]. El rango, ± 1 DE: de 26,4 − 6,8 (Okçu) a 30 + 4,5 (Folli más la cresta). Hasta la decisión 27 era el de la línea media (la pared heredada de VExUS), y en la paravertebral ' +
       'quedaba 21. La apófisis transversa → pleura, 21 ± 4,2 mm a 25 mm de la línea media (Oon Tan, el resumen)',
+  },
+  posteriorHighWallMm: {
+    value: 32,
+    unit: 'mm',
+    range: [28, 40],
+    evidence: 'derivado',
+    sources: ['wada-pared-2025', 'okcu-parascapular-2026', 'silkjaer-escapulares-2021', 'lichtenstein-luci-2014'],
+    note:
+      'Piel → pleura en la espalda alta, de la línea media posterior a la escapular, desde la 4.ª costilla de la LAM hacia ' +
+      'arriba (las capas altas, decisión 29), con la escápula y sus músculos; en la infraescapular, `infrascapularHighWallMm`. ' +
+      'Piel → costilla en BL43 (la 5.ª costilla, junto al borde medial de la escápula a la altura de T4) 27 ± 4 mm, y en BL46 (la ' +
+      '8.ª, a la de T7) 20 ± 5, en 18 varones de IMC 23,3, igual en prono que sentados (Wada y cols. 2025, tabla 1), más los 5 de ' +
+      'la cresta costal a la pleura (`anatomy.ribcage.crestToPleuraMm`): 32 arriba (el valor) y 25 abajo (la pared baja, 28). Piel ' +
+      '→ pleura 1 cm por dentro del punto medio del borde medial, 37,8 ± 8,5 con IMC normal (Okçu y cols. 2026, tabla 2): −0,7 DE. ' +
+      'Bajo la escápula: piel 2,5, grasa 4, trapecio 7, escápula 3, serrato 6,9–8,5 (Silkjær, medido en la axila) y los 5 de la ' +
+      'cresta, 28–30, más el subescapular (NO ENCONTRADO). Con 35, la subida en altura (del centro del EIC5 a la 4.ª costilla de ' +
+      'la LAM) inclinaba la pleura de la paravertebral (F-T08: un lado a 8,2 mm de la cresta en el EIC8). El rango, de Wada arriba ' +
+      'menos 1 DE (28) a 40',
+  },
+  infrascapularHighWallMm: {
+    value: 20,
+    unit: 'mm',
+    range: [16, 26],
+    evidence: 'estimado',
+    sources: ['wada-pared-2025', 'okcu-parascapular-2026'],
+    note:
+      'Piel → pleura arriba en la estación infraescapular (decisión 29), bajo la parte lateral de la escápula: NO ENCONTRADO ' +
+      '[SUPUESTO]. Entre los 32 de la espalda alta (Wada, Okçu) y los 18 de la axila; abajo, 16,1. Con 24, la subida en altura (del ' +
+      'centro del EIC5 a la 4.ª costilla de la LAM) inclinaba la pleura del punto PLAPS, que el detector del banco de fidelidad ya no ' +
+      'seguía (61 % de sus columnas a ±1 mm del gemelo, frente al 100 %), y la de 1,2π bajo la 6.ª costilla (F-T08: 7,3 mm)',
   },
   infrascapularPhi: {
     value: 1.2 * Math.PI,
@@ -415,6 +447,8 @@ function stationLayers(
   lateralHigh: StationLayers;
   posterior: StationLayers;
   paravertebral: StationLayers;
+  posteriorHigh: StationLayers;
+  infrascapularHigh: StationLayers;
   femaleExtra: number;
 } {
   const P = CHEST_WALL.params;
@@ -468,7 +502,19 @@ function stationLayers(
     band: pvBand,
     complex,
   };
-  const all = [anterior, lateralLow, lateralHigh, posterior, paravertebral];
+  // la espalda alta (decisión 29): de la paravertebral a la infraescapular, con la escápula y sus músculos
+  const posteriorHigh: StationLayers = {
+    skin: skinP,
+    fat: P.fatPosteriorMm.value,
+    muscle: P.posteriorHighWallMm.value - skinP - P.fatPosteriorMm.value - pvBand - complex,
+    band: pvBand,
+    complex,
+  };
+  const infrascapularHigh: StationLayers = {
+    ...posterior,
+    muscle: P.infrascapularHighWallMm.value - skinP - P.fatPosteriorMm.value - P.intercostalPosteriorMm.value - complex,
+  };
+  const all = [anterior, lateralLow, lateralHigh, posterior, paravertebral, posteriorHigh, infrascapularHigh];
   if (h.build === 'thin') {
     const f = P.thinFatMm.value / P.fatAnteriorMm.value;
     const mu = P.thinPectoralMm.value / P.pectoralMm.value;
@@ -490,6 +536,8 @@ function stationLayers(
     lateralHigh.fat += dAnterior;
     posterior.fat += dAnterior;
     paravertebral.fat += dAnterior;
+    posteriorHigh.fat += dAnterior;
+    infrascapularHigh.fat += dAnterior;
   }
   return {
     sternal,
@@ -498,6 +546,8 @@ function stationLayers(
     lateralHigh,
     posterior,
     paravertebral,
+    posteriorHigh,
+    infrascapularHigh,
     femaleExtra: h.sex === 'female' ? P.femaleAnteriorExtraMm.value : 0,
   };
 }
@@ -523,9 +573,8 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     posteriorMidline: 0.5 * wallPerimeter(t),
   };
   // nodos de las capas bajas y altas: el esternón (de la línea media a su borde), delante (paraesternal, LMC), al lado (LAA, LAM; la LAP solo en las
-  // altas, el pliegue axilar posterior), detrás (infraescapular y línea media posterior: con un nodo en la paravertebral,
-  // 12 mm en 30 de piel inclinaban las caras más de lo que acota la salida barata de la pasada B; ahí queda ≈ 21 mm por la
-  // normal)
+  // altas, el pliegue axilar posterior), detrás (infraescapular, paravertebral y línea media posterior; desde la decisión 28,
+  // la paravertebral con su grosor, y desde la 29, las altas de detrás más gruesas: la espalda alta con la escápula)
   const low: Array<[number, StationLayers]> = [
     [0, L.sternal],
     [st.sternalEdge, L.sternal],
@@ -545,9 +594,11 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     [st.anteriorAxillary, L.lateralHigh],
     [st.midaxillary, L.lateralHigh],
     [st.posteriorAxillary, L.lateralHigh],
-    [st.infrascapular, L.posterior],
-    [st.paravertebral, L.paravertebral],
-    [st.posteriorMidline, L.paravertebral],
+    [st.infrascapular, L.infrascapularHigh],
+    // la espalda alta (decisión 29), de la línea escapular a la media; hacia la infraescapular, a 0,28 mm por mm de piel
+    [skinArc(thoraxLinePhi('scapular', t), t), L.posteriorHigh],
+    [st.paravertebral, L.posteriorHigh],
+    [st.posteriorMidline, L.posteriorHigh],
   ];
   const profile = (nodes: Array<[number, StationLayers]>, key: keyof StationLayers) =>
     pchip(

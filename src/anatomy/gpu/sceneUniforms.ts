@@ -93,8 +93,8 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uSpineArch',
     type: 'vec4',
-    doc: 'semiancho, y0, y1 del arco posterior, 0',
-    value: (s) => [s.spine.archHalfWidth, s.spine.archY0, s.spine.archY1, 0],
+    doc: 'semiancho, y0, y1 del arco posterior; y de la punta de las apófisis espinosas (lus-sim, decisión 29)',
+    value: (s) => [s.spine.archHalfWidth, s.spine.archY0, s.spine.archY1, s.spinous.tipY],
   },
   {
     name: 'uRibs',
@@ -125,6 +125,20 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     type: 'vec4',
     doc: 'la clavícula: radio y profundidad del eje bajo la piel por la normal (mm), 0, 0',
     value: (s) => [s.ribCage.clavicle.radius, s.ribCage.clavicle.depth, 0, 0],
+  },
+  {
+    name: 'uScapula',
+    type: 'vec4',
+    doc:
+      'lus-sim (decisión 29): la escápula (organs/ribcage.ts): s (a la línea media posterior por la piel) y z del ángulo superior y ' +
+      'del inferior',
+    value: (s) => [...s.ribCage.scapula.superior, ...s.ribCage.scapula.inferior],
+  },
+  {
+    name: 'uScapulaB',
+    type: 'vec4',
+    doc: 'la escápula: s y z de la glena, profundidad de la cara posterior bajo la piel por la normal y grosor (mm)',
+    value: (s) => [...s.ribCage.scapula.glenoid, s.ribCage.scapula.depth, s.ribCage.scapula.thickness],
   },
   {
     name: 'uRibParams',

@@ -284,7 +284,14 @@ una celda la tiene que pasar a `it`. El total (meta v0.2.0: 100 %) también. Una
 sitio) comprueba que el medidor ve el pulmón de la espalda: lo que falla detrás es el alcance, no la medida. Desde la
 decisión 27, el vértice (A-T23: el pulmón más alto en una rejilla de todo el corte; junto a la pared, la 1.ª costilla de cada
 línea) y la clavícula con la fosa supraclavicular (A-T24) están en `anatomyTargets.test.ts`, y la e2e compara la anatomía de
-la GPU también en la fosa, sobre la clavícula y en la axila alta, con un volumen aparte del vértice (z 150–230).
+la GPU también en la fosa, sobre la clavícula y en la axila alta, con un volumen aparte del vértice (z 150–230). Desde la
+decisión 29 las posiciones admitidas son el supino y el paciente sentado (la espalda): cada celda dice la primera que la alcanza
+y una prueba comprueba que solo en supino la espalda vuelve a quedar fuera. La escápula (A-T18) se mide en la clasificación, en
+una rejilla de la piel de la espalda (el hueso de la lámina, no el de una costilla, a la mitad de su grosor por la normal), y la
+e2e compara la anatomía de la GPU en cuatro planos de la espalda (la escápula, la paravertebral, junto a las transversas y la
+línea media con las espinosas); el volumen del tórax ya muestrea la espalda. La compresión de la sonda (s ≤ 0, ∂s/∂ρ ≥ 0) se
+comprueba en toda la vuelta. `evidenceNotes.test.ts` comprueba que el build vacía las notas de evidencia de todos los módulos
+sin cambiar su número de líneas y que la aplicación no lee `.note` fuera de `core/evidence.ts`.
 
 ## Invariantes previstas
 

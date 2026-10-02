@@ -48,6 +48,10 @@
 // 2026-10-01 (decisión 27): la cúpula pleural (`anatomy/organs/lungApex.ts`) y la clavícula (en la parrilla), con sus
 // parámetros y su evidencia (≈ 4,5 kB de notas) y sus gemelos GLSL en cada programa, llevan la entrada de 258,9 a 266,2 kB y el
 // total de 812,1 a 818,3. La entrada sube a 270 kB y el total a 830.
+// 2026-10-02 (decisión 29): la posición del paciente, la escápula, las apófisis espinosas y la espalda alta, con su evidencia,
+// llevaban la entrada (con el chunk compartido del contacto) de 269,4 a 284,1 kB y el total a 835,8. Las notas de evidencia de los
+// parámetros, ≈ 36 kB del bundle que la aplicación no lee, salen del build (`tools/build/evidenceNotes.ts`): la entrada queda en
+// 249,0 kB y el total en 800,4. Los límites no cambian.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 

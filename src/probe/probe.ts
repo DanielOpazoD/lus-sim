@@ -158,12 +158,26 @@ export function probeVelocity(prev: ProbeFrame, next: ProbeFrame, dtSeconds: num
   return scale(sub(next.face, prev.face), 1 / dtSeconds);
 }
 
-export function clampPose(p: ProbePose): ProbePose {
+/**
+ * Posición del paciente (lus-sim, decisión 29): decide hasta dónde llega la sonda. En decúbito supino, la cama deja la espalda
+ * fuera de su alcance; sentado (la exploración de la cara posterior de la clínica), la sonda da toda la vuelta al tronco. La
+ * misma unión que `PatientState.position` (la capa de la sonda no lee la fisiología).
+ */
+export type PatientPosition = 'supine' | 'sitting';
+export const PATIENT_POSITIONS: readonly PatientPosition[] = ['supine', 'sitting'];
+
+/** φ llevado a [−π/2, 3π/2): la línea media posterior es el corte (sentado, la sonda la cruza dando la vuelta). */
+function wrapPhi(phi: number): number {
+  const turn = 2 * Math.PI;
+  return ((((phi + Math.PI / 2) % turn) + turn) % turn) - Math.PI / 2;
+}
+
+export function clampPose(p: ProbePose, position: PatientPosition = 'supine'): ProbePose {
   return {
     // De la línea axilar posterior izquierda a la derecha en decúbito supino (lus-sim, decisión 10): VExUS
     // llegaba a la derecha (1,2π, su ventana renal); la izquierda es su simétrica respecto de la línea media
-    // anterior (π/2), para explorar los dos hemitórax
-    phi: clamp(p.phi, -Math.PI * 0.2, Math.PI * 1.2),
+    // anterior (π/2), para explorar los dos hemitórax. Sentado (decisión 29), toda la vuelta
+    phi: position === 'sitting' ? wrapPhi(p.phi) : clamp(p.phi, -Math.PI * 0.2, Math.PI * 1.2),
     z: clamp(p.z, -200, 200),
     lift: clamp(p.lift, -6, 25),
     yaw: ((((p.yaw + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI,

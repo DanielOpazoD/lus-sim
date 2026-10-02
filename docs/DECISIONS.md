@@ -1715,6 +1715,11 @@ misma semilla y el mismo protocolo: pared 30,20 / 41,76 / 35,00, neblina 14,09 /
 M neblina 2,076 / 1,758 / 1,973 y A2.r2 0,5669 / 0,4987 / 0,5307 en el BLUE superior, el inferior y el PLAPS (la comparación con
 main en tres semillas, en la decisión 28).
 
+**Nota (decisión 29, 2026-10-02).** Con la espalda de la decisión 29 (las costillas hasta la transversa de 29,3 mm y la espalda
+alta) el ajuste tampoco cambia; las medidas, con la misma semilla: pared 30,20 / 41,77 / 33,93, neblina 14,09 / 19,62 / 17,35, M
+pared 1,911 / 1,535 / 1,818, M neblina 2,076 / 1,756 / 1,976 y A2.r2 0,5670 / 0,4984 / 0,5298 (el PLAPS, un gris de pared menos:
+dentro de la dispersión de las semillas de la decisión 28).
+
 La mejora es pequeña: las cuatro métricas primarias (M pared, M neblina, A2.r2 y T1 σ/prominencia)
 se acercan a la descripción exploratoria en las tres ventanas, a DR70 y DR80, pero siguen fuera de
 sus p10–p90. A DR70 esas métricas no están censuradas; los niveles de pared y neblina suben y su recorte
@@ -2075,3 +2080,160 @@ derivación, la fuente de los 5 mm de la cresta, el DOI de Okçu, dos puntos abs
 comentarios desfasados (`wallArc`, la cara posterior de la columna a 42 mm, el título de A-T7 alto), el umbral de A-T15 (20,3, no 21) y efectos pequeños sin declarar: todo aplicado. Comprobado correcto por el revisor: las cifras de ANSUR recalculadas de los
 CSV públicos, las de Folli y Okçu frente a sus tablas, todas las consecuencias de la tabla, A-T15 y A-T24, la ausencia de
 literales del tronco viejo en TS y GLSL, la nota de la decisión 24 y el índice.
+
+## 29. La espalda: el paciente sentado, la escápula y la columna
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Con el tronco de la decisión 28, la cara posterior seguía fuera de la cobertura (0 de 44 celdas): en decúbito
+supino la sonda no pasa de 1,2π, la escápula no existía (la expectativa de la línea escapular aceptaba el pulmón «junto a ella»)
+y la columna era el cilindro y la caja del arco de VExUS (las transversas hasta 40 mm de la línea media [SUPUESTO]). La misión
+(requisito de cobertura) pide la espalda con el paciente sentado, como en la clínica, y la escápula solo donde tampoco se toca
+en la clínica. Objetivo O2 (fidelidad anatómica, cobertura) y O5 (el alumno encuentra cada zona).
+
+**Fuentes verificadas** (texto completo salvo donde se dice «resumen»; búsqueda del 02-10-2026):
+
+- **Escápula.** El ángulo inferior a la altura de la apófisis de T8 (Cooperstein, metaanálisis: nivel medio 8,01; Gray 1918,
+  T7 [DISCREPANCIA]); la raíz de la espina, a la de T3 (Gray 1918). El ángulo superior a 9,1 ± 1,1 cm de la línea de las
+  apófisis (derecha; 8,5 ± 1,2 la izquierda; Pontin, 30 sanos, tabla 5), con el borde medial a 3,5–4,8° de la vertical; las
+  raíces de las espinas a 17,19 ± 1,85 cm entre sí (Sobush, 15 mujeres, resumen). [DISCREPANCIA]: de la raíz a T3–T4, 6,4–6,6
+  cm (Moghadam, 30 mujeres): se siguen Pontin y Sobush, que coinciden. El ángulo inferior, en la línea escapular de la decisión
+  26 (Moon: 85 mm), que pasa por él. Largo (ángulo superior → inferior) 152,85 ± 16,77 mm y ancho 103,53 ± 4,57 en varones
+  (Garzón-Alfaro, 72 escápulas secas, tabla 3; 155 ± 16 en von Schroeder, resumen); grosor de la parte central del cuerpo 3,0
+  mm (Burke, resumen). Trapecio medio 7,1 ± 2,2 mm (Silkjær Bak, 41 sanos, ecografía). La frase «cubre de la 2.ª a la 7.ª
+  costilla» no está en Gray 1918 (es de ediciones posteriores): se quita de la expectativa de la cobertura.
+- **Columna.** La distancia entre las puntas de las transversas en T8, 58,65 ± 5,05 mm (Li, TAC 3D de 20 sanos; el hueco entre
+  dos, 14,2); de la piel a la punta de la espinosa, 8–15 mm en T5–T8 (Grünwald, TAC de mayores con escoliosis: débil).
+- **Espalda alta.** Piel → costilla junto al borde medial de la escápula, 27 ± 4 mm en la 5.ª costilla (BL43, a la altura de T4)
+  y 20 ± 5 en la 8.ª (BL46, T7), igual en prono que sentados (Wada, 18 varones de IMC 23,3, tabla 1); piel → pleura 1 cm por
+  dentro del punto medio del borde medial, 37,8 ± 8,5 con IMC normal (Okçu).
+- **Postura.** Sentado, la capacidad residual funcional sube 806 ± 293 mL (Lumb y Nunn, resumen) y el volumen pulmonar
+  espiratorio un 9,5 % en la TAC (Yamada); el diafragma queda más craneal en supino (Traser, RM de 3 cantantes). Cuánto baja
+  el borde posterior del pulmón sentado: NO ENCONTRADO.
+- NO ENCONTRADO: las distancias de la escápula a la línea media en varones sanos (acceso abierto), el subescapular entre la
+  escápula y la parrilla, la profundidad de la piel a la escápula, la sección de la apófisis espinosa, la piel → transversa y
+  el ancho de los espacios intercostales junto a la columna.
+
+**Opciones.** Para la escápula: (a) una lámina a profundidad fija bajo la piel, en la clasificación de la parrilla (como la
+clavícula); (b) una lámina con su espina, su borde lateral grueso y la glena, sobre una pared que la contenga entera; (c) nada
+y una expectativa que acepte el pulmón (lo de antes). Para la pared bajo la escápula: (i) la de su línea (16–28 mm: la lámina
+corta las costillas en la mitad lateral); (ii) la espalda alta más gruesa con las capas altas de la pared, del centro del EIC5
+a la 4.ª costilla de la LAM (la transición de la axila, decisión 17); (iii) un engrosamiento con la forma de la escápula, como la
+cúpula pleural (decisión 27), que el campo respiratorio tendría que ver (su cota del jacobiano admite 0,1 mm/mm hacia abajo:
+el borde superior de la escápula, 13 mm en 30, no cabe). Para la posición: (α) cambiar la anatomía con la postura; (β) solo el
+alcance de la sonda.
+
+**Decisión.** (a), (ii) y (β).
+
+- **La posición del paciente** (`PatientState.position`: supino, por omisión, o sentado; `clampPose(pose, position)` con la misma
+  unión en la capa de la sonda): sentado, φ se envuelve en [−π/2, 3π/2) y la sonda da la vuelta al tronco; el simulador acota con
+  ella. La cobertura admite las dos posiciones (`SUPINE_REACH`, `SITTING_REACH`; cada celda dice la primera que la alcanza). La
+  anatomía es la misma (`patient-position-anatomy`). La interfaz para sentar al paciente y explorar la espalda en el navegador
+  3D es la PR siguiente.
+- **La escápula** (`anatomy.scapula`, en `organs/ribcage.ts`; índice `SCAPULA_INDEX` en `ribScan`, con su gemelo GLSL y
+  `uScapula`, `uScapulaB`): un triángulo en (s, z) —s, la distancia a la línea media posterior por la piel— del ángulo inferior
+  (en la línea escapular, a la altura de la apófisis de T8), el superior (a 9 cm de la línea media por la piel y a 153 mm del
+  inferior) y la glena (a su ancho del borde medial, a la altura de la raíz de la espina [SUPUESTO]); una lámina de 3 mm con la
+  cara posterior bajo la piel y la grasa del hábito y el trapecio medio (13,9 mm por la normal). Los vértices, medidos en la piel,
+  van al arco de la mitad de la lámina por la normal, y la distancia de un punto se mide llevándolo allí (detrás, la dirección
+  radial de la elipse se abre con la profundidad: sin eso, el borde medial quedaba 4–6 mm por dentro y la distancia pasaba 1,18
+  veces la de verdad). Hueso con su sombra; su cara posterior, la cortical que dibuja el tejido de fuera. Sobre la pared
+  construida, la glena se acerca al borde medial (bisección) hasta que ninguna costilla asoma sobre su cara posterior
+  (`fitScapula`; si ni así cabe, la construcción falla): 54 mm de ancho en la raíz de la espina, no 103,5; bajo su cara posterior
+  la lámina corta la parte alta de las costillas en su extremo de fuera (hasta 2 mm; no se ve: es su sombra) (`scapula-plate`).
+- **La espalda alta** (`anatomy.chestWall.posteriorHighWallMm`, 32 mm, de la línea media a la escapular; 20 en la
+  infraescapular, `infrascapularHighWallMm` [SUPUESTO]), en las capas altas de la pared. 32: Wada en BL43 (27) más los 5 de la
+  cresta costal a la pleura (Okçu, 37,8 ± 8,5: −0,7 DE). Los dos valores los acota, además, la transición en altura de las
+  capas altas (del centro del EIC5 a la 4.ª costilla de la LAM, la de la axila, que detrás no tiene fuente): con 35, la pleura de
+  la paravertebral se inclinaba bajo la 7.ª y la 8.ª costilla (F-T08: un lado a 8,2 mm de la cresta, la media a 6,3); con 24 en
+  la infraescapular, la del PLAPS (el detector del banco de fidelidad ya no la seguía: 61 % de las columnas a ±1 mm del gemelo)
+  y la de 1,2π bajo la 6.ª costilla (F-T08, 7,3 mm); con 29, además, la salida barata de la pasada B (|∇| de la cara 1,77
+  frente a 1,5). F-T08 mira desde ahora la paravertebral (EIC5, 7 y 8).
+- **La columna** (`anatomy.spine`, módulo `organs/spine.ts`): las transversas hasta 29,3 mm de la línea media (Li; en VExUS, 40)
+  y las costillas acabando 6 mm por fuera, también donde la pared alta es más gruesa (`setRibPosteriorEnds`: la parrilla se
+  construye con la pared baja); las apófisis espinosas de T1–T12, barras de 6 mm [SUPUESTO] de la cara posterior del arco a su
+  punta, a 11 mm de la piel en el avatar (Grünwald; con la piel y la grasa del hábito), bajando de la altura de su cuerpo a la
+  de su punta por la regla de los tres (`spinousTipZ`). La columna se clasifica también dentro de la pared (las espinosas y la
+  cara posterior del arco, a 27 mm, que la pared de 32 mm cubría: sin eso, a 25 mm de la línea media la vértebra empezaba a
+  36,5 mm y las espinosas quedaban sueltas del arco). El arco sigue siendo continuo, sin transversas por nivel
+  (`spine-arch-slab`).
+- **La cobertura**: la línea escapular espera la escápula (o el pulmón junto a ella) del ángulo inferior a la altura del superior
+  (antes, hasta la 2.ª costilla, atribuido a Gray).
+- **La meta A-T18** (la escápula sentado) entra en `anatomyTargets.test.ts`, medida en la clasificación; su segunda parte (con los
+  brazos cruzados queda libre el EIC 6.º–7.º junto al borde medial) queda `notYetMet`.
+
+**Consecuencias: antes → después** (main `0fab474` frente a esta decisión, con el mismo código de medida).
+
+| Medida                                                           | Antes                                   | Después                                         | Fuente / meta                            | Por qué cambia                                                                       |
+| ---------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| Cobertura                                                        | 68/138 (posterior 0/44)                 | **106/138** (posterior 38/44)                   | —                                        | sentado se alcanza la espalda                                                        |
+| Lo pendiente de la cobertura                                     | 70 celdas                               | 32, todas bajo el diafragma                     | —                                        | sin hígado ni bazo (la PR del abdomen)                                               |
+| A-T18: el ángulo inferior                                        | —                                       | z 14 (la punta de T8 a 11,7; T7–T9, 35 a −11,7) | Cooperstein                              | nuevo                                                                                |
+| A-T18: el ángulo superior, por la piel                           | —                                       | 92 mm de la línea media                         | Pontin 91 ± 2 DE                         | nuevo                                                                                |
+| A-T18: alto de la lámina                                         | —                                       | 150 mm                                          | Garzón-Alfaro 152,85 ± 2 DE              | nuevo                                                                                |
+| A-T18 con los brazos cruzados                                    | —                                       | `notYetMet`                                     | Gray                                     | sin la posición de los brazos                                                        |
+| Caja (bbox)                                                      | 303 × 189 mm                            | 303 × 192                                       | Robinson 195,3 ± 17,5 (−0,36 → −0,19 DE) | las costillas hasta la transversa de 29,3 mm                                         |
+| A-T19, 7.ª costilla                                              | 32,2°                                   | 31,8                                            | Robinson 29 ± 7,7                        | ídem                                                                                 |
+| A-T19, 1.ª (`notYetMet`)                                         | 15,2°                                   | 15,0                                            | Robinson 31 ± 8,2                        | ídem                                                                                 |
+| A-T13, borde en la LAM                                           | −33,5                                   | −34                                             | Gray                                     | ídem                                                                                 |
+| Piel → pleura paravertebral, EIC3 / EIC5 / EIC7                  | 27,6 / 27,6 / 27,6                      | 32,1 / 32,1 / 27,6                              | Wada 32 arriba, 25 abajo; Okçu 37,8      | la espalda alta                                                                      |
+| Piel → pleura escapular, EIC3 / EIC5 / EIC7                      | 23,1 / 23,1 / 23,2                      | 30,3 / 30,3 / 23,2                              | ídem                                     | ídem                                                                                 |
+| Ancho del EIC8 paravertebral                                     | 9,9                                     | 10,6                                            | —                                        | los extremos de las costillas                                                        |
+| El EIC10 paravertebral en la cobertura                           | pulmón                                  | borde (cumple)                                  | Gray, T11                                | su centro, 4,3 mm más abajo (a 4,2 del borde)                                        |
+| F-T08                                                            | EIC2 a 1,2π                             | EIC2 de la LAP; EIC5, 7 y 8 de la PV            | 4–6 mm (sin cambiar)                     | a 1,2π, arriba, la escápula; la espalda alta                                         |
+| Punto BLUE inferior                                              | centro del EIC4 a 49,8 (1,5 por debajo) | a 49,5 (1,8 por debajo)                         | decisión 28                              | los extremos de las costillas                                                        |
+| Hundimiento de la sonda (BLUE superior / inferior / PLAPS)       | 11,29 / 12,03 / 11,81                   | 11,29 / 12,04 / 11,93                           | —                                        | —                                                                                    |
+| Hundimiento en la espalda, sentado (escápula / PV / línea media) | —                                       | 12,6 / 13,6 / 14,9                              | —                                        | la compresión cinemática empuja pared y hueso juntos (`probe-compression-kinematic`) |
+
+- **La calibración del contraste (decisión 24)**, con la misma semilla y el mismo protocolo (DR70, t = 60 s): el BLUE superior
+  igual (pared 30,20, M pared 1,911); el inferior casi (41,76 → 41,77, M pared 1,539 → 1,535); el PLAPS, pared 35,00 → 33,93,
+  neblina 17,50 → 17,35, M pared 1,807 → 1,818 y M neblina 1,973 → 1,976: los extremos de las costillas y la pared de 1,2π lo
+  mueven del orden de la dispersión de las semillas (1,4 grises en el PLAPS, decisión 28). La decisión 24 lleva una nota.
+- **El banco de fidelidad**: el error del ápice detectado en el BLUE inferior, 1,7 / 1,5 px (antes 2,2 / 2,0); en el PLAPS, 0,26 /
+  0,28, con la pleura del detector a ±1 mm del gemelo en todas sus columnas (74 y 76). Con 24 mm en la infraescapular alta esa
+  coherencia caía al 61 %: por eso 20 (medido con la espalda alta de 35 mm; con la de 32, el banco pasa en la e2e final).
+- **La GPU**: la escápula y las espinosas en la clasificación (dos uniforms nuevos: la pasada B declara 117 ranuras, 119 la
+  dirigida; tope 130). **Costo por cuadro** (`frameCostMs`, 60 cuadros,
+  GPU real M4, intercalado con main): en los tres puntos de partida, main 3,4–3,7 ms y esta decisión 3,7–3,8; en la espalda
+  (sentado), 3,3 sobre la escápula, 3,9 en la paravertebral y 3,6 en la línea media. O6 (≥ 30 FPS) holgado. La escena se
+  construye en 85 ms (main, 70, intercalados; con la primera versión del ajuste de la escápula, 336: ahora es una bisección).
+- En la imagen (GPU real): sobre la escápula, la piel, la grasa y el trapecio y la línea brillante del hueso con su sombra;
+  en la paravertebral, la pared gruesa de la espalda con el signo del murciélago; en la línea media, las espinosas en sombra, sin
+  cortical propia (`spine-arch-slab`).
+- **El presupuesto del bundle**: con esta decisión la entrada (con el chunk compartido del contacto) llegaba a 284,1 kB (270 de
+  presupuesto) y el total a 835,8 (830). Las notas de evidencia de los parámetros (≈ 36 kB del bundle, texto que la aplicación no lee:
+  ni el informe técnico ni la interfaz las muestran) salen del build (`tools/build/evidenceNotes.ts`: el valor de cada `note` de
+  un `defineParameters` pasa a `'·'`, con las mismas líneas; la validación de `core/evidence.ts` sigue cumpliéndose al cargar):
+  la entrada queda en 249,0 kB y el total en 800,4, sin subir los presupuestos. En desarrollo y en las pruebas, las notas
+  enteras.
+- La carga de los ganchos de prueba de la e2e (`app/devtools.ts`) informa si falla (antes era silenciosa).
+- `thorax-cylindrical-cage` y `chest-wall-regional-approx` dicen los números nuevos; nuevas `scapula-plate`, `spine-arch-slab` y
+  `patient-position-anatomy`.
+
+**Verificación.** `npm run check` (935 pruebas, un fallo esperado y una omitida; la entrada en 249,0 kB y el total en 800,4,
+dentro del presupuesto). Las unitarias: la cobertura (106/138, cada celda de detrás alcanzada sentado y ninguna en supino),
+A-T18 (en la clasificación: el ángulo inferior en z 14, el superior a 92 mm por la piel, 150 mm de alto, el plano de Treves por
+la 9.ª costilla junto a la columna, y la sonda sobre la lámina en los EIC 3–6; los brazos cruzados, `notYetMet`), F-T08 con la
+paravertebral, `clampPose` sentado, la compresión de la sonda en toda la vuelta, las apófisis espinosas y la transversa en la
+clasificación, el plugin de las notas (`evidenceNotes.test.ts`). La e2e con SwiftShader: las 28 pasan; la equivalencia TS ↔ GLSL
+con los planos de la espalda (la escápula, la paravertebral, junto a las transversas y la línea media), el volumen del tórax (que
+muestrea la espalda), el banco de fidelidad (el PLAPS y el BLUE inferior) y la calibración. En la última pasada completa, con la
+máquina cargada (carga media 10–12), una prueba agotó el arranque y pasó sola al repetirla (ver abajo). Revisión adversarial de
+contexto limpio, ejecutando: sin bloqueantes. Importantes, aplicados: la distancia a la escápula pasaba hasta 1,18 veces la de verdad (ahora el punto se
+lleva a la mitad de la lámina: ≤ 1,04 a menos de 10 mm, y 1e3 más lejos de su grosor); la pared de la espalda alta cubría el
+arco y soltaba las espinosas (la columna se clasifica también dentro de la pared); F-T08 no miraba la paravertebral, donde con
+35 mm fallaba (32 y tres cortes nuevos); las espinosas no seguían al hábito; los 20 mm de la infraescapular, sin decir en las
+aproximaciones que los fijan las pruebas. Menores, aplicados: notas desfasadas, el ángulo superior situado en x (ahora por la
+piel), la lámina que corta las costillas 2 mm (no 0,7), `fitScapula` sin aviso si no cabe, la glena de la mujer sobre el ángulo
+superior, el gemelo GLSL de la piel, las cifras de Garzón-Alfaro, del serrato y de los kB, el hundimiento en la espalda sin
+declarar. La interfaz sin la posición del paciente (`ui/thorax/geometry.ts`) queda para la PR siguiente.
+
+**Las e2e que agotan el arranque.** En tres pasadas locales completas fallaron por tiempo, una cada vez y distinta, pruebas que
+pasan solas (la pantalla de 320 px, el navegador 3D, la revisión y el modo M tras perder la GPU), todas en el mismo paso: con el
+primer cuadro ya dibujado (el «fps» del estado), `window.__lusTest` no aparece en 60 s. En la traza del navegador 3D, el chunk de
+los ganchos se descargó en 9 ms un segundo después de abrir la página, pero la primera evaluación de la prueba
+(`typeof window.__lusTest`) no volvió en los 60 s: el hilo principal de la página estaba ocupado, no faltaban los ganchos. La causa
+más probable es la compilación síncrona de programas en SwiftShader tras el primer cuadro (las pasadas que se compilan al usarse
+y el navegador 3D), que con la máquina cargada pasa del minuto; esta decisión agranda el GLSL de la anatomía (la escápula y las
+espinosas). Queda por medir el tiempo de compilación por programa (o compilar en paralelo con `KHR_parallel_shader_compile`) antes
+de tocar los plazos. La carga de los ganchos informa ahora si falla (`app/devtools.ts`).
