@@ -160,6 +160,8 @@ export class MModeView {
     this.acquisition.reset();
     this.getSim().renderer.mStrip.clear();
     this.painted = '';
+    // otra franja: el aviso lo dice ya (mover la línea, «Nueva franja»), no en el próximo cuadro
+    if (this.enabled) this.syncStatus();
   }
 
   private setFraction(value: number): void {

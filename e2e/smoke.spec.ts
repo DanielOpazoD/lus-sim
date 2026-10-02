@@ -267,7 +267,7 @@ test('sobrevive a la pérdida del contexto WebGL, también con la imagen congela
     )
     .toBeGreaterThanOrEqual(2);
   // y se ve: la línea pleural vuelve a la pantalla. En el CI la primera captura tras restaurar ya la tenía en las 12 medidas
-  // (gris 234–243) y cada captura tardó ≤ 45 s: los 90 s cubren dos
+  // (gris 234–243), con 26–45 s por captura (54 s la más lenta de las trazas fallidas): basta la primera
   await expect.poll(async () => (await screen(page)).max, { timeout: 90_000 }).toBeGreaterThanOrEqual(PLEURA_GREY);
   // el registro de errores dice la pérdida (en la consola, con su origen), y nada más
   expect(errors).toEqual(['console: [gpu] contexto WebGL perdido']);

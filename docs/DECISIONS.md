@@ -2275,7 +2275,7 @@ Los programas GLSL nuevos (vértice, clavícula, tronco: 2d9cfcb frente a main) 
 
 **Opciones.** (a) Subir los plazos (90 → 180 s, 240 → 360 s): esconde las causas y alarga cada fallo real; descartada.
 (b) Más reintentos: ya hay uno y los dos intentos fallaban juntos; descartada. (c) Congelar antes de mirar: la captura
-congelada tarda 0,5–11 s, pero la prueba dice que la imagen vuelve en vivo; descartada. (d) Esperar hechos de la aplicación,
+congelada tarda 5–11 s (0,5–0,9 s recortada de la página), pero la prueba dice que la imagen vuelve en vivo; descartada. (d) Esperar hechos de la aplicación,
 decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir la prueba larga: elegida.
 
 **Decisión.**
@@ -2283,12 +2283,13 @@ decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir 
 - `bindGpuLifecycle` (`src/ui/controllers/gpuLifecycle.ts`, portado de VExUS, ahora «adaptado»): `lost` pregunta también a
   `gl.isContextLost()`. Mejora para ofrecer de vuelta a VExUS.
 - `MModeView` (`src/ui/mMode.ts`): el aviso de estado lo escribe `showStatus()`, que llaman `draw()` y `setPlacing()`; colocar
-  o cancelar la línea lo cambia en el acto. Al encender M, `clear()` va antes de `setPlacing(false)` para no mostrar la
-  franja anterior. La entrada crece 192 B (276 446 → 276 638 B): su presupuesto pasa de 270 a 271 kB.
+  o cancelar la línea, moverla o empezar otra franja lo cambia en el acto (congelar aún espera al cuadro siguiente, que con la
+  imagen congelada es barato). Al encender M, `clear()` va antes de `setPlacing(false)` para no mostrar la
+  franja anterior. La entrada crece 224 B (276 446 → 276 670 B): su presupuesto pasa de 270 a 271 kB.
 - `e2e/smoke.spec.ts`: `screen()` decodifica la captura en Node (pngjs de Playwright, como `navegacion3d.spec.ts`), 0,02 s.
   La prueba de la pérdida espera dos cuadros del renderizador nuevo en su cine (`cineCount ≥ 2` de un renderizador distinto
   del perdido, 60 s) y luego la línea pleural en la pantalla, con los mismos 90 s: en las 12 medidas la primera captura tras
-  restaurar ya la tenía (gris 234–243) y cada captura tardó ≤ 45 s, así que caben dos.
+  restaurar ya la tenía (gris 234–243), con 26–45 s por captura (54 s la más lenta de las trazas fallidas): basta la primera.
 - `e2e/mmode.spec.ts`: «M móvil» se parte en dos (selección, teclado, equipo y respiración; mandos de 320 a 720 px, congelar y
   apagar M), con un ayudante `onPhone` que arranca el teléfono y comprueba el registro de errores. Ninguna comprobación se
   quita ni se relaja.
@@ -2298,7 +2299,8 @@ decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir 
 **Consecuencias.** El alumno ve el aviso del modo M al tocar «Colocar línea» aunque su GPU sea lenta, y una pérdida del
 contexto ya no deja un error espurio en el informe técnico. La e2e corre en ocho corredores (uno más) y cada «M móvil»
 tarda 1,1–2,8 min en el CI. Pendiente: el reparto por cuenta es frágil (cada prueba nueva lo desplaza; lo dice
-`docs/TESTING.md`), el 2.º fragmento sigue a ~12 min de 15 en el corredor lento, y el arranque de cada página bloquea el hilo
+`docs/TESTING.md`; Playwright 1.63 lee pesos por fragmento de `PWTEST_SHARD_WEIGHTS`, una variable interna sin documentar que
+no se usa por eso), el 2.º fragmento sigue a ~12 min de 15 en el corredor lento, y el arranque de cada página bloquea el hilo
 principal mientras SwiftShader compila (en local, con cuatro trabajadores, la espera de 60 s a los ganchos de prueba se agotó
 una vez de seis); el primer cuadro podría no bloquear si el renderizador esperara `COMPLETION_STATUS_KHR`.
 
@@ -2307,4 +2309,4 @@ pérdida) y 0 de 16 (las dos «M móvil»), y el CI completo de la PR en verde a
 0 de 6 antes y 0 de 9 después (la máquina no reproduce el CI); con cuatro trabajadores a la vez, 2 de 4 antes (la pérdida,
 plazo de 240 s agotado) y 1 de 6 después (el arranque, ver Pendiente). La carrera no tiene una prueba propia (no se puede forzar un cuadro
 entre la pérdida y su evento): la cubre la exigencia del registro de errores, que no trajo «FBO incompleto» en ninguna de las
-14 ejecuciones de la prueba con el cambio (9 en el CI, 5 en local).
+14 ejecuciones de la prueba con el cambio (9 en el CI: 8 repetidas y la del CI completo; 5 en local: 3 con un trabajador y 2 con cuatro).
