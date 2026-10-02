@@ -298,7 +298,8 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       const code = src.replace(/\/\/.*$/gm, '');
       // el #define, la coherencia de su reflexión especular (su fila de uIface) y el eco de la réplica, centrado en su
       // cruce (pleuraSeriesEcho: la cara y si es de un lado, decisión 15 de lus-sim)
-      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(4);
+      // (y la del lóbulo difuso, pleuraDiffuse.ts: experimento rechazado, rama de registro)
+      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(5);
       expect(code.match(/interfaceProfileEcho\(IF_PLEURA_WALL,/g)?.length).toBe(1);
       expect(code.match(/pleuraSeriesEcho\(cosI, k \* (D|sD) - (r|s)\)/g)?.length).toBe(1);
     }
@@ -306,7 +307,7 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     expect(PLEURA_GLSL).toContain(
       'return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));',
     );
-    const wall = PLEURA_GLSL.slice(PLEURA_GLSL.indexOf('vec2 wallField('));
+    const wall = PLEURA_GLSL.slice(PLEURA_GLSL.indexOf('vec4 wallField('));
     expect(wall).not.toMatch(/IF_PLEURA_WALL|pleuraEcho/);
   });
 
@@ -360,7 +361,7 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       expect(src).toContain('float chi = pleuraCoherence(cosI);');
       expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');
       expect(src).toContain(
-        'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+        'air += f.xy * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
       );
     }
   });
@@ -516,11 +517,9 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
     expect(FRAG_RAWFIELD_STEERED).toContain('tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w)');
     expect(ANATOMY_GLSL).toContain('float wall;\n  float u;\n  if (classifyWall(m, c, depth, tn, wall, u)) return c;');
     expect(PLEURA_GLSL).toContain('if (!classifyWall(m, c, depth, tn, wallMm, wallU)) { c.tissue = T_FAT; c.n = tn; }');
-    expect(PLEURA_GLSL).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
-    expect(FRAG_RAWFIELD).toContain('vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);');
-    expect(FRAG_RAWFIELD_STEERED).toContain(
-      'vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w)',
-    );
+    expect(PLEURA_GLSL).toContain('return vec4(field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0), diffuse);');
+    expect(FRAG_RAWFIELD).toContain('vec4 f = wallField(pointOnLine(dir0, d), dir0, seJ, wD);');
+    expect(FRAG_RAWFIELD_STEERED).toContain('vec4 f = wallFieldPh(elem + dirK * d, dirK, seJ, lookPhase(rhoJ, alJ, a, uSteer.w)');
   });
 });
 
@@ -978,7 +977,7 @@ describe('la rama de la cortina de la pasada B (mirada 0)', () => {
       'int nWall = series ? 2 : 0;',
       'float d = j == 1 ? ser.y : ser.z;',
       'float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;',
-      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      'air += f.xy * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
       'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;',
     ])
       expect(FRAG_RAWFIELD, line).toContain(line);

@@ -460,7 +460,9 @@ vec2 mediumField(vec3 p, vec3 dir, float r, float se, bool withCurtain) {
 // grasa preperitoneal, sin cara. Barata a propósito: va en el bucle de la serie, y el JIT de SwiftShader se
 // dispara con código pesado en un bucle (faceGradient no puede ir aquí). w: la jacobiana de la compresión de la
 // sonda en la pleura de la línea (decisión 63): la de la pared de encima, sin calcularla otra vez en el bucle.
-vec2 wallField(vec3 p, vec3 dir, float se, Warp w) {
+// lus-sim (ciclo 3b-2, pleuraDiffuse.ts): (xy) la copia coherente, (zw) la difusa, otra realización del moteado de la misma
+// pared (DIFFUSE_SALT) con la misma ganancia y sin el eco de cara plana
+vec4 wallField(vec3 p, vec3 dir, float se, Warp w) {
   vec3 m = toMaterial(p);
   Cls c;
   float depth;
@@ -468,9 +470,12 @@ vec2 wallField(vec3 p, vec3 dir, float se, Warp w) {
   float wallMm;
   float wallU;
   if (!classifyWall(m, c, depth, tn, wallMm, wallU)) { c.tissue = T_FAT; c.n = tn; }
-  vec2 field = fieldForBase(m, se, c.tissue, normalize(p - uCurvC), w);
+  float salt = float(c.tissue) * TISSUE_SALT_STEP;
+  float gain = fieldGainBase(m, c.tissue, normalize(p - uCurvC), w);
   float clump = uTissueClump4[c.tissue / 4][c.tissue % 4];
-  if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);
-  return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);
+  if (clump > 0.0) gain *= anchoredClump(m, se, clump, salt);
+  vec2 field = speckleField(m, uLattice, se, salt) * gain;
+  vec2 diffuse = speckleField(m, uLattice, se, salt + DIFFUSE_SALT) * gain;
+  return vec4(field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0), diffuse);
 }
 `;

@@ -14,6 +14,7 @@ import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
 import { NORMAL_CALIBRATION } from '../ultrasound/normalCalibration';
+import { PLEURA_DIFFUSE } from '../ultrasound/pleuraDiffuse';
 import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
 
@@ -43,6 +44,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   TGC_REFERENCE,
   BONE_TRANSMISSION,
   NORMAL_CALIBRATION,
+  PLEURA_DIFFUSE,
   DIAPHRAGM_EXCURSION,
   RESPIRATORY_WALL,
   FIDELITY_BENCH,

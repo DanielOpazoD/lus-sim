@@ -261,7 +261,7 @@ describe('rama dirigida de la pasada B: geometría (decisión 58)', () => {
       'p = pointOnLine(lineDir(alpha), r);',
       'tissue = mediumFieldPh(p, dir, s, elevSigma(r), !under, lookPhase(rho, alpha, a, uSteer.w), gr.x * uLateral + gr.y * uAxial);',
       'float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);',
-      'vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);',
+      'vec4 f = wallFieldPh(elem + dirK * d, dirK, seJ, lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);',
       'return field + vec2(interfaceEcho(c, m, dir, r, se, w), 0.0);',
       'vec3 dn = dRefl - dMirror;',
       'tissue += vec2(pleuraEcho(s - sMirror, dirK, ln > 1e-6 ? reflect(dirK, dn / ln) : dirK), 0.0);',
@@ -431,7 +431,7 @@ describe('rama dirigida de la pasada B: pleura parietal y cortina (decisión 61)
       'float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);',
       'float alJ = phiK + uSteer.x - steerBeta(rhoJ, a);',
       'float td = steeredT(phiK, a, min(d, sCap));',
-      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      'air += f.xy * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
       'float tFree = min(texture(uTrans3, vUv).x, texture(uTrans2, vUv).y) * gain;',
       'air += slidingField(pD, s - sD, uLookSalt) * tD;',
     ])

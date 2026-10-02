@@ -441,7 +441,7 @@ describe('eco de cara plana de las copias de la pared (serie de la pleura, decis
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
       expect(src).toContain(WALL_FACE_ECHO_GLSL);
       expect(src.indexOf(WALL_FACE_ECHO_GLSL)).toBeGreaterThan(src.indexOf(INTERFACE_ECHO_GLSL));
-      expect(src).toContain('return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);');
+      expect(src).toContain('return vec4(field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0), diffuse);');
     }
   });
 });

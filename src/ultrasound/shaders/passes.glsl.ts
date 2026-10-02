@@ -14,6 +14,7 @@ import {
   PLEURA_STEER_GUESS_MM,
   PLEURA_STEER_ITERATIONS,
 } from '../pleura';
+import { PLEURA_DIFFUSE_GLSL } from '../pleuraDiffuse';
 import { SPECKLE_LOOK_GLSL, SPECKLE_TISSUE_GLSL } from '../speckleField';
 import { WALL_FACE_ECHO_GLSL, WALL_TEXTURE_GLSL } from '../wallTexture';
 import { CLUTTER, PEDESTAL_SHADOW_GLSL, SIDELOBE_PHASE_GLSL } from '../clutter';
@@ -525,13 +526,16 @@ const int PLEURA_STEER_ITERATIONS = ${PLEURA_STEER_ITERATIONS};
 const float PLEURA_STEER_GUESS_MM = ${glslFloat(PLEURA_STEER_GUESS_MM)};
 // fieldFor y sampleSide con la fase de la mirada por nodo (speckleField.ts, variantes …Ph); b0, la dirección de la
 // mirada 0 en el punto del mundo (la radial desde el centro de curvatura); w, la jacobiana de la compresión
-vec2 fieldForPhBase(vec3 m, float se, int tissue, float ph0, vec3 g, vec3 b0, Warp w) {
-  vec2 f = speckleFieldPh(m, uLattice, se, float(tissue) * TISSUE_SALT_STEP, ph0, g);
+// lus-sim (ciclo 3b-2): la ganancia aparte del moteado, para que la copia difusa de la pared (otra sal) la comparta
+float fieldGainPhBase(vec3 m, int tissue, vec3 g, vec3 b0, Warp w) {
   float het = 1.0;
   if (tissue == T_LIVER || tissue == T_MUSCLE || tissue == T_BOWEL || tissue == T_RENAL_CORTEX || tissue == T_PSOAS || tissue == T_QUADRATUS) het = hetGain(m);
   // textura de la pared (decisión 62) con la dirección de esta mirada: b_k = b_0 + g/k2 (g = k2·(b_k − b_0))
   if (tissue == T_FAT || tissue == T_MUSCLE) het *= wallTexture(m, tissue, normalize(b0 + g / uSteer.w), w);
-  return f * tissueBack(tissue) * het;
+  return tissueBack(tissue) * het;
+}
+vec2 fieldForPhBase(vec3 m, float se, int tissue, float ph0, vec3 g, vec3 b0, Warp w) {
+  return speckleFieldPh(m, uLattice, se, float(tissue) * TISSUE_SALT_STEP, ph0, g) * fieldGainPhBase(m, tissue, g, b0, w);
 }
 // en VExUS, con los septos del psoas y del cuadrado (decisión 81) en la dirección de esta mirada; lus-sim no porta
 // el retroperitoneo (decisión 14) y es la base; wallFieldPh usa la base
@@ -576,7 +580,9 @@ vec2 mediumFieldPh(vec3 p, vec3 dir, float r, float se, bool withCurtain, float 
   if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);
   return field + vec2(interfaceEcho(c, m, dir, r, se, w), 0.0);
 }
-vec2 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
+// (xy) la pared que copia la serie coherente, con su eco de cara plana; (zw) la copia difusa (lus-sim, ciclo 3b-2): otra
+// realización del moteado de la misma pared (DIFFUSE_SALT), con la misma ganancia y sin el eco de cara
+vec4 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
   vec3 m = toMaterial(p);
   Cls c;
   float depth;
@@ -584,10 +590,13 @@ vec2 wallFieldPh(vec3 p, vec3 dir, float se, float ph0, vec3 g, Warp w) {
   float wallMm;
   float wallU;
   if (!classifyWall(m, c, depth, tn, wallMm, wallU)) { c.tissue = T_FAT; c.n = tn; }
-  vec2 field = fieldForPhBase(m, se, c.tissue, ph0, g, normalize(p - uCurvC), w);
+  float salt = float(c.tissue) * TISSUE_SALT_STEP;
+  float gain = fieldGainPhBase(m, c.tissue, g, normalize(p - uCurvC), w);
   float clump = uTissueClump4[c.tissue / 4][c.tissue % 4];
-  if (clump > 0.0) field *= anchoredClump(m, se, clump, float(c.tissue) * TISSUE_SALT_STEP);
-  return field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0);
+  if (clump > 0.0) gain *= anchoredClump(m, se, clump, salt);
+  vec2 field = speckleFieldPh(m, uLattice, se, salt, ph0, g) * gain;
+  vec2 diffuse = speckleFieldPh(m, uLattice, se, salt + DIFFUSE_SALT, ph0, g) * gain;
+  return vec4(field + vec2(WALL_COPY_FACE_GAIN * wallFaceEchoFlat(c, m, dir, w), 0.0), diffuse);
 }
 vec2 steeredField() {
   float alpha = lineTheta(vUv.x);
@@ -655,14 +664,19 @@ vec2 steeredField() {
   }
   vec2 air = vec2(0.0);
   int nWall = series ? 2 : 0;
+  // lus-sim (ciclo 3b-2): el lóbulo de la parte difusa de la pleura (pleuraDiffuse.ts)
+  float thD = series ? diffuseLobe(cosI) : 0.0;
   for (int j = 1; j <= nWall; j++) {
     float d = j == 1 ? ser.y : ser.z;
     float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);
     float alJ = phiK + uSteer.x - steerBeta(rhoJ, a);
     vec2 gr = lookPhaseGrad(rhoJ, alJ, a, uSteer.w);
-    vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);
+    float seJ = elevSigma(rhoJ - uCurvR);
+    vec4 f = wallFieldPh(elem + dirK * d, dirK, seJ, lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);
     float td = steeredT(phiK, a, min(d, sCap));
-    air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    vec2 ov = diffuseOverlap(lateralSigmaMm(rhoJ - uCurvR), seJ * 0.70710678, thD * (j == 1 ? sD - d : sD + d));
+    air += f.xy * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    air += f.zw * (j == 1 ? mirrorDiffuseGain(tD, td, chi, gn, ser.x, ov) : forwardDiffuseGain(td, tD, chi, gn, ser.x, ov));
   }
   vec2 out2 = vec2(0.0);
   if (wTissue >= CURTAIN_MIN_AIR) {
@@ -779,8 +793,8 @@ vec2 speckleField(vec3 m, float h, float se, float salt) {
 
 // Campo de dispersores de un punto material con clasificación conocida. Cada tejido es otra
 // población: su propia semilla (el moteado no continúa a través de un borde).
-vec2 fieldForBase(vec3 m, float se, int tissue, vec3 dir, Warp w) {
-  vec2 f = speckleField(m, uLattice, se, float(tissue) * TISSUE_SALT_STEP);
+// lus-sim (ciclo 3b-2): la ganancia aparte del moteado, para que la copia difusa de la pared (otra sal) la comparta
+float fieldGainBase(vec3 m, int tissue, vec3 dir, Warp w) {
   // Heterogeneidad lenta y continua del parénquima (desviación 1,15 dB a ~1,6 ciclos/cm) [EXTRAPOLACIÓN PROPIA]
   float het = 1.0;
   if (tissue == T_LIVER || tissue == T_MUSCLE || tissue == T_BOWEL || tissue == T_RENAL_CORTEX || tissue == T_PSOAS || tissue == T_QUADRATUS) het = hetGain(m);
@@ -788,7 +802,10 @@ vec2 fieldForBase(vec3 m, float se, int tissue, vec3 dir, Warp w) {
   // material; dir, la dirección del haz de la mirada 0 en el punto del mundo (la radial desde el centro de
   // curvatura) y w, la jacobiana de la compresión de la sonda (decisión 63) que lleva la lámina al mundo
   if (tissue == T_FAT || tissue == T_MUSCLE) het *= wallTexture(m, tissue, dir, w);
-  return f * tissueBack(tissue) * het;
+  return tissueBack(tissue) * het;
+}
+vec2 fieldForBase(vec3 m, float se, int tissue, vec3 dir, Warp w) {
+  return speckleField(m, uLattice, se, float(tissue) * TISSUE_SALT_STEP) * fieldGainBase(m, tissue, dir, w);
 }
 // En VExUS, con los septos de los fascículos del psoas y del cuadrado lumbar (decisión 81, retroTexture.ts): la muestra
 // del medio y sus planos de elevación. lus-sim no porta el retroperitoneo (decisión 14): es la base. La pared que copia
@@ -806,6 +823,7 @@ vec2 sampleSide(vec3 p, float se, Cls center, bool withCurtain, Warp w) {
   int t = center.bd > se + 0.5 ? center.tissue : classifyWith(m, withCurtain).tissue;
   return fieldFor(m, se, t, normalize(p - uCurvC), w);
 }
+${PLEURA_DIFFUSE_GLSL}
 ${PLEURA_GLSL}
 ${look === 'steered' ? STEERED_RAW_MAIN_GLSL : LOOK0_RAW_MAIN_GLSL}`;
 }
@@ -878,11 +896,16 @@ void main() {
   vec2 tissue = wTissue >= CURTAIN_MIN_AIR ? mediumField(p, dir, r, elevSigma(r), !under) : vec2(0.0);
   vec2 air = vec2(0.0);
   int nWall = series ? 2 : 0;
+  // lus-sim (ciclo 3b-2): el lóbulo de la parte difusa de la pleura (pleuraDiffuse.ts)
+  float thD = series ? diffuseLobe(cosI) : 0.0;
   for (int j = 1; j <= nWall; j++) {
     float d = j == 1 ? ser.y : ser.z;
-    vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);
+    float seJ = elevSigma(d);
+    vec4 f = wallField(pointOnLine(dir0, d), dir0, seJ, wD);
     float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;
-    air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    vec2 ov = diffuseOverlap(lateralSigmaMm(d), seJ * 0.70710678, thD * (j == 1 ? D - d : D + d));
+    air += f.xy * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    air += f.zw * (j == 1 ? mirrorDiffuseGain(tD, td, chi, gn, ser.x, ov) : forwardDiffuseGain(td, tD, chi, gn, ser.x, ov));
   }
   vec2 out2 = vec2(0.0);
   if (wTissue >= CURTAIN_MIN_AIR) {

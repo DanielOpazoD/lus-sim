@@ -322,7 +322,8 @@ describe('Límites del shader con margen para crecer', () => {
     expect(Object.fromEntries(LOOK_PAIRS.map((p) => [p.name, print(p.look0)]))).toEqual({
       FRAG_TRANS_PREFIX: '96cbff76912bf550',
       FRAG_TRANSMISSION: '6eb8ceec72e45847',
-      FRAG_RAWFIELD: '8ed188a8f422812e',
+      // experimento rechazado de la parte difusa de la pleura (rama de registro feat/reverberacion-difusa): su serie
+      FRAG_RAWFIELD: '7f69c81728bed88e',
     });
     // y el resto de B es el mismo texto en los dos programas: solo cambian sus entradas y su main
     const inputs0 = 'uniform sampler2D uTrans0;\nuniform sampler2D uTrans1;\n';
@@ -388,8 +389,8 @@ describe('Límites del shader con margen para crecer', () => {
     }
     // el detector ve la regresión: la muestra completa del medio (con su eco de interfaz) en el bucle de la serie
     const inLoop = FRAG_RAWFIELD.replace(
-      'vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);',
-      'vec2 f = mediumField(pointOnLine(dir0, d), dir0, d, elevSigma(d), true);',
+      'vec4 f = wallField(pointOnLine(dir0, d), dir0, seJ, wD);',
+      'vec4 f = vec4(mediumField(pointOnLine(dir0, d), dir0, d, seJ, true), 0.0, 0.0);',
     );
     expect(inLoop).not.toBe(FRAG_RAWFIELD);
     const g = glslCallGraph(inLoop);
