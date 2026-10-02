@@ -1686,6 +1686,11 @@ de 8 bits corresponden al primer cuadro:
 | BLUE inferior | 39,191 → 40,831     | 16,973 → 18,609       | 1,6565 → 1,6387       | 1,8864 → 1,8695         | 0,5083 → 0,5014     |
 | PLAPS         | 28,540 → 30,544     | 14,962 → 16,487       | 1,8585 → 1,8374       | 1,9862 → 1,9697         | 0,5407 → 0,5370     |
 
+**Nota (decisión 28, 2026-10-02).** Con el tronco de 226 mm de la decisión 28 el ajuste no cambia, pero sus medidas sí, con la
+misma semilla y el mismo protocolo: pared 30,20 / 41,76 / 35,00, neblina 14,09 / 19,76 / 17,50, M pared 1,911 / 1,539 / 1,807,
+M neblina 2,076 / 1,758 / 1,973 y A2.r2 0,5669 / 0,4987 / 0,5307 en el BLUE superior, el inferior y el PLAPS (la comparación con
+main en tres semillas, en la decisión 28).
+
 La mejora es pequeña: las cuatro métricas primarias (M pared, M neblina, A2.r2 y T1 σ/prominencia)
 se acercan a la descripción exploratoria en las tres ventanas, a DR70 y DR80, pero siguen fuera de
 sus p10–p90. A DR70 esas métricas no están censuradas; los niveles de pared y neblina suben y su recorte
@@ -1911,3 +1916,138 @@ del músculo sobre la cúpula hasta 90 mm (la cota vertical), el deslizamiento n
 media del cuello (la sonda lo veía sobre la escotadura), A-T24 solo en el avatar, la ladera de la cobertura sin etiqueta de
 supuesto, una cifra sin fuente, el manubrio empujado 2 mm por la cúpula, dos definiciones del borde de la clavícula, pruebas
 que repetían parámetros; aplicado (ver la PR).
+
+## 28. El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** La cara posterior (44 celdas de la cobertura, decisión 26) necesita la pared de la espalda, la escápula y la
+columna con sus números. El tronco es el cilindro elíptico de VExUS, 320 × 210 mm de piel (un adulto de IMC 25 en el abdomen),
+con la columna en coordenadas absolutas. Con 210 mm no cabían a la vez la caja de Robinson y la pared posterior de las fuentes:
+la caja, por la pared por región de la decisión 17, medía 303 × 182 mm (Robinson, varones: profundidad 195,3 ± 17,5; −0,76 DE),
+y la pared junto a la columna quedaba en 20,8 mm de la piel a la pleura en la paravertebral, la interpolación de la heredada
+(28 mm en la línea media) hacia la infraescapular. Engrosar la pared sin ahondar el tronco achicaba aún más la caja.
+
+**Fuentes verificadas en el texto completo.**
+
+- **La profundidad del tórax:** ANSUR II (Gordon y cols. 2014, medida 25, del punto más anterior del tórax a la espalda, de pie,
+  en el máximo de la respiración tranquila): varones 253,8 ± 26,2 mm (n 4082, IMC 27,7). En los datos públicos de la misma
+  encuesta, los varones de IMC 18,5–25 (n 1061, IMC medio 22,9, el del avatar): 225,8 ± 15,8 [DERIVADO: lo calculé de la
+  tabla pública]. ANSUR 1988 da lo mismo en ese subgrupo (228,4 ± 15,1). La anchura del tórax de ANSUR 1988 (al nivel del pezón,
+  sin comprimir): 321,5 ± 25,5 mm; con IMC 18,5–25, 304,6 ± 17,0: los 320 de VExUS quedan +0,9 DE y no se tocan.
+- **La pared posterior:** Folli y cols. 2020 (ecografía en prono, 26 sanos de IMC 21,9, Tabla 1): piel → costilla en el trapecio
+  inferior, 2–3 cm lateral a la apófisis de T8, 25,4 ± 4,5 mm en los varones; en el romboides, 17,2 ± 2,7. Okçu y cols. 2026
+  (TAC en supino, 1015 adultos, Tabla 2): piel → pleura en el punto más fino por dentro de la escápula, 31,0 ± 8,3 mm en los
+  varones y 26,4 ± 6,8 con IMC normal (los dos sexos, n 296).
+- **Pusch y cols. 2000** (piel → pleura paravertebral 24–52 mm, la cifra que se buscaba): solo el resumen, sin las cifras en el
+  texto accesible. **NO VERIFICADO**: no entra en `REFERENCES.md` ni en las fuentes de ningún parámetro. Lo sustituyen Folli y
+  Okçu.
+- La pared infraescapular y la de la LAP por la normal en adultos sanos siguen **NO ENCONTRADO** (`docs/knowledge/anatomy.md`
+  §1.1).
+
+**Opciones.** (a) Dejar 320 × 210 y engrosar la pared de la espalda: la caja baja de 182 mm. (b) Ahondar el tronco a la
+profundidad del tórax de la base y poner la pared posterior de sus fuentes. (c) Una sección que cambie con la altura (el tórax
+no es el abdomen): rehace la piel, el contacto, la parrilla y las tablas por columna; se deja para la unión con VExUS.
+
+**Decisión.** (b), la elegida al revisar el plan («opción B»).
+
+- **El tronco** (`anatomy.torso`, `src/anatomy/scene.ts`, en `parameterSets.ts`): semiancho 160 mm (rango 144–161, [ESTIMADO],
+  ANSUR 1988) y semiprofundidad **113 mm** (105–121, ± 1 DE, [DERIVADO], ANSUR II): 320 × 226 mm de piel.
+- **La columna** va con la piel de la espalda: el cuerpo a 59 mm de ella y el arco de 27 a 47 mm, lo que tenía en VExUS con b =
+  105 (en −46 y de −78 a −58). Su cara posterior sigue a 42 mm de la piel.
+- **La pared junto a la columna** (`anatomy.chestWall.paravertebralWallMm`): **28 mm** por la normal (20–35: ± 1 DE de las dos
+  fuentes; [DERIVADO], con el valor elegido entre ellas), entre Folli (25,4 + los 5 de la cresta costal a la pleura,
+  `anatomy.ribcage.crestToPleuraMm` = 30) y Okçu (26,4 con IMC normal; el artículo no da la distancia de su punto a la línea
+  media). Antes era el número de la línea media y la
+  paravertebral quedaba en la interpolación (≈ 21); ahora la paravertebral es un nodo de las estaciones de la pared (a 6 cm de
+  la línea media) con ese grosor, el mismo hasta la línea media. Un solo músculo (sin trapecio, romboides ni erectores por
+  separado: `chest-wall-regional-approx`).
+- **El punto BLUE inferior** (`app.startPointPoses.blueLowerZ`, también la altura del PLAPS) pasa de **50,6 a 51,3** mm: con el
+  tronco más hondo la parrilla sube 0,73 mm en la axilar anterior y el punto sube con ella, **conservando su sitio respecto de
+  las costillas en main**, que no era el centro del EIC4: `intercostalZ` da en main la 4.ª costilla a 63,5 mm y la 5.ª a 34,6
+  (centro 49,1; la nota decía 65,0 y 36,1, cifras que el código ya no medía), y con el tronco nuevo 64,2 y 35,4 (centro 49,8).
+  El punto queda 1,5 mm por encima del centro, como en main. **No es el criterio de la nota** (el centro): se eligió porque en el
+  centro el banco de fidelidad falla (abajo). La nota y el rango (20,5–78,6: los centros del EIC5 y del EIC3) dicen las cifras
+  medidas. Si se prefiere el centro exacto, hace falta antes un detector que no dependa del borde a oscuras: queda como
+  pregunta abierta en la PR.
+- **VExUS** conserva 320 × 210: `docs/UNIFICATION.md` («El tronco») y `docs/PROVENANCE.md` (fila de `scene.ts` y la mejora para
+  ofrecer al origen: la profundidad como parámetro con evidencia y la columna atada a la piel).
+
+**Consecuencias: antes → después** (main `0986f8a` frente a esta decisión, medidas con el mismo código).
+
+| Medida                                                                           | Antes                             | Después                     | Fuente / meta                            | Por qué cambia                                                |
+| -------------------------------------------------------------------------------- | --------------------------------- | --------------------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| Caja (bbox de la parrilla)                                                       | 303 × 182 mm                      | 303 × 189                   | Robinson 195,3 ± 17,5: −0,76 → −0,36 DE  | el tronco más hondo                                           |
+| Piel → pleura, paravertebral                                                     | 20,8 mm                           | 27,6                        | Folli + costilla 30; Okçu 26,4 ± 6,8     | la pared de sus fuentes                                       |
+| Piel → pleura, escapular                                                         | 18                                | 23                          | Okçu (por dentro de la escápula)         | interpolación hacia la paravertebral                          |
+| Piel → pleura, LAP (EIC 3 / 5 / 7)                                               | 17,9 / 16,2 / 14,4                | 17,9 / 16,4 / 14,5          | —                                        | la pared lateral no cambia                                    |
+| A-T1 (EIC2 LMC), A-T2 (EIC5 LAA/LAM), A-T3 (EIC4 LAM)                            | 16,1; 12,8/12,8; 16,7 mm          | igual                       | dentro de sus bandas                     | la pared anterior no cambia                                   |
+| A-T13, borde inferior en FRC (LAM / PV)                                          | −35 / −35                         | −33,5 / −34,5               | Gray, banda sin cambiar                  | la parrilla, algo más arriba                                  |
+| A-T19, inclinación de la 7.ª costilla                                            | 33,5°                             | 32,2                        | Robinson 29 ± 7,7                        | la misma caída en más profundidad                             |
+| A-T19, la 1.ª (`notYetMet`)                                                      | 16,0°                             | 15,2                        | Robinson 31 ± 8,2                        | ídem (sigue pendiente)                                        |
+| A-T15 a TLC (ZOA a ≥ 10 mm de su inserción)                                      | EIC 9 de la LAA a 10,3 mm: cumple | a 9,8: ninguno; `notYetMet` | Boon, supuesto `zoaBelowReflectionMm` 20 | en la LAA la reflexión sube 1,2 mm y el EIC 9, 0,8            |
+| A-T15 en FRC (1,1–2,7 mm)                                                        | cumple                            | cumple (prueba aparte)      | Boon                                     | —                                                             |
+| A-T24, fosa supraclavicular, mujer obesa (`notYetMet`)                           | 40,4 mm                           | 37,7: cumple (`it`)         | Yadav ± 2 DE (≤ 39,6)                    | la clavícula y la cúpula siguen la piel; no se buscó          |
+| A-T24, los otros cuatro hábitos                                                  | 25,7; 31,1; 21,8; 32,7            | 25,6; 30,1; 21,9; 32,4      | Yadav ± 2 DE                             | ídem                                                          |
+| Anchos de EIC: LAP 8.º, PV 8.º, LMC 2.º                                          | 16,0; 10,0; 18,0                  | 16,0; 9,9; 18,0             | —                                        | —                                                             |
+| Banco de fidelidad, BLUE inferior: error del ápice detectado (apnea / tranquila) | 8,9 / 14,4 px                     | 2,2 / 2,0                   | < 25 px (sin cambiar)                    | el punto de partida (abajo)                                   |
+| Cobertura                                                                        | 68/138                            | 68/138                      | —                                        | la cara posterior llega con la pose de espalda (siguiente PR) |
+
+- **El banco de fidelidad en el BLUE inferior es sensible a la altura del punto.** El detector del sector (decisión 21) no ve el
+  borde derecho cuando la sombra de una costilla lo cubre (la nota de la e2e: «cuyos bordes están a oscuras»). Con el tronco
+  nuevo, el error del ápice detectado (SwiftShader, apnea) es de 38,4 px con el punto en 50,6 mm, 2,2 px (y el borde derecho a
+  0,5°) en 51,3 y 50 px en 49,8, el centro del EIC4 (1,5 mm por debajo de 51,3); en main, en 50,6, 8,9 px. La tolerancia (25 px)
+  no se ensancha; el punto conserva su sitio respecto de la parrilla de main. La fragilidad del detector a ± 1 mm es un hallazgo
+  del banco, no de la anatomía: queda para el ciclo 3b.
+- **El PLAPS** (φ 1,15π) usa la misma altura. Bajo él la 6.ª costilla sube 2,7 mm (54,6 → 57,3) y el punto 0,7: el centro de la
+  sonda queda a 1 mm del borde inferior de esa costilla (antes, a 3). Probablemente por eso su pared sale más clara (abajo).
+- **La calibración del contraste (decisión 24)**: a DR70 y t = 60 s, el ajuste (K 54 dB, R_t 0,3,
+  ganancia −20) no se toca y se vuelve a medir. Para separar lo que cambia por la anatomía de lo que cambia por la realización del
+  moteado (un campo de dispersores anclado en las coordenadas materiales: con la piel 8 mm más adelante, la pared cae sobre otra
+  realización), main se midió con tres semillas (20260921, la del protocolo, 22 y 23). Main (las tres semillas) → esta decisión
+  (semilla del protocolo), grises de 8 bits del primer cuadro y medianas de tres réplicas:
+
+  | Ventana       | Pared                       | Neblina                     | M pared                     | M neblina                   | A2.r2                         |
+  | ------------- | --------------------------- | --------------------------- | --------------------------- | --------------------------- | ----------------------------- |
+  | BLUE superior | 31,07 (29,38–31,07) → 30,20 | 15,59 (13,36–15,59) → 14,09 | 1,858 (1,858–1,880) → 1,911 | 2,017 (2,017–2,039) → 2,076 | 0,5615 (0,554–0,567) → 0,5669 |
+  | BLUE inferior | 40,97 (37,99–40,97) → 41,76 | 18,48 (17,85–18,55) → 19,76 | 1,637 (1,628–1,679) → 1,539 | 1,870 (1,846–1,885) → 1,758 | 0,5018 (0,502–0,508) → 0,4987 |
+  | PLAPS         | 30,54 (29,84–31,26) → 35,00 | 16,48 (15,94–16,48) → 17,50 | 1,837 (1,823–1,837) → 1,807 | 1,970 (1,954–1,970) → 1,973 | 0,5369 (0,510–0,537) → 0,5307 |
+
+  Main con la semilla del protocolo reproduce la tabla de la decisión 24 (31,07 frente a 31,015 en el BLUE superior; el PLAPS,
+  idéntico; el BLUE inferior, 40,97 frente a 40,83). En el BLUE inferior y el PLAPS la pared y la neblina salen más claras y M
+  baja (hacia el banco); en el BLUE superior, pared y neblina quedan dentro de la dispersión de las semillas, pero M sube 0,03–0,04
+  por encima de ella (se aleja del banco algo menos de lo que la decisión 24 lo acercó). Las cuatro métricas primarias siguen
+  fuera de sus p10–p90 en las tres ventanas, como en la decisión 24. La decisión 24 lleva una nota con estas medidas.
+
+- **La GPU** no cambia de código (el tronco y la columna son uniforms que ya existían); las equivalencias TS ↔ GLSL de la e2e
+  pasan con el tronco nuevo. **Costo por cuadro** (`frameCostMs`, 60 cuadros, GPU real M4,
+  intercalado con main): main 3,1–3,8 ms y esta decisión 3,6–3,8 en los tres puntos de partida. O6 (≥ 30 FPS) holgado.
+- Tres pruebas unitarias dependían del tronco de 210 mm: `anatomy.test.ts` toma sus puntos de referencia (la piel, la grasa y la
+  columna) respecto de la piel; `pleura.test.ts` mueve la vista oblicua rasante de la cortina de z −50 a −55 (en −50 solo 3 líneas
+  rozaban el borde, frente a ≥ 20 exigidas; no porque algo baje, la 8.ª costilla de la LAM y el borde suben 1,5 mm, sino porque el
+  flanco cambia de curvatura, b²/a de 68,9 a 79,8 mm; en −55, 56 y 46; la aserción no cambia); `faceGradient.test.ts` pide la
+  coincidencia de pendientes en todo el estencil de la distancia de la cúpula (el punto y ± 0,52 mm, el soporte de
+  `sdDiaphragm` más el paso del gradiente) y no solo en el punto: excluye el 10 % de los puntos (4679 → 4191; en main, 4352 →
+  3903). Con solo el punto, uno a 0,6 mm de un pliegue de columna de la tabla daba 1,5·10⁻⁴ rad; el umbral (10⁻⁴) no cambia y el
+  peor ángulo queda en 5,4·10⁻⁶.
+- **Efectos pequeños**, sin meta que los mida: la sonda se hunde 0,2–0,4 mm más en los tres puntos de partida (10,88 → 11,29;
+  11,83 → 12,03; 11,54 → 11,81 mm); el músculo bajo ellos, 0,2–0,3 mm menos en la métrica radial; el corazón, construido sobre la
+  pared, se adelanta 6,9 mm con ella; el semieje vertical de las cúpulas del diafragma baja 1,1 mm; en el maniquí de la interfaz
+  (`humanTorso.ts`) el cuello pasa de b·0,73 = 82,5 mm a 46 en 22 mm (antes, de 76,7).
+- `thorax-cylindrical-cage` y `chest-wall-regional-approx` dicen los números nuevos.
+
+**Verificación.** `npm run check` (la cobertura de exploración, `anatomyTargets.test.ts` con A-T15 partida en FRC (`it`) y TLC
+(`notYetMet`) y A-T24 de la mujer obesa en `it`, `startPoints.test.ts`, `anatomy.test.ts`, `pleura.test.ts`,
+`faceGradient.test.ts`, `parameterSets` con `anatomy.torso`). Las 28 e2e con SwiftShader pasan, incluidas las equivalencias TS ↔
+GLSL, el banco de fidelidad (en el BLUE inferior con el punto nuevo; con el viejo fallaba por el ápice, 38,4 px) y la
+calibración (el criterio de > 50 columnas a DR70 se cumple en las tres ventanas: 193, 186 y 80); la de la pantalla de 320 px
+agotó una vez el arranque con la máquina cargada y pasó al repetirla. Revisión adversarial de contexto limpio (ejecutando los scripts de medida en main y en la rama): un bloqueante, el
+punto BLUE inferior presentado como el centro del EIC4 cuando el código da el centro en 49,8 (la nota de main ya estaba desfasada
+1,5 mm) y en el centro el banco falla: se reescribió la justificación (el punto conserva su sitio respecto de la parrilla de main;
+no es el centro) y se deja la pregunta abierta. Importantes: la causa del cambio de la vista rasante en `pleura.test.ts` era
+falsa (se corrigió); el filtro de `faceGradient.test.ts` excluía puntos sin decirlo (se declara el n); el cambio bajo el PLAPS no
+estaba declarado (se declara). Menores: la fila de la LAP, el rango de `semiWidthMm` y el de la pared paravertebral sin
+derivación, la fuente de los 5 mm de la cresta, el DOI de Okçu, dos puntos absolutos que quedaban en `anatomy.test.ts`,
+comentarios desfasados (`wallArc`, la cara posterior de la columna a 42 mm, el título de A-T7 alto), el umbral de A-T15 (20,3, no 21) y efectos pequeños sin declarar: todo aplicado. Comprobado correcto por el revisor: las cifras de ANSUR recalculadas de los
+CSV públicos, las de Folli y Okçu frente a sus tablas, todas las consecuencias de la tabla, A-T15 y A-T24, la ausencia de
+literales del tronco viejo en TS y GLSL, la nota de la decisión 24 y el índice.

@@ -257,7 +257,9 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
       // (`FACE_GRADIENT_EPS_MM`, 0,02 mm); el de la norma, ||∇| − 1| ≤ |ĝ − g|·|g|/(1 + |g|²) < 10⁻⁴ con esa
       // coincidencia. Medido el 26-09-2026: 4070 puntos, ángulo ≤ 1,7·10⁻⁷ rad y ||∇| − 1| ≤ 6,8·10⁻⁵. lus-sim (decisión 18):
       // 3700 puntos y ángulo ≤ 7,1·10⁻⁵ rad (0,004°), en la rampa de la cúpula hacia la pared (25–31 mm bajo la piel): la
-      // tabla de los bordes del pulmón es lineal por columnas de 8 mm y su pendiente salta en ellas
+      // tabla de los bordes del pulmón es lineal por columnas de 8 mm y su pendiente salta en ellas. lus-sim (decisión 28): con el
+      // tronco de 226 mm y la coincidencia pedida en todo el estencil (abajo), 4191 puntos (con el filtro de solo el punto,
+      // 4679; en main, 4352 y 3903) y ángulo ≤ 5,4·10⁻⁶ rad
       const H = (x: number, y: number): number => diaphragmHeight(x, y, scene.diaphragm, scene.torso);
       const slope = (x: number, y: number, h: number): [number, number] => [
         (H(x + h, y) - H(x - h, y)) / (2 * h),
@@ -266,13 +268,30 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
       let worstAngle = 0;
       let worstNorm = 0;
       let count = 0;
+      // lus-sim (decisión 28): la coincidencia se pide en todo el estencil de la pendiente de la distancia (el punto y ±0,52 mm
+      // en x e y: los 0,5 mm de `sdDiaphragm` más el paso del gradiente), no solo en el punto: excluye el 10 % de los puntos.
+      // Con el tronco de 226 mm, con solo el punto, uno de la rampa posterior (pendiente 2) a 0,6 mm de un pliegue de columna de la
+      // tabla daba 1,5·10⁻⁴ rad (y otro, 7,9·10⁻⁵); el umbral de 10⁻⁴ no cambia
+      const smoothAround = (x: number, y: number): boolean => {
+        for (const [dx, dy] of [
+          [0, 0],
+          [0.52, 0],
+          [-0.52, 0],
+          [0, 0.52],
+          [0, -0.52],
+        ]) {
+          const [gx, gy] = slope(x + dx, y + dy, 0.01);
+          const [sx, sy] = slope(x + dx, y + dy, 0.5);
+          if (Math.max(Math.abs(sx - gx), Math.abs(sy - gy)) > 1e-4) return false;
+        }
+        return true;
+      };
       for (let x = -120; x <= 110; x += 2.3)
         for (let y = -80; y <= 80; y += 2.3) {
           const m: V = [x, y, H(x, y)];
           if (scene.classify(m, instant).tissue !== Tissue.Diaphragm) continue;
+          if (!smoothAround(x, y)) continue;
           const [gx, gy] = slope(x, y, 0.01);
-          const [sx, sy] = slope(x, y, 0.5);
-          if (Math.max(Math.abs(sx - gx), Math.abs(sy - gy)) > 1e-4) continue;
           const l = Math.hypot(gx, gy, 1);
           const g = scene.faceGradient(m, instant, 'dome')!;
           const cos = (g.normal[0] * gx + g.normal[1] * gy - g.normal[2]) / l;

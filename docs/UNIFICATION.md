@@ -49,6 +49,10 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
   profunda en lus-sim (la base en supino; 47 en la mujer), y de 10 y 30 en VExUS; el campo respiratorio de lus-sim es caudal,
   con la ley de altura del pulmón, y su inversa, exacta (en VExUS, caudal y algo anterior, con dos pasos de punto fijo). Un
   paciente común tendrá una sola excursión y un solo campo.
+- **El tronco** (decisión 28): el mismo primitivo, un cilindro elíptico, con 320 × 210 mm de piel en VExUS y 320 × 226 en
+  lus-sim, que lo ahonda con la profundidad del tórax de ANSUR II en los varones de IMC 18,5–25 (225,8 ± 15,8 mm) para que quepan
+  la caja de Robinson y la pared posterior de sus fuentes. La columna va con la piel de la espalda. Un paciente común tendrá un
+  solo tronco (o un tronco cuya sección cambie con la altura: el tórax no es el abdomen).
 - **La numeración de decisiones y limitaciones**: prefijo por módulo o numeración nueva.
 
 ## Pasos previstos al unir

@@ -49,13 +49,17 @@ describe('Anatomía implícita (base B)', () => {
 
   it('clasifica puntos de referencia', () => {
     expect(cls([0, 200, 0]).tissue).toBe(Tissue.Air);
-    expect(cls([0, 104, 0]).tissue).toBe(Tissue.Skin);
-    expect(cls([0, 95, -120]).tissue).toBe(Tissue.Fat);
-    expect(cls([0, -46, 0]).tissue).toBe(Tissue.Vertebra);
-    expect(cls([30, -70, 0]).tissue).toBe(Tissue.Vertebra); // apófisis transversa
+    // lus-sim (decisión 28): los puntos, respecto de la piel del tronco (b = 113; en VExUS, 105)
+    const b = scene.torso.b;
+    expect(cls([0, b - 1, 0]).tissue).toBe(Tissue.Skin);
+    expect(cls([0, b - 10, -120]).tissue).toBe(Tissue.Fat);
+    // la columna, con la piel de la espalda (en VExUS, el cuerpo en −46 y la apófisis en −70)
+    const back = -b;
+    expect(cls([0, back + 59, 0]).tissue).toBe(Tissue.Vertebra);
+    expect(cls([30, back + 35, 0]).tissue).toBe(Tissue.Vertebra); // apófisis transversa
     // no hay arco costal por detrás de la columna: lo que hay ahí es vértebra, no costilla
-    expect(cls([-30, -70, 5]).tissue).toBe(Tissue.Vertebra);
-    expect(cls([-30, -70, 5]).tissue).not.toBe(Tissue.Bone);
+    expect(cls([-30, back + 35, 5]).tissue).toBe(Tissue.Vertebra);
+    expect(cls([-30, back + 35, 5]).tissue).not.toBe(Tissue.Bone);
     // tórax sobre las cúpulas: pulmón en los dos lados (fuera del corazón, `heart-simplified`)
     expect(cls([-55, -5, 70]).tissue).toBe(Tissue.Lung);
     expect(cls([80, 50, 90]).tissue).toBe(Tissue.Lung);
@@ -280,7 +284,8 @@ describe('Anatomía implícita (base B)', () => {
     const back = q.deformation.toMaterial(w, engine.sample.resp);
     expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2])).toBeLessThan(RESPIRATORY_INVERSE.toleranceMm);
     // la pared no se mueve con la respiración
-    const wall: [number, number, number] = [0, 95, 60];
+    // (decisión 28: 10 mm bajo la piel de delante, b − 10)
+    const wall: [number, number, number] = [0, scene.torso.b - 10, 60];
     expect(q.deformation.toWorld(wall, engine.sample.resp)).toEqual(wall);
   });
 });
@@ -504,11 +509,19 @@ describe('Caras de interfaz en classify (decisión 57)', () => {
     // a 20 mm bajo la piel (músculo de 16 a 25,9 mm): la cara de pared más cercana, a menos de medio músculo. Bajo el
     // reborde costal (lus-sim, decisión 16: a z = −10 en esa línea está el cartílago de la 7.ª costilla) y bajo la mezcla
     // con la pared torácica (decisión 17: 100 mm), la pared del abdomen de VExUS
-    const muscle = cls([-64, 76.8, -200]);
+    // (decisión 28: en la misma radial y a la misma profundidad que en el tronco de VExUS, 160 × 105)
+    const radial = (x: number, y: number, d: number): [number, number, number] => {
+      const t = scene.torso;
+      const phi = Math.atan2(y / 105, x / 160);
+      const s = torsoSkinPoint(phi, -200, t);
+      const r = Math.hypot(s[0], s[1]);
+      return [s[0] * (1 - d / r), s[1] * (1 - d / r), -200];
+    };
+    const muscle = cls(radial(-64, 76.8, 20));
     expect(muscle.tissue).toBe(Tissue.Muscle);
     expect([Interface.DeepFascia, Interface.ObliquePlane, Interface.TransversusPlane, Interface.Transversalis]).toContain(muscle.interface);
     expect(muscle.interfaceDistance).toBeLessThan(5);
     // la grasa preperitoneal (2,1 mm) de la cara interna de la pared
-    expect(cls([-60, 72, -200]).tissue).toBe(Tissue.Fat);
+    expect(cls(radial(-60, 72, scene.wallThicknessAt(radial(-60, 72, 0)) - 1)).tissue).toBe(Tissue.Fat);
   });
 });
