@@ -202,8 +202,12 @@ test('«Restablecer paciente» vuelve a la respiración de su definición y el i
     format: string;
     version: string;
     equipment: { bmode: { depthMm: number } };
+    coverage: { met: number; total: number } | null;
   };
   expect(report.format).toBe('lus-diagnostico/1');
+  // la cobertura de exploración de la escena (requisito de cobertura de docs/MISSION.md): N de M celdas
+  expect(report.coverage?.total).toBeGreaterThan(0);
+  expect(report.coverage!.met).toBeLessThanOrEqual(report.coverage!.total);
   expect(report.version).toBe(version);
   expect(report.equipment.bmode.depthMm).toBe(120);
   expect(errors).toEqual([]);

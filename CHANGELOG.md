@@ -7,6 +7,12 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- Cobertura de exploración (26): una prueba por celda del tórax (EIC 1.º–11.º de las líneas paraesternal, medioclavicular,
+  axilares, escapular y paravertebral, por hemitórax; el vértice en todo el corte y la fosa supraclavicular) con lo que la base
+  pone en cada una (pulmón con pleura, ventana cardiaca, escápula, o diafragma con el hígado o el bazo), y el indicador N/M en
+  el informe técnico. En main, 62 de 138: falta la cara posterior (la sonda no llega en supino), el vértice (el pulmón sube
+  hasta el tope del tronco) y el órgano bajo el diafragma (abdomen genérico). Línea escapular a 85 mm de la línea media.
+
 - C3b-A, calibración preliminar del contraste normal (24): protocolo fijo de tres réplicas por rango dinámico y punto de
   partida, registro de parámetros y comparación por sujetos separados. Ajuste K = 54 dB, R_t = 0,3 y ganancia −20 dB:
   mejora modesta del gris de pared y neblina, con pruebas de sombras y líneas A conservadas; la fidelidad sigue abierta.

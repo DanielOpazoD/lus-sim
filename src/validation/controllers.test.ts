@@ -82,6 +82,16 @@ describe('Diagnóstico exportable (Fase 3)', () => {
         gpuMs: { frameMs: 5.7, perPass: { transmission: 1.5, rawField: 4.2 } },
         equipment: defaultEquipment(),
         errors: [{ source: 'gpu', message: 'contexto WebGL perdido', firstAt: 1, lastAt: 2, count: 2 }],
+        coverage: {
+          met: 1,
+          total: 2,
+          byRegion: {
+            anterior: { met: 1, total: 1 },
+            lateral: { met: 0, total: 1 },
+            posterior: { met: 0, total: 0 },
+            apex: { met: 0, total: 0 },
+          },
+        },
       },
       new Date('2026-09-22T10:11:12.345Z'),
     );
@@ -89,6 +99,8 @@ describe('Diagnóstico exportable (Fase 3)', () => {
     expect(d.createdAt).toBe('2026-09-22T10:11:12.345Z');
     expect(d.errors[0].count).toBe(2);
     expect(d.gpuMs?.perPass).toEqual({ transmission: 1.5, rawField: 4.2 });
+    // la cobertura de exploración viaja con el informe (requisito de cobertura de docs/MISSION.md)
+    expect(d.coverage).toMatchObject({ met: 1, total: 2 });
     // el equipo viaja entero (el preajuste pulmonar: 12 cm)
     expect((JSON.parse(JSON.stringify(d)) as typeof d).equipment.bmode.depthMm).toBe(120);
     expect(diagnosticsFileName(d)).toBe('lus-diagnostico-0.4.0-abc1234-2026-09-22T10-11-12-345Z.json');

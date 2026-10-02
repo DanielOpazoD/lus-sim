@@ -74,8 +74,30 @@ export const THORAX_LINES = defineParameters('anatomy.thoraxLines', {
   },
 });
 
+/**
+ * La línea escapular (lus-sim, cobertura torácica): la vertical por el ángulo inferior de la escápula con los brazos a los
+ * lados, entre la axilar posterior y la paravertebral. Es una línea de la exploración posterior (`docs/MISSION.md`, requisito
+ * de cobertura); la parrilla y la pared no la usan como estación.
+ */
+export const SCAPULAR_LINE = defineParameters('anatomy.scapularLine', {
+  scapularXMm: {
+    value: 85,
+    unit: 'mm',
+    range: [77, 95],
+    evidence: 'derivado',
+    sources: ['moon-escapula-2026', 'pontin-escapula-2013', 'gray-anatomia-1918'],
+    note:
+      'La línea escapular pasa por el ángulo inferior de la escápula (Gray). Su distancia a la apófisis espinosa de T7 con los ' +
+      'brazos a los lados (prueba de deslizamiento lateral, posición 1): 88,5 ± 6,1 mm del lado dominante y 82,5 ± 5,0 del no ' +
+      'dominante en el grupo sin discinesia (Moon y Kim, 31 de 83 oficinistas con cervicalgia, tablas 4–5): la media, 85; el ' +
+      'rango, ±1,5 DE. Coherente con el ángulo superior a 9,1 ± 1,1 cm de la línea media (Pontin, 30 sanos, tabla 5): el borde ' +
+      'medial es casi vertical. La población no es la del avatar (sin datos de varones sanos con medias)',
+  },
+});
+
 /** Una línea del tórax por nombre. */
-export type ThoraxLine = 'parasternal' | 'midclavicular' | 'anteriorAxillary' | 'midaxillary' | 'posteriorAxillary' | 'paravertebral';
+export type ThoraxLine =
+  'parasternal' | 'midclavicular' | 'anteriorAxillary' | 'midaxillary' | 'posteriorAxillary' | 'scapular' | 'paravertebral';
 
 export const THORAX_LINE_NAMES: readonly ThoraxLine[] = [
   'parasternal',
@@ -83,6 +105,7 @@ export const THORAX_LINE_NAMES: readonly ThoraxLine[] = [
   'anteriorAxillary',
   'midaxillary',
   'posteriorAxillary',
+  'scapular',
   'paravertebral',
 ];
 
@@ -109,6 +132,9 @@ export function thoraxLinePhi(line: ThoraxLine, torso: Pick<Torso, 'a'>, side: -
       break;
     case 'posteriorAxillary':
       right = P.posteriorAxillaryPhi.value;
+      break;
+    case 'scapular':
+      right = Math.PI + Math.acos(SCAPULAR_LINE.params.scapularXMm.value / torso.a);
       break;
     case 'paravertebral':
       right = Math.PI + Math.acos(P.paravertebralXMm.value / torso.a);

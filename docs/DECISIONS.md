@@ -1752,3 +1752,75 @@ oclusores, control de gestos y liberación de veinte reconstrucciones. `e2e/huma
 recorre vistas y revisión histórica, mide complejidad real y comprueba que la cámara no modifica B.
 La revisión visual y la CI final se registran en el PR con su SHA. Una captura o SwiftShader no validan
 fluidez en hardware físico ni reconocimiento humano mediante participantes externos.
+
+## 26. La cobertura de exploración: una prueba por celda del tórax
+
+**Fecha.** 2026-10-01.
+
+**Contexto.** Daniel pidió (01-10-2026) que el pulmón se pueda explorar entero, por delante, al lado y detrás, con vértice y
+bases (`docs/MISSION.md`, requisito de cobertura, meta del 100 % en la versión 0.2.0). Nada lo medía. Su medición de partida,
+una rejilla de φ cada 10° y z cada 20 mm mirando el tejido 3 mm bajo la pared, daba 282 de 543 celdas con pulmón alcanzables
+(52 %): sin el arco posterior (≈ 216°–324°: la sonda en supino no pasa de 1,2π ni de −0,2π, `clampPose`), sin nada por
+encima de z 200 y con el pulmón subiendo hasta el tope del tronco (z 300) sin vértice. La rejilla no distingue lo que la base
+pone en cada sitio (pulmón, corazón, escápula o lo de debajo del borde) ni sigue los espacios intercostales.
+
+**Opciones.** (a) Conservar la rejilla regular y exigir pulmón en cada celda: confunde la ventana cardiaca, la escápula y el
+seno costodiafragmático con huecos, y premia el pulmón sobre el vértice. (b) Celdas anatómicas: los EIC 1.º–11.º de cada línea
+de referencia de la exploración, por hemitórax, con lo que la base pone en cada una. Para lo esperado: (i) la tabla del borde
+que construye el modelo, que es circular; (ii) los anclajes de Gray de la base. Para medir: el tejido en un punto, o la línea
+central de la sonda apoyada con su contacto, como ve el alumno.
+
+**Decisión.** (b), (ii) y la línea central de la sonda. `src/app/coverage.ts` (`explorationCoverage`), en fin de espiración:
+
+- **Celdas** (138). Por hemitórax, cada EIC que existe en las líneas paraesternal, medioclavicular, axilares anterior, media
+  y posterior, escapular y paravertebral (los dos extremos de sus costillas cruzan la línea: 6, 8, 9, 10, 11, 11 y 11 espacios,
+  los de la parrilla del adulto promedio de la decisión 16), con la sonda en el centro del espacio y marcador craneal; el
+  vértice en dos zonas del corte; y la fosa supraclavicular.
+- **(i) Alcance.** La pose tiene que caber en una posición del paciente admitida (`PositionReach`; hoy solo el supino de
+  `clampPose`).
+- **(ii) Contenido.** Lo primero que no es pared blanda ni cartílago sin calcificar (deja pasar el haz, A-T17) bajo la línea
+  central: pulmón con la pleura de A0 registrada (`pleuraCrossingLine`, la de la imagen), corazón, hueso, o el diafragma y el
+  órgano que le sigue. Lo esperado sale de los anclajes de la base (`anatomy.lungBorder`: 6.ª costilla en la paraesternal y la
+  LMC, 8.ª en la LAM, T11 detrás), cada uno a su altura en su línea; las líneas sin anclaje propio (LAA, LAP, escapular) toman
+  el intervalo entre las alturas de sus vecinas (detrás las costillas suben hacia la columna: el mismo número de costilla no
+  sirve). Un espacio cuyo centro queda a menos de 8 mm (la mitad de un espacio) del borde admite pulmón o lo de debajo (la
+  cortina); en las líneas con anclaje propio no hay ninguno. Bajo el borde se exige el órgano: el hígado a la derecha y, a la
+  izquierda, su lóbulo o el bazo (el requisito dice «diafragma y órgano subdiafragmático»). La paraesternal izquierda en los EIC
+  4.º–5.º es la ventana cardiaca (A-T16) y el 6.º, su borde caudal (corazón o lo de debajo). La línea escapular con los brazos a
+  los lados sube por el borde medial de la escápula: de la 2.ª costilla (Gray) al ángulo inferior (la apófisis de T8,
+  Cooperstein 2015, al nivel del cuerpo de T9), la escápula o el pulmón junto a ella (lo que no se toca en la clínica).
+- **(iii) Sobre el vértice**, en una rejilla de todo el corte del hemitórax (cada 5° y cada 3 mm): bajo el tercio medial de la
+  clavícula (por delante, hasta 20 + 156/3 mm de la línea media), ningún pulmón a más de 4–5 cm sobre ella (Gray; su borde
+  superior, 10 mm sobre la escotadura yugular: el eje a esa altura y el tercio medial de ≈ 2 cm de diámetro, Yang); en el resto,
+  ninguno a más de 8 mm sobre la 1.ª costilla. La fosa supraclavicular: la sonda a 7 cm de la línea media y 12,5 mm sobre la
+  clavícula, de plano o inclinada hacia los pies, ve pulmón con pleura, y solo cuenta si el vértice existe.
+- **La línea escapular** entra en `anatomy/thoraxLines.ts` (`anatomy.scapularLine`, 85 mm de la línea media: el ángulo inferior
+  de la escápula a 88,5 ± 6,1 y 82,5 ± 5,0 mm de T7 en la prueba de deslizamiento lateral con los brazos a los lados, Moon y Kim;
+  coherente con el ángulo superior a 9,1 ± 1,1 cm, Pontin). La paravertebral (60 mm) queda por dentro del borde medial.
+- **La prueba** (`src/validation/coverage.test.ts`): una por celda (`it` las que se cumplen, `notYetMet` con su motivo las que
+  no), el total con `notYetMet`, que las celdas son las de la anatomía, los bordes de Gray en sus espacios, el intervalo entre
+  anclajes, la escápula, y que el medidor mira lo que hay (el cartílago deja pasar el haz; con la sonda en cualquier sitio, la
+  espalda muestra pulmón y bajo el borde lo de debajo: lo que falla detrás es el alcance).
+- **El indicador** viaja en el informe técnico (`lus-diagnostico/1`, campo `coverage`: N/M en total y por región, del paciente
+  del simulador); el módulo se carga al pedir el informe.
+
+**Consecuencias.**
+
+- **Medido en main: 62 de 138 celdas** (anterior 20/28, lateral 42/60, posterior 0/44, vértice 0/6). Faltan las 44 celdas de
+  la escapular y la paravertebral (la sonda no llega), el vértice (el pulmón llega a z 299) y la fosa supraclavicular (ve
+  pulmón, pero sin vértice), y las 26 bajo el borde (el diafragma está, pero debajo el abdomen genérico,
+  `abdomen-generic-tissue`: sin hígado ni bazo, que la hoja de ruta adelanta a la fase 1 por este requisito). Las demás
+  celdas anteriores y laterales se cumplen, con el borde de Gray y la ventana cardiaca.
+- **Las bases** (la hipótesis de que las posteriores quedan altas): en FRC el modelo no tiene pulmón bajo z ≈ −35 en ninguna
+  línea porque así lo dice Gray en espiración (el borde en la apófisis espinosa de T10, al nivel del cuerpo de T11; la 8.ª
+  costilla en la LAM, z −35; la 6.ª en la LMC, z −17,5). La TAC en supino y fin de inspiración corriente lo baja a T12 (z −58,
+  Mirjalili), 7 mm bajo lo que baja la cortina en la respiración tranquila (16 mm, hasta z −51). No es un error del modelo; el
+  seno posterior, hasta la reflexión en T12 (z −58), es lo de debajo del borde.
+- La cobertura cuesta 0,3–1,5 s en la CPU (la rejilla del vértice es lo más caro): el informe técnico la calcula al pedirlo.
+
+**Verificación.** `npm run check`. La prueba falla en main por su aserción (el total y las 76 celdas pendientes, `notYetMet`).
+Revisión adversarial de contexto limpio (ejecutando): la escapular esperaba pulmón bajo la escápula (un modelo correcto nunca
+llegaría al 100 %); el borde de la LAP y la escapular tomaba la 8.ª costilla en su línea (un intervalo de 62 mm que dejaba pasar
+un borde dos costillas alto); la fosa supraclavicular pasaba sin vértice; el órgano bajo el diafragma no se miraba; el vértice
+solo se buscaba 3 mm bajo la pared y con la cúpula también en la LMC; aserciones que no veían mover el borde; el cartílago como
+hueso. Todo aplicado; las cifras recalculadas coinciden.

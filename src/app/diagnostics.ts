@@ -1,5 +1,6 @@
 import type { EquipmentSettings } from './simulator';
 import type { ErrorEntry } from './errorLog';
+import type { CoverageRegion } from './coverage';
 
 /**
  * Diagnóstico exportable (Fase 3): lo que un equipo necesita para reproducir un informe de
@@ -23,6 +24,11 @@ export interface DiagnosticsInput {
   gpuMs: { frameMs: number; perPass: Readonly<Record<string, number>> | null } | null;
   equipment: EquipmentSettings;
   errors: readonly ErrorEntry[];
+  /**
+   * Cobertura de exploración de la escena (lus-sim, `app/coverage.ts`; requisito de cobertura de `docs/MISSION.md`):
+   * celdas que la sonda alcanza y que muestran lo que la base pone ahí, en total y por región.
+   */
+  coverage: { met: number; total: number; byRegion: Readonly<Record<CoverageRegion, { met: number; total: number }>> } | null;
 }
 
 export interface Diagnostics extends DiagnosticsInput {
