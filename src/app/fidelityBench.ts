@@ -13,8 +13,8 @@ import { median, medianIqr, quantile } from '../measure/fidelity/stats';
 import { pointOnLine } from '../probe/probe';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { GREY_CURVE, levelOfGrey } from '../ultrasound/greyMap';
-import { IFACE_K_DB } from '../ultrasound/interfaceEcho';
-import { PLEURA_RP, PLEURA_RT, pleuraCapMm, pleuraCoherence } from '../ultrasound/pleura';
+import { roughnessCoherence } from '../ultrasound/interfaceEcho';
+import { PLEURA_RP, pleuraCapMm } from '../ultrasound/pleura';
 import { COARSE_DEPTH, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import type { Simulator } from './simulator';
 import { SPECKLE_PATCH, speckleMask, type EnvelopeFrame } from './speckle';
@@ -363,7 +363,9 @@ function measureFidelity(
       dropEnvelopeDb: next ? o.envelopeDb - next.envelopeDb : Number.NaN,
     };
   });
-  // F-T02: −20·log10|R_p·χ·R_t| − 20·log10 T(D) − compensación nominal en D, por línea intercostal del gemelo
+  // F-T02: −20·log10|R_p·χ·R_t| − 20·log10 T(D) − compensación nominal en D, por línea intercostal del gemelo, con la
+  // calibración con que dibujó la pasada B (la del registro, o la del barrido: decisión 35)
+  const calib = sim.renderer.calibration;
   const k0 = (2 * Math.PI) / sim.profile.beam.lambdaMm;
   const step = b.depthMm / COARSE_DEPTH;
   const scene = sim.scene;
@@ -389,12 +391,12 @@ function measureFidelity(
     });
     const norm = Math.hypot(g[0], g[1], g[2]);
     const cosI = norm > 0 ? Math.abs((g[0] * dir[0] + g[1] * dir[1] + g[2] * dir[2]) / norm) : 1;
-    const chi = pleuraCoherence(cosI, k0);
+    const chi = roughnessCoherence(cosI, calib.pleuraSigmaZMm, k0);
     const row = Math.min(COARSE_DEPTH - 1, Math.floor(pleuraCapMm(D, step) / step));
     const tD = trans.aperture[row * trans.lines + l];
     chis.push(chi);
     tDs.push(tD);
-    pred.push(-20 * Math.log10(PLEURA_RP * chi * PLEURA_RT * tD) - nominalTgcDbPerCm(fB) * (D / 10));
+    pred.push(-20 * Math.log10(PLEURA_RP * chi * calib.pleuraRt * tD) - nominalTgcDbPerCm(fB) * (D / 10));
   }
   const dTrue = b.depthMm * lay.scale;
   const dDet = dg.kind === 'linear' ? dg.yBottom - dg.yTop : dg.rhoMax - dg.rhoMin;
@@ -403,7 +405,7 @@ function measureFidelity(
     respiration: opts.respiration,
     frames: n,
     frameIntervalS: dt,
-    acquisition: { seed: sim.patient.seed, timesS, interfaceKDb: IFACE_K_DB, pleuraRt: PLEURA_RT },
+    acquisition: { seed: sim.patient.seed, timesS, interfaceKDb: calib.kDb, pleuraRt: calib.pleuraRt },
     display: {
       width: frames[0].width,
       height: frames[0].height,

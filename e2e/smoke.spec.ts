@@ -32,8 +32,13 @@ async function boot(page: Page): Promise<string[]> {
   return errors;
 }
 const tOf = (s: string | null) => Number(/t ([\d.]+) s/.exec(s ?? '')?.[1] ?? 0);
-/** La línea pleural en la pantalla: casi blanca (gris 243–249 medido) y por encima del HUD y la regla (~200). */
-const PLEURA_GREY = 230;
+/**
+ * La línea pleural en la pantalla: casi blanca y por encima del HUD y la regla (~200). Gris 243–249 medido con el preajuste
+ * de entonces; con R_t 0,1 (decisión 35), 227 tras bajar 2 dB la ganancia del preajuste (GPU real, 02-10-2026). El pico
+ * de la línea pleural del banco de fidelidad no cambia con R_t (217/197/225 en los tres puntos); el máximo de la pantalla es
+ * el de todo el cuadro.
+ */
+const PLEURA_GREY = 220;
 /** Espera dos cuadros de la página: el bucle de la aplicación (también en `requestAnimationFrame`) ya pintó uno. */
 const twoFrames = (page: Page) =>
   page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));

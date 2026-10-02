@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { FidelityBenchReport } from '../src/app/fidelityBench';
 import { LUNG_PRESET } from '../src/ultrasound/lungPreset';
+import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
 import { compareToReference, simValuesOf, type StratumMetric } from '../src/measure/fidelity/compare';
 
 /**
@@ -82,20 +83,43 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       // la pleura del detector, a ±1 mm del cruce del gemelo de A0, en todas las columnas intercostales
       expect(c.pleura.columns, tag).toBeGreaterThan(50);
       expect(c.pleura.within1mm, tag).toBe(1);
-      // las líneas A de orden 2 y 3 se ven y caen a k veces la línea pleural mostrada (F-T01: ±0,5 mm o un píxel) y a ±1 mm
-      // de k·D del gemelo
+      // la línea A de orden 2 se ve y cae a 2 veces la línea pleural mostrada (F-T01: ±0,5 mm o un píxel) y a ±1 mm de 2·D del
+      // gemelo. Con R_t 0,1 (decisión 35) cada orden cae ≈ 30 dB: el 3 queda bajo el ruido, como en los clips del banco (una
+      // línea A visible); se comprueba abajo con R_t en el borde de arriba de su rango
       const tol = Math.max(0.5, r.display.mmPerPx);
-      for (const k of [2, 3]) {
-        const a = c.aLines.find((x) => x.k === k)!;
-        expect(a.visible, `orden ${k} (${tag})`).toBe(true);
-        expect(Math.abs(a.shownErrMm), `F-T01, orden ${k} (${tag})`).toBeLessThanOrEqual(tol);
-        expect(Math.abs(a.cpuErrMm), `orden ${k} frente a k·D (${tag})`).toBeLessThanOrEqual(1);
-      }
+      const a2 = c.aLines.find((x) => x.k === 2)!;
+      expect(a2.visible, `orden 2 (${tag})`).toBe(true);
+      expect(Math.abs(a2.shownErrMm), `F-T01, orden 2 (${tag})`).toBeLessThanOrEqual(tol);
+      expect(Math.abs(a2.cpuErrMm), `orden 2 frente a 2·D (${tag})`).toBeLessThanOrEqual(1);
       // las sombras: el núcleo de las detectadas sobre líneas que cruzan hueso, y cada sombra completa del simulador con
       // núcleo (≥ 5 líneas fuera de su penumbra) cubierta por el detector
       expect(c.shadows.detected.length, tag).toBeGreaterThanOrEqual(2);
       expect(c.shadows.coreOnBone, tag).toBeGreaterThanOrEqual(0.9);
       for (const s of c.shadows.simulated.filter((x) => x.coreLines >= 5)) expect(s.covered, tag).toBeGreaterThanOrEqual(0.9);
+    }
+    // F-T01 es geometría de la serie, no depende de R_t: con R_t en el borde de arriba de su rango (0,5, decisión 35) el orden
+    // 3 se ve, y los órdenes 2 y 3 caen a k veces la línea pleural mostrada y a ±1 mm de k·D del gemelo
+    const rtMax = await page.evaluate(
+      ([o, rt]) => {
+        const hooks = window.__lusTest!;
+        hooks.calibrationOverride({ pleuraRt: rt });
+        try {
+          return hooks.fidelity(o);
+        } finally {
+          hooks.calibrationOverride(null);
+        }
+      },
+      [
+        { startPoint, respiration: 'apnea-expiratory' as const, frames: FRAMES, frameIntervalS: FRAME_INTERVAL_S },
+        PLEURA_RT_RANGE[1],
+      ] as const,
+    );
+    for (const k of [2, 3]) {
+      const a = rtMax.coherence.aLines.find((x) => x.k === k)!;
+      const tag = `${startPoint}, R_t ${PLEURA_RT_RANGE[1]}: ${JSON.stringify(rtMax.coherence.aLines)}`;
+      expect(a.visible, `orden ${k} (${tag})`).toBe(true);
+      expect(Math.abs(a.shownErrMm), `F-T01, orden ${k} (${tag})`).toBeLessThanOrEqual(Math.max(0.5, rtMax.display.mmPerPx));
+      expect(Math.abs(a.cpuErrMm), `orden ${k} frente a k·D (${tag})`).toBeLessThanOrEqual(1);
     }
     // el modo M reconstruido distingue la respiración (orilla de mar) de la apnea: σ temporal bajo la pleura
     const [apnea, quiet] = reports;
@@ -142,12 +166,16 @@ const GAIN_INVARIANT = [
   'T1.lateral.dPl',
   'T1.sigmaOverProminence',
 ] as const;
+// N4 necesita la línea A de orden 3: con R_t 0,1 (decisión 35) queda bajo el ruido con el preajuste y no se exige; en su
+// lugar entran A2 r₂ y la pendiente de ln r_k, que con R_t 0,1 se miden sin censura a ±3 dB del preajuste (0,388–0,398 y
+// −0,947…−0,922 en el BLUE superior con la GPU real)
 /** Las que tienen que compararse (sin censura) a ±3 dB del preajuste: la prueba tiene dientes. */
 const MUST_COMPARE = [
   'dPl.px',
   'M.wall',
   'M.haze',
-  'N4',
+  'A2.r2',
+  'A2.slopeLn',
   'P1',
   'P4.dPl',
   'T1.axial.dPl',

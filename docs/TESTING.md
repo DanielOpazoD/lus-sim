@@ -100,7 +100,9 @@ la salida actual no protege nada.
 - **Metas que aún no se cumplen, también en la e2e.** Como las metas A (decisión 10), una meta F que la imagen aún no
   cumple no se relaja ni se salta: la prueba exige el fallo con su tamaño medido y falla cuando alguien lo corrige, para
   que la prueba y la limitación cambien juntas. Así pasó con F-T01 en los órdenes 3 y 4 (`pleura-echo-offset`, decisión
-  12): la decisión 15 la corrigió, la prueba falló como estaba previsto y pasó a exigir la meta en los órdenes 1–4.
+  12): la decisión 15 la corrigió, la prueba falló como estaba previsto y pasó a exigir la meta en los órdenes 1–4. Desde la decisión 35 (R_t 0,1: cada orden cae ≈ 30 dB y con el preajuste solo se ve la línea A de orden 2, como en
+  los clips), los órdenes 1–4 de `aLines` se miden con R_t en el borde de arriba de su rango (0,5, `calibrationOverride`):
+  F-T01 es la geometría de la serie y no depende de R_t; el orden 2 con el preajuste lo comprueba `fidelidad.spec.ts`.
 - **Mutaciones.** Cada guarda se comprobó rompiendo el shader o sus uniforms y viéndola fallar (decisión 12); el
   procedimiento es el de siempre: aplicar la mutación, `npx vite build`, correr la prueba y restaurar.
 - **Cobertura.** Con la GPU portada: 94,6 % de sentencias, 88,6 % de ramas, 94,6 % de funciones y 95,8 % de líneas
@@ -241,9 +243,13 @@ la salida actual no protege nada.
   del sector). Una prueba aparte deja escrito lo que no es invariante: la piel detectada en cada contraste. Que las
   propiedades muerden se comprobó con mutaciones del código aplicadas a mano (decisión 21, «Mutaciones»), no con variantes
   escritas en la prueba.
+- **El barrido de calibración de la pleura** (`e2e/barridoPleura.spec.ts`, decisión 35): solo con `LUS_BARRIDO=1`; recorre
+  σz, R_t, K y la ganancia (`LUS_BARRIDO_SIGMAZ`, `_RT`, `_K`, `_GAIN`) con el protocolo de C3b-A y `calibrationOverride`
+  (sin recompilar) y adjunta las métricas por punto de partida. No es una prueba: es la herramienta del ajuste con la
+  exploración (decisión 24).
 - **El simulador** (`e2e/fidelidad.spec.ts`, gancho `fidelity`): en los tres puntos de partida, en apnea espiratoria y en
   respiración tranquila, 30 cuadros de la imagen mostrada; exige que el detector encuentre la pleura del gemelo de A0 a ±1 mm
-  en todas las columnas, las líneas A de orden 2 y 3 a k veces la línea pleural mostrada (F-T01) y las sombras donde las
+  en todas las columnas, las líneas A de orden 2 (con el preajuste) y 3 (con R_t 0,5, decisión 35) a k veces la línea pleural mostrada (F-T01) y las sombras donde las
   líneas cruzan hueso, y adjunta el informe (`fidelidad-<punto>.json`) con las métricas con la geometría verdadera y con la
   detectada, los niveles en dB (desde el gris y desde la envolvente sin recortar), la caída por orden frente a F-T02 y la
   comparación con la referencia (solo informada). El **barrido de ganancia** en BLUE superior usa desplazamientos de
