@@ -1,0 +1,71 @@
+# TEMPORAL (PR fix/e2e-estables; se quita antes de integrar): mide en los corredores del CI lo que cuesta cada paso de la
+# prueba de la pérdida del contexto WebGL, con la compilación de main y la de 2d9cfcb en el MISMO corredor, y repite las
+# dos pruebas inestables sin reintentos para medir su tasa de fallos.
+name: e2e-diag
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-diag-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diag:
+    name: diag ${{ matrix.kind }} ${{ matrix.i }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [medir, repetir]
+        i: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Versión de Playwright
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Caché de navegadores de Playwright
+        id: pw-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Corredor
+        run: |
+          nproc
+          lscpu | grep -E 'Model name|^CPU\(s\)'
+      - run: npx vite build
+      - name: Compilación de 2d9cfcb
+        if: matrix.kind == 'medir'
+        run: |
+          mkdir -p /tmp/old
+          git archive 2d9cfcb | tar -x -C /tmp/old
+          ln -s "$PWD/node_modules" /tmp/old/node_modules
+          (cd /tmp/old && npx vite build > /dev/null)
+      - name: Medir (alternando 2d9cfcb y main)
+        if: matrix.kind == 'medir'
+        run: |
+          for r in 1 2; do
+            node --import tsx tools/ci/e2e-diag.ts /tmp/old/dist 6719 1 2d9cfcb
+            node --import tsx tools/ci/e2e-diag.ts dist 6719 1 head
+          done
+      - name: Repetir las dos pruebas inestables, sin reintentos
+        if: matrix.kind == 'repetir'
+        env:
+          CI: '1'
+        run: npx playwright test e2e/smoke.spec.ts:216 e2e/mmode.spec.ts:90 --repeat-each=2 --retries=0 --reporter=list || true
