@@ -228,6 +228,19 @@ la salida actual no protege nada.
   declarado invariante no se mueva más del 5 % mientras no esté censurado, que las métricas de `MUST_COMPARE` se comparen
   sin censura a ±3 dB del preajuste y que N1–N3, con el suelo en el negro, salgan censuradas en todas las ganancias.
   `LUS_E2E_GPU=1` lo corre con la GPU real.
+- **El detector de líneas A sin la tendencia** (decisión 31): un perfil que cae mucho con la profundidad, como el de LUS-35v,
+  en `fidelityBench.test.ts`, y el mismo perfil sin líneas A con ruido correlado (casi ninguna «visible»); tres mutaciones del
+  código (buscar en el perfil crudo; la mediana centrada sin el hueco del pico; el ruido sin su parte correlada) las hacen
+  fallar.
+- **El mapa de grises desde el moteado** (`src/validation/speckleMap.test.ts`, decisión 31): sobre moteado sintético de Rayleigh
+  con mapas conocidos (`support/syntheticGreyMap.ts`: logarítmico puro, la curva del simulador, c negativo, recorte, grano,
+  interpolación entre líneas, persistencia, ruido de recepción, una textura que lo aparta de Rayleigh), con las tolerancias
+  declaradas antes de mirar los clips (c a ±15 %, el rango dinámico a ±8 % con grano ≤ 1 px); y por ubicación a través de un
+  barrido de ganancia conocido. La autoprueba sobre el simulador es `e2e/mapaGrises.spec.ts`: con el barrido de ganancia
+  recupera c = 3,5 ± 0,5 y 70 dB ± 5 %, y el estimador de una sola imagen no da por fiable el mapa de la región de su pared,
+  que no es moteado de Rayleigh (la e2e lo mide en la envolvente, en parches de 16 × 8): lo delatan la asimetría en dB y el
+  grano. Cuatro mutaciones del estimador (c sin la ordenada, la DE en lugar de los cuantiles, sin el diagnóstico de
+  asimetría, sin el del grano) hacen fallar las pruebas.
 - **La referencia** (`src/validation/fidelityReference.test.ts`): el manifiesto (licencias abiertas, `in_repo: false`,
   sujeto, geometría fijada y revisada, control de calidad) y el archivo de estadísticas (solo números derivados, sin rutas ni
   listas de píxeles, cada clip entero) tienen su forma; las compuertas automáticas atrapan lo que dicen, y un clip apto que

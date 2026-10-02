@@ -7,6 +7,7 @@ import {
   type SectorGeometry,
 } from '../measure/fidelity/sector';
 import { analyzeClip, levelBands, type ClipAnalysis } from '../measure/fidelity/metrics';
+import { speckleTiles, type SpeckleTile } from '../measure/fidelity/speckleMap';
 import { detectStructures, type BeamImage } from '../measure/fidelity/structures';
 import { median, medianIqr, quantile } from '../measure/fidelity/stats';
 import { pointOnLine } from '../probe/probe';
@@ -16,6 +17,7 @@ import { IFACE_K_DB } from '../ultrasound/interfaceEcho';
 import { PLEURA_RP, PLEURA_RT, pleuraCapMm, pleuraCoherence } from '../ultrasound/pleura';
 import { COARSE_DEPTH, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import type { Simulator } from './simulator';
+import { SPECKLE_PATCH, speckleMask, type EnvelopeFrame } from './speckle';
 import type { StartPoint } from './startPoints';
 import type { RibShadowStats } from './testHooks';
 import { EQUIPMENT_LIMITS } from './equipment';
@@ -41,6 +43,11 @@ export interface FidelityBenchOptions {
   gainDb?: number;
   /** Rango dinámico experimental: copia temporal del equipo, restaurada incluso si la medida falla. */
   dynamicRangeDb?: number;
+  /**
+   * Lado (px) de las teselas de moteado que el informe devuelve para estimar el mapa de grises desde la imagen
+   * (`speckleMap.ts`, decisión 31): la autoprueba del estimador sobre un mapa conocido. Sin él, no se devuelven.
+   */
+  speckleTile?: number;
 }
 
 /** Un nivel en la pantalla: gris (mediana o pico), dB sobre el blanco desde el gris y desde la envolvente sin recortar. */
@@ -103,6 +110,49 @@ export interface FidelityBenchReport {
     orders: { k: number; displayDb: number | null; envelopeDb: number; dropDisplayDb: number | null; dropEnvelopeDb: number }[];
     ft02: { predictedDb: ReturnType<typeof medianIqr>; chi: number; transmissionDb: number; tgcDb: number; lines: number };
   };
+  /** Teselas de moteado de la imagen mostrada (con `speckleTile`), con la geometría verdadera. */
+  speckleTiles?: SpeckleTile[];
+  /**
+   * La forma del moteado en la envolvente sin recortar (la verdad de la autoprueba del mapa, decisión 31), en parches de 16
+   * muestras × 8 líneas (los de `speckle.ts`): `region`, toda la pared entre 0,2 y 0,85 de la pleura de las líneas libres
+   * (con su grasa, sus caras, sus planos y sus estrías); `muscle` (solo con `speckleTile`: la máscara es cara), los parches
+   * de músculo sin estructura (`speckleMask`). De cada parche, la DE, p90 − p50 y p50 − p10 de 20·log₁₀ de la envolvente
+   * (dB; Rayleigh: 5,57, 5,21 y 8,18, algo menos en parches finitos con grano) y la asimetría (p50 − p10)/(p90 − p50)
+   * (Rayleigh: 1,57, poco sensible al grano y al tamaño del parche); medianas sobre los parches.
+   */
+  wallSpeckle: { region: EnvelopeSpread; muscle?: EnvelopeSpread };
+}
+
+/** La forma del moteado de la envolvente en parches (ver `wallSpeckle`). */
+export interface EnvelopeSpread {
+  patches: number;
+  sdDb: number;
+  p90p50Db: number;
+  p50p10Db: number;
+  asymmetry: number;
+}
+
+function envelopeSpread(env: EnvelopeFrame, inside: (line: number, sample: number) => boolean): EnvelopeSpread {
+  const { axial: AX, lateral: LAT } = SPECKLE_PATCH;
+  const hi: number[] = [];
+  const lo: number[] = [];
+  const asym: number[] = [];
+  const sds: number[] = [];
+  for (let u0 = 0; u0 + LAT <= env.lines; u0 += LAT)
+    for (let v0 = 0; v0 + AX <= env.samples; v0 += AX) {
+      const v: number[] = [];
+      for (let u = u0; u < u0 + LAT && v.length >= (u - u0) * AX; u++)
+        for (let k = v0; k < v0 + AX; k++) if (inside(u, k)) v.push(20 * Math.log10(Math.max(env.data[k * env.lines + u], 1e-12)));
+      if (v.length < AX * LAT) continue;
+      const h = quantile(v, 0.9) - quantile(v, 0.5);
+      const l = quantile(v, 0.5) - quantile(v, 0.1);
+      const m = v.reduce((x, y) => x + y, 0) / v.length;
+      sds.push(Math.sqrt(v.reduce((x, y) => x + (y - m) ** 2, 0) / (v.length - 1)));
+      hi.push(h);
+      lo.push(l);
+      asym.push(l / h);
+    }
+  return { patches: hi.length, sdDb: median(sds), p90p50Db: median(hi), p50p10Db: median(lo), asymmetry: median(asym) };
 }
 
 /** dB sobre el blanco de un gris de 8 bits (inversa de la curva de grises); null en el negro. */
@@ -259,6 +309,18 @@ function measureFidelity(
     return displayLevelDb(20 * Math.log10(Math.max(e, 1e-12)), r, b, fB);
   };
   const m0 = analysis.perFrame[0];
+  // la forma del moteado de la pared en la envolvente sin recortar (la verdad de la autoprueba del mapa, decisión 31)
+  const wallSpeckle = ((): FidelityBenchReport['wallSpeckle'] => {
+    const dz = b.depthMm / env.samples;
+    const inWall = (u: number, v: number): boolean => {
+      const D = rib.lines[u]?.pleuraMm;
+      if (!rib.lines[u]?.free || !Number.isFinite(D)) return false;
+      const r = (v + 0.5) * dz;
+      return r >= 0.2 * D && r <= 0.85 * D;
+    };
+    const region = envelopeSpread(env, inWall);
+    return opts.speckleTile ? { region, muscle: envelopeSpread(env, speckleMask(sim, env)) } : { region };
+  })();
   const bands = levelBands(st, beam.rows);
   const bandEnvelope = (segs: { col: number; from: number; to: number }[]): number => {
     const v: number[] = [];
@@ -377,6 +439,8 @@ function measureFidelity(
       },
     },
     levelsDb,
+    wallSpeckle,
+    ...(opts.speckleTile ? { speckleTiles: speckleTiles(frames, truth, { tile: opts.speckleTile, maxFrames: 8 }) } : {}),
     aLineDrop: {
       orders: withDrop,
       ft02: {

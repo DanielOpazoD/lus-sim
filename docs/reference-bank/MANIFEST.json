@@ -751,10 +751,10 @@
       "qa": {
         "usable": true,
         "pleura": true,
-        "a_lines": false,
+        "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: el detector las ve (decisión 31: el detector busca los picos sobre el perfil sin su tendencia); antes, sobre el perfil crudo, no llegaban (el máximo de la ventana caía en su borde). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -799,7 +799,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura); también sin la tendencia (decisión 31: el detector busca los picos sobre el perfil sin su tendencia), la de orden 2 se ve en 16 de 55 cuadros (mediana 0). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -889,7 +889,7 @@
         "a_lines": false,
         "rib_shadow": true,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: el detector las ve en 17 de 59 cuadros (mediana 0): fuera de las métricas de líneas A. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: el detector las veía en 17 de 59 cuadros (mediana 0); sin la tendencia, en 16 (decisión 31: el detector busca los picos sobre el perfil sin su tendencia): fuera de las métricas de líneas A. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1474,7 +1474,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pulmón normal limpio (revisión del coordinador: un espacio intercostal y varias líneas A horizontales bien marcadas; no trae diafragma: la nota anterior era un error). Pleura identificable y estable (dispersión de d_pl 0,10); ninguna compuerta salta. Líneas A: se ven, en k·39 px desde la cara (el perfil por filas tiene máximos en 39, 77, 117, 153 y 188 px), pero el detector del banco no las mide: el perfil cae de 146 a 51 grises entre la pleura y 5 d_pl y el máximo de la ventana de cada orden queda en su borde; la línea A de orden 2 solo se encuentra en 5 de 54 cuadros (A2 visibles: 0 en la mediana), así que a_lines queda en false hasta que el detector las mida. Sombra costal: la hay, en el borde derecho, pero su cresta cae en el inicio de la búsqueda (fila 18, el 5 % de la profundidad): la superficie costal no se mide (P1 y P4 medirían el borde de la ventana), así que rib_shadow queda en false. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
+        "note": "Pulmón normal limpio (revisión del coordinador: un espacio intercostal y varias líneas A horizontales bien marcadas; no trae diafragma: la nota anterior era un error). Pleura identificable y estable (dispersión de d_pl 0,10); ninguna compuerta salta. Líneas A: el detector las sigue sin ver con el perfil sin tendencia (decisión 31: el detector busca los picos sobre el perfil sin su tendencia): la de orden 2 se ve en 14 de 54 cuadros (sobre el perfil crudo se encontraba en 5). Lo que se ve son estrías horizontales con un periodo de 11 filas (autocorrelación 0,69 a 11 filas y 0,50 a 23, entre las filas 55 y 140 del espacio del haz), no k veces la pleura (39–41 filas): compatible con una reverberación entre dos capas separadas 11 filas (no se comprobó cuáles), no con líneas A de la cara a la pleura. a_lines queda en false. Sombra costal: la hay, en el borde derecho, pero su cresta cae en el inicio de la búsqueda (fila 18, el 5 % de la profundidad): la superficie costal no se mide (P1 y P4 medirían el borde de la ventana), así que rib_shadow queda en false. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {

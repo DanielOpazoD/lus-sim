@@ -16,10 +16,14 @@ import {
   statsProblems,
   type Gates,
   type Manifest,
+  greyMapStats,
   type ManifestItem,
   type ReferenceStats,
 } from '../../tools/fidelity/reference';
 import { comparisonArgs, comparisonTable, simCell, type Stratum } from '../../tools/fidelity/compare';
+import { clipDbTable, dbOfGrey, simDbTable, type DbSimReport } from '../../tools/fidelity/dbTable';
+import { estimateGreyMap } from '../measure/fidelity/speckleMap';
+import { SYNTHETIC_GREY_MAP, syntheticGreyMapFrames, syntheticGreyMapGeometry } from './support/syntheticGreyMap';
 import {
   compareToReference,
   COMPARED_METRICS,
@@ -405,6 +409,58 @@ describe('estadísticas de referencia', () => {
     // N1–N3 no se comparan (dependen del suelo); M sí
     expect(COMPARED_METRICS).not.toContain('N1');
     expect(COMPARED_METRICS).toContain('M.wall');
+  });
+});
+
+describe('el mapa de grises de cada clip y la tabla en dB (decisión 31)', () => {
+  it('el archivo del repo lleva el mapa estimado de cada clip, solo con números, y dice por qué no es fiable', () => {
+    for (const c of STATS.clips) {
+      expect(c.grey_map, c.id).not.toBeNull();
+      const g = c.grey_map!;
+      expect(g.tiles).toBeGreaterThan(0);
+      if (!g.reliable) expect(g.reasons.length, c.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('el resumen del mapa: números o null, y la conversión gris → dB del mapa del simulador', () => {
+    const o = SYNTHETIC_GREY_MAP;
+    const g = greyMapStats(estimateGreyMap(syntheticGreyMapFrames(o, 1), syntheticGreyMapGeometry(o)));
+    expect(g.reliable).toBe(true);
+    expect(Math.abs(g.c! - 3.5)).toBeLessThan(0.6);
+    expect(statsProblems({ ...STATS, clips: [{ ...STATS.clips[0], grey_map: g }] })).toEqual([]);
+    // con el mapa exacto, del negro al blanco hay justo el rango dinámico
+    expect(dbOfGrey(255, 3.5, 70, 0) - dbOfGrey(0, 3.5, 70, 0)).toBeCloseTo(70, 9);
+    expect(dbOfGrey(200, 0, 60, 10) - dbOfGrey(10, 0, 60, 10)).toBeCloseTo((190 * 60) / 245, 9);
+    expect(Number.isNaN(dbOfGrey(null, 3.5, 70, 0))).toBe(true);
+  });
+
+  it('la tabla en dB: el simulador desde su envolvente; los clips, solo con un mapa fiable', () => {
+    const r: DbSimReport = {
+      startPoint: 'blueUpper',
+      respiration: 'quiet',
+      levelsDb: {
+        wall: { envelopeDb: -55 },
+        haze: { envelopeDb: -62 },
+        deep: { envelopeDb: -77 },
+        pleura: { envelopeDb: -6 },
+        aLine2: { envelopeDb: -25 },
+        aLine3: { envelopeDb: -46 },
+      },
+      aLineDrop: {
+        orders: [
+          { k: 1, dropEnvelopeDb: 18.5 },
+          { k: 2, dropEnvelopeDb: 21.6 },
+        ],
+        ft02: { predictedDb: { median: 20.3 } },
+      },
+      wallSpeckle: { region: { sdDb: 6.8, p90p50Db: 7.15, asymmetry: 0.96 } },
+    };
+    const t = simDbTable([r]);
+    expect(t).toMatch(/\| blueUpper, quiet \| 49\.0 \| 56\.0 \| 71\.0 \| 18\.5 \/ 21\.6 \| 20\.3 \| 6\.80 \/ 7\.15 \/ 0\.96 \|/);
+    const clip = STATS.clips.find((c) => c.qa.usable)!;
+    const reliable = { ...clip, grey_map: { ...clip.grey_map!, reliable: true, reasons: [], c: 3.5, range_db: 70 } };
+    expect(clipDbTable([reliable])).toMatch(/\| fiable \| -?\d+\.\d \|$/m);
+    expect(clipDbTable([clip])).toMatch(/\| no: .* \| — \|$/m);
   });
 });
 

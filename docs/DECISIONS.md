@@ -2319,3 +2319,144 @@ pérdida) y 0 de 16 (las dos «M móvil»), y el CI completo de la PR en verde a
 plazo de 240 s agotado) y 1 de 6 después (el arranque: ver «El arranque bloqueado»). La carrera no tiene una prueba propia (no se puede forzar un cuadro
 entre la pérdida y su evento): la cubre la exigencia del registro de errores, que no trajo «FBO incompleto» en ninguna de las
 14 ejecuciones de la prueba con el cambio (9 en el CI: 8 repetidas y la del CI completo; 5 en local: 3 con un trabajador y 2 con cuatro).
+
+## 31. La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Ciclo 3b-1, la medida (sin tocar la física ni el preajuste). Dos huecos del banco de fidelidad (decisión 21).
+Uno: el detector de líneas A busca cada orden como el máximo del perfil axial dentro de su ventana; si el perfil cae mucho con
+la profundidad, ese máximo cae en el borde de la ventana y la línea A no se encuentra aunque se vea (se propuso para LUS-35v,
+el clip que el coordinador señaló como el de líneas A más marcadas). Dos: el banco compara en gris, y la física (ciclo 3b-2: la
+reverberación con su parte difusa, el ruido de recepción) se discute en dB: hace falta el mapa de grises de cada clip, que en
+los clips web es desconocido (§3.1, principio 5). El principio: en el moteado plenamente desarrollado la amplitud es de
+Rayleigh y la DE de su logaritmo es fija, 5,57 dB, sea cual sea el nivel, así que la dispersión del gris en regiones homogéneas
+a distintos niveles da la pendiente local del mapa (`docs/knowledge/physics.md` §2.12). Objetivos O3 y O6.
+
+**Opciones.** Para la tendencia: (a) una mediana móvil centrada; (b) la media de las medianas de cada lado sin el pico; (c)
+alinear el perfil con una pleura suavizada. Para el mapa: (a) la DE del gris contra su media (el planteamiento directo); (b)
+cuantiles (mediana y p90) con el modelo exacto de la familia de mapas; (c) la de Prager y cols., I = exp(g/D) con D ajustado
+para que parches de moteado tengan sus estadísticos ([@prager-moteado-2001]), que solo cubre el mapa logarítmico puro.
+
+**Decisión.**
+
+- **Detector de líneas A** (`structures.ts`, `aLinePeaks`): cada orden se busca como el máximo del perfil MENOS su tendencia
+  de profundidad, y la tendencia en cada u es la media de las medianas de cada lado entre ±0,15 y ±0,5 d_pl (b): una mediana
+  centrada (a) sube con el propio pico sobre una tendencia inclinada y le quita un tercio de su prominencia (la prueba lo
+  mide: 5 de 8 grises). La tendencia del perfil de medias da el gris del pico (fina: la del perfil de medianas va a saltos de
+  un gris en 8 bits, y el cociente de brechas N4 se movía un 9 % entre dos contrastes); la del perfil de medianas, el fondo
+  de la prominencia (aguanta el recorte). Un orden se encuentra si su máximo es interior a la ventana y sobresale de la
+  tendencia. Sobre el perfil sin tendencia casi cualquier ventana tiene un máximo interior, así que (tras la revisión
+  adversarial) el ruido del umbral de visibilidad (3σ) es el mayor entre el de la segunda diferencia (el blanco) y la DE
+  robusta de la mitad de abajo del perfil sin tendencia desde 1,25 d_pl (el correlado, que la segunda diferencia casi no
+  ve), y r_k se guarda solo de los órdenes visibles. El ruido así estimado sale 1,15–1,25 veces el verdadero (la tendencia
+  de medianas suma su propia varianza): el umbral efectivo es de 3,4–3,7σ, y una línea A de orden 2 real a 4σ se ve el
+  57–84 % de las veces (5–8 puntos menos que con el detector de main y ruido blanco; segunda revisión). Parámetro nuevo `measure.fidelityBench.aLineGap` (0,15 d_pl,
+  estimado). (c) se probó y no ayudó: se descartó.
+- **El mapa de grises desde el moteado** (`speckleMap.ts`) (b). Con g/G = ((1 + c)^y − 1)/c, y = 1 + dB/RD, el gris de un
+  moteado de amplitud A cumple exactamente g + G/c ∝ A^q, así que g₉₀ − g₅₀ es una recta de g₅₀ cuya pendiente y ordenada dan
+  c (sin suponer la forma del moteado; negativo si el mapa aplasta los grises bajos) y, si el moteado es de Rayleigh
+  (p90 − p50 = 5,21 dB), el rango dinámico. Teselas sin estructura, sin la mediana cerca del negro, sin el p90 en el blanco
+  y con p90 − p50 de al menos 6 cuantos (con menos, la cuantización la domina); ajuste robusto por franjas de gris; dos
+  diagnósticos: la asimetría por cuantiles en dB (1,57 en el moteado de Rayleigh) y el grano (el desfase al que la
+  autocorrelación del gris cae a 0,5), que debe caber 12 veces en la tesela. Cuantiles y no la DE (a): el negro recorta la
+  cola baja del logaritmo del moteado (sus nulos) y la DE de las teselas oscuras salía sesgada. **Tolerancias declaradas el
+  02-10-2026, antes de mirar los clips**: en sintéticos de Rayleigh (teselas de 16 px, grano ≤ 1 px), c a ±15 % y el rango
+  dinámico a ±8 %; en el simulador, con un barrido de ganancia conocido y ubicación por ubicación, c = 3,5 ± 0,5 y RD =
+  70 dB ± 5 %; y el mapa de un clip solo se da si hay ≥ 200 teselas en ≥ 4 franjas que cubren ≥ 40 grises, c es estable
+  (p10–p90 ≤ máx(1, c/2)) y la asimetría cae en 1,35–1,80. **Después de mirar los clips, solo más estrictas** (la revisión
+  adversarial mostró casos plausibles que pasaban por fiables y estaban mal): la banda de asimetría, 1,48–1,68 (Rayleigh
+  sintético da 1,56–1,59); el grano, ≥ 12 granos por tesela; la dispersión mínima por tesela. Cada clip lleva su mapa en
+  `reference-stats.json`: `grey_map` con teselas del tamaño que pide su grano (de 16 a 64 px) en todo el sector, y
+  `grey_map_wall` con las de 16 px de la pared (0,2–0,85 de la pleura; las grandes no caben en ella). `npm run fidelity:db`
+  da la tabla en dB.
+
+**Consecuencias.**
+
+- **Líneas A en el banco** (los 34 clips, regenerados). LUS-35f (exploración de C3b-A) pasa a ver su línea A de orden 2 en
+  la mediana de sus cuadros: `a_lines` true. LUS-35g no: también sin la tendencia la ve en 16 de 55 cuadros. **LUS-35v sigue
+  sin líneas A medibles**: la de orden 2 se ve en 14 de 54 cuadros (sobre el perfil crudo se encontraba en 5). Lo que se ve
+  en él son estrías horizontales con un periodo de 11 filas del espacio del haz (autocorrelación 0,69 a 11 filas y 0,50 a 23,
+  entre las filas 55 y 140), con la pleura a 39–41 filas: no son k veces la pleura, sino algo compatible con una
+  reverberación entre dos capas separadas 11 filas (no se comprobó cuáles). LUS-35i, 16 de 59. El estrato convexo, entre
+  clips (antes → ahora): M de la pared 0,749–1,57 (8 clips/4 sujetos) → 0,753–1,54 [1,00] (10/6), M de la neblina
+  0,910–1,42 → 0,845–1,32 (10/6), A1 0,102–0,214 (8/4) → 0,092–0,192 (9/5), A2 r₂ 0,140–0,318 [0,229] (8/4) →
+  0,158–0,301 [0,185] (9/5); A2 r₃ sigue sin distribución (ningún clip ve el orden 3 en la mitad de sus cuadros). r_k de
+  los visibles es una distribución truncada: las medianas por clip se mueven (LUS-01 0,239 → 0,379 con 32 de 60 cuadros;
+  LUS-35f 0,376 → 0,262).
+- **El falso positivo que encontró la revisión.** Sin líneas A, con un perfil que cae como el de LUS-35v y ruido gaussiano
+  suavizado (σ de 0,05 d_pl) de DE 4 grises, el umbral con solo la segunda diferencia daba una línea A «visible» en 195 de
+  400 perfiles; con el ruido correlado, en 5. Y r_k de los órdenes no visibles (la prominencia de un máximo de ruido) metía
+  valores negativos en el estrato: el p10 de r₃ negativo de la primera versión era eso.
+- **La invariancia afín sigue**: la continua, exacta (1e-6); en 8 bits y en la tubería del banco, dentro de las tolerancias de
+  #23 salvo la pendiente de ln r_k, que se ensanchó de 0,1 a 0,2 después de ver el resultado (peor caso 0,095 en 200
+  corridas; cambia cuando un orden débil cruza el umbral de visibilidad; A1, por lo mismo, 0,017 con la geometría del
+  detector, dentro de su 0,03). La propiedad compara r_k de cada orden encontrado, visible o no: que un orden en el umbral
+  se vea o no ya lo cuenta A2 visibles.
+- **El mapa de grises en sintéticos** (Rayleigh, mapa conocido, tres semillas): c de −2 % a +9 % (c 3,5), ±5 % (c 1 y 8),
+  −0,57 a −0,59 (c −0,6) y −0,01 a 0,04 (logarítmico); RD con un sesgo sistemático de +2 % (grano 0,6 px) a +4–5,5 % (grano
+  1 px): pocas muestras independientes por tesela, ~3 puntos de margen frente a ±8 %. El grano sube RD (+8 % con 12 granos
+  por tesela, +12 % con 9,5, +25 % con 7: de ahí los 12 granos); la persistencia de dos cuadros, +35 % (asimetría 1,36); la
+  interpolación entre líneas, +21–28 % (asimetría 1,43–1,45): los tres los rechaza ahora el diagnóstico, que antes dejaba
+  pasar la persistencia y la interpolación. El ruido de recepción sumado al eco antes de la detección no lo sesga (la suma es
+  de Rayleigh: con −45 dB, c 3,39 y RD +2 %). Lo que aún pasa por fiable y está mal (segunda revisión): una persistencia
+  ligera (pesos 0,8/0,2, ≈ 1,5 cuadros efectivos: asimetría 1,50, RD +22–24 %; el rechazo empieza en 0,7/0,3) y un mapa
+  fuera de la familia (una sigmoide da c −0,75 y RD 48 frente a 70; una gamma 0,5, RD 82), aunque dentro de los grises
+  medidos las diferencias en dB aciertan a ±7 %; por eso `dbBetween` da NaN fuera de esos grises. El mapa exige c estable,
+  no RD: RD sigue siendo una cota superior si el moteado puede estar suavizado.
+- **Autoprueba en el simulador** (`e2e/mapaGrises.spec.ts`): por ubicación a través del barrido de ganancia, c = 3,44–3,55
+  y RD = 69,9–70,1 dB (BLUE superior y PLAPS, GPU real y SwiftShader, corridas del 02-10-2026 sobre main a04ba7c): el mapa se lee de la imagen
+  mostrada. Con una sola imagen no: **la región de la pared del simulador no es moteado de Rayleigh**. En su envolvente, en
+  parches de 16 muestras × 8 líneas entre 0,2 y 0,85 de la pleura, p90 − p50 = 8,0–9,2 dB en el BLUE superior y el PLAPS
+  (Rayleigh: 5,21, menos en parches finitos con grano) y la asimetría 0,94–0,96 y 1,28–1,30 frente a 1,57; en el BLUE
+  inferior, con la pared de la espalda de main (decisión 29), 6,3 dB y 1,48, cerca de Rayleigh. La región mezcla la grasa
+  con sus grumos, las caras, los planos intermusculares y las estrías. El músculo sin estructura
+  (`speckleMask`) casi no tiene parches en estas vistas (3 y 0) y no se mide aquí: su moteado lo vigila `imagen.spec.ts` en la
+  zona paraesternal (SNR de Rayleigh). El estimador de una imagen da c 4,2–4,4 y RD 44–51 dB, y no los da por fiables: la
+  asimetría en dB (1,09–1,12) y el grano lateral de la imagen mostrada, 2,9–3,0 × 1,4 px, grueso para teselas de
+  16 px. (La primera versión decía que el moteado de la pared no era de Rayleigh con ventanas de 16 muestras en una línea, sin
+  máscara: la revisión mostró que eso mezclaba estructura con moteado.)
+- **Los clips: ninguno permite estimar su mapa con fiabilidad.** En los 19 aptos, el grano con teselas de 16 px es de
+  2,1–4,8 px en x y 1,1–1,5 en y (el de la imagen del simulador, 3,0 × 1,4): pide teselas de 32–64 px, de las que quedan
+  2–204 por clip, y sobre ellas el grano medido crece (2,3–9,9 px en x): hay correlación más allá del moteado (suavizado,
+  recompresión, estructura). La asimetría en dB, donde se mide (9 clips), 0,65–1,15; en los otros 10 la dispersión no es
+  una recta del gris de un mapa de la familia. Solo en la pared, con teselas de 16 px: 0,55–1,18 (9 clips), ninguno cerca
+  de 1,57; el más cercano, LUS-02 (1,18 en 55 teselas). La primera versión daba c 14–141 y RD 93–190 dB con teselas de
+  16 px en todo el sector: la revisión mostró que eran sobre todo teselas del campo profundo, oscuro, con la dispersión
+  dominada por la cuantización (LUS-02: 4023 de 4643 teselas a más de 3 d_pl, en grises 5–17). Con la dispersión mínima de
+  6 cuantos y la tesela del grano, `grey_map` de todo el sector aún tiene mucho campo profundo en algunos clips (LUS-02, 60
+  de 105 teselas a más de 3 d_pl; LUS-35s, 132 de 143): de ahí `grey_map_wall`. Cuando la autocorrelación no cae antes de
+  media tesela, el grano es una cota (≥). Es lo que anticipan Kaplan y
+  Ma (los histogramas reales se apartan por la compresión no ideal, el ruido y el suavizado; [@kaplan-lograyleigh-1994]) y
+  Smith y Raza (con la compresión desconocida hacen falta cientos de ventanas; [@smith-compresion-2026]), con vídeos
+  recomprimidos (MPEG-2, h264, Theora). **Las brechas en dB de los clips no se dan.**
+- **La tabla en dB del simulador** (envolvente sin recortar, esta rama sobre main a04ba7c, GPU real, respiración tranquila;
+  entrada del ciclo 3b-2): pleura − pared 48,0–48,9 dB, pleura − neblina 56,3–58,3, pleura − campo profundo 70,6–73,1; la
+  caída por orden de las líneas A, 18,3–21,5 dB del orden 1 al 2 y 20,6–21,6 del 2 al 3, frente a 20,2–20,3 de F-T02
+  (−20·log₁₀(R_p·χ·R_t) − 20·log₁₀T(D) − la compensación nominal); la región de la pared, DE 5,6–7,7 dB (Rayleigh: 5,57).
+  Con SwiftShader, dentro de 0,9 dB.
+- **La partición de C3b-A (decisión 24)** cambia sus SHA-256, con su entrada en `revisions`. En exploración, M de la pared
+  entre sujetos pasa de 1,19–1,43 (2 clips, 2 sujetos) a 0,851–1,40 (4/4), M de la neblina de 0,955–1,03 a 0,870–1,00, A1
+  de 0,113–0,197 (2/2) a 0,059–0,185 (3/3) y A2 r₂ de 0,129–0,248 (2/2) a 0,168–0,246 (3/3); en comprobación, M de la pared
+  0,880–0,917 → 0,896–0,911, A1 0,165–0,203 → 0,145–0,152 y A2 r₂ 0,222–0,235 → 0,176–0,222. Los ajustes de C3b-A se
+  eligieron con la versión anterior.
+- Limitación `speckle-statistics-uncalibrated` ampliada: la región de la pared del simulador no es de Rayleigh y el mapa
+  de los clips no se puede estimar.
+
+**Verificación.** `npm run check` en verde. Las pruebas del detector (un perfil que cae mucho con la profundidad, como el de
+LUS-35v: la búsqueda en el perfil crudo cae en el borde; el mismo perfil sin líneas A y con ruido correlado: casi ninguna
+visible) y del estimador (`src/validation/speckleMap.test.ts`: sintéticos de Rayleigh con mapas conocidos, c negativo, el
+logarítmico puro, recorte, grano, interpolación, persistencia, ruido de recepción, una textura que lo aparta de Rayleigh; el
+barrido de ganancia por ubicación); la invariancia afín con fast-check, 200 corridas por propiedad; la tabla en dB y el mapa
+de cada clip en `fidelityReference.test.ts`; la autoprueba en el simulador (`e2e/mapaGrises.spec.ts`, GPU real y
+SwiftShader) y las e2e de fidelidad y de C3b-A. **Mutaciones del código**, cada una atrapada: buscar los picos en el perfil
+crudo y la tendencia con la mediana centrada (la prueba del perfil que cae), el ruido sin la parte correlada (la del ruido
+correlado), el umbral absoluto en la visibilidad y M sin la línea A (la invariancia continua), c sin la ordenada, la DE de
+Rayleigh en lugar de la distancia entre cuantiles, el estimador sin el diagnóstico de asimetría y sin el del grano (las
+pruebas del mapa). Revisión adversarial de contexto limpio antes de abrir la PR, ejecutando: halló el falso positivo de las
+líneas A, el c negativo leído como logarítmico, la pared del simulador medida sin máscara, la banda de asimetría demasiado
+ancha y los números de los clips dominados por el campo profundo; todo corregido aquí. Una segunda revisión, sobre las
+correcciones, confirmó B1 (sin líneas A, de 3–79 % de perfiles con una «visible» a 0–3 %), el c negativo, que los parches
+16 × 8 de Rayleigh dan 4,2–5,1 dB y asimetría 1,56–1,66 (la región de la pared del BLUE superior y del PLAPS, 8,0–9,2 y 0,94–1,30, no lo es) y que
+`reference-stats.json` se reproduce exacto; y halló lo que queda dicho arriba (umbral efectivo, persistencia ligera, mapas
+fuera de la familia, campo profundo, grano truncado). Su resumen, en la PR.

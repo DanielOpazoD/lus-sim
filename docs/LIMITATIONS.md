@@ -253,7 +253,14 @@ conservan su identificador (decisiones 10 y 11).
 - **Estadística del moteado sin calibración completa** (`speckle-statistics-uncalibrated`): la célula, la SNR local y la
   asimetría del moteado no tienen una calibración conjunta frente a clips reales de pulmón. Desde la decisión 21 el banco
   mide el grano de la pared (T1) en el simulador y en los clips; el ajuste preliminar del contraste no resuelve por sí solo
-  esta limitación.
+  esta limitación. Desde la decisión 31 se sabe además que la región de la pared del simulador (0,2–0,85 de la pleura, con
+  la grasa, las caras, los planos intermusculares y las estrías) no es moteado de Rayleigh: en su envolvente, en parches de
+  16 × 8, p90 − p50 de 20·log₁₀ es 8,0–9,2 dB frente a 5,21 (menos en parches con grano) y la asimetría por cuantiles
+  0,94–1,30 frente a 1,57 en el BLUE superior y el PLAPS; el músculo sin estructura sí lo es (SNR de Rayleigh,
+  `e2e/imagen.spec.ts`), pero casi no tiene
+  parches en las vistas del banco. El mapa de grises de los clips no se puede estimar desde su moteado (grano lateral de
+  2,1–4,8 px, asimetría en dB 0,55–1,18 en la pared, recomprimidos), así que la comparación de la dispersión del moteado en
+  dB queda pendiente.
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;
@@ -265,11 +272,11 @@ conservan su identificador (decisiones 10 y 11).
   Referencia histórica de la decisión 21, con K = 55 dB y R_t = 0,3: el rango dinámico
   (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido
   con el banco de fidelidad en la imagen mostrada, la pared y la neblina subpleural a 1,6–1,9 y 1,8–2,0 caídas de línea A bajo
-  la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,57 y 0,91–1,42 (p10–p90) en 8 clips convexos de 4
-  sujetos del banco de referencia (corregido el 02-10-2026); el campo profundo y el suelo de la sombra costal quedan en el gris 0 de 8 bits (la
+  la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,54 y 0,85–1,32 (p10–p90) en 10 clips convexos de 6
+  sujetos del banco de referencia (con el detector de líneas A de la decisión 31); el campo profundo y el suelo de la sombra costal quedan en el gris 0 de 8 bits (la
   envolvente, 6–7 y 39–42 dB bajo el negro de −69,7 dB), así que M del campo profundo es una cota inferior y los niveles sobre
   el suelo (N1–N3) no son medidas: dependen de la ganancia. La línea A cae ≈ 20 dB por orden (F-T02 da 20,2–20,4), pero en gris
-  decae más despacio que en los clips (r₂ 0,48–0,56 frente a 0,14–0,32) y se ven dos; M se mide en esa caída, así que lee a la
+  decae más despacio que en los clips (r₂ 0,48–0,56 frente a 0,16–0,30) y se ven dos; M se mide en esa caída, así que lee a la
   vez el nivel y la reverberación. El moteado de la pared es tenue frente a la pleura (T1 σ/prominencia 0,035–0,042 frente a
   0,11–0,31) y la pared, quieta hasta el escalón de 8 bits (σ temporal 0,004–0,16 grises; T2 1,000; en un clip real sería un
   vídeo que repite cuadros), así que S1 es una cota (≥ 11–16 frente a 0,76–1,68). Las métricas son invariantes a lo afín en el

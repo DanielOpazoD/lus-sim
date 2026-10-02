@@ -92,6 +92,7 @@ npm run provenance   # deriva del código portado respecto de VExUS y EchoTwin
 npm run docs:index   # regenera docs/DECISIONS_INDEX.md
 npm run fidelity:ref # banco de fidelidad: mide el banco de referencia (fuera del repo) y escribe sus estadísticas
 npm run fidelity:compare -- <informes de la e2e>  # la tabla simulador frente a la referencia
+npm run fidelity:db -- <informes de la e2e>  # la tabla en dB: el simulador desde su envolvente y el mapa de grises de cada clip
 npm run fidelity:geometry -- --out <carpeta fuera del repo>  # propuestas de geometría y hojas de contacto
 ```
 

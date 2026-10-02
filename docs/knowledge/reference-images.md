@@ -254,8 +254,9 @@ del banco (`src/measure/fidelity/`). Lo que hace de más, de menos o distinto de
 - **Detección.** La pleura es la cresta de cada columna, guiada en un clip por la del cuadro medio (±30 %); las sombras
   costales, los tramos de columnas con poca energía bajo su cresta (umbral de Otsu exacto) cuya cresta, la superficie costal,
   queda por encima de la pleura y forma una sola superficie (IQR/mediana ≤ 0,2); las líneas A, los picos del perfil axial (la
-  media de las columnas intercostales, cada una alineada en su pleura, u = r/d_pl) cerca de u = k, con su fondo en la
-  mediana. Con la geometría fijada, la detección es equivariante a g → a·g + b **mientras nada se recorte**.
+  media de las columnas intercostales, cada una alineada en su pleura, u = r/d_pl) cerca de u = k buscados sobre el perfil
+  sin su tendencia de profundidad (la media de las medianas de cada lado, sin el pico; decisión 31), con su fondo en la
+  tendencia del perfil de medianas. Con la geometría fijada, la detección es equivariante a g → a·g + b **mientras nada se recorte**.
 - **Métricas.** P1 con el p95 de la banda de la pleura y de la cortical y la mediana del tejido 10–40 % de d_pl por encima;
   P2 con la media altura sobre la mediana a ±¼ d_pl; A1 entre órdenes visibles del perfil alineado, solo si la piel está en
   el borde superior del clip; A2 con el fondo local en k ± ½ d_pl y una línea A visible si su r_k ≥ 5 % y su prominencia ≥ 3

@@ -477,6 +477,68 @@ describe('piezas del detector', () => {
     expect(r.peaks[1].ratio).toBeCloseTo(1 / 3, 1);
   });
 
+  it('un perfil que cae mucho con la profundidad (LUS-35v): las líneas A se buscan sin la tendencia (decisión 31)', () => {
+    // 146 grises en la pleura y la mitad cada 2,7 d_pl, con la pleura (+54) y tres líneas A de 8, 6 y 4 grises; en la ventana
+    // del orden 2 (u 1,7–2,3) el perfil crudo es máximo en su borde izquierdo: buscado sobre él, la línea A no se encuentra
+    const du = 1 / 40;
+    const bump = (u: number, at: number, h: number): number => h * Math.exp(-(((u - at) / 0.04) ** 2));
+    const profile = Float64Array.from({ length: 280 }, (_, i) => {
+      const u = i * du;
+      const trend = u < 1 ? 60 : 146 * Math.exp(-0.26 * (u - 1));
+      return trend + bump(u, 1, 54) + bump(u, 2, 8) + bump(u, 3, 6) + bump(u, 4, 4) + 0.3 * Math.sin(i * 2.399);
+    });
+    const raw = profile.slice(Math.ceil(1.7 / du), Math.floor(2.3 / du) + 1);
+    expect(raw.indexOf(Math.max(...raw))).toBe(0);
+    const r = aLinePeaks(profile, du);
+    expect(r.peaks[1].found).toBe(true);
+    expect(Math.abs(r.peaks[1].u - 2)).toBeLessThan(0.02);
+    expect(r.visible).toBeGreaterThanOrEqual(2);
+    // la prominencia, sobre la tendencia (las medianas de cada lado, sin el pico): los 8 grises de la línea A a ±0,5; una
+    // mediana centrada en el pico, sobre esta pendiente, le quitaba 3
+    expect(Math.abs(r.peaks[1].prominence - 8)).toBeLessThan(0.5);
+    expect(Math.abs(r.peaks[2].prominence - 6)).toBeLessThan(0.5);
+  });
+
+  it('el mismo perfil sin líneas A y con ruido correlado: casi ninguna línea A «visible» (revisión de la decisión 31)', () => {
+    // ruido gaussiano suavizado (σ de 2 muestras, 0,05 d_pl) de DE 4 grises: la segunda diferencia casi no lo ve y, con
+    // solo ella como ruido, 113 de estos 200 perfiles tienen una línea A «visible»; con la DE robusta del perfil sin
+    // tendencia, 1
+    let seed = 3;
+    const rnd = (): number => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return (seed + 0.5) / 2147483648;
+    };
+    const gauss = (): number => Math.sqrt(-2 * Math.log(rnd())) * Math.cos(2 * Math.PI * rnd());
+    const du = 1 / 40;
+    const trials = 200;
+    let visible = 0;
+    for (let t = 0; t < trials; t++) {
+      const white = Array.from({ length: 300 }, gauss);
+      const smooth = white.map((_, i) => {
+        let a = 0;
+        let w = 0;
+        for (let k = -6; k <= 6; k++) {
+          const j = i + k;
+          if (j < 0 || j >= white.length) continue;
+          const g = Math.exp(-0.5 * (k / 2) ** 2);
+          a += g * white[j];
+          w += g * g;
+        }
+        return a / Math.sqrt(w);
+      });
+      const profile = Float64Array.from({ length: 280 }, (_, i) => {
+        const u = i * du;
+        const trend = u < 1 ? 60 : 146 * Math.exp(-0.26 * (u - 1));
+        return trend + 54 * Math.exp(-(((u - 1) / 0.04) ** 2)) + 4 * smooth[i];
+      });
+      const r = aLinePeaks(profile, du);
+      if (r.visible > 0) visible++;
+      // un orden encontrado sobresale de la tendencia
+      for (const p of r.peaks.slice(1)) if (p.found) expect(p.ratio).toBeGreaterThan(0);
+    }
+    expect(visible / trials).toBeLessThan(0.03);
+  });
+
   it('las definiciones del banco llevan su evidencia (estimadas, con rango)', () => {
     for (const p of Object.values(FIDELITY_BENCH.params)) expect(p.evidence).toBe('estimado');
     expect(FB.hazeFrom).toBeLessThan(FB.hazeTo);

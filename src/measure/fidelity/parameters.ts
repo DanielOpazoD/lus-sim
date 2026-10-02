@@ -116,7 +116,20 @@ export const FIDELITY_BENCH = defineParameters('measure.fidelityBench', {
     range: [0.3, 0.5],
     evidence: 'estimado',
     sources: [],
-    note: 'Semiventana del fondo local de cada orden (mediana del perfil en k ± 0,5): la neblina entre órdenes',
+    note:
+      'Semiventana de la tendencia de profundidad del perfil y del fondo local de cada orden: la media de las medianas de cada ' +
+      'lado, entre ±`aLineGap` y ±0,5 d_pl (la neblina entre órdenes; decisión 31)',
+  },
+  aLineGap: {
+    value: 0.15,
+    unit: 'd_pl',
+    range: [0.1, 0.2],
+    evidence: 'estimado',
+    sources: [],
+    note:
+      'Hueco central que la tendencia de profundidad deja fuera a cada lado del punto: el propio pico (su FWHM, P2, es ' +
+      '0,07–0,09 d_pl en el simulador y 0,05–0,13 en los clips aptos). Una mediana centrada sobre una tendencia inclinada sube con el pico y ' +
+      'resta parte de su prominencia (decisión 31)',
   },
   aLineMinRatio: {
     value: 0.05,

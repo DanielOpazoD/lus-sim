@@ -296,10 +296,16 @@ export function profileBand(profile: Float64Array, du: number, a: number, b: num
  * Picos del perfil (k = 1 la línea pleural): la línea pleural y la de orden 2 en k ± `aLineWindow`; desde el orden 3, en
  * 1 + (k − 1)·Δ ± ½·`aLineWindow`, con Δ = u₂ − 1 el primer espaciado medido: las líneas A son equidistantes, y si la
  * piel no está en el borde superior del clip (un desfase c) todas se corren igual, u_k = 1 + (k − 1)·d/(d − c), así que
- * la serie se busca con su propio paso y no con el de la piel. Un pico cuenta si es un máximo local dentro de su ventana,
- * con refinado parabólico; el fondo, la mediana en u ± `aLineBackground`; r_k, la prominencia sobre la de la línea pleural.
- * El ruido del perfil se estima con la segunda diferencia (σ = 1,4826·MAD/√6) desde u = 1,25, donde no está la subida de
- * la pleura.
+ * la serie se busca con su propio paso y no con el de la piel. Un pico cuenta si es un máximo local dentro de su ventana
+ * del perfil SIN SU TENDENCIA de profundidad (el perfil menos la media de las medianas de cada lado entre ± `aLineGap` y
+ * ± `aLineBackground`), con refinado
+ * parabólico: en un clip cuyo perfil cae mucho con la profundidad (LUS-35v: de 146 a 51 grises entre la pleura y 5 d_pl), el
+ * máximo del perfil crudo dentro de la ventana cae en su borde aunque la línea A se vea (decisión 31). El gris del pico es
+ * el máximo parabólico del perfil sin tendencia más la tendencia en esa muestra; el fondo, la tendencia en el pico (en el
+ * centro de la ventana si no se encuentra); r_k, la prominencia sobre la de la línea pleural. Las medianas, su media y la resta son
+ * equivariantes a g → a·g + b.
+ * El ruido del perfil, desde u = 1,25 (sin la subida de la pleura), es el mayor entre el de la segunda diferencia
+ * (σ = 1,4826·MAD/√6, el blanco) y la DE robusta de la mitad de abajo del perfil sin tendencia (el correlado).
  */
 export function aLinePeaks(
   profile: Float64Array,
@@ -313,7 +319,41 @@ export function aLinePeaks(
     const v = profile[k - 1] - 2 * profile[k] + profile[k + 1];
     if (Number.isFinite(v)) d2.push(Math.abs(v));
   }
-  const noise = d2.length ? (1.4826 * median(d2)) / Math.sqrt(6) : Number.NaN;
+  const whiteNoise = d2.length ? (1.4826 * median(d2)) / Math.sqrt(6) : Number.NaN;
+  // la tendencia de profundidad en cada u: la media de las medianas de cada lado, entre ±`aLineGap` y ±`aLineBackground`
+  // (sin el pico: una mediana centrada sobre una tendencia inclinada la sube con el propio pico); con una tendencia lineal es
+  // exactamente la tendencia en u. Si un lado se sale del perfil, el otro. La del perfil de medias quita la tendencia para
+  // buscar el pico y dar su gris (fina: en 8 bits, la mediana de las columnas va a saltos de un gris); la del perfil de
+  // fondos (la mediana de las columnas, que aguanta el recorte) es el fondo de la prominencia
+  const w = Math.max(2, Math.round(FB.aLineBackground / du));
+  const gap = Math.min(w - 1, Math.max(1, Math.round(FB.aLineGap / du)));
+  const trendOf = (p: Float64Array): Float64Array => {
+    const side = (a: number, z: number): number => {
+      const v: number[] = [];
+      for (let j = Math.max(0, a); j <= Math.min(n - 1, z); j++) if (Number.isFinite(p[j])) v.push(p[j]);
+      return v.length ? median(v) : Number.NaN;
+    };
+    const t = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const l = side(i - w, i - gap);
+      const r = side(i + gap, i + w);
+      t[i] = Number.isFinite(l) && Number.isFinite(r) ? 0.5 * (l + r) : Number.isFinite(l) ? l : r;
+    }
+    return t;
+  };
+  const trend = trendOf(profile);
+  const floorTrend = backgroundProfile === profile ? trend : trendOf(backgroundProfile);
+  const detrended = profile.map((v, i) => v - trend[i]);
+  // el ruido del perfil: el mayor entre el de la segunda diferencia (blanco) y la DE robusta del perfil sin tendencia desde
+  // u = 1,25 (la del ruido correlado, que la segunda diferencia no ve: con él, sin tendencia, la mitad de los perfiles sin
+  // líneas A daban una «visible»; revisión de la decisión 31). Solo con la mitad de abajo (1,4826 por la mediana de lo que
+  // queda bajo la mediana): las líneas A son subidas y no la inflan
+  const dt: number[] = [];
+  for (let k = Math.ceil(1.25 / du); k < n; k++) if (Number.isFinite(detrended[k])) dt.push(detrended[k]);
+  const dtMed = median(dt);
+  const below = dt.filter((v) => v <= dtMed).map((v) => dtMed - v);
+  const correlated = below.length ? 1.4826 * median(below) : Number.NaN;
+  const noise = Math.max(Number.isFinite(whiteNoise) ? whiteNoise : 0, Number.isFinite(correlated) ? correlated : 0) || Number.NaN;
   const peaks: ALinePeak[] = [];
   for (let k = 1; k + FB.aLineBackground <= uMax; k++) {
     const step = peaks[1]?.found ? peaks[1].u - 1 : 1;
@@ -323,14 +363,19 @@ export function aLinePeaks(
     const a = Math.max(1, Math.ceil((center - half) / du));
     const z = Math.min(n - 2, Math.floor((center + half) / du));
     let best = -1;
-    for (let i = a; i <= z; i++) if (Number.isFinite(profile[i]) && (best < 0 || profile[i] > profile[best])) best = i;
-    const background = profileBand(backgroundProfile, du, center - FB.aLineBackground, center + FB.aLineBackground);
-    const found = best > a && best < z;
-    const p = found ? parabolicPeak(profile[best - 1], profile[best], profile[best + 1]) : { offset: 0, value: Number.NaN };
-    const grey = found ? p.value : Number.NaN;
+    for (let i = a; i <= z; i++) if (Number.isFinite(detrended[i]) && (best < 0 || detrended[i] > detrended[best])) best = i;
+    // un pico es un máximo interior de la ventana que sobresale de la tendencia
+    const interior = best > a && best < z;
+    const p = interior ? parabolicPeak(detrended[best - 1], detrended[best], detrended[best + 1]) : { offset: 0, value: Number.NaN };
+    const found = interior && p.value > 0;
+    // el gris del pico: el máximo parabólico del perfil sin tendencia más la tendencia en esa muestra (con una tendencia plana,
+    // el máximo parabólico del perfil crudo, como antes)
+    const grey = found ? p.value + trend[best] : Number.NaN;
+    const uPeak = found ? (best + p.offset) * du : center;
+    const background = floorTrend[found ? best : Math.min(n - 1, Math.max(0, Math.round(center / du)))];
     peaks.push({
       k,
-      u: found ? (best + p.offset) * du : Number.NaN,
+      u: found ? uPeak : Number.NaN,
       grey,
       background,
       prominence: grey - background,
