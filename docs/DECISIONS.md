@@ -2553,7 +2553,9 @@ mismas garantías que la decisión 22 (invertible por construcción, inversa de 
   compartida). Lejos del corazón la GLSL sale en la primera distancia al elipsoide.
 - **La e2e suma dos pruebas** (el gemelo con F-T11, y S3 sobre el ápex): la primera versión, una sola con 73 columnas, pasó de los
   240 s en el CI de #42 (4,1 min, y su reintento agotó los 15 min del fragmento); partida en dos y con 30 + 12 columnas, cada una
-  registra lo que tarda cada paso (`PULSO …` en el registro). Con 32 pruebas en ocho fragmentos, cuatro por fragmento: las
+  registra lo que tarda cada paso (`PULSO …` en el registro). En el CI de #42: 13–15 s el arranque, 17 s el gemelo y
+  2,4–2,5 s por columna del modo M, cerca del corazón y lejos (30 s las 12 del punto BLUE, 71 s las 30 del ápex: el latido no
+  encarece el cuadro de forma visible); cada prueba, 1,4–1,5 min de sus 4. Con 32 pruebas en ocho fragmentos, cuatro por fragmento: las
   ventanas del banco de fidelidad no se juntan más que antes.
 - **Pendiente**: el corazón sigue sin moverse en la ventana (`heart-simplified`), y tampoco siguen al pulso el borde del pulmón
   ni el de la ventana (la arena junto a la ventana se desliza hacia ella, su borde no); la sinusoide del derrame usará la parte
