@@ -3,8 +3,8 @@
   "id": "normal-convex-c3b-a",
   "created_utc": "2026-09-28T19:37:52.188305+00:00",
   "baseline_commit": "e28aaa0c4deb092d3fd76b52d3d2032de8aa5ae8",
-  "manifest_sha256": "1f2807d6e6363bc1326553fd05320253ae4aff6547f05f1c7a3f4ecbcaf376fa",
-  "reference_stats_sha256": "a84b92d79b53f1f7f4ac633705089e8f97261dd9c175dbb70f158a50a3138996",
+  "manifest_sha256": "bb9bbe93d3919e0b400bfb3fb18df869d7ce785a252e966469d23425c70798f2",
+  "reference_stats_sha256": "dd15a0e7699075161d69e3f024cec941cfcfb141db04c3b54b20c219a46d7a83",
   "scope": {
     "pattern": "normal",
     "probe": "convex",
@@ -20,7 +20,7 @@
   },
   "checking": {
     "subjects": ["born-pat3", "born-pat4"],
-    "clips": ["LUS-35n", "LUS-35o", "LUS-35q", "LUS-35r", "LUS-35s", "LUS-35u", "LUS-35w", "LUS-35x"]
+    "clips": ["LUS-35n", "LUS-35o", "LUS-35q", "LUS-35r", "LUS-35s", "LUS-35u", "LUS-35v", "LUS-35w", "LUS-35x"]
   },
   "constraints": [
     "Todos los clips elegibles de un sujeto permanecen en el mismo grupo.",
@@ -28,5 +28,14 @@
     "Las dos sombras costales convexas aptas pertenecen a born-pat2: no hay comprobación reservada de sombra costal.",
     "Los equipos, frecuencias y escalas físicas de adquisición no están documentados por clip; la revisión humana del banco sigue pendiente.",
     "Las distribuciones se describen con cuentas por clip y sujeto y su censura; no son rangos clínicos ni un objetivo obligatorio de todas las ventanas."
+  ],
+  "revisions": [
+    {
+      "date": "2026-10-02",
+      "previous_manifest_sha256": "1f2807d6e6363bc1326553fd05320253ae4aff6547f05f1c7a3f4ecbcaf376fa",
+      "previous_reference_stats_sha256": "a84b92d79b53f1f7f4ac633705089e8f97261dd9c175dbb70f158a50a3138996",
+      "change": "Corrección del control de calidad del banco tras la revisión del coordinador de las hojas de contacto (decisión 21): LUS-35v (born-pat4) pasa a apto y entra en comprobación, con los demás clips de su sujeto; LUS-35i deja de contar para las métricas de líneas A (su línea A de orden 2 se ve en 17 de 59 cuadros); un clip entra en una métrica solo si la mide en al menos la mitad de sus cuadros. La partición por sujetos no cambia.",
+      "effect": "Exploración: M, A1, T1 y A2.r3 sin cambios; A2.r2 pasa de 3 clips/2 sujetos (p10–p90 entre sujetos 0,119–0,160) a 2/2 (0,129–0,248) y A2.visible de 4/3 (0,6–1) a 3/3 (1–1). Comprobación: 9 clips de 2 sujetos; solo cambia T1 (con LUS-35v). Los ajustes de C3b-A se eligieron con la versión anterior."
+    }
   ]
 }

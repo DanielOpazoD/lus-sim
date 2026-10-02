@@ -115,9 +115,22 @@ describe('manifiesto del banco de referencia', () => {
     for (const p of ['pat1', 'pat2', 'pat3', 'pat4']) expect(MANIFEST.items.filter((i) => i.subject === `born-${p}`)).toHaveLength(6);
   });
 
-  it('el control de calidad: los clips que no son pulmón limpio o traen el diafragma y el hígado quedan fuera', () => {
-    // pat1 132943 y 133043 (no es pulmón limpio); pat2 133952 y 134240 y pat4 140434 (diafragma e hígado)
-    for (const id of ['LUS-35a', 'LUS-35b', 'LUS-35h', 'LUS-35j', 'LUS-35v']) expect(byId[id].qa.usable, id).toBe(false);
+  it('el control de calidad: los clips que no son pulmón limpio, traen el diafragma o el hígado o disparan una compuerta quedan fuera', () => {
+    // pat1 132943 y 133043 (no es pulmón limpio); pat4 140024 (diafragma o hígado); pat2 133952 y 134240 (una línea oblicua
+    // brillante y la pleura que salta entre cuadros)
+    for (const id of ['LUS-35a', 'LUS-35b', 'LUS-35t', 'LUS-35h', 'LUS-35j']) expect(byId[id].qa.usable, id).toBe(false);
+    expect(byId['LUS-35t'].qa.note).toMatch(/diafragma o el hígado/);
+    // pat4 140434 es pulmón normal limpio (la revisión del coordinador lo había marcado por error): apto, sin compuertas
+    expect(byId['LUS-35v'].qa.usable).toBe(true);
+    expect(byId['LUS-35v'].qa.note).not.toMatch(/Trae el diafragma/);
+    expect(STATS.clips.find((c) => c.id === 'LUS-35v')!.gate_failures).toEqual([]);
+    // ninguna nota ni geometría dice una revisión que no se hizo
+    for (const it of MANIFEST.items) {
+      expect(`${it.qa.note} ${it.sector.source}`, it.id).not.toMatch(/pendiente de revisión humana/i);
+      expect(it.sector.source, it.id).toMatch(
+        /revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista/,
+      );
+    }
     // LUS-03 repite cuadros (Theora): fuera T2 y S1; trae texto identificador quemado, excluido y anotado
     expect(byId['LUS-03'].qa.temporal).toBe(false);
     expect(byId['LUS-03'].sector.exclude.length).toBeGreaterThan(0);
@@ -303,7 +316,24 @@ describe('estadísticas de referencia', () => {
     const gated = { stats: { ...good.stats, id: 'LUS-95', subject: 's5', gate_failures: ['dpl_spread'] } };
     const s = buildReferenceStats(1, [good, censored, gated], [], '2026-09-27T00:00:00Z');
     expect(s.strata[0].clips).toEqual(['LUS-90', 'LUS-94']);
-    expect(s.strata[0].metrics['M.wall']).toMatchObject({ clips: 1, censoredClips: 1 });
+    expect(s.strata[0].metrics['M.wall']).toMatchObject({ clips: 1, censoredClips: 1, sparseClips: 0 });
+  });
+
+  it('un clip que mide la métrica en menos de la mitad de sus cuadros no entra (su mediana no es la del clip)', () => {
+    const m = good.stats.metrics['M.wall'];
+    const sparse = {
+      stats: { ...good.stats, id: 'LUS-96', subject: 's6', metrics: { ...good.stats.metrics, 'M.wall': { ...m, n: 1, median: 99 } } },
+    };
+    expect(good.stats.analyzed_frames).toBe(4);
+    const s = buildReferenceStats(1, [good, sparse], [], '2026-09-27T00:00:00Z');
+    expect(s.strata[0].metrics['M.wall']).toMatchObject({ clips: 1, sparseClips: 1 });
+    expect(s.strata[0].metrics['M.wall'].betweenClips.median).toBe(m.median);
+    // la mitad justa, sí
+    const half = { stats: { ...sparse.stats, id: 'LUS-97', metrics: { ...good.stats.metrics, 'M.wall': { ...m, n: 2 } } } };
+    expect(buildReferenceStats(1, [good, half], [], '2026-09-27T00:00:00Z').strata[0].metrics['M.wall']).toMatchObject({
+      clips: 2,
+      sparseClips: 0,
+    });
   });
 
   it('atrapa una ruta local, una lista de píxeles y un SHA-256 roto', () => {
@@ -360,6 +390,18 @@ describe('estadísticas de referencia', () => {
     const convex = STATS.strata.find((g) => g.probe === 'convex')!;
     expect(convex.clips.length).toBeGreaterThanOrEqual(MIN_CLIPS);
     expect(convex.subjects.length).toBeGreaterThanOrEqual(MIN_SUBJECTS);
+    // en cada métrica de cuadro entran exactamente los clips del estrato que la ven, no la tienen censurada y la miden en
+    // al menos la mitad de sus cuadros
+    for (const g of STATS.strata)
+      for (const [k, x] of Object.entries(g.metrics)) {
+        const members = STATS.clips.filter((c) => g.clips.includes(c.id));
+        if (members.some((c) => c.stack && k in c.stack)) continue;
+        const counted = members.filter((c) => {
+          const m = c.metrics[k];
+          return metricNeeds(k).every((need) => c.qa[need]) && m && m.median !== null && !m.censored && m.n >= 0.5 * c.analyzed_frames;
+        });
+        expect(x.clips, `${g.probe} ${k}`).toBe(counted.length);
+      }
     // N1–N3 no se comparan (dependen del suelo); M sí
     expect(COMPARED_METRICS).not.toContain('N1');
     expect(COMPARED_METRICS).toContain('M.wall');
@@ -374,6 +416,7 @@ describe('comparación simulador frente a referencia', () => {
       clips: 10,
       subjects: 2,
       censoredClips: 0,
+      sparseClips: 0,
     };
     const sim = { 'M.wall': { value: 5, censored: null } };
     expect(compareToReference(sim, { 'M.wall': metric }, ['M.wall'])[0].position).toBe('above');
@@ -408,6 +451,7 @@ describe('comparación simulador frente a referencia', () => {
     clips: values.length,
     subjects,
     censoredClips,
+    sparseClips: 0,
   });
   const ref = {
     'M.wall': stratum([1, 1.1, 1.2, 1.3], 3),

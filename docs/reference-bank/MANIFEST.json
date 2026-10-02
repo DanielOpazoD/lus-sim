@@ -30,7 +30,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. La línea A de orden 2 cae en u ≈ 2,2: la piel no está en el borde superior del recorte (skin_at_top false, sin A1). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. La línea A de orden 2 cae en u ≈ 2,2: la piel no está en el borde superior del recorte (skin_at_top false, sin A1). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "vieira-video1",
       "sector": {
@@ -45,7 +45,7 @@
         },
         "exclude": [],
         "skin_at_top": false,
-        "source": "fijada a mano (el abanico sale por el marco a la derecha y el detector solo ve el borde izquierdo): el ápice y los bordes de la primera detección, casi simétricos, revisados en la hoja de contacto por el agente, 27-09-2026; pendiente de revisión humana"
+        "source": "fijada a mano (el abanico sale por el marco a la derecha y el detector solo ve el borde izquierdo): el ápice y los bordes de la primera detección, casi simétricos, revisados en la hoja de contacto por el agente, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -75,7 +75,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.01). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Sonda de fase: la pleura y las líneas A solo en el centro del sector. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.01). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Sonda de fase: la pleura y las líneas A solo en el centro del sector. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "gargani-s1",
       "sector": {
@@ -109,7 +109,7 @@
           }
         ],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -139,7 +139,7 @@
         "a_lines": false,
         "rib_shadow": true,
         "temporal": false,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sombra costal limpia. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Signo del murciélago; pared gruesa (d_pl ≈ 56 % de la profundidad): las líneas A no caben. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sombra costal limpia. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Signo del murciélago; pared gruesa (d_pl ≈ 56 % de la profundidad): las líneas A no caben. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "gillman-s1",
       "sector": {
@@ -189,7 +189,7 @@
           }
         ],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -219,7 +219,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (d_pl p10–p90 sobre la mediana: 0,20). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (d_pl p10–p90 sobre la mediana: 0,20). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "born-voluntario",
       "sector": {
@@ -234,7 +234,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -264,7 +264,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "born-voluntario",
       "sector": {
@@ -279,7 +279,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -309,7 +309,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": false,
-        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable: el detector toma una fascia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable: el detector toma una fascia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "born-voluntario",
       "sector": {
@@ -322,7 +322,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -352,7 +352,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": false,
-        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "born-voluntario",
       "sector": {
@@ -365,7 +365,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -395,7 +395,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "subject": "born-voluntario",
       "sector": {
@@ -408,7 +408,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -439,7 +439,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -453,7 +453,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -484,7 +484,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": false,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -498,7 +498,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "propuesta por el detector (npm run fidelity:geometry) sobre el clip entero y revisada a ojo por el agente en la hoja de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -529,7 +529,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": false,
-        "note": "No se ve como pulmón limpio (revisión del coordinador y hoja de contacto: estructuras brillantes de la pared o del abdomen; M sale negativo). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "No se ve como pulmón limpio (revisión del coordinador y hoja de contacto: estructuras brillantes de la pared o del abdomen; M sale negativo). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -543,7 +543,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -574,7 +574,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "No se ve como pulmón limpio (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "No se ve como pulmón limpio (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -588,7 +588,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -619,7 +619,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -633,7 +633,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -664,7 +664,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,28). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,28). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -678,7 +678,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -709,7 +709,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,24). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,24). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -723,7 +723,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -754,7 +754,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -768,7 +768,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -799,7 +799,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -813,7 +813,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -844,7 +844,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Trae el diafragma y el hígado (revisión del coordinador); la pleura detectada salta entre cuadros (0,43). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Una línea oblicua brillante en la mitad honda del cuadro medio (el coordinador la marcó como diafragma; la hoja de contacto la muestra, sin poder confirmar el órgano), y la pleura detectada salta entre cuadros: la compuerta dpl_spread salta (dispersión de d_pl 0,43), así que queda fuera por ella sola. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -858,7 +858,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -886,10 +886,10 @@
       "qa": {
         "usable": true,
         "pleura": true,
-        "a_lines": true,
+        "a_lines": false,
         "rib_shadow": true,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: el detector las ve en 17 de 59 cuadros (mediana 0): fuera de las métricas de líneas A. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -903,7 +903,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -934,7 +934,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Trae el diafragma y el hígado (revisión del coordinador); la pleura detectada salta entre cuadros (0,25). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Rayas oblicuas brillantes, tenues, abajo a la derecha del cuadro medio (el coordinador las marcó como diafragma; la hoja de contacto las muestra, sin poder confirmar el órgano), y la pleura detectada salta entre cuadros: la compuerta dpl_spread salta (dispersión de d_pl 0,25), así que queda fuera por ella sola. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -948,7 +948,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -979,7 +979,7 @@
         "a_lines": true,
         "rib_shadow": true,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.05). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.05). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -993,7 +993,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1024,7 +1024,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,33). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,33). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1038,7 +1038,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1069,7 +1069,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "No se ve como pulmón en la hoja de contacto: líneas curvas brillantes hondas (¿abdomen?) en lugar de la pleura. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "No se ve como pulmón en la hoja de contacto: líneas curvas brillantes hondas (¿abdomen?) en lugar de la pleura. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1083,7 +1083,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1114,7 +1114,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1128,7 +1128,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1159,7 +1159,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.13). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.13). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1173,7 +1173,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1204,7 +1204,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,20, en el límite de la compuerta). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,20, en el límite de la compuerta). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1218,7 +1218,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1249,7 +1249,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1263,7 +1263,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1294,7 +1294,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1308,7 +1308,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1339,7 +1339,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1353,7 +1353,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1384,7 +1384,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "La pleura detectada salta entre cuadros (0,21) y el cuadro trae una estructura oblicua honda. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Trae una estructura oblicua brillante honda, el diafragma o el hígado (revisión del coordinador; en la hoja de contacto se ve en el cuadro del clip), y la pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1398,7 +1398,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1429,7 +1429,7 @@
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1443,7 +1443,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1469,12 +1469,12 @@
       "mm_per_px": null,
       "notes": "Sujeto 4 de 4, zona 4 de 6 (columna «Area according to DEGUM» del CSV). MPEG-2 370 × 370 a 25 cps.",
       "qa": {
-        "usable": false,
-        "pleura": false,
+        "usable": true,
+        "pleura": true,
         "a_lines": false,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Trae el diafragma y el hígado (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pulmón normal limpio (revisión del coordinador: un espacio intercostal y varias líneas A horizontales bien marcadas; no trae diafragma: la nota anterior era un error). Pleura identificable y estable (dispersión de d_pl 0,10); ninguna compuerta salta. Líneas A: se ven, en k·39 px desde la cara (el perfil por filas tiene máximos en 39, 77, 117, 153 y 188 px), pero el detector del banco no las mide: el perfil cae de 146 a 51 grises entre la pleura y 5 d_pl y el máximo de la ventana de cada orden queda en su borde; la línea A de orden 2 solo se encuentra en 5 de 54 cuadros (A2 visibles: 0 en la mediana), así que a_lines queda en false hasta que el detector las mida. Sombra costal: la hay, en el borde derecho, pero su cresta cae en el inicio de la búsqueda (fila 18, el 5 % de la profundidad): la superficie costal no se mide (P1 y P4 medirían el borde de la ventana), así que rib_shadow queda en false. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1488,7 +1488,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1519,7 +1519,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.07). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.07). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1533,7 +1533,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     },
     {
@@ -1564,7 +1564,7 @@
         "a_lines": true,
         "rib_shadow": false,
         "temporal": true,
-        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+        "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
       },
       "sector": {
         "geometry": {
@@ -1578,7 +1578,7 @@
         },
         "exclude": [],
         "skin_at_top": true,
-        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; pendiente de revisión humana"
+        "source": "consenso de las propuestas del detector que coinciden en los 24 clips de pat1–4 (mismo equipo y recorte, 370 × 370; ápice a ≤ 3 px, bordes a ≤ 0,5°); en 35e, 35h, 35j, 35l, 35p, 35r y 35v el detector tomó un borde oscuro. Revisada a ojo por el agente en las hojas de contacto, 27-09-2026; revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista"
       }
     }
   ]

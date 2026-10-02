@@ -223,7 +223,8 @@ la salida actual no protege nada.
   sujeto, geometría fijada y revisada, control de calidad) y el archivo de estadísticas (solo números derivados, sin rutas ni
   listas de píxeles, cada clip entero) tienen su forma; las compuertas automáticas atrapan lo que dicen, y un clip apto que
   dispare una que su control de calidad no admite hace fallar la prueba; los estratos llevan la distribución entre clips y
-  entre sujetos, y la comparación nunca marca ↓ o ↑ con un valor censurado o con menos de 3 clips o 2 sujetos.
+  entre sujetos, con exactamente los clips que ven cada métrica, no la tienen censurada y la miden en al menos la mitad de sus
+  cuadros, y la comparación nunca marca ↓ o ↑ con un valor censurado o con menos de 3 clips o 2 sujetos.
   `src/validation/fidelityReferenceBank.test.ts` (nivel lento, prueba dorada) vuelve a medir el banco real y exige las
   estadísticas del repositorio número a número; se salta sin la carpeta o sin ffmpeg.
 

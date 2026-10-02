@@ -44,6 +44,8 @@ export interface StratumMetric {
   subjects: number;
   /** Clips del estrato con la métrica censurada (fuera de la distribución). */
   censoredClips: number;
+  /** Clips que la miden en menos de la mitad de sus cuadros (fuera de la distribución: su mediana no es la del clip). */
+  sparseClips: number;
 }
 
 /** Un valor del simulador: la mediana de sus cuadros y su censura. */

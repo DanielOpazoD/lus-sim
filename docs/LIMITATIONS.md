@@ -232,11 +232,11 @@ conservan su identificador (decisiones 10 y 11).
   Referencia histórica de la decisión 21, con K = 55 dB y R_t = 0,3: el rango dinámico
   (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido
   con el banco de fidelidad en la imagen mostrada, la pared y la neblina subpleural a 1,6–1,9 y 1,8–2,0 caídas de línea A bajo
-  la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,53 y 0,92–1,36 (p10–p90) en 9 clips convexos de 4
-  sujetos del banco de referencia; el campo profundo y el suelo de la sombra costal quedan en el gris 0 de 8 bits (la
+  la pleura (M, sin suelo e invariante a la ganancia), frente a 0,75–1,57 y 0,91–1,42 (p10–p90) en 8 clips convexos de 4
+  sujetos del banco de referencia (corregido el 02-10-2026); el campo profundo y el suelo de la sombra costal quedan en el gris 0 de 8 bits (la
   envolvente, 6–7 y 39–42 dB bajo el negro de −69,7 dB), así que M del campo profundo es una cota inferior y los niveles sobre
   el suelo (N1–N3) no son medidas: dependen de la ganancia. La línea A cae ≈ 20 dB por orden (F-T02 da 20,2–20,4), pero en gris
-  decae más despacio que en los clips (r₂ 0,48–0,56 frente a 0,11–0,30) y se ven dos; M se mide en esa caída, así que lee a la
+  decae más despacio que en los clips (r₂ 0,48–0,56 frente a 0,14–0,32) y se ven dos; M se mide en esa caída, así que lee a la
   vez el nivel y la reverberación. El moteado de la pared es tenue frente a la pleura (T1 σ/prominencia 0,035–0,042 frente a
   0,11–0,31) y la pared, quieta hasta el escalón de 8 bits (σ temporal 0,004–0,16 grises; T2 1,000; en un clip real sería un
   vídeo que repite cuadros), así que S1 es una cota (≥ 11–16 frente a 0,76–1,68). Las métricas son invariantes a lo afín en el

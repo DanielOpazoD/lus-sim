@@ -334,8 +334,10 @@ export function clipStats(
 /**
  * El archivo de estadísticas: los clips, los saltados y los estratos por patrón y sonda (convexa, lineal, sectorial). En cada
  * estrato entran los clips aptos (`qa.usable`) sin compuertas disparadas y, en cada métrica, los que ven lo que esa métrica
- * necesita (`metricNeeds`) y no la tienen censurada; de cada uno, su mediana. La distribución se da entre clips y entre
- * sujetos (la mediana de las medianas de cada sujeto), con cuántos hay de cada uno.
+ * necesita (`metricNeeds`), no la tienen censurada y la miden en al menos la mitad de sus cuadros analizados (la mediana de
+ * los pocos cuadros en que, por ejemplo, asoma una línea A de orden 3 no es el valor del clip: `sparseClips`); de cada uno,
+ * su mediana. La distribución se da entre clips y entre sujetos (la mediana de las medianas de cada sujeto), con cuántos
+ * hay de cada uno.
  */
 export function buildReferenceStats(
   manifestVersion: number,
@@ -346,10 +348,10 @@ export function buildReferenceStats(
   const keyOf = (c: ClipStats) => `${c.pattern}|${c.probe ?? 'desconocida'}`;
   const usable = clips.filter((c) => c.stats.qa.usable && c.stats.gate_failures.length === 0);
   const sees = (c: ClipStats, name: string): boolean => metricNeeds(name).every((need) => c.qa[need]);
-  const valueOf = (c: ClipStats, name: string): { v: number; censored: boolean } => {
-    if (name in (c.stack ?? {})) return { v: c.stack?.[name] ?? Number.NaN, censored: !!c.stack_censored[name] };
+  const valueOf = (c: ClipStats, name: string): { v: number; censored: boolean; sparse: boolean } => {
+    if (name in (c.stack ?? {})) return { v: c.stack?.[name] ?? Number.NaN, censored: !!c.stack_censored[name], sparse: false };
     const m = c.metrics[name];
-    return { v: m?.median ?? Number.NaN, censored: !!m?.censored };
+    return { v: m?.median ?? Number.NaN, censored: !!m?.censored, sparse: !m || m.n < 0.5 * c.analyzed_frames };
   };
   const strata = [...new Set(usable.map((c) => keyOf(c.stats)))].sort().map((key) => {
     const members = usable.filter((c) => keyOf(c.stats) === key).map((c) => c.stats);
@@ -358,7 +360,8 @@ export function buildReferenceStats(
     const metrics: Record<string, StratumMetric> = {};
     for (const k of names) {
       const seeing = members.filter((c) => sees(c, k));
-      const vals = seeing.map((c) => ({ c, ...valueOf(c, k) })).filter((x) => Number.isFinite(x.v));
+      const measured = seeing.map((c) => ({ c, ...valueOf(c, k) })).filter((x) => Number.isFinite(x.v));
+      const vals = measured.filter((x) => !x.sparse);
       const good = vals.filter((x) => !x.censored);
       if (!good.length) continue;
       const subjects = [...new Set(good.map((x) => x.c.subject))];
@@ -368,6 +371,7 @@ export function buildReferenceStats(
         clips: good.length,
         subjects: subjects.length,
         censoredClips: vals.length - good.length,
+        sparseClips: measured.length - vals.length,
       };
     }
     return { pattern, probe, clips: members.map((c) => c.id), subjects: [...new Set(members.map((c) => c.subject))].sort(), metrics };

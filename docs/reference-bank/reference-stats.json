@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-27T18:02:48.339Z",
+ "generated": "2026-10-02T08:03:32.273Z",
  "tool": "tools/fidelity/reference.ts",
  "manifest_version": 1,
  "clips": [
@@ -35,7 +35,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. La línea A de orden 2 cae en u ≈ 2,2: la piel no está en el borde superior del recorte (skin_at_top false, sin A1). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. La línea A de orden 2 cae en u ≈ 2,2: la piel no está en el borde superior del recorte (skin_at_top false, sin A1). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -689,7 +689,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.01). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Sonda de fase: la pleura y las líneas A solo en el centro del sector. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.01). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Sonda de fase: la pleura y las líneas A solo en el centro del sector. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -1373,7 +1373,7 @@
     "a_lines": false,
     "rib_shadow": true,
     "temporal": false,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sombra costal limpia. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Signo del murciélago; pared gruesa (d_pl ≈ 56 % de la profundidad): las líneas A no caben. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sombra costal limpia. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Signo del murciélago; pared gruesa (d_pl ≈ 56 % de la profundidad): las líneas A no caben. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -2007,7 +2007,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (d_pl p10–p90 sobre la mediana: 0,20). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (d_pl p10–p90 sobre la mediana: 0,20). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -2681,7 +2681,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -3365,7 +3365,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": false,
-    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable: el detector toma una fascia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable: el detector toma una fascia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -4029,7 +4029,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": false,
-    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -4683,7 +4683,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Recorte de la pared con fascias brillantes, sin pleura identificable. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -5337,7 +5337,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -6011,7 +6011,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": false,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.02). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Repite cuadros (pares seguidos con < ½ gris de cambio en la pared): fuera T2 y S1. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -6675,7 +6675,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": false,
-    "note": "No se ve como pulmón limpio (revisión del coordinador y hoja de contacto: estructuras brillantes de la pared o del abdomen; M sale negativo). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "No se ve como pulmón limpio (revisión del coordinador y hoja de contacto: estructuras brillantes de la pared o del abdomen; M sale negativo). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -7359,7 +7359,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "No se ve como pulmón limpio (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "No se ve como pulmón limpio (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -8043,7 +8043,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -8727,7 +8727,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,28). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,28). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -9411,7 +9411,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,24). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,24). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -10095,7 +10095,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.09). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -10779,7 +10779,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -11453,7 +11453,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Trae el diafragma y el hígado (revisión del coordinador); la pleura detectada salta entre cuadros (0,43). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Una línea oblicua brillante en la mitad honda del cuadro medio (el coordinador la marcó como diafragma; la hoja de contacto la muestra, sin poder confirmar el órgano), y la pleura detectada salta entre cuadros: la compuerta dpl_spread salta (dispersión de d_pl 0,43), así que queda fuera por ella sola. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -12134,10 +12134,10 @@
    "qa": {
     "usable": true,
     "pleura": true,
-    "a_lines": true,
+    "a_lines": false,
     "rib_shadow": true,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.15). Líneas A: el detector las ve en 17 de 59 cuadros (mediana 0): fuera de las métricas de líneas A. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -12821,7 +12821,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Trae el diafragma y el hígado (revisión del coordinador); la pleura detectada salta entre cuadros (0,25). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Rayas oblicuas brillantes, tenues, abajo a la derecha del cuadro medio (el coordinador las marcó como diafragma; la hoja de contacto las muestra, sin poder confirmar el órgano), y la pleura detectada salta entre cuadros: la compuerta dpl_spread salta (dispersión de d_pl 0,25), así que queda fuera por ella sola. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -13505,7 +13505,7 @@
     "a_lines": true,
     "rib_shadow": true,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.05). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.05). Líneas A: se ven. Sombra costal limpia. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -14189,7 +14189,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,33). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,33). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -14873,7 +14873,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "No se ve como pulmón en la hoja de contacto: líneas curvas brillantes hondas (¿abdomen?) en lugar de la pleura. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "No se ve como pulmón en la hoja de contacto: líneas curvas brillantes hondas (¿abdomen?) en lugar de la pleura. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -15547,7 +15547,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -16231,7 +16231,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.13). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.13). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -16915,7 +16915,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,20, en el límite de la compuerta). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "La pleura detectada salta entre cuadros (dispersión de d_pl 0,20, en el límite de la compuerta). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -17599,7 +17599,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.11). Líneas A: se ven. Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -18283,7 +18283,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.08). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -18967,7 +18967,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.16). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -19651,7 +19651,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "La pleura detectada salta entre cuadros (0,21) y el cuadro trae una estructura oblicua honda. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Trae una estructura oblicua brillante honda, el diafragma o el hígado (revisión del coordinador; en la hoja de contacto se ve en el cuadro del clip), y la pleura detectada salta entre cuadros (dispersión de d_pl 0,21). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": true,
@@ -20335,7 +20335,7 @@
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: no se ven (o no llegan al 5 % de la pleura). Sin sombra costal detectada. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -21014,12 +21014,12 @@
     "right_deg": -14.7647
    },
    "qa": {
-    "usable": false,
-    "pleura": false,
+    "usable": true,
+    "pleura": true,
     "a_lines": false,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Trae el diafragma y el hígado (revisión del coordinador). Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pulmón normal limpio (revisión del coordinador: un espacio intercostal y varias líneas A horizontales bien marcadas; no trae diafragma: la nota anterior era un error). Pleura identificable y estable (dispersión de d_pl 0,10); ninguna compuerta salta. Líneas A: se ven, en k·39 px desde la cara (el perfil por filas tiene máximos en 39, 77, 117, 153 y 188 px), pero el detector del banco no las mide: el perfil cae de 146 a 51 grises entre la pleura y 5 d_pl y el máximo de la ventana de cada orden queda en su borde; la línea A de orden 2 solo se encuentra en 5 de 54 cuadros (A2 visibles: 0 en la mediana), así que a_lines queda en false hasta que el detector las mida. Sombra costal: la hay, en el borde derecho, pero su cresta cae en el inicio de la búsqueda (fila 18, el 5 % de la profundidad): la superficie costal no se mide (P1 y P4 medirían el borde de la ventana), así que rib_shadow queda en false. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -21703,7 +21703,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.07). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.07). Líneas A: se ven. Sin sombra costal limpia: el «suelo» queda por encima del campo profundo. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -22387,7 +22387,7 @@
     "a_lines": true,
     "rib_shadow": false,
     "temporal": true,
-    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Pendiente de revisión humana."
+    "note": "Pleura identificable y estable (dispersión de d_pl 0.12). Líneas A: se ven. Sin sombra costal limpia: lo oscuro tiene crestas de varias poblaciones. Revisión (27-09-2026): la pleura, a ojo por el agente en la hoja de contacto (cuadro medio y un cuadro del clip con la detección superpuesta); líneas A, sombra costal y tiempo, por el detector (mediana de los cuadros) y las compuertas de `npm run fidelity:ref`. Revisada por el agente coordinador en las hojas de contacto el 27-09-2026; falta la revisión de un ecografista."
    },
    "gates": {
     "dpl_spread": false,
@@ -23060,6 +23060,7 @@
     "LUS-35r",
     "LUS-35s",
     "LUS-35u",
+    "LUS-35v",
     "LUS-35w",
     "LUS-35x"
    ],
@@ -23074,255 +23075,179 @@
    "metrics": {
     "A1.max": {
      "betweenClips": {
-      "p10": 0.101886,
-      "p25": 0.160302,
-      "median": 0.185157,
-      "p75": 0.207793,
-      "p90": 0.230578,
-      "n": 9
+      "p10": 0.101802,
+      "p25": 0.14574,
+      "median": 0.176156,
+      "p75": 0.207614,
+      "p90": 0.21377,
+      "n": 8
      },
      "betweenSubjects": {
       "p10": 0.119528,
       "p25": 0.14574,
       "median": 0.183928,
-      "p75": 0.211893,
-      "p90": 0.219703,
+      "p75": 0.207614,
+      "p90": 0.207721,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A1.mean": {
      "betweenClips": {
-      "p10": 0.101886,
-      "p25": 0.152635,
-      "median": 0.17858,
-      "p75": 0.207793,
-      "p90": 0.230311,
-      "n": 9
+      "p10": 0.101802,
+      "p25": 0.13999,
+      "median": 0.169441,
+      "p75": 0.207614,
+      "p90": 0.21377,
+      "n": 8
      },
      "betweenSubjects": {
       "p10": 0.119528,
       "p25": 0.14574,
       "median": 0.183928,
-      "p75": 0.211726,
-      "p90": 0.219235,
+      "p75": 0.207614,
+      "p90": 0.207721,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.r2": {
      "betweenClips": {
-      "p10": 0.104867,
-      "p25": 0.151755,
-      "median": 0.220637,
-      "p75": 0.251032,
-      "p90": 0.299566,
-      "n": 9
+      "p10": 0.140496,
+      "p25": 0.166883,
+      "median": 0.228664,
+      "p75": 0.253934,
+      "p90": 0.318028,
+      "n": 8
      },
      "betweenSubjects": {
-      "p10": 0.129469,
-      "p25": 0.152336,
-      "median": 0.192839,
-      "p75": 0.224651,
-      "p90": 0.231876,
+      "p10": 0.146148,
+      "p25": 0.194034,
+      "median": 0.228664,
+      "p75": 0.243179,
+      "p90": 0.254856,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 1
-    },
-    "A2.r3": {
-     "betweenClips": {
-      "p10": 0.0123324,
-      "p25": 0.0326838,
-      "median": 0.0676394,
-      "p75": 0.105415,
-      "p90": 0.119545,
-      "n": 10
-     },
-     "betweenSubjects": {
-      "p10": 0.0347512,
-      "p25": 0.0430211,
-      "median": 0.0461474,
-      "p75": 0.075315,
-      "p90": 0.0937824,
-      "n": 5
-     },
-     "clips": 10,
-     "subjects": 5,
-     "censoredClips": 0
-    },
-    "A2.r4": {
-     "betweenClips": {
-      "p10": 0.00223307,
-      "p25": 0.0120933,
-      "median": 0.06345,
-      "p75": 0.0738944,
-      "p90": 0.213639,
-      "n": 9
-     },
-     "betweenSubjects": {
-      "p10": 0.0192695,
-      "p25": 0.0300339,
-      "median": 0.0548893,
-      "p75": 0.0981356,
-      "p90": 0.142004,
-      "n": 4
-     },
-     "clips": 9,
-     "subjects": 4,
-     "censoredClips": 0
-    },
-    "A2.r5": {
-     "betweenClips": {
-      "p10": 0.0427711,
-      "p25": 0.0502199,
-      "median": 0.0767575,
-      "p75": 0.105537,
-      "p90": 0.150737,
-      "n": 7
-     },
-     "betweenSubjects": {
-      "p10": 0.065708,
-      "p25": 0.0698516,
-      "median": 0.0767575,
-      "p75": 0.0963236,
-      "p90": 0.108063,
-      "n": 3
-     },
-     "clips": 7,
-     "subjects": 3,
-     "censoredClips": 0
-    },
-    "A2.r6": {
-     "betweenClips": {
-      "p10": -0.00322105,
-      "p25": 0.0267697,
-      "median": 0.0624979,
-      "p75": 0.105116,
-      "p90": 0.123988,
-      "n": 6
-     },
-     "betweenSubjects": {
-      "p10": 0.0153351,
-      "p25": 0.0431693,
-      "median": 0.0895597,
-      "p75": 0.0932427,
-      "p90": 0.0954525,
-      "n": 3
-     },
-     "clips": 6,
-     "subjects": 3,
-     "censoredClips": 0
+     "censoredClips": 1,
+     "sparseClips": 0
     },
     "A2.slopeLn": {
      "betweenClips": {
-      "p10": -2.02589,
-      "p25": -1.73894,
-      "median": -1.42932,
-      "p75": -1.32013,
-      "p90": -1.17275,
-      "n": 9
+      "p10": -1.86026,
+      "p25": -1.55582,
+      "median": -1.40009,
+      "p75": -1.30164,
+      "p90": -1.13605,
+      "n": 8
      },
      "betweenSubjects": {
-      "p10": -1.98675,
-      "p25": -1.75185,
-      "median": -1.52533,
-      "p75": -1.40202,
-      "p90": -1.35289,
+      "p10": -1.92914,
+      "p25": -1.60783,
+      "median": -1.37472,
+      "p75": -1.30164,
+      "p90": -1.26835,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 1
+     "censoredClips": 1,
+     "sparseClips": 0
     },
     "A2.visible": {
      "betweenClips": {
-      "p10": 0.9,
+      "p10": 1,
       "p25": 1,
       "median": 1,
       "p75": 1,
       "p90": 1,
-      "n": 10
+      "n": 9
      },
      "betweenSubjects": {
-      "p10": 0.7,
+      "p10": 1,
       "p25": 1,
       "median": 1,
       "p75": 1,
       "p90": 1,
       "n": 5
      },
-     "clips": 10,
+     "clips": 9,
      "subjects": 5,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "M.deep": {
      "betweenClips": {
-      "p10": 1.48696,
-      "p25": 1.69511,
-      "median": 2.01313,
-      "p75": 2.31376,
-      "p90": 2.74821,
-      "n": 9
+      "p10": 1.47593,
+      "p25": 1.64858,
+      "median": 1.86956,
+      "p75": 2.32489,
+      "p90": 2.94318,
+      "n": 8
      },
      "betweenSubjects": {
       "p10": 1.56484,
       "p25": 1.64858,
-      "median": 1.94059,
-      "p75": 2.21799,
-      "p90": 2.27545,
+      "median": 2.00443,
+      "p75": 2.32489,
+      "p90": 2.34492,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 1
+     "censoredClips": 1,
+     "sparseClips": 0
     },
     "M.haze": {
      "betweenClips": {
-      "p10": 0.917186,
-      "p25": 0.945509,
-      "median": 1.04393,
-      "p75": 1.20402,
-      "p90": 1.35522,
-      "n": 9
+      "p10": 0.909985,
+      "p25": 0.942029,
+      "median": 1.09459,
+      "p75": 1.20828,
+      "p90": 1.42231,
+      "n": 8
      },
      "betweenSubjects": {
       "p10": 0.935765,
       "p25": 0.942029,
-      "median": 0.988842,
-      "p75": 1.07514,
-      "p90": 1.15247,
+      "median": 0.994719,
+      "p75": 1.08395,
+      "p90": 1.15599,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 1
+     "censoredClips": 1,
+     "sparseClips": 0
     },
     "M.wall": {
      "betweenClips": {
-      "p10": 0.750075,
-      "p25": 0.875762,
-      "median": 1.11378,
-      "p75": 1.1582,
-      "p90": 1.53008,
-      "n": 9
+      "p10": 0.749491,
+      "p25": 0.844632,
+      "median": 1.01762,
+      "p75": 1.23291,
+      "p90": 1.5661,
+      "n": 8
      },
      "betweenSubjects": {
       "p10": 0.889474,
       "p25": 0.910041,
       "median": 1.03966,
-      "p75": 1.19543,
-      "p90": 1.26305,
+      "p75": 1.23291,
+      "p90": 1.36799,
       "n": 4
      },
-     "clips": 9,
+     "clips": 8,
      "subjects": 4,
-     "censoredClips": 1
+     "censoredClips": 1,
+     "sparseClips": 0
     },
     "N1": {
      "betweenClips": {
@@ -23343,7 +23268,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "N2": {
      "betweenClips": {
@@ -23364,7 +23290,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "N3": {
      "betweenClips": {
@@ -23385,28 +23312,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
-    },
-    "N4": {
-     "betweenClips": {
-      "p10": 1.74877,
-      "p25": 2.17201,
-      "median": 3.06468,
-      "p75": 3.88698,
-      "p90": 6.75089,
-      "n": 9
-     },
-     "betweenSubjects": {
-      "p10": 2.0706,
-      "p25": 2.28414,
-      "median": 3.14487,
-      "p75": 4.08036,
-      "p90": 4.42845,
-      "n": 4
-     },
-     "clips": 9,
-     "subjects": 4,
-     "censoredClips": 1
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P1": {
      "betweenClips": {
@@ -23427,28 +23334,30 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P2.px": {
      "betweenClips": {
-      "p10": 2.43742,
-      "p25": 2.66069,
-      "median": 2.7849,
-      "p75": 3.41866,
-      "p90": 3.65914,
-      "n": 16
+      "p10": 2.44325,
+      "p25": 2.70127,
+      "median": 2.81758,
+      "p75": 3.37131,
+      "p90": 3.65601,
+      "n": 17
      },
      "betweenSubjects": {
-      "p10": 2.55589,
-      "p25": 2.61131,
-      "median": 2.77216,
+      "p10": 2.63284,
+      "p25": 2.7294,
+      "median": 2.77748,
       "p75": 3.43701,
       "p90": 3.65914,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P4.dPl": {
      "betweenClips": {
@@ -23469,280 +23378,272 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.decorrelationS": {
      "betweenClips": {
-      "p10": 0.414264,
-      "p25": 0.454233,
-      "median": 0.57779,
-      "p75": 0.731738,
-      "p90": 1.00588,
-      "n": 15
+      "p10": 0.416424,
+      "p25": 0.460109,
+      "median": 0.578605,
+      "p75": 0.75731,
+      "p90": 1.08145,
+      "n": 16
      },
      "betweenSubjects": {
       "p10": 0.461991,
       "p25": 0.487592,
-      "median": 0.563654,
-      "p75": 0.64982,
-      "p90": 0.707852,
+      "median": 0.613603,
+      "p75": 0.710624,
+      "p90": 0.731738,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.ratio": {
      "betweenClips": {
-      "p10": 0.759633,
-      "p25": 0.860062,
-      "median": 1.18017,
-      "p75": 1.47359,
-      "p90": 1.68104,
-      "n": 15
+      "p10": 0.764072,
+      "p25": 0.860654,
+      "median": 1.08068,
+      "p75": 1.47117,
+      "p90": 1.67897,
+      "n": 16
      },
      "betweenSubjects": {
       "p10": 0.881249,
-      "p25": 0.923521,
-      "median": 1.23083,
+      "p25": 0.923013,
+      "median": 1.22981,
       "p75": 1.47906,
       "p90": 1.57397,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.sigmaAbove": {
      "betweenClips": {
-      "p10": 8.26944,
-      "p25": 10.8524,
-      "median": 13.2877,
-      "p75": 15.5839,
-      "p90": 17.0846,
-      "n": 15
+      "p10": 8.57336,
+      "p25": 10.9121,
+      "median": 12.9732,
+      "p75": 15.469,
+      "p90": 17.0352,
+      "n": 16
      },
      "betweenSubjects": {
-      "p10": 8.34827,
-      "p25": 11.3843,
+      "p10": 8.40797,
+      "p25": 11.4738,
       "median": 13.1338,
       "p75": 14.8376,
       "p90": 16.7248,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.sigmaBelow": {
      "betweenClips": {
-      "p10": 7.09498,
-      "p25": 9.4951,
-      "median": 12.6667,
-      "p75": 21.7405,
-      "p90": 27.5144,
-      "n": 15
+      "p10": 7.35027,
+      "p25": 9.92255,
+      "median": 12.2377,
+      "p75": 21.5245,
+      "p90": 26.7536,
+      "n": 16
      },
      "betweenSubjects": {
-      "p10": 9.64347,
-      "p25": 10.8931,
+      "p10": 10.0555,
+      "p25": 11.5111,
       "median": 12.2268,
       "p75": 19.8349,
       "p90": 24.6077,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.axial.px": {
      "betweenClips": {
-      "p10": 2.26528,
-      "p25": 2.29235,
-      "median": 2.44348,
-      "p75": 2.55821,
-      "p90": 2.62237,
-      "n": 16
+      "p10": 2.26724,
+      "p25": 2.29486,
+      "median": 2.44874,
+      "p75": 2.55243,
+      "p90": 2.62041,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 2.23335,
-      "p25": 2.30793,
-      "median": 2.42031,
-      "p75": 2.57162,
+      "p25": 2.32215,
+      "median": 2.44969,
+      "p75": 2.5721,
       "p90": 2.62827,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.lateral.dPl": {
      "betweenClips": {
-      "p10": 0.0701681,
-      "p25": 0.0767349,
-      "median": 0.0963285,
-      "p75": 0.130572,
-      "p90": 0.175582,
-      "n": 16
+      "p10": 0.0703457,
+      "p25": 0.077547,
+      "median": 0.0915701,
+      "p75": 0.125122,
+      "p90": 0.17448,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0.0726772,
       "p25": 0.0786164,
       "median": 0.0963285,
-      "p75": 0.127289,
-      "p90": 0.138559,
+      "p75": 0.109361,
+      "p90": 0.124071,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.sigmaOverProminence": {
      "betweenClips": {
-      "p10": 0.107733,
-      "p25": 0.137112,
-      "median": 0.191895,
-      "p75": 0.289024,
-      "p90": 0.308771,
-      "n": 16
+      "p10": 0.108278,
+      "p25": 0.133472,
+      "median": 0.191342,
+      "p75": 0.287151,
+      "p90": 0.307305,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0.121963,
       "p25": 0.137983,
       "median": 0.171428,
-      "p75": 0.266008,
-      "p90": 0.293787,
+      "p75": 0.263199,
+      "p90": 0.291914,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T2.subPleura": {
      "betweenClips": {
-      "p10": 0.959093,
-      "p25": 0.975623,
-      "median": 0.98416,
-      "p75": 0.990649,
-      "p90": 0.993571,
-      "n": 15
+      "p10": 0.959579,
+      "p25": 0.977144,
+      "median": 0.985167,
+      "p75": 0.9898,
+      "p90": 0.993487,
+      "n": 16
      },
      "betweenSubjects": {
       "p10": 0.978363,
       "p25": 0.98369,
-      "median": 0.984894,
-      "p75": 0.986786,
+      "median": 0.985008,
+      "p75": 0.986843,
       "p90": 0.990486,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T2.wall": {
      "betweenClips": {
-      "p10": 0.971018,
-      "p25": 0.981219,
-      "median": 0.983733,
-      "p75": 0.992189,
-      "p90": 0.993311,
-      "n": 15
+      "p10": 0.971761,
+      "p25": 0.981876,
+      "median": 0.983835,
+      "p75": 0.992482,
+      "p90": 0.99354,
+      "n": 16
      },
      "betweenSubjects": {
       "p10": 0.982363,
-      "p25": 0.982712,
-      "median": 0.984137,
+      "p25": 0.982884,
+      "median": 0.98448,
       "p75": 0.99022,
       "p90": 0.992854,
       "n": 6
      },
-     "clips": 15,
+     "clips": 16,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "dPl.px": {
      "betweenClips": {
-      "p10": 19.0765,
-      "p25": 25.002,
-      "median": 33.0515,
-      "p75": 48.6701,
-      "p90": 58.2298,
-      "n": 16
+      "p10": 19.2293,
+      "p25": 26.3898,
+      "median": 35.0712,
+      "p75": 46.8844,
+      "p90": 58.0327,
+      "n": 17
      },
      "betweenSubjects": {
-      "p10": 23.4315,
-      "p25": 25.4686,
+      "p10": 25.1356,
+      "p25": 27.7509,
       "median": 33.9549,
       "p75": 49.7399,
       "p90": 56.6215,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "intercostal.columns": {
      "betweenClips": {
-      "p10": 182.5,
-      "p25": 189.875,
-      "median": 237.25,
-      "p75": 251.125,
-      "p90": 260,
-      "n": 16
+      "p10": 183,
+      "p25": 189,
+      "median": 230,
+      "p75": 251,
+      "p90": 259.4,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 195.75,
-      "p25": 205,
-      "median": 230.75,
+      "p25": 201.75,
+      "median": 224.25,
       "p75": 247.875,
       "p90": 252.375,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.a1Peak": {
      "betweenClips": {
-      "p10": 81.6236,
-      "p25": 110.261,
-      "median": 118.463,
-      "p75": 120.85,
-      "p90": 126.002,
-      "n": 10
+      "p10": 77.2722,
+      "p25": 107.88,
+      "median": 118.016,
+      "p75": 119.864,
+      "p90": 125.991,
+      "n": 9
      },
      "betweenSubjects": {
       "p10": 59.8663,
       "p25": 85.9751,
       "median": 118.016,
-      "p75": 119.864,
-      "p90": 120.778,
+      "p75": 118.91,
+      "p90": 119.482,
       "n": 5
      },
-     "clips": 10,
+     "clips": 9,
      "subjects": 5,
-     "censoredClips": 0
-    },
-    "levels.a2Peak": {
-     "betweenClips": {
-      "p10": 54.0343,
-      "p25": 92.3384,
-      "median": 108.416,
-      "p75": 111.49,
-      "p90": 111.962,
-      "n": 10
-     },
-     "betweenSubjects": {
-      "p10": 36.0567,
-      "p25": 57.6298,
-      "median": 105.633,
-      "p75": 108.697,
-      "p90": 110.233,
-      "n": 5
-     },
-     "clips": 10,
-     "subjects": 5,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.clippedHigh": {
      "betweenClips": {
@@ -23751,7 +23652,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23761,18 +23662,19 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.clippedLow": {
      "betweenClips": {
       "p10": 0,
       "p25": 0,
       "median": 0,
-      "p75": 0.0056,
-      "p90": 0.107216,
-      "n": 16
+      "p75": 0.00354154,
+      "p90": 0.103162,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23782,30 +23684,32 @@
       "p90": 0.224324,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.grey": {
      "betweenClips": {
-      "p10": 38.9778,
-      "p25": 44.6822,
-      "median": 63.5603,
-      "p75": 90.0188,
-      "p90": 102.308,
-      "n": 16
+      "p10": 39.5285,
+      "p25": 44.872,
+      "median": 71.454,
+      "p75": 89.7351,
+      "p90": 101.951,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 26.4647,
       "p25": 42.5168,
       "median": 58.163,
-      "p75": 85.5903,
-      "p90": 91.7451,
+      "p75": 85.1648,
+      "p90": 91.4615,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.clippedHigh": {
      "betweenClips": {
@@ -23826,7 +23730,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.clippedLow": {
      "betweenClips": {
@@ -23847,7 +23752,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.grey": {
      "betweenClips": {
@@ -23868,7 +23774,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedHigh": {
      "betweenClips": {
@@ -23877,7 +23784,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23887,9 +23794,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedLow": {
      "betweenClips": {
@@ -23898,7 +23806,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23908,30 +23816,32 @@
       "p90": 0.0146233,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.grey": {
      "betweenClips": {
-      "p10": 93.5412,
-      "p25": 104.847,
-      "median": 111.167,
-      "p75": 118.738,
-      "p90": 126.343,
-      "n": 16
+      "p10": 94.5863,
+      "p25": 104.882,
+      "median": 111.441,
+      "p75": 119,
+      "p90": 127.94,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 74.3692,
       "p25": 104.776,
       "median": 107.86,
-      "p75": 116.569,
-      "p90": 118.739,
+      "p75": 116.96,
+      "p90": 120.651,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedHigh": {
      "betweenClips": {
@@ -23940,7 +23850,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23950,9 +23860,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedLow": {
      "betweenClips": {
@@ -23961,7 +23872,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -23971,30 +23882,32 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.grey": {
      "betweenClips": {
-      "p10": 89.009,
-      "p25": 100.219,
-      "median": 117.738,
-      "p75": 120.704,
-      "p90": 124.169,
-      "n": 16
+      "p10": 90.7251,
+      "p25": 100.524,
+      "median": 117.748,
+      "p75": 120.702,
+      "p90": 123.899,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 68.0717,
       "p25": 98.323,
       "median": 109.131,
       "p75": 118.313,
-      "p90": 119.626,
+      "p90": 119.603,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.aLine1.clippedHigh": {
      "betweenClips": {
@@ -24003,7 +23916,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 9
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24011,11 +23924,12 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 6
+      "n": 5
      },
-     "clips": 16,
-     "subjects": 6,
-     "censoredClips": 0
+     "clips": 9,
+     "subjects": 5,
+     "censoredClips": 0,
+     "sparseClips": 8
     },
     "levels.peaks.aLine1.clippedLow": {
      "betweenClips": {
@@ -24023,62 +23937,21 @@
       "p25": 0,
       "median": 0,
       "p75": 0,
-      "p90": 0,
-      "n": 16
+      "p90": 0.0204082,
+      "n": 9
      },
      "betweenSubjects": {
       "p10": 0,
       "p25": 0,
       "median": 0,
       "p75": 0,
-      "p90": 0.0510205,
-      "n": 6
+      "p90": 0.0612246,
+      "n": 5
      },
-     "clips": 16,
-     "subjects": 6,
-     "censoredClips": 0
-    },
-    "levels.peaks.aLine2.clippedHigh": {
-     "betweenClips": {
-      "p10": 0,
-      "p25": 0,
-      "median": 0,
-      "p75": 0,
-      "p90": 0,
-      "n": 12
-     },
-     "betweenSubjects": {
-      "p10": 0,
-      "p25": 0,
-      "median": 0,
-      "p75": 0,
-      "p90": 0,
-      "n": 6
-     },
-     "clips": 12,
-     "subjects": 6,
-     "censoredClips": 0
-    },
-    "levels.peaks.aLine2.clippedLow": {
-     "betweenClips": {
-      "p10": 0,
-      "p25": 0,
-      "median": 0,
-      "p75": 0,
-      "p90": 0,
-      "n": 12
-     },
-     "betweenSubjects": {
-      "p10": 0,
-      "p25": 0,
-      "median": 0,
-      "p75": 0,
-      "p90": 0.159449,
-      "n": 6
-     },
-     "clips": 12,
-     "subjects": 6,
-     "censoredClips": 0
+     "clips": 9,
+     "subjects": 5,
+     "censoredClips": 0,
+     "sparseClips": 8
     },
     "levels.peaks.pleura.clippedHigh": {
      "betweenClips": {
@@ -24087,7 +23960,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24097,9 +23970,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.pleura.clippedLow": {
      "betweenClips": {
@@ -24108,7 +23982,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24118,9 +23992,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedHigh": {
      "betweenClips": {
@@ -24129,7 +24004,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24139,9 +24014,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedLow": {
      "betweenClips": {
@@ -24150,7 +24026,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24160,51 +24036,54 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.grey": {
      "betweenClips": {
-      "p10": 170.862,
-      "p25": 183.234,
-      "median": 196.157,
-      "p75": 221.168,
-      "p90": 228.361,
-      "n": 16
+      "p10": 171.682,
+      "p25": 184.433,
+      "median": 196.616,
+      "p75": 223.03,
+      "p90": 232.32,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 143.277,
       "p25": 185.701,
-      "median": 196.375,
-      "p75": 221.27,
+      "median": 198.125,
+      "p75": 222.145,
       "p90": 228.361,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraPeak": {
      "betweenClips": {
-      "p10": 141.445,
-      "p25": 149.191,
-      "median": 156.08,
-      "p75": 159.506,
-      "p90": 170.049,
-      "n": 16
+      "p10": 142.193,
+      "p25": 149.498,
+      "median": 157.14,
+      "p75": 161.406,
+      "p90": 183.863,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 112.645,
       "p25": 152.998,
       "median": 154.373,
-      "p75": 155.899,
-      "p90": 166.887,
+      "p75": 159.81,
+      "p90": 169.494,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.clippedHigh": {
      "betweenClips": {
@@ -24225,7 +24104,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.clippedLow": {
      "betweenClips": {
@@ -24246,7 +24126,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.grey": {
      "betweenClips": {
@@ -24267,7 +24148,8 @@
      },
      "clips": 2,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedHigh": {
      "betweenClips": {
@@ -24276,7 +24158,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24286,9 +24168,10 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedLow": {
      "betweenClips": {
@@ -24297,7 +24180,7 @@
       "median": 0,
       "p75": 0,
       "p90": 0,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24307,30 +24190,32 @@
       "p90": 0,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.grey": {
      "betweenClips": {
-      "p10": 87.8272,
-      "p25": 105.849,
-      "median": 116.518,
-      "p75": 123.551,
-      "p90": 130.552,
-      "n": 16
+      "p10": 89.5386,
+      "p25": 106.723,
+      "median": 119.223,
+      "p75": 122.002,
+      "p90": 130.546,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 67.9835,
       "p25": 98.9688,
       "median": 112.315,
-      "p75": 120.213,
-      "p90": 122.346,
+      "p75": 118.968,
+      "p90": 120.151,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.count": {
      "betweenClips": {
@@ -24338,8 +24223,8 @@
       "p25": 0,
       "median": 0,
       "p75": 1,
-      "p90": 1.5,
-      "n": 16
+      "p90": 1.4,
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24349,18 +24234,19 @@
       "p90": 1,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.rejected": {
      "betweenClips": {
       "p10": 0,
       "p25": 0,
       "median": 0,
-      "p75": 0.25,
+      "p75": 0,
       "p90": 1,
-      "n": 16
+      "n": 17
      },
      "betweenSubjects": {
       "p10": 0,
@@ -24370,9 +24256,10 @@
       "p90": 1,
       "n": 6
      },
-     "clips": 16,
+     "clips": 17,
      "subjects": 6,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     }
    }
   },
@@ -24405,7 +24292,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "N2": {
      "betweenClips": {
@@ -24426,7 +24314,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P1": {
      "betweenClips": {
@@ -24447,7 +24336,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P2.dPl": {
      "betweenClips": {
@@ -24468,7 +24358,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P2.px": {
      "betweenClips": {
@@ -24489,7 +24380,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P4.dPl": {
      "betweenClips": {
@@ -24510,7 +24402,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.axial.dPl": {
      "betweenClips": {
@@ -24531,7 +24424,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.axial.px": {
      "betweenClips": {
@@ -24552,7 +24446,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.lateral.dPl": {
      "betweenClips": {
@@ -24573,7 +24468,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.sigmaOverProminence": {
      "betweenClips": {
@@ -24594,7 +24490,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "dPl.px": {
      "betweenClips": {
@@ -24615,7 +24512,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "intercostal.columns": {
      "betweenClips": {
@@ -24636,7 +24534,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.clippedHigh": {
      "betweenClips": {
@@ -24657,7 +24556,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.clippedLow": {
      "betweenClips": {
@@ -24678,7 +24578,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.floor.grey": {
      "betweenClips": {
@@ -24699,7 +24600,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedHigh": {
      "betweenClips": {
@@ -24720,7 +24622,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedLow": {
      "betweenClips": {
@@ -24741,7 +24644,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.grey": {
      "betweenClips": {
@@ -24762,7 +24666,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedHigh": {
      "betweenClips": {
@@ -24783,7 +24688,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedLow": {
      "betweenClips": {
@@ -24804,7 +24710,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.grey": {
      "betweenClips": {
@@ -24825,7 +24732,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.pleura.clippedHigh": {
      "betweenClips": {
@@ -24846,7 +24754,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.pleura.clippedLow": {
      "betweenClips": {
@@ -24867,7 +24776,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedHigh": {
      "betweenClips": {
@@ -24888,7 +24798,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedLow": {
      "betweenClips": {
@@ -24909,7 +24820,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.grey": {
      "betweenClips": {
@@ -24930,7 +24842,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraPeak": {
      "betweenClips": {
@@ -24951,7 +24864,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.clippedHigh": {
      "betweenClips": {
@@ -24972,7 +24886,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.clippedLow": {
      "betweenClips": {
@@ -24993,7 +24908,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.ribP95.grey": {
      "betweenClips": {
@@ -25014,7 +24930,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedHigh": {
      "betweenClips": {
@@ -25035,7 +24952,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedLow": {
      "betweenClips": {
@@ -25056,7 +24974,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.grey": {
      "betweenClips": {
@@ -25077,7 +24996,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.count": {
      "betweenClips": {
@@ -25098,7 +25018,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.rejected": {
      "betweenClips": {
@@ -25119,7 +25040,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     }
    }
   },
@@ -25152,7 +25074,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A1.mean": {
      "betweenClips": {
@@ -25173,7 +25096,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.r2": {
      "betweenClips": {
@@ -25194,7 +25118,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.r3": {
      "betweenClips": {
@@ -25215,7 +25140,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.r4": {
      "betweenClips": {
@@ -25236,7 +25162,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.r5": {
      "betweenClips": {
@@ -25257,28 +25184,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
-    },
-    "A2.r6": {
-     "betweenClips": {
-      "p10": 0.0248763,
-      "p25": 0.0248763,
-      "median": 0.0248763,
-      "p75": 0.0248763,
-      "p90": 0.0248763,
-      "n": 1
-     },
-     "betweenSubjects": {
-      "p10": 0.0248763,
-      "p25": 0.0248763,
-      "median": 0.0248763,
-      "p75": 0.0248763,
-      "p90": 0.0248763,
-      "n": 1
-     },
-     "clips": 1,
-     "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.slopeLn": {
      "betweenClips": {
@@ -25299,7 +25206,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "A2.visible": {
      "betweenClips": {
@@ -25320,7 +25228,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "M.deep": {
      "betweenClips": {
@@ -25341,7 +25250,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "M.haze": {
      "betweenClips": {
@@ -25362,7 +25272,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "M.wall": {
      "betweenClips": {
@@ -25383,7 +25294,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "N4": {
      "betweenClips": {
@@ -25404,7 +25316,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "P2.px": {
      "betweenClips": {
@@ -25425,7 +25338,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.decorrelationS": {
      "betweenClips": {
@@ -25446,7 +25360,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.ratio": {
      "betweenClips": {
@@ -25467,7 +25382,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.sigmaAbove": {
      "betweenClips": {
@@ -25488,7 +25404,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "S1.sigmaBelow": {
      "betweenClips": {
@@ -25509,7 +25426,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.axial.px": {
      "betweenClips": {
@@ -25530,7 +25448,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T1.sigmaOverProminence": {
      "betweenClips": {
@@ -25551,7 +25470,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T2.subPleura": {
      "betweenClips": {
@@ -25572,7 +25492,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "T2.wall": {
      "betweenClips": {
@@ -25593,7 +25514,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "dPl.px": {
      "betweenClips": {
@@ -25614,7 +25536,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "intercostal.columns": {
      "betweenClips": {
@@ -25635,7 +25558,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.a1Peak": {
      "betweenClips": {
@@ -25656,7 +25580,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.a2Peak": {
      "betweenClips": {
@@ -25677,7 +25602,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.clippedHigh": {
      "betweenClips": {
@@ -25698,7 +25624,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.clippedLow": {
      "betweenClips": {
@@ -25719,7 +25646,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.deep.grey": {
      "betweenClips": {
@@ -25740,7 +25668,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedHigh": {
      "betweenClips": {
@@ -25761,7 +25690,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.clippedLow": {
      "betweenClips": {
@@ -25782,7 +25712,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.haze.grey": {
      "betweenClips": {
@@ -25803,7 +25734,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedHigh": {
      "betweenClips": {
@@ -25824,7 +25756,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.clippedLow": {
      "betweenClips": {
@@ -25845,7 +25778,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.p1Tissue.grey": {
      "betweenClips": {
@@ -25866,7 +25800,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.aLine1.clippedHigh": {
      "betweenClips": {
@@ -25887,7 +25822,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.aLine1.clippedLow": {
      "betweenClips": {
@@ -25908,7 +25844,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.aLine2.clippedHigh": {
      "betweenClips": {
@@ -25929,7 +25866,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.aLine2.clippedLow": {
      "betweenClips": {
@@ -25950,7 +25888,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.pleura.clippedHigh": {
      "betweenClips": {
@@ -25971,7 +25910,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.peaks.pleura.clippedLow": {
      "betweenClips": {
@@ -25992,7 +25932,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedHigh": {
      "betweenClips": {
@@ -26013,7 +25954,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.clippedLow": {
      "betweenClips": {
@@ -26034,7 +25976,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraP95.grey": {
      "betweenClips": {
@@ -26055,7 +25998,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.pleuraPeak": {
      "betweenClips": {
@@ -26076,7 +26020,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedHigh": {
      "betweenClips": {
@@ -26097,7 +26042,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.clippedLow": {
      "betweenClips": {
@@ -26118,7 +26064,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "levels.wall.grey": {
      "betweenClips": {
@@ -26139,7 +26086,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.count": {
      "betweenClips": {
@@ -26160,7 +26108,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     },
     "shadows.rejected": {
      "betweenClips": {
@@ -26181,7 +26130,8 @@
      },
      "clips": 1,
      "subjects": 1,
-     "censoredClips": 0
+     "censoredClips": 0,
+     "sparseClips": 0
     }
    }
   }

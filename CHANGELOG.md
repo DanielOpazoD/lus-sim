@@ -128,6 +128,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la
   parrilla, 50,6 → 51,3 mm, 1,5 sobre el centro del EIC4 como en main (en el centro el detector del banco de fidelidad falla). A-T15 a TLC pasa a pendiente (el EIC 9 de la LAA, a 9,8 mm de la inserción supuesta de la
   ZOA) y A-T24 en la mujer obesa se cumple (37,7 mm). Cobertura sin cambios (68 de 138).
+- El banco de fidelidad (21), tras la revisión del coordinador de las hojas de contacto: la geometría fijada queda aprobada
+  (revisada por el agente coordinador; falta un ecografista); LUS-35v es apto (pulmón normal limpio; sus líneas A se ven
+  pero el detector no las mide) y LUS-35t lleva en su nota el diafragma o el hígado; un clip entra en una métrica solo si la
+  mide en al menos la mitad de sus cuadros, así que N4 y r₃ quedan sin distribución convexa.
 - Lo portado de VExUS, al día con `8e83d9a` (11): la PEEP sube la presión pleural también con respiración espontánea
   (CPAP) y el motor pasa a la respiración la del paciente en cada paso; el haz, la elevación y la composición admiten
   la armónica (en fundamental no cambian); el gemelo de los ecos de interfaz lleva el pedestal de lóbulos laterales; el
