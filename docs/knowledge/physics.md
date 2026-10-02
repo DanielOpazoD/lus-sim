@@ -479,6 +479,48 @@ Nota sobre IT'IS: en las filas «Lung» y «Lung (Inflated)», las celdas de DE,
 
 **Consecuencia práctica** [DERIVADO]. Las simulaciones de onda completa que reproducen líneas B de forma emergente necesitan dx ≈ 20 µm (λ/12 a 6.25 MHz) y dominios de centímetros; no son viables en tiempo real en un navegador. Para lus-sim conviene un modelo híbrido (Parte 3) calibrado contra estos resultados.
 
+### 2.12 Moteado y compresión logarítmica: leer el mapa de grises desde la imagen
+
+**El moteado plenamente desarrollado tiene una dispersión fija en dB** [DERIVADO]. Con muchos dispersores por celda de
+resolución y fases aleatorias, la amplitud de la envolvente es de Rayleigh ([@wagner-speckle-1983]); el tamaño del grano lo
+fija la celda de resolución ([@smith-moteado-1984]). En el logaritmo, la forma no depende del nivel medio: 20·log₁₀A tiene una
+desviación típica de 20·log₁₀(e)·π/√24 = 5,57 dB y una asimetría de −1,14, y sus cuantiles distan p90 − p50 = 5,21 dB y
+(p50 − p10)/(p90 − p50) = 1,57. Kaplan y Ma derivan la densidad de una señal de Rayleigh tras una compresión n₁·ln x + n₂ y
+encuentran que los histogramas de imágenes reales se le parecen, pero no pasan las pruebas de bondad de ajuste por la
+compresión no ideal, el ruido y el suavizado de la envolvente ([@kaplan-lograyleigh-1994]).
+
+**Invertir la compresión con el moteado.** Crawford y cols. compensan la amplificación no lineal de cada ecógrafo para un
+filtro adaptativo de moteado, con un rasgo del moteado que tolera la compresión logarítmica o con la transformada inversa
+([@crawford-compensacion-1993]). Prager y cols. descomprimen con intensidad = exp(gris/D) y eligen D para que parches de
+moteado marcados a mano (25 × 25 px) tengan los estadísticos del moteado ([@prager-moteado-2001]; [@prager-descompresion-2003]).
+Smith y Raza muestran que, con la compresión desconocida, la varianza del mejor estimador de la escala de Rayleigh en una
+ventana es ≈ 35 veces la de conocerla, y que hace falta juntar cientos de ventanas que compartan la compresión para
+recuperarla ([@smith-compresion-2026]).
+
+**El estimador del banco** (decisión 31; `src/measure/fidelity/speckleMap.ts`) [DERIVADO]. Con la familia de mapas del
+simulador, g/G = ((1 + c)^y − 1)/c con y = 1 + dB/RD, el gris de un moteado de amplitud A en una región de nivel L cumple
+exactamente g + G/c ∝ A^q (q = 20·ln(1 + c)/(RD·ln 10)): la diferencia entre el p90 y la mediana del gris es una recta de la
+mediana cuya pendiente y ordenada dan c y, si el moteado es de Rayleigh, el rango dinámico. Lo que lo sesga: el suavizado
+(interpolación de la conversión de barrido, persistencia, filtros, recompresión del vídeo) estrecha la dispersión y sube el
+rango dinámico estimado (es una cota superior); pocas celdas independientes por tesela, también (con 12 granos por tesela,
++8 %; con 7, +25 %); y una dispersión que no sea la de Rayleigh (una textura además del moteado) lo deja sin escala. Dos
+diagnósticos: la asimetría por cuantiles en dB (1,57 en el moteado de Rayleigh; la persistencia de dos cuadros la baja a
+1,36 y la interpolación entre líneas a 1,43–1,45) y el grano medido (el desfase al que la autocorrelación cae a 0,5), que
+fija el tamaño de tesela. El ruido de recepción sumado al eco antes de la detección no lo sesga: la suma sigue siendo de
+Rayleigh.
+
+**Lo que midió** (02-10-2026). En sintéticos de Rayleigh con mapa conocido recupera c a ±9 % (también c negativo, el mapa que
+aplasta los grises bajos) y el rango dinámico con un sesgo de +2–5,5 %. En el simulador, con un barrido de ganancia conocido y
+ubicación por ubicación (sin suponer la forma del moteado), recupera c = 3,44–3,55 (es 3,5) y 69,9–70,1 dB (son 70): el mapa
+se lee de la imagen mostrada. Con una sola imagen no: la región de la pared (0,2–0,85 de la pleura, con la grasa, las caras,
+los planos intermusculares y las estrías) no es moteado de Rayleigh; en su envolvente, en parches de 16 × 8, p90 − p50 =
+8,0–9,2 dB y la asimetría 0,94–1,30 frente a 1,57 en el BLUE superior y el PLAPS (en el BLUE inferior,
+6,3 dB y 1,48). El músculo sin estructura, que sí lo es (SNR de Rayleigh en
+`e2e/imagen.spec.ts`), casi no tiene parches en las vistas del banco. En los 19 clips aptos el grano con teselas de 16 px es
+de 2,1–4,8 px lateral (como el de la imagen del simulador, 3,0 px): pide teselas de 32–64 px, que casi no caben, y la
+asimetría en dB es 0,65–1,15 en todo el sector y 0,55–1,18 en la pared (ninguno en la banda 1,48–1,68): ningún clip permite
+estimar su mapa con fiabilidad. Las brechas en dB de los clips no se pueden dar.
+
 ---
 
 ## Parte 3. Implicaciones para el simulador

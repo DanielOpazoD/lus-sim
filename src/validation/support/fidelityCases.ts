@@ -31,7 +31,9 @@ export function invariants(c: ClipAnalysis, withFloor = true): Record<string, nu
   };
   // N1–N3 solo son invariantes con el suelo medido (la continua; en 8 bits el suelo del sintético roza el negro)
   if (withFloor) Object.assign(out, { N1: m.N1, N2: m.N2, N3: m.N3 });
-  m.A2.ratios.slice(1, 4).forEach((r, i) => (out[`A2.r${i + 2}`] = r));
+  // r_k de cada orden encontrado, visible o no: A2 solo informa los visibles (decisión 31), y la visibilidad de un orden en
+  // el umbral ya la cuenta A2.visible; la medida es la misma
+  m.structures.aLines.slice(1, 4).forEach((p, i) => (out[`A2.r${i + 2}`] = p.ratio));
   if (c.stack) {
     out['T2.wall'] = c.stack.T2.wall.median;
     out['T2.subPleura'] = c.stack.T2.subPleura.median;
@@ -119,3 +121,38 @@ export const eightBitArb = fc.record({
   b1: fc.double({ min: 0, max: 1, noNaN: true }),
   b2: fc.double({ min: 0, max: 1, noNaN: true }),
 });
+
+/**
+ * Tolerancia de 8 bits por métrica (relativa, o absoluta bajo 1). Entre paréntesis, el peor de 200 corridas (02-10-2026, con el detector de líneas A sin la tendencia de la decisión 31) con
+ * la geometría dada y con la fijada desde el detector; la tolerancia deja ≈ 2–3×. Lo que más se mueve es lo que depende del
+ * ruido del cuadro frente al escalón: S1 (σ temporal de 1,2 grises en el contraste más bajo, junto al escalón/√12) y la
+ * anchura lateral del moteado (en columnas enteras); A2.visible puede ganar o perder la línea A que está en el umbral (y con
+ * ella cambian A1 y la pendiente de A2, que se ajustan sobre las visibles).
+ */
+export const TOL_8BIT: Record<string, number> = {
+  'dPl.px': 0.02, // (0,0003 / 0,0003): una fila sobre ≈ 50
+  shadows: 0,
+  'intercostal.columns': 0.08, // (0,024 / 0,024)
+  P1: 0.06, // (0,022 / 0,032)
+  'P2.px': 0.03, // (0,007 / 0,009)
+  'P4.px': 0.04, // (0,002 / 0,002): una fila sobre ≈ 25
+  'A1.max': 0.03, // (0,001 / 0,017: con la geometría del detector, un orden en el umbral)
+  // la pendiente se ajusta sobre los órdenes visibles: cambia cuando un orden débil cruza el umbral (decisión 31: 0,095; la
+  // tolerancia pasó de 0,1 a 0,2 después de ver ese resultado)
+  'A2.slopeLn': 0.2, // (0,095 / 0,083)
+  'A2.visible': 0.5, // (0,5 / 0,5: una línea A en el umbral, con dos o más visibles)
+  'A2.r2': 0.012, // (0,004 / 0,003)
+  'A2.r3': 0.012, // (0,003 / 0,003)
+  'A2.r4': 0.012, // (0,003 / 0,003)
+  'T1.axial.px': 0.08, // (0,030 / 0,034)
+  'T1.lateral.px': 0.15, // (0,046 / 0,084)
+  'T1.sigmaOverProminence': 0.01, // (0,002 / 0,006)
+  'M.wall': 0.015, // (0,005 / 0,008)
+  'M.haze': 0.015, // (0,005 / 0,005)
+  'M.deep': 0.015, // (0,004 / 0,005)
+  N4: 0.04, // (0,014 / 0,014)
+  'T2.wall': 0.06, // (0,026 / 0,023)
+  'T2.subPleura': 0.05, // (0,026 / 0,024)
+  'S1.ratio': 0.25, // (0,101 / 0,085)
+  'S1.decorrelationFrames': 0.03, // (0,012 / 0,013)
+};

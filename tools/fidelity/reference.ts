@@ -21,7 +21,16 @@ import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { quantilesOf, stackScalars, TEMPORAL_METRICS, type Quantiles, type StratumMetric } from '../../src/measure/fidelity/compare';
 import { analyzeClip, flattenMetrics, type ClipAnalysis, type Censor } from '../../src/measure/fidelity/metrics';
-import { detectSector, GREY_8BIT, outsideBlack, type GreyFrame, type Rect, type SectorGeometry } from '../../src/measure/fidelity/sector';
+import {
+  detectSector,
+  GREY_8BIT,
+  outsideBlack,
+  type GreyFrame,
+  type GreyScale,
+  type Rect,
+  type SectorGeometry,
+} from '../../src/measure/fidelity/sector';
+import { fitGreyMap, MIN_TILE_GRAINS, speckleTiles, type GreyMapEstimate, type SpeckleTile } from '../../src/measure/fidelity/speckleMap';
 import { median, quantile } from '../../src/measure/fidelity/stats';
 
 /** La geometría de un clip, fijada en el manifiesto: el sector, las zonas quemadas y si la piel está en el borde superior. */
@@ -205,6 +214,87 @@ export interface ClipStats {
   /** T2 y S1 de la pila entera (un valor por clip); null con menos de 3 cuadros. */
   stack: Record<string, number | null> | null;
   stack_censored: Record<string, Censor>;
+  /**
+   * El mapa de grises estimado desde el moteado (decisión 31, `speckleMap.ts`, `clipGreyMaps`): teselas de 16 px (más si el
+   * grano lo pide) en hasta 30 cuadros, con su curvatura c y su rango dinámico (cota superior si el moteado está suavizado),
+   * la asimetría en dB (1,57 si es de Rayleigh), el grano y por qué no es fiable, si no lo es. `grey_map` con todas las
+   * teselas del sector (casi todas del campo profundo, oscuro); `grey_map_wall`, solo las de la pared (centro entre 0,2 y
+   * 0,85 de la pleura). null si no se estimó.
+   */
+  grey_map: GreyMapStats | null;
+  grey_map_wall?: GreyMapStats | null;
+}
+
+export interface GreyMapStats {
+  tiles: number;
+  bins: number;
+  span: [number | null, number | null];
+  c: number | null;
+  c_p10: number | null;
+  c_p90: number | null;
+  range_db: number | null;
+  range_db_p10: number | null;
+  range_db_p90: number | null;
+  asymmetry: number | null;
+  /** Lado de la tesela (px) y grano medido (px, x e y: el desfase con autocorrelación 0,5). */
+  tile?: number;
+  grain_px?: [number | null, number | null];
+  /** El grano medido con teselas de 16 px (el que decide el tamaño de las teselas del mapa). */
+  grain_px_16?: [number | null, number | null];
+  reliable: boolean;
+  reasons: string[];
+}
+
+/** El resumen del mapa estimado para las estadísticas (solo números, sin la función). */
+export function greyMapStats(e: GreyMapEstimate, tile?: number): GreyMapStats {
+  return {
+    ...(tile !== undefined ? { tile, grain_px: [num(e.grainPx[0]), num(e.grainPx[1])] as [number | null, number | null] } : {}),
+    tiles: e.tiles,
+    bins: e.bins,
+    span: [num(e.greySpan[0]), num(e.greySpan[1])],
+    c: num(e.c),
+    c_p10: num(e.cRange[0]),
+    c_p90: num(e.cRange[1]),
+    range_db: num(e.rangeDb),
+    range_db_p10: num(e.rangeDbRange[0]),
+    range_db_p90: num(e.rangeDbRange[1]),
+    asymmetry: num(e.asymmetry),
+    reliable: e.reliable,
+    reasons: e.reasons,
+  };
+}
+
+/** Profundidad (px) del centro de una tesela desde la piel: el radio menos el de la piel, o la fila menos la de arriba. */
+function tileDepthPx(g: SectorGeometry, t: SpeckleTile): number {
+  const x = t.x + t.size / 2;
+  const y = t.y + t.size / 2;
+  return g.kind === 'linear' ? y - g.yTop : Math.hypot(x - g.apexX, y - g.apexY) - g.rhoMin;
+}
+
+/**
+ * Los mapas de grises de un clip (decisión 31): teselas de 16 px y, si su grano pide más (MIN_TILE_GRAINS granos por
+ * tesela), otra vez con teselas del tamaño que pide (múltiplo de 8, hasta 64 px): el mapa de todas; y el de la pared, con
+ * las de 16 px (las grandes no caben en ella).
+ */
+export function clipGreyMaps(
+  frames: readonly GreyFrame[],
+  geometry: SectorGeometry,
+  opts: { scale: GreyScale; exclude: readonly Rect[]; dPlPx: number },
+): { all: GreyMapStats; wall: GreyMapStats } {
+  const base = { scale: opts.scale, exclude: opts.exclude, maxFrames: 30 };
+  const tiles16 = speckleTiles(frames, geometry, { ...base, tile: 16 });
+  const all16 = fitGreyMap(tiles16, { scale: opts.scale });
+  const grain16: [number | null, number | null] = [num(all16.grainPx[0]), num(all16.grainPx[1])];
+  // la pared con teselas de 16 px (las que pide el grano no caben en ella)
+  const wallTiles = tiles16.filter((t) => {
+    const d = tileDepthPx(geometry, t);
+    return d > 0.2 * opts.dPlPx && d < 0.85 * opts.dPlPx;
+  });
+  const wall = greyMapStats(fitGreyMap(wallTiles, { scale: opts.scale }), 16);
+  const need = Math.min(64, Math.ceil((MIN_TILE_GRAINS * Math.max(...all16.grainPx)) / 8) * 8);
+  if (!(Number.isFinite(need) && need > 16)) return { all: { ...greyMapStats(all16, 16), grain_px_16: grain16 }, wall };
+  const all = fitGreyMap(speckleTiles(frames, geometry, { ...base, tile: need }), { scale: opts.scale });
+  return { all: { ...greyMapStats(all, need), grain_px_16: grain16 }, wall };
 }
 
 export interface SkippedClip {
@@ -285,7 +375,13 @@ export function clipStats(
   size: { width: number; height: number },
   fps: number | null,
   a: ClipAnalysis,
-  extra: { black: number; truncated: boolean; detector: ClipStats['detector'] },
+  extra: {
+    black: number;
+    truncated: boolean;
+    detector: ClipStats['detector'];
+    greyMap?: GreyMapStats | null;
+    greyMapWall?: GreyMapStats | null;
+  },
 ): AnalyzedClip {
   const perFrame = a.perFrame.map(flattenMetrics);
   const names = [...new Set(perFrame.flatMap((f) => Object.keys(f)))].sort();
@@ -327,6 +423,8 @@ export function clipStats(
       ),
       stack: stackScalars(a.stack),
       stack_censored: a.stack?.censored ?? {},
+      grey_map: extra.greyMap ?? null,
+      ...(extra.greyMapWall !== undefined ? { grey_map_wall: extra.greyMapWall } : {}),
     },
   };
 }
@@ -583,13 +681,20 @@ export function runReference(o: RunOptions): { status: 'no-dir' } | { status: 'o
         frameIntervalS: decoded.fps ? 1 / decoded.fps : null,
         maxFrames: 60,
       });
+      const maps = clipGreyMaps(decoded.frames, geometry, { scale, exclude, dPlPx: a.summary['dPl.px']?.median ?? Number.NaN });
       let detector: ClipStats['detector'] = null;
       try {
         detector = detectorAgreement(geometry, detectSector(decoded.frames, scale).geometry);
       } catch (e) {
         log(`${item.id}: el detector no propone geometría (${e instanceof Error ? e.message : String(e)})`);
       }
-      const c = clipStats(item, sha, decoded, decoded.fps, a, { black, truncated: decoded.truncated, detector });
+      const c = clipStats(item, sha, decoded, decoded.fps, a, {
+        black,
+        truncated: decoded.truncated,
+        detector,
+        greyMap: maps.all,
+        greyMapWall: maps.wall,
+      });
       clips.push(c);
       const fails = c.stats.gate_failures;
       log(

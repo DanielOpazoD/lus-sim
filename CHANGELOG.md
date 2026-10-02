@@ -137,6 +137,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   incompleto» en el registro), el aviso del modo M también cambia en el acto al empezar otra franja, la prueba de la pérdida
   espera los cuadros del renderizador nuevo y decodifica la captura en Node, «M móvil» se parte en dos y la e2e corre en ocho
   fragmentos. Medido en el CI sin reintentos: de 2/8 y 3/8 fallos a 0/8 y 0/16.
+- La medida en dB (31): el detector de líneas A busca cada orden en el perfil sin su tendencia de profundidad, con el ruido
+  correlado en el umbral de visibilidad (LUS-35f pasa a tener líneas A medidas; LUS-35v no: sus estrías tienen un periodo de
+  11 filas, no k veces la pleura), y cada clip lleva el mapa de grises estimado desde su moteado (`speckleMap.ts`,
+  `npm run fidelity:db`). La autoprueba en el simulador recupera c = 3,44–3,55 y 69,9–70,1 dB con un barrido de ganancia;
+  ningún clip del banco permite estimar su mapa (grano lateral de 2,1–4,8 px, asimetría en dB 0,55–1,18 en la pared frente a
+  1,57), y la región de la pared del simulador tampoco es moteado de Rayleigh (p90 − p50 de 8,0–9,2 dB frente a 5,21 en el
+  BLUE superior y el PLAPS).
 - El tronco con la profundidad del tórax (28): 320 × 226 mm de piel (ANSUR II, varones de IMC 18,5–25; en VExUS, 320 × 210), la
   columna atada a la piel de la espalda y la pared junto a la columna de 28 mm (Folli, Okçu; antes ≈ 21 en la paravertebral). La
   caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la

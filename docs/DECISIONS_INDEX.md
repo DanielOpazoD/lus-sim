@@ -34,3 +34,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [28](DECISIONS.md#L1949) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
 | [29](DECISIONS.md#L2084) | La espalda: el paciente sentado, la escápula y la columna | vigente |
 | [30](DECISIONS.md#L2245) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
+| [31](DECISIONS.md#L2323) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |

@@ -511,7 +511,8 @@ export function frameMetrics(
     P4: len(d - median(st.shadows.map((r) => r.ribTopPx))),
     A1: { errors: a1, max: a1.length ? Math.max(...a1) : Number.NaN, mean: mean(a1) },
     A2: {
-      ratios: st.aLines.map((p) => p.ratio),
+      // r_k solo de los órdenes visibles: el de uno que no se ve es la prominencia de un máximo de ruido (decisión 31)
+      ratios: st.aLines.map((p) => (p.k === 1 || p.visible ? p.ratio : Number.NaN)),
       slopeLn: slope(
         vis.map((p) => p.k),
         vis.map((p) => Math.log(p.ratio)),

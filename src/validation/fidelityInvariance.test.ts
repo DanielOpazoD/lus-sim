@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { analyzeClip, type ClipAnalysis } from '../measure/fidelity/metrics';
 import { detectSector, GREY_8BIT, type GreyFrame, type GreyScale, type SectorGeometry } from '../measure/fidelity/sector';
-import { build, caseArb, eightBitArb, invariants, mapInto, mismatches, type Case } from './support/fidelityCases';
+import { build, caseArb, eightBitArb, invariants, mapInto, mismatches, TOL_8BIT, type Case } from './support/fidelityCases';
 import { affineInside, syntheticGeometry, to8bit, type SyntheticLusOptions } from './support/syntheticLus';
 
 /**
@@ -29,39 +29,6 @@ const RUNS = Number(process.env.FIDELITY_RUNS ?? 200);
 const FC = { seed: 20260927, numRuns: RUNS, endOnFailure: process.env.FIDELITY_NO_SHRINK === '1' };
 /** Una escala que no recorta nada: la invariancia continua no pasa por la censura. */
 const WIDE: GreyScale = { lo: -100, hi: 100, quantum: 0 };
-
-/**
- * Tolerancia de 8 bits por métrica (relativa, o absoluta bajo 1). Entre paréntesis, el peor de 200 corridas (27-09-2026) con
- * la geometría dada y con la fijada desde el detector; la tolerancia deja ≈ 2–3×. Lo que más se mueve es lo que depende del
- * ruido del cuadro frente al escalón: S1 (σ temporal de 1,2 grises en el contraste más bajo, junto al escalón/√12) y la
- * anchura lateral del moteado (en columnas enteras); A2.visible puede ganar o perder la línea A que está en el umbral (y con
- * ella cambian A1 y la pendiente de A2, que se ajustan sobre las visibles).
- */
-export const TOL_8BIT: Record<string, number> = {
-  'dPl.px': 0.02, // (0,0003 / 0,0006): una fila sobre ≈ 50
-  shadows: 0,
-  'intercostal.columns': 0.08, // (0,024 / 0,024)
-  P1: 0.06, // (0,020 / 0,027)
-  'P2.px': 0.03, // (0,007 / 0,010)
-  'P4.px': 0.04, // (0,002 / 0,002): una fila sobre ≈ 25
-  'A1.max': 0.03, // (0,001 / 0,015)
-  'A2.slopeLn': 0.1, // (0,044 / 0,036)
-  'A2.visible': 0.5, // (0,33 / 0,5: una línea A en el umbral, con dos o más visibles)
-  'A2.r2': 0.012, // (0,005 / 0,005)
-  'A2.r3': 0.012, // (0,003 / 0,005)
-  'A2.r4': 0.012, // (0,004 / 0,004)
-  'T1.axial.px': 0.08, // (0,033 / 0,034)
-  'T1.lateral.px': 0.15, // (0,058 / 0,069)
-  'T1.sigmaOverProminence': 0.01, // (0,002 / 0,003)
-  'M.wall': 0.015, // (0,005 / 0,005)
-  'M.haze': 0.015, // (0,004 / 0,006)
-  'M.deep': 0.015, // (0,005 / 0,006)
-  N4: 0.04, // (0,011 / 0,016)
-  'T2.wall': 0.06, // (0,028 / 0,030)
-  'T2.subPleura': 0.05, // (0,023 / 0,021)
-  'S1.ratio': 0.25, // (0,131 / 0,069)
-  'S1.decorrelationFrames': 0.03, // (0,012 / 0,010)
-};
 
 /** Los cuadros de 8 bits de un contraste: el sector entero con `width` de ancho, en la posición `f` de su rango libre. */
 function shown(o: SyntheticLusOptions, frames: GreyFrame[], lo: number, hi: number, width: number, f: number): GreyFrame[] {
