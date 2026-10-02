@@ -149,6 +149,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- El deslizamiento en el vértice (corrección de la decisión 27): sigue nulo, como lo da la fuente. Lichtenstein 2017, leído en el
+  texto completo, lo describe «mínimo» en el punto BLUE superior y «habitualmente nulo» en el ápex; la decisión 27 y
+  `sliding-linear-height` decían lo contrario. Nuevas filas D5a y D5b en `physics.md` y una prueba que falla si el vértice
+  desliza.
 - El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
   pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
 - La e2e estable en el CI (30): el bucle ya no dibuja sobre un contexto WebGL perdido antes de su evento (quedaba «FBO
