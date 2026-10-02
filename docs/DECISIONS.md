@@ -2264,7 +2264,7 @@ alternadas en el mismo corredor, 12 medidas en 3 corredores) separan cuatro caus
    devolver, otros 19–41 s. La espera de 90 s se agotaba sin terminar una sola muestra.
 3. **El aviso del modo M esperaba al cuadro siguiente.** En el teléfono, con B + M, un cuadro tarda de 3 a 20 s en el CI.
    `#mmode-status` solo se escribía en `draw()`, y la espera de 15 s del aviso «Toca el sector…» se agotaba (5 de los 7
-   fallos). La prueba entera, además, pasaba en 2,7–4,0 min con un plazo de 4 (los otros 2).
+   fallos; lo arregla la decisión 29, PR #39, con la misma medida). La prueba entera, además, pasaba en 2,7–4,0 min con un plazo de 4 (los otros 2).
 4. **El reparto.** El fragmento 7/7 no juntaba las lentas (4,2–9,5 min); los más largos son el 2/7 y el 3/7 (10–11,9 min, las
    ventanas del banco de fidelidad). Playwright reparte por cuenta y en orden, sin mirar duraciones.
 
@@ -2282,10 +2282,10 @@ decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir 
 
 - `bindGpuLifecycle` (`src/ui/controllers/gpuLifecycle.ts`, portado de VExUS, ahora «adaptado»): `lost` pregunta también a
   `gl.isContextLost()`. Mejora para ofrecer de vuelta a VExUS.
-- `MModeView` (`src/ui/mMode.ts`): el aviso de estado lo escribe `showStatus()`, que llaman `draw()` y `setPlacing()`; colocar
-  o cancelar la línea, moverla o empezar otra franja lo cambia en el acto (congelar aún espera al cuadro siguiente, que con la
-  imagen congelada es barato). Al encender M, `clear()` va antes de `setPlacing(false)` para no mostrar la
-  franja anterior. La entrada crece 224 B (276 446 → 276 670 B): su presupuesto pasa de 270 a 271 kB.
+- `MModeView` (`src/ui/mMode.ts`): la decisión 29 (PR #39, en paralelo con esta) ya escribe el aviso en el acto al colocar o
+  cancelar la línea (`syncStatus`), con la misma causa medida aquí; esta añade la llamada en `clear()`, para que mover la
+  línea o empezar otra franja tampoco espere al cuadro siguiente (lo halló la revisión adversarial). Congelar aún espera al
+  cuadro siguiente, que con la imagen congelada es barato.
 - `e2e/smoke.spec.ts`: `screen()` decodifica la captura en Node (pngjs de Playwright, como `navegacion3d.spec.ts`), 0,02 s.
   La prueba de la pérdida espera dos cuadros del renderizador nuevo en su cine (`cineCount ≥ 2` de un renderizador distinto
   del perdido, 60 s) y luego la línea pleural en la pantalla, con los mismos 90 s: en las 12 medidas la primera captura tras
@@ -2296,17 +2296,26 @@ decodificar en Node, arreglar la carrera y el aviso en la aplicación, y partir 
 - `.github/workflows/ci.yml`: ocho fragmentos. Con 29 pruebas en siete, el segundo habría juntado tres ventanas del banco
   (≈ 13 min); con ocho, el reparto de las demás queda como estaba (el 2.º, 11,9 min en el corredor lento).
 
-**Consecuencias.** El alumno ve el aviso del modo M al tocar «Colocar línea» aunque su GPU sea lenta, y una pérdida del
+**Consecuencias.** El alumno ve el aviso del modo M al empezar otra franja aunque su GPU sea lenta, y una pérdida del
 contexto ya no deja un error espurio en el informe técnico. La e2e corre en ocho corredores (uno más) y cada «M móvil»
 tarda 1,1–2,8 min en el CI. Pendiente: el reparto por cuenta es frágil (cada prueba nueva lo desplaza; lo dice
 `docs/TESTING.md`; Playwright 1.63 lee pesos por fragmento de `PWTEST_SHARD_WEIGHTS`, una variable interna sin documentar que
-no se usa por eso), el 2.º fragmento sigue a ~12 min de 15 en el corredor lento, y el arranque de cada página bloquea el hilo
-principal mientras SwiftShader compila (en local, con cuatro trabajadores, la espera de 60 s a los ganchos de prueba se agotó
-una vez de seis); el primer cuadro podría no bloquear si el renderizador esperara `COMPLETION_STATUS_KHR`.
+no se usa por eso), y el 2.º fragmento sigue a ~12 min de 15 en el corredor lento.
+
+**El arranque bloqueado (la hipótesis de la decisión 29), medido.** En local, con una traza de Chrome del arranque y todas las
+llamadas de WebGL2 cronometradas: la primera evaluación de la prueba (`typeof window.__lusTest`) tardó 147–149 s, y en ese
+tiempo las llamadas de WebGL de la aplicación solo bloquearon 5 s (un `checkFramebufferStatus` que espera a la GPU; enlazar los
+17 programas, 0,1 s) y el hilo principal no ejecutó JavaScript. Lo que lo ocupa es una tarea de Chromium (el cierre de un
+widget, `RasterImplementation::Finish`) que espera a que el proceso de la GPU vacíe su cola, y el proceso de la GPU estaba en
+un único vaciado de WebGL de 148 s: SwiftShader ejecutando los primeros cuadros, donde compila cada canalización en su primer
+dibujo. No es la compilación del navegador (que `KHR_parallel_shader_compile` ya reparte; `linkAll` vuelve en 13–22 ms en el
+CI), así que esperar `COMPLETION_STATUS_KHR` con un estado de «compilando» no lo acortaría: el coste está en el primer dibujo de
+cada programa. En el CI, con un trabajador, ese primer cuadro llega a los 9–14 s del arranque (12 medidas), lejos de los 60 s de
+la espera a los ganchos; en local con la máquina cargada pasa del minuto. No se toca ningún plazo del arranque.
 
 **Verificación.** Con el código de main y sin reintentos, en el CI: 2 de 8 y 3 de 8 fallos; con este cambio, 0 de 8 (la
 pérdida) y 0 de 16 (las dos «M móvil»), y el CI completo de la PR en verde al primer intento. En local con un trabajador,
 0 de 6 antes y 0 de 9 después (la máquina no reproduce el CI); con cuatro trabajadores a la vez, 2 de 4 antes (la pérdida,
-plazo de 240 s agotado) y 1 de 6 después (el arranque, ver Pendiente). La carrera no tiene una prueba propia (no se puede forzar un cuadro
+plazo de 240 s agotado) y 1 de 6 después (el arranque: ver «El arranque bloqueado»). La carrera no tiene una prueba propia (no se puede forzar un cuadro
 entre la pérdida y su evento): la cubre la exigencia del registro de errores, que no trajo «FBO incompleto» en ninguna de las
 14 ejecuciones de la prueba con el cambio (9 en el CI: 8 repetidas y la del CI completo; 5 en local: 3 con un trabajador y 2 con cuatro).

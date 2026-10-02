@@ -43,7 +43,7 @@ const twoFrames = (page: Page) =>
  * encima, que son finos y grises). `max` es el gris más brillante (la línea pleural; el HUD y la regla no pasan de ~200) y
  * `lit`, la fracción de píxeles con gris > 40. lus-sim (decisión 20): con el preajuste pulmonar la línea pleural no satura
  * (consenso: Demi 2023) y queda a 1–2 dB del blanco, gris 243–249. La captura se decodifica en Node y no en la página
- * (decisión 29): en el CI, con la imagen en vivo, decodificarla en la página (una imagen y un lienzo 2D que la GPU de
+ * (decisión 30): en el CI, con la imagen en vivo, decodificarla en la página (una imagen y un lienzo 2D que la GPU de
  * SwiftShader, ocupada con los cuadros, tiene que devolver) tarda 19–41 s, y en Node 0,02 s.
  */
 async function screen(page: Page): Promise<{ max: number; lit: number; mean: number; png: string }> {
@@ -213,7 +213,7 @@ test('«Restablecer paciente» vuelve a la respiración de su definición y el i
 test('sobrevive a la pérdida del contexto WebGL, también con la imagen congelada: avisa, se recupera en vivo y el reloj sigue', async ({
   page,
 }) => {
-  // Decisión 29: se esperan hechos (el renderizador nuevo dibujó sus cuadros) y no un plazo para la pantalla. Medido en el
+  // Decisión 30: se esperan hechos (el renderizador nuevo dibujó sus cuadros) y no un plazo para la pantalla. Medido en el
   // CI (PR #38, 12 medidas en 3 corredores): el renderizador nuevo se arma en 13–22 ms y dibuja su primer cuadro a los 3,4–6,7 s
   // de restaurar el contexto; lo lento era mirar: con la imagen en vivo, una captura del lienzo tarda 26–42 s y decodificarla en
   // la página otros 19–41 s, y la espera de 90 s se agotaba sin terminar una sola muestra.

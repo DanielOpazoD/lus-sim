@@ -18,7 +18,7 @@ la salida actual no protege nada.
 ## La e2e en el CI
 
 - **Ocho fragmentos en paralelo, un trabajador cada uno** (`.github/workflows/ci.yml`, `playwright.config.ts`; PR #32,
-  decisión 29). Las 29 pruebas se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
+  decisión 30). Las 29 pruebas se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
   da a cada fragmento ⌊29/8⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Al añadir o quitar una
   prueba, mirar qué fragmento recibe las ventanas del banco de fidelidad (≈ 4 min cada una en el CI): con 29 en siete, el
   segundo juntaba tres y se acercaba a los 15 min. El agregador `check`
@@ -33,7 +33,7 @@ la salida actual no protege nada.
 - **Los plazos se miden con un trabajador.** Un plazo nuevo se justifica con lo medido en el CI, no en local. Los corredores
   no son iguales (AMD EPYC 7763, 9V45 y 9V74; Intel Xeon 8370C, 8573C y 6973P, con 4 vCPU): la misma prueba tarda hasta 2,5
   veces más en uno que en otro, y el margen se mide en el lento.
-- **Se esperan hechos, no plazos** (decisión 29). Con SwiftShader en el CI la aplicación dibuja un cuadro cada 1–20 s (B + M
+- **Se esperan hechos, no plazos** (decisiones 29 y 30). Con SwiftShader en el CI la aplicación dibuja un cuadro cada 1–20 s (B + M
   en el teléfono, el peor caso) y cada clic de Playwright espera un par de cuadros: lo que la prueba comprueba se espera
   por lo que la aplicación dice que hizo (los cuadros del renderizador nuevo en el cine, la columna M), y lo que la
   interfaz muestra en respuesta a un gesto se escribe en el acto, no en el cuadro siguiente.

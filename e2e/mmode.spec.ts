@@ -90,7 +90,7 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
 /**
  * Un teléfono (390 × 844, táctil). Las dos pruebas «M móvil» eran una sola: con SwiftShader cada cuadro con B + M tarda de
  * 3 a 20 s en el CI y cada clic espera un par de cuadros, y la prueba entera pasaba en 2,7–4,0 min con un plazo de 4 min
- * (decisión 29). Partida en dos, cada una arranca su página y conserva todas sus comprobaciones.
+ * (decisión 30). Partida en dos, cada una arranca su página y conserva todas sus comprobaciones.
  */
 async function onPhone(browser: Browser, info: TestInfo, body: (page: Page, errors: string[]) => Promise<void>): Promise<void> {
   const context = await browser.newContext({ baseURL: info.project.use.baseURL, viewport: { width: 390, height: 844 }, hasTouch: true });
