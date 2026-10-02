@@ -50,6 +50,8 @@ jobs:
   # CI87 agotó 15 min en 2/5: concentraba las tres ventanas de fidelidad, calibración y ganancia.
   # Siete fragmentos reparten las 28 pruebas; CI99 agotó dos veces el plazo al agrupar todo el banco de fidelidad.
   # Ocho para 29 (decisión 30): Playwright reparte por cuenta, y con 29 en siete el 2.º juntaba tres ventanas del banco.
+  # Nueve para 33 (decisión 33): con la prueba de la espalda, el 2.º de ocho juntaba la calibración del PLAPS y las tres
+  # ventanas del banco y agotó los 15 min (cancelado en la cuarta, a 15,3); con nueve, el 2.º y el 3.º son los de main.
   # El denominador del comando sale de la matriz; `check` sigue exigiendo toda la matriz.
   e2e:
     name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/${{ strategy.job-total }}
@@ -58,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

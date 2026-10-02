@@ -60,6 +60,8 @@ export class SimulationSession {
       }
       return e;
     }
+    // lus-sim (decisión 33): la posición del paciente se conserva, como la ubicación de la sonda
+    next.patient.position = prev.patient.position;
     next.setPose(prev.pose);
     next.equipment = this.equipment.state;
     next.frozen = prev.frozen;

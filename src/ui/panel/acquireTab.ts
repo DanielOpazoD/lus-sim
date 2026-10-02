@@ -1,5 +1,5 @@
 import type { RespiratoryPattern } from '../../physiology/patientState';
-import type { ProbePose } from '../../probe/probe';
+import type { PatientPosition, ProbePose } from '../../probe/probe';
 import { button, note, row, slider, type SliderSpec } from '../controls';
 import type { PanelContext } from './context';
 import { buildImageAdvanced, IMAGE_ADVANCED_INFO } from './imageControls';
@@ -7,6 +7,8 @@ import { buildImageAdvanced, IMAGE_ADVANCED_INFO } from './imageControls';
 /** Ajustes contextuales: maniobras, orientación fina y procesamiento avanzado. */
 export interface AcquireActions {
   setPose: (p: ProbePose) => void;
+  /** lus-sim (decisión 33): sentar o tumbar al paciente. */
+  setPosition: (position: PatientPosition) => void;
   onResetPatient: () => void;
 }
 
@@ -14,6 +16,21 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
   const s = ctx.sim;
   const pose = () => (ctx.store.get().frozen ? s().displayedAcquisition.pose : s().pose);
   const move = (patch: Partial<ProbePose>) => actions.setPose({ ...s().pose, ...patch });
+  // lus-sim (decisión 33): la posición del paciente; sentado se explora la espalda
+  const patient = ctx.section(p, 'Paciente', {
+    info: 'En supino la sonda llega hasta por detrás de la línea axilar posterior (el PLAPS). Sentado, a toda la espalda.',
+  });
+  const position = ctx.segmented<PatientPosition>(
+    patient,
+    [
+      ['supine', 'Supino'],
+      ['sitting', 'Sentado'],
+    ],
+    // congelada, la del cuadro mostrado (como la maniobra)
+    () => (ctx.store.get().frozen ? s().displayedAcquisition.position : (s().patient.position ?? 'supine')),
+    (v) => actions.setPosition(v),
+  );
+  position.setAttribute('aria-label', 'Posición del paciente');
   const resp = ctx.section(p, 'Respiración', {
     info: 'Las maniobras cambian la respiración del paciente sintético. En apnea no hay deslizamiento respiratorio.',
   });
@@ -35,7 +52,10 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
   maneuvers.classList.add('grid2');
   maneuvers.setAttribute('aria-label', 'Maniobra respiratoria');
   ctx.track(button(row(resp), 'Restablecer paciente', actions.onResetPatient));
-  note(resp, 'Restablece la respiración y borra el cine. Conserva la ubicación de la sonda y los ajustes del equipo.');
+  note(
+    resp,
+    'Restablece la respiración y borra el cine. Conserva la ubicación de la sonda, la posición del paciente y los ajustes del equipo.',
+  );
 
   const probe = ctx.section(p, 'Sonda', {
     collapsed: true,

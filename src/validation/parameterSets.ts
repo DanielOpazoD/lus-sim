@@ -1,5 +1,5 @@
 import type { ParameterSet } from '../core/evidence';
-import { START_POINT_POSES } from '../app/startPoints';
+import { POSTERIOR_START_POSES, START_POINT_POSES } from '../app/startPoints';
 import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LUNG_PULSE } from '../anatomy/organs/lungPulse';
@@ -41,6 +41,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,
+  POSTERIOR_START_POSES,
   LUNG_PRESET,
   TGC_REFERENCE,
   BONE_TRANSMISSION,

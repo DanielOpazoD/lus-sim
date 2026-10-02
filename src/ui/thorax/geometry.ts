@@ -1,9 +1,17 @@
 import type { AnatomyScene } from '../../anatomy/scene';
 import { ribMetric, ribTableZ } from '../../anatomy/organs/ribcage';
-import { wallArc, wallTotalMm } from '../../anatomy/organs/wall';
+import { wallArc, wallPerimeter, wallTotalMm } from '../../anatomy/organs/wall';
 import { torsoSkinPoint, type Torso } from '../../anatomy/primitives';
 import { add, cross, normalize, scale, type Vec3 } from '../../core/vec3';
-import { clampPose, defaultPose, pointOnLine, type ProbeFrame, type ProbePose, type Transducer } from '../../probe/probe';
+import {
+  clampPose,
+  defaultPose,
+  pointOnLine,
+  type PatientPosition,
+  type ProbeFrame,
+  type ProbePose,
+  type Transducer,
+} from '../../probe/probe';
 
 /** Adaptador único: paciente (izquierda, anterior, craneal; mm) → visor (izquierda, arriba, frente; m).
  * El intercambio y/z invierte la orientación: el tercer eje de la sonda se reconstruye con cross.
@@ -14,17 +22,30 @@ export const viewToPatient = (p: Vec3): Vec3 => [p[0] * 1000, p[2] * 1000, p[1] 
 
 const minimum = clampPose({ ...defaultPose(), phi: -Infinity, z: -Infinity });
 const maximum = clampPose({ ...defaultPose(), phi: Infinity, z: Infinity });
+/** El alcance en supino (el de siempre); la altura es la misma sentado. */
 export const SCAN_LIMITS = { phiMin: minimum.phi, phiMax: maximum.phi, zMin: minimum.z, zMax: maximum.z } as const;
 
-/** La inversa de atan2 debe desenvolver π: PLAPS derecho 1,15π vuelve como −0,85π.
- * Fuera del arco alcanzable en supino se rechaza el punto; no se salta al borde contrario.
+/**
+ * El arco de φ que alcanza la sonda con el paciente en `position` (lus-sim, decisión 33): en supino, de −0,2π a 1,2π; sentado,
+ * toda la vuelta (la línea media posterior es el corte, −π/2 ≡ 3π/2).
  */
-export function surfacePose(point: Vec3, torso: Torso, previous: ProbePose): ProbePose | null {
+export function scanArc(position: PatientPosition): { phiMin: number; phiMax: number } {
+  return position === 'sitting'
+    ? { phiMin: -Math.PI / 2, phiMax: (3 * Math.PI) / 2 }
+    : { phiMin: SCAN_LIMITS.phiMin, phiMax: SCAN_LIMITS.phiMax };
+}
+
+/** La inversa de atan2 debe desenvolver π: PLAPS derecho 1,15π vuelve como −0,85π.
+ * Fuera del arco alcanzable en la posición del paciente se rechaza el punto; no se salta al borde contrario. Sentado
+ * (decisión 33), toda la espalda.
+ */
+export function surfacePose(point: Vec3, torso: Torso, previous: ProbePose, position: PatientPosition = 'supine'): ProbePose | null {
   if (!point.every(Number.isFinite)) return null;
   const raw = Math.atan2(point[1] / torso.b, point[0] / torso.a);
-  const phi = [raw, raw + 2 * Math.PI, raw - 2 * Math.PI].find((p) => p >= SCAN_LIMITS.phiMin - 1e-9 && p <= SCAN_LIMITS.phiMax + 1e-9);
+  const arc = scanArc(position);
+  const phi = [raw, raw + 2 * Math.PI, raw - 2 * Math.PI].find((p) => p >= arc.phiMin - 1e-9 && p <= arc.phiMax + 1e-9);
   if (phi === undefined || point[2] < SCAN_LIMITS.zMin - 1e-6 || point[2] > SCAN_LIMITS.zMax + 1e-6) return null;
-  return clampPose({ ...previous, phi, z: point[2] });
+  return clampPose({ ...previous, phi, z: point[2] }, position);
 }
 
 /** Base visual ortonormal: +x hacia el marcador, +y por el mango hacia fuera del paciente. */
@@ -47,9 +68,16 @@ export function housingMarkerPoint(frame: ProbeFrame, tr: Transducer): Vec3 {
 }
 
 /** Paso de interfaz en mm de arco, independiente del ancho de pantalla y del lado de cámara. */
-export function nudgePose(pose: ProbePose, torso: Torso, aroundMm = 0, cranialMm = 0, yawRad = 0): ProbePose {
+export function nudgePose(
+  pose: ProbePose,
+  torso: Torso,
+  aroundMm = 0,
+  cranialMm = 0,
+  yawRad = 0,
+  position: PatientPosition = 'supine',
+): ProbePose {
   const radius = Math.hypot(torso.a * Math.sin(pose.phi), torso.b * Math.cos(pose.phi));
-  return clampPose({ ...pose, phi: pose.phi + aroundMm / radius, z: pose.z + cranialMm, yaw: pose.yaw + yawRad });
+  return clampPose({ ...pose, phi: pose.phi + aroundMm / radius, z: pose.z + cranialMm, yaw: pose.yaw + yawRad }, position);
 }
 
 export interface MeshData {
@@ -147,6 +175,84 @@ export function ribMesh(scene: AnatomyScene, index: number, rings = 72, sides = 
       }
     }
   }
+  return { positions, indices };
+}
+
+/** El punto bajo `skin`, por la radial, a la profundidad `depth` de la clasificación (la métrica de la parrilla, como `ribMesh`). */
+function atDepth(skin: Vec3, depth: number, torso: Torso): Vec3 {
+  const r = Math.hypot(skin[0], skin[1]);
+  let p = skin;
+  for (let k = 0; k < 8; k++) {
+    const d = ribMetric(p, torso) * depth;
+    p = [skin[0] * (1 - d / r), skin[1] * (1 - d / r), skin[2]];
+  }
+  return p;
+}
+
+/**
+ * La clavícula en REPOSO (lus-sim, decisión 33), del modelo de la parrilla (`anatomy.clavicle`): un tubo de su radio a lo largo de
+ * la piel, con el eje a su profundidad bajo ella por la normal y subiendo hacia el extremo acromial. Un lado: −1 derecho, 1 izquierdo.
+ */
+export function clavicleMesh(scene: AnatomyScene, side: -1 | 1, rings = 40, sides = 10): MeshData {
+  const { torso, ribCage: cage } = scene;
+  const c = cage.clavicle;
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i <= rings; i++) {
+    const f = i / rings;
+    const u = c.u0 + (c.u1 - c.u0) * f;
+    const phiLeft = phiAtArc(u, torso);
+    const phi = side < 0 ? Math.PI - phiLeft : phiLeft;
+    const zAxis = c.z0 + c.rise * f;
+    for (let j = 0; j < sides; j++) {
+      const theta = (j / sides) * 2 * Math.PI;
+      const z = zAxis + c.radius * Math.sin(theta);
+      positions.push(...patientToView(atDepth(torsoSkinPoint(phi, z, torso), c.depth + c.radius * Math.cos(theta), torso)));
+      if (i < rings) {
+        const a = i * sides + j;
+        const b = i * sides + ((j + 1) % sides);
+        indices.push(a, b, a + sides, b, b + sides, a + sides);
+      }
+    }
+  }
+  return { positions, indices };
+}
+
+/**
+ * La escápula en REPOSO (lus-sim, decisión 33), la lámina del modelo (`anatomy.scapula`): su triángulo en (s, z) —s, la distancia a
+ * la línea media posterior por la piel a la profundidad de la mitad de la lámina— a esa profundidad, en una rejilla. Un lado.
+ */
+export function scapulaMesh(scene: AnatomyScene, side: -1 | 1, steps = 16): MeshData {
+  const { torso, ribCage: cage } = scene;
+  const sc = cage.scapula;
+  const half = 0.5 * wallPerimeter(torso);
+  const depth = sc.depth + 0.5 * sc.thickness;
+  const positions: number[] = [];
+  const indices: number[] = [];
+  // el triángulo en coordenadas baricéntricas: filas del ángulo inferior al borde superior
+  const [a, b, c] = [sc.inferior, sc.superior, sc.glenoid];
+  for (let i = 0; i <= steps; i++)
+    for (let j = 0; j <= steps - i; j++) {
+      const wb = i / steps;
+      const wc = j / steps;
+      const wa = 1 - wb - wc;
+      const s = wa * a[0] + wb * b[0] + wc * c[0];
+      const z = wa * a[1] + wb * b[1] + wc * c[1];
+      // la piel de arco u = mitad del perímetro − s (el de la radial: el de la clasificación) y, por la radial, la profundidad
+      const phiLeft = phiAtArc(half - s, torso);
+      const phi = side < 0 ? Math.PI - phiLeft : phiLeft;
+      positions.push(...patientToView(atDepth(torsoSkinPoint(phi, z, torso), depth, torso)));
+    }
+  const index = (i: number, j: number) => {
+    let k = 0;
+    for (let r = 0; r < i; r++) k += steps - r + 1;
+    return k + j;
+  };
+  for (let i = 0; i < steps; i++)
+    for (let j = 0; j < steps - i; j++) {
+      indices.push(index(i, j), index(i + 1, j), index(i, j + 1));
+      if (j < steps - i - 1) indices.push(index(i + 1, j), index(i + 1, j + 1), index(i, j + 1));
+    }
   return { positions, indices };
 }
 

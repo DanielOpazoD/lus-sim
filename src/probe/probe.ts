@@ -169,6 +169,8 @@ export const PATIENT_POSITIONS: readonly PatientPosition[] = ['supine', 'sitting
 /** φ llevado a [−π/2, 3π/2): la línea media posterior es el corte (sentado, la sonda la cruza dando la vuelta). */
 function wrapPhi(phi: number): number {
   const turn = 2 * Math.PI;
+  // idempotente dentro de la vuelta (decisión 33): sin la deriva de un ulp por cuadro que deja el módulo
+  if (phi >= -Math.PI / 2 && phi < 1.5 * Math.PI) return phi;
   return ((((phi + Math.PI / 2) % turn) + turn) % turn) - Math.PI / 2;
 }
 

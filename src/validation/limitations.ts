@@ -17,6 +17,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'spine-arch-slab',
   'patient-position-anatomy',
   'chest-wall-regional-approx',
+  'chest-wall-height-transition',
   'wall-generic-layers',
   'heart-simplified',
   'lung-border-table',
@@ -34,6 +35,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'rib-acoustics-simplified',
   'speckle-statistics-uncalibrated',
   'display-uncalibrated',
+  'frame-cost-timing-sync',
   'no-sidelobes',
   'harmonic-simplified',
 ]);

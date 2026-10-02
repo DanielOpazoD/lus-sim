@@ -117,6 +117,81 @@ test('navegador 3D: botones, arrastre sobre el tórax, orientación y cámara in
   expect(errors).toEqual([]);
 });
 
+test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre y con las tarjetas posteriores', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = await boot(page);
+  const navigator = page.locator('#thorax-navigator');
+  const caption = navigator.locator('.thorax-caption');
+  await navigator.getByRole('button', { name: 'Mover', exact: true }).click();
+  // En supino, la espalda no se alcanza: la sonda se queda y el pie dice cómo llegar
+  await navigator.getByRole('button', { name: 'Posterior', exact: true }).click();
+  await twoFrames(page);
+  const supine = await pose(page);
+  let box = await canvasBox(page);
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.45);
+  await twoFrames(page);
+  expect(await pose(page)).toEqual(supine);
+  await expect(caption).toContainText('sienta al paciente');
+
+  // Sentado desde los ajustes: el mismo arrastre recorre la espalda y cruza la línea media
+  await page.locator('#settings-toggle').click();
+  await page.getByRole('button', { name: 'Sentado', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  expect(await page.evaluate(() => window.__lusTest!.sim().patient.position)).toBe('sitting');
+  // el pie y la ayuda cambian con la posición, sin mover la sonda (el aviso de supino ya no vale)
+  await expect(caption).toContainText('sentado');
+  await expect(caption).not.toContainText('sienta al paciente');
+  await expect(navigator).toContainText('también por la espalda');
+  box = await canvasBox(page);
+  // (medido con la GPU real a 1440 × 900: de −0,30π, por la línea media, a 1,36π, a z ≈ 50 mm)
+  const x0 = box.x + box.width * 0.4;
+  const y = box.y + box.height * 0.6;
+  await page.mouse.move(x0, y);
+  await page.mouse.down();
+  const first = await pose(page);
+  // por detrás de la axilar posterior (fuera del arco del supino, de −0,2π a 1,2π)
+  expect(first.phi < -0.2 * Math.PI || first.phi > 1.2 * Math.PI, JSON.stringify(first)).toBe(true);
+  await page.mouse.move(x0 + box.width * 0.15, y, { steps: 6 });
+  await page.mouse.up();
+  const last = await pose(page);
+  expect(last.phi < -0.2 * Math.PI || last.phi > 1.2 * Math.PI, JSON.stringify(last)).toBe(true);
+  // de un lado de la línea media posterior al otro
+  expect(Math.sign(Math.cos(last.phi)), JSON.stringify({ first, last })).toBe(-Math.sign(Math.cos(first.phi)));
+  await expect(caption).toContainText('posterior · sentado');
+
+  // Cada tarjeta posterior lleva la sonda a su punto (animada) y queda como ventana actual
+  // (la paravertebral derecha, π + acos(60/160), y las alturas de `app.posteriorStartPoses`)
+  const PV = Math.PI + Math.acos(60 / 160);
+  for (const [id, z] of [
+    ['posteriorUpper', 138.5],
+    ['posteriorMiddle', 18.4],
+    ['posteriorBasal', -30.8],
+  ] as const) {
+    const card = page.locator(`[data-start-point="${id}"]`);
+    await card.click();
+    await expect.poll(async () => Math.abs((await pose(page)).phi - PV), { timeout: 60_000 }).toBeLessThan(0.003);
+    await expect.poll(async () => Math.abs((await pose(page)).z - z), { timeout: 60_000 }).toBeLessThan(0.5);
+    await expect(card).toHaveAttribute('aria-current', 'true');
+  }
+
+  // «Restablecer paciente» conserva la posición y la sonda en la espalda
+  const atBasal = await pose(page);
+  await page.locator('#settings-toggle').click();
+  await page.getByRole('button', { name: 'Restablecer paciente', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  expect(await page.evaluate(() => window.__lusTest!.sim().patient.position)).toBe('sitting');
+  expect((await pose(page)).phi).toBeCloseTo(atBasal.phi, 8);
+
+  // Volver a supino deja la sonda en el borde de la cama (1,2π), no en la espalda
+  await page.locator('#settings-toggle').click();
+  await page.getByRole('button', { name: 'Supino', exact: true }).click();
+  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  await expect.poll(async () => (await pose(page)).phi).toBeCloseTo(1.2 * Math.PI, 8);
+  expect(errors).toEqual([]);
+});
+
 test('navegador 3D: adquisición con contexto perdido y recuperación, con inyección en pausa', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);

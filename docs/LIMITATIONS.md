@@ -9,16 +9,18 @@ conservan su identificador (decisiones 10 y 11).
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
   sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
-  sin casos patológicos ni modo docente/examen. Los puntos BLUE son referencias aproximadas derechas, no posiciones
+  sin casos patológicos ni modo docente/examen. Los puntos de partida (los BLUE, el PLAPS y, desde la decisión 33, los tres
+  paravertebrales) son del hemitórax derecho: la izquierda se explora arrastrando, sin tarjetas. Los puntos BLUE son referencias aproximadas derechas, no posiciones
   anatómicas universales ni una garantía de obtener la ventana correcta. Cambiar la profundidad inicia un
   cine nuevo para evitar mezclar persistencia entre escalas polares distintas; no hay revisión continua
   entre profundidades diferentes.
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
   el motor, con las simplificaciones de `thorax-cylindrical-cage`. No es un atlas segmentado ni amplía la cobertura
-  posterior permitida por la pose. Desde la decisión 25, un maniquí procedural añade cabeza, hombros,
+  posterior permitida por la posición del paciente (decisión 33: sentado, toda la espalda). Desde la decisión 25, un maniquí procedural añade cabeza, hombros,
   brazos y terminación abdominal no explorables. La piel funcional conserva la elipse acústica y muestra
   el contacto del cuadro por la deformación existente; entre vértices es una aproximación teselada.
-  Las costillas opcionales permanecen como guía en reposo. La carcasa y cable son contexto de interfaz,
+  Las costillas opcionales permanecen como guía en reposo (desde la decisión 33, con las clavículas y las escápulas del
+  modelo, de otro tono). La carcasa y cable son contexto de interfaz,
   no nuevos transductores ni una simulación mecánica del cable. La lente y el plano se calculan con la
   geometría activa y el marco efectivo de la adquisición. La cuerda activa derivada es 67,10 mm frente
   al ancho nominal de 62 mm: se documenta, no se concilia cambiando la física por estética.
@@ -65,6 +67,17 @@ conservan su identificador (decisiones 10 y 11).
   más fino por dentro de la escápula en la TAC en supino), la misma de la paravertebral a la línea media, en un solo músculo (sin
   trapecio, romboides ni erectores por separado; sus grosores en sanos, NO ENCONTRADO) y el paso a la pared del abdomen en 100 mm bajo el reborde costal [SUPUESTO]. La variante de
   mujer no tiene la sección costal 20–35 % menor ni la caja más pequeña de la base.
+- **La pared alta de la espalda sube de golpe y a la altura de la axila** (`chest-wall-height-transition`, decisiones 29 y 33):
+  la espalda alta (32 mm junto a la columna, 20 en la infraescapular) pasa a la baja (28 y 16) con la transición en altura de
+  las capas altas de la axila, del centro del EIC5 a la 4.ª costilla de la LAM (z 41,8 a 85,8 en el avatar: 44 mm, con un
+  `smoothstep`, cuya pendiente máxima es 1,5 veces la media), a la misma z en toda la vuelta. Detrás no tiene fuente: en Wada y
+  cols. la pared baja 7 mm de la 5.ª a la 8.ª costilla (27 → 20 mm de piel a costilla junto al borde medial de la escápula),
+  unos 70 mm de altura en la paravertebral (≈ 0,1 mm por mm). Con el modelo, 4 mm (32 frente a 28) en 44 mm dan 0,09 de media y
+  0,14 en el centro; 7 mm (35, el valor de Wada más el complejo pleural según Okçu) dan 0,16 y 0,24, y la pleura bajo la 7.ª y la
+  8.ª costilla de la paravertebral se inclina tanto que F-T08 deja un lado a 8,2 mm de la cresta (meta: 4–6). Por eso la
+  espalda alta se queda en 32 y no en 35: lo fija la forma de la transición del modelo, no la anatomía. Una transición propia de
+  la espalda, que baje con la parrilla de la 5.ª a la 8.ª costilla, la quitaría (y con ella, quizá, los 20 mm de la
+  infraescapular, que fija el detector del banco de fidelidad en el PLAPS).
 - **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
   texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
@@ -146,7 +159,10 @@ conservan su identificador (decisiones 10 y 11).
   TAC sentada que en la de supino, Yamada y cols.) y el diafragma baja (en supino queda más craneal, Traser y cols., RM
   dinámica de 3 cantantes); cuánto baja el borde posterior del pulmón, NO ENCONTRADO. La pared de la espalda no cambia en
   la ecografía sentado frente a en prono (Wada y cols., 18 varones). La escápula, de pie según Cooperstein; sentado, NO
-  ENCONTRADO como comparación directa.
+  ENCONTRADO como comparación directa. En la interfaz (decisión 33) la posición se elige en Ajustes → Paciente o con las
+  tarjetas de la espalda, que sientan al paciente; el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
+  a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda. La animación hacia una tarjeta
+  recorre φ en línea recta: sentado, de la espalda izquierda a la derecha pasa por delante, no por la línea media posterior.
 - **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
   defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
   vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
@@ -174,8 +190,8 @@ conservan su identificador (decisiones 10 y 11).
   que no respira, baja menos que la excursión (con 53 mm): la derecha, entera junto a la axilar y el 52 % en su vértice; la
   izquierda, el 35 % junto a la axilar y el 4 % en su vértice, cuando la base da la misma a los dos lados (meta pendiente en
   `respiratoryField.test.ts`); junto a la pared del flanco, el 66 %. La excursión es la del avatar en supino y no depende del
-  hábito del abdomen; la mujer, 47 mm en la profunda y la misma tranquila. La inversa (mundo → material) es exacta a 0,026 mm
-  en el punto material (en el mundo, ≤ 0,068): una bisección de 10 pasos en la vertical.
+  hábito del abdomen; la mujer, 47 mm en la profunda y la misma tranquila. La inversa (mundo → material) es exacta a 0,0065 mm
+  en el punto material (en el mundo, ≤ 0,017): una bisección de 12 pasos en la vertical (10 hasta la decisión 33).
 - **El deslizamiento es una traslación caudal, lineal con la altura** (`sliding-linear-height`, decisión 19): el pulmón bajo
   la pleura baja lo que el borde de su columna (sin pasar de la reflexión) hasta 15,5 mm sobre él y menos hacia arriba, en la
   recta que da el cociente de Briganti entre el EIC2 de la LMC y la base (0,42), y se apaga ≈ 147 mm sobre la base (138 en la mujer). En la
@@ -263,6 +279,12 @@ conservan su identificador (decisiones 10 y 11).
   parches en las vistas del banco. El mapa de grises de los clips no se puede estimar desde su moteado (grano lateral de
   2,1–4,8 px, asimetría en dB 0,55–1,18 en la pared, recomprimidos), así que la comparación de la dispersión del moteado en
   dB queda pendiente.
+- **El costo por cuadro puede medirse bajo** (`frame-cost-timing-sync`, decisión 33): `frameCostMs` espera a la GPU con
+  `finishForTiming` (`ultrasound/renderer.ts`), que lee un píxel con `readPixels` RGBA/UNSIGNED_BYTE del framebuffer ligado en
+  ese momento. Si es uno de coma flotante, la combinación no es válida: en la GPU real (Metal, M4) cada medida deja un aviso
+  `GL_INVALID_OPERATION` y la lectura fallida podría no esperar a que acabe lo encolado, así que los milisegundos pueden salir
+  bajos y O6 (≥ 30 FPS) medirse mal (sin medir aún cuánto). Arreglo pendiente en una PR aparte (leer del framebuffer de la
+  pantalla, o una consulta de tiempo).
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;

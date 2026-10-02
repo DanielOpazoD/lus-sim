@@ -15,6 +15,10 @@ const CARD_SUB: Record<StartPointId, string> = {
   blueUpper: 'Anterior',
   blueLower: 'Anterolateral',
   plaps: 'Posterolateral',
+  // lus-sim (decisión 33): la espalda, sentado
+  posteriorUpper: 'Posterior · sentado',
+  posteriorMiddle: 'Posterior · sentado',
+  posteriorBasal: 'Posterior · sentado',
 };
 
 /**

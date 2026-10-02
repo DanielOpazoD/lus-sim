@@ -7,6 +7,16 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- La espalda en el navegador (33): sentar al paciente desde Ajustes → Paciente (Supino/Sentado); sentado, el arrastre en el 3D y
+  los botones finos recorren toda la espalda y cruzan la línea media posterior; en supino, el pie del navegador dice cómo
+  llegar. Tres tarjetas nuevas, las áreas paravertebrales derechas de Soldati (superior, en el EIC3, a la altura de la espina de
+  la escápula; media, en el EIC8, la del ángulo inferior; basal, en el EIC10, sobre la cortina), que sientan al paciente. Las
+  clavículas y las escápulas del modelo, con las costillas («Costillas»), de otro tono. Nueva limitación
+  `chest-wall-height-transition` (por qué la espalda alta es de 32 mm y no de 35). El cine guarda la posición del paciente de
+  cada cuadro. La inversa del campo respiratorio pasa de 10 a 12 pasos (la equivalencia TS ↔ GLSL del diafragma en el plano
+  basal de la espalda, en la inspiración profunda, salía 0,023 mm de su cota de 0,02; sin costo medible). Cobertura de
+  exploración: 106 de 138 (sin cambios).
+
 - El pulso pulmonar (32): en apnea, el pulmón junto al corazón se desliza con el latido del reloj único (la fracción del volumen
   latido expulsada, máxima en la telesístole). Sigue a la cara del corazón por su normal, con la amplitud del borde del pulmón
   junto a cada ventrículo por TAC (Hsu 2017: 7,4 mm el izquierdo, 2,7 el derecho), que decae hasta 0 a 40 mm del corazón
