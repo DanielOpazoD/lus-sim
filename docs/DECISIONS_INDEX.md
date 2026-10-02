@@ -31,9 +31,9 @@ Generado por `npm run docs:index` — no editar a mano.
 | [25](DECISIONS.md#L1771) | Maniquí humano procedural y sonda convexa registrada | vigente |
 | [26](DECISIONS.md#L1800) | La cobertura de exploración: una prueba por celda del tórax | vigente |
 | [27](DECISIONS.md#L1872) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
-| [28](DECISIONS.md#L1959) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
-| [29](DECISIONS.md#L2094) | La espalda: el paciente sentado, la escápula y la columna | vigente |
-| [30](DECISIONS.md#L2266) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
-| [31](DECISIONS.md#L2344) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
-| [32](DECISIONS.md#L2485) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
-| [33](DECISIONS.md#L2596) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
+| [28](DECISIONS.md#L1961) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
+| [29](DECISIONS.md#L2096) | La espalda: el paciente sentado, la escápula y la columna | vigente |
+| [30](DECISIONS.md#L2268) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
+| [31](DECISIONS.md#L2346) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
+| [32](DECISIONS.md#L2487) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
+| [33](DECISIONS.md#L2598) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |

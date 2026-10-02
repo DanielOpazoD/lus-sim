@@ -12,7 +12,7 @@ import {
   spinousTipZ,
 } from '../anatomy/organs/ribcage';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
-import { SITTING_REACH, probeCenterContent } from '../app/coverage';
+import { SITTING_REACH, apexMaxZ, clavicleTopZ, probeCenterContent } from '../app/coverage';
 import { torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
@@ -1045,6 +1045,28 @@ describe('F-T12: deslizamiento por región (paso C4, decisión 19)', () => {
         // y se apaga arriba (Lichtenstein: «habitualmente nulo» en el vértice)
         expect(prev, l).toBe(0);
       }
+  });
+
+  it('D5a: en el punto BLUE superior desliza, menos que en la base, y en el vértice y la fosa supraclavicular no (Lichtenstein 2017)', () => {
+    // Lichtenstein 2017 (Fig. 3): «minimal at the upper BLUE-point and usually null at the apex» (el cociente BLUE superior/base
+    // lo fija F-T12). La decisión 27 lo citó al revés; esta prueba fija lo que dice la fuente: si el vértice desliza, falla
+    const blueUpper = pleuraAt(longitudinalPose(LMC, intercostalZ(scene, 2, LMC)));
+    const base = pleuraAt(longitudinalPose(LAM, intercostalZ(scene, 7, LAM)));
+    for (const exc of [quiet, deep]) {
+      expect(slide(blueUpper, exc), `BLUE superior, excursión ${exc}`).toBeGreaterThan(0);
+      expect(slide(blueUpper, exc)).toBeLessThan(slide(base, exc));
+    }
+    // el vértice: el pulmón junto a la pared desde el borde superior de la clavícula (lo que se ve por la fosa) hasta el tope que
+    // admite la base, en todo el contorno de los dos lados
+    let lungPoints = 0;
+    for (let phi = -Math.PI; phi < Math.PI; phi += Math.PI / 36)
+      for (let z = clavicleTopZ(scene); z <= apexMaxZ(scene); z += 5) {
+        const p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, scene.torso)) + 1, scene.torso, z);
+        if (scene.classify(p, BASELINE_INSTANT).tissue !== Tissue.Lung) continue;
+        lungPoints++;
+        expect(slide(p, deep), `φ ${phi.toFixed(2)}, z ${z.toFixed(0)}`).toBe(0);
+      }
+    expect(lungPoints).toBeGreaterThan(20);
   });
 });
 

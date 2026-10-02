@@ -124,8 +124,13 @@ conservan su identificador (decisiones 10 y 11).
   lo que la cúpula le suma. Por la fosa supraclavicular la pleura queda 1,1 DE más honda que en Yadav (la pared de la columna es
   la de delante, con el pectoral); en la variante obesa de mujer, dentro de 2 DE desde el tronco de la decisión 28 (37,7 mm
   frente a ≤ 39,6; con el de 210 mm, 40,4). Ahí
-  el deslizamiento es nulo (`sliding-linear-height`). Desde la decisión 27, por encima de ≈ z 160 (el vértice y lo que se ve por la fosa supraclavicular) el deslizamiento
-  es nulo: Lichtenstein lo da «mínimo» en el vértice, no ausente, y un alumno podría leer ahí un neumotórax.
+  el deslizamiento es nulo (`sliding-linear-height`). Desde la decisión 27, en el vértice y en lo que se ve por la fosa supraclavicular el deslizamiento es nulo,
+  como lo da la base en el ápex: Lichtenstein 2017 lo describe «discreto» o «mínimo» en el punto BLUE superior y «habitualmente
+  nulo» en el ápex (`physics.md` D4 y D5a; la decisión 27 lo citó al revés). Por debajo de la clavícula el cero sale de la
+  forma de la recta, un supuesto: se apaga en z ≈ 163 en la paraesternal, 145 en la LMC y 128 en la LAM, la LAP y la paravertebral, y deja sin
+  deslizar el pulmón alto de detrás (el segmento posterior del lóbulo superior, que en Wang 2013 está entre los tumores más
+  móviles). Lo que el modelo no tiene es el «habitualmente»: en el paciente a veces desliza algo y aquí nunca. Que el vértice no
+  deslice es lo normal, no un neumotórax: un alumno no debería leerlo como tal.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,

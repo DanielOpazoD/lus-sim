@@ -1931,7 +1931,9 @@ mm) o (ii) la del tercio medio en toda ella.
   la pared de la columna es la de delante, con el pectoral), 21,8 en la delgada, 31,1 en la mujer y 32,7 en el obeso, dentro de
   ± 2 DE de Yadav con el IMC de cada hábito; en la mujer obesa, 40,4 frente a ≤ 39,6 (A-T24 pendiente, `notYetMet`). Ahí el
   deslizamiento es nulo (la recta de la decisión 19 se apaga a ≈ z 160): Lichtenstein lo da mínimo en el vértice, no ausente
-  (`sliding-linear-height`).
+  (`sliding-linear-height`). **Corrección (2026-10-02):** al revés. Lichtenstein 2017, leído en el texto completo, lo da
+  «discreto» y «mínimo» en el punto BLUE superior y «usually absent» / «usually null» en el ápex, con la sonda en el ápex
+  derecho (`physics.md` D5a): el deslizamiento nulo del vértice es el de la fuente, y el modelo no cambia.
 - **Las bases** se verificaron con la decisión 26: el borde de Gray en FRC (z −17,5 en la LMC y −35 en la LAM y detrás) y la
   reflexión (T12, z −58) ya estaban; no cambian.
 - `lung-border-table` ya no dice «hacia arriba no hay vértice»; nuevas `apex-cupola-wall` y `clavicle-section-uniform`.
