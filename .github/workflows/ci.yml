@@ -49,15 +49,16 @@ jobs:
   # En paralelo con `verificar`, con un trabajador por fragmento para no competir con SwiftShader.
   # CI87 agotó 15 min en 2/5: concentraba las tres ventanas de fidelidad, calibración y ganancia.
   # Siete fragmentos reparten las 28 pruebas; CI99 agotó dos veces el plazo al agrupar todo el banco de fidelidad.
+  # Ocho para 29 (decisión 29): Playwright reparte por cuenta, y con 29 en siete el 2.º juntaba tres ventanas del banco.
   # El denominador del comando sale de la matriz; `check` sigue exigiendo toda la matriz.
   e2e:
-    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/7
+    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

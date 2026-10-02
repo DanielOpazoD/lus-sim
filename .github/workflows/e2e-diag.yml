@@ -68,4 +68,4 @@ jobs:
         if: matrix.kind == 'repetir'
         env:
           CI: '1'
-        run: npx playwright test e2e/smoke.spec.ts:216 e2e/mmode.spec.ts:90 --repeat-each=2 --retries=0 --reporter=list || true
+        run: npx playwright test e2e/smoke.spec.ts e2e/mmode.spec.ts -g "sobrevive a la pérdida|M móvil" --repeat-each=2 --retries=0 --reporter=list || true

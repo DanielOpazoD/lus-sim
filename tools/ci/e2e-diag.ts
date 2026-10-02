@@ -35,8 +35,14 @@ function maxGrey(data: Uint8Array | Uint8ClampedArray): number {
 /** El coste de mirar la pantalla: captura del lienzo y decodificación en la página (como hoy) o en Node. */
 async function screenCost(page: Page, inPage: boolean) {
   let t = Date.now();
-  const png = await page.locator('#gl').screenshot();
+  const png = await page.locator('#gl').screenshot({ timeout: 0 });
   const shot = since(t);
+  // la misma región con una captura de la página: sin la espera a que el elemento esté «estable» (dos cuadros iguales)
+  const box = (await page.locator('#gl').boundingBox())!;
+  t = Date.now();
+  const clipPng = await page.screenshot({ clip: box, timeout: 0 });
+  const clipShot = since(t);
+  const clipMax = maxGrey(PNG.sync.read(clipPng).data);
   t = Date.now();
   const nodeMax = maxGrey(PNG.sync.read(png).data);
   const node = since(t);
@@ -60,7 +66,7 @@ async function screenCost(page: Page, inPage: boolean) {
     }, png.toString('base64'));
     pageDecode = since(t);
   }
-  return { shot, node, nodeMax, pageDecode, pageMax };
+  return { shot, clipShot, clipMax, node, nodeMax, pageDecode, pageMax };
 }
 
 const cine = (page: Page) => page.evaluate(() => window.__lusTest!.sim().renderer.cineCount);
@@ -71,6 +77,7 @@ const freshCine = (page: Page) =>
 
 async function once(browser: Browser): Promise<Record<string, unknown>> {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  page.setDefaultTimeout(0);
   const errors: string[] = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
@@ -138,7 +145,7 @@ async function once(browser: Browser): Promise<Record<string, unknown>> {
   const shots: string[] = [];
   for (;;) {
     const s = await screenCost(page, false);
-    shots.push(`${s.shot}:${s.nodeMax.toFixed(0)}`);
+    shots.push(`${s.shot}:${s.nodeMax.toFixed(0)}/${s.clipShot}:${s.clipMax.toFixed(0)}`);
     if (s.nodeMax >= 230 || Date.now() - t > 300_000) break;
   }
   r.pleuraVisible = since(t);
