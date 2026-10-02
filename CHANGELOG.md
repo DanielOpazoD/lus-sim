@@ -123,6 +123,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- El tronco con la profundidad del tórax (28): 320 × 226 mm de piel (ANSUR II, varones de IMC 18,5–25; en VExUS, 320 × 210), la
+  columna atada a la piel de la espalda y la pared junto a la columna de 28 mm (Folli, Okçu; antes ≈ 21 en la paravertebral). La
+  caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la
+  parrilla, 50,6 → 51,3 mm, 1,5 sobre el centro del EIC4 como en main (en el centro el detector del banco de fidelidad falla). A-T15 a TLC pasa a pendiente (el EIC 9 de la LAA, a 9,8 mm de la inserción supuesta de la
+  ZOA) y A-T24 en la mujer obesa se cumple (37,7 mm). Cobertura sin cambios (68 de 138).
 - Lo portado de VExUS, al día con `8e83d9a` (11): la PEEP sube la presión pleural también con respiración espontánea
   (CPAP) y el motor pasa a la respiración la del paciente en cada paso; el haz, la elevación y la composición admiten
   la armónica (en fundamental no cambian); el gemelo de los ecos de interfaz lleva el pedestal de lóbulos laterales; el

@@ -1,3 +1,4 @@
+import { defineParameters } from '../core/evidence';
 import { smoothstep, type Vec3 } from '../core/vec3';
 import type { PatientState } from '../physiology/patientState';
 import {
@@ -75,6 +76,40 @@ import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface }
  * longitud se presenta como dato anatómico medido. Las del tórax de la base de conocimiento (metas A)
  * llegan en el paso C (`anatomyTargets.test.ts` mide cuáles no se cumplen aún, con lo medido).
  */
+
+/**
+ * El tronco del tórax (lus-sim, decisión 28): el cilindro elíptico de VExUS, con la profundidad de la base. VExUS usa 320 × 210
+ * mm (un adulto de IMC 25 en el abdomen); con 210 la pared posterior de las fuentes no cabía junto a la caja de Robinson (la
+ * cavidad quedaba en 155 mm de delante atrás en la paravertebral).
+ */
+export const TORSO = defineParameters('anatomy.torso', {
+  semiWidthMm: {
+    value: 160,
+    unit: 'mm',
+    range: [144, 161],
+    evidence: 'estimado',
+    sources: ['gordon-ansur-1989'],
+    note:
+      'Semiancho de la piel: el de VExUS (320 mm), que no cambia (la anchura mueve todas las líneas del tórax y sus calibraciones). ' +
+      'La anchura del tórax de ANSUR 1988 al nivel del pezón, de pie, en respiración tranquila y sin comprimir (sin la mama ni el ' +
+      'dorsal ancho que sobresalgan de la parrilla): 321,5 ± 25,5 mm en 1774 varones (Gordon y cols. 1989); en los de IMC 18,5–25 de ' +
+      'sus datos públicos (n 811, IMC medio 22,9), 304,6 ± 17,0: 320 queda +0,9 DE. El rango, de −1 DE del subgrupo (287,6 mm) a la media de todos los varones (321,5). ANSUR II la mide ' +
+      'comprimida en inspiración máxima (289 mm): no es la misma medida',
+  },
+  semiDepthMm: {
+    value: 113,
+    unit: 'mm',
+    range: [105, 121],
+    evidence: 'derivado',
+    sources: ['gordon-ansur-2014'],
+    note:
+      'Semiprofundidad de la piel: la profundidad del tórax de ANSUR II (Gordon y cols. 2014, medida 25: del punto más anterior ' +
+      'del tórax a la espalda al mismo nivel, de pie, en el máximo de la respiración tranquila; varones 253,8 ± 26,2 mm, n 4082, ' +
+      'IMC 27,7) en los varones con IMC 18,5–25 de los datos públicos de la misma encuesta (n 1061, IMC medio 22,9, el del ' +
+      'avatar): 225,8 ± 15,8 mm, la mitad (ANSUR 1988, los varones de IMC 18,5–25: 228,4 ± 15,1). El rango, ± 1 DE. VExUS usa 105 ' +
+      '(210 mm)',
+  },
+});
 
 export interface Classification {
   tissue: Tissue;
@@ -190,11 +225,12 @@ export class AnatomyScene {
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
     const fat = patient.habitus.subcutaneousFatMm;
     const muscle = patient.habitus.muscleMm;
-    // Tronco 32 × 21 cm (adulto de IMC 25): la VCI queda a ≈ 12–13 cm del xifoides
+    // Tronco 32 × 22,6 cm (`TORSO`, decisión 28; en VExUS, 32 × 21, el de un adulto de IMC 25 con la VCI a ≈ 12–13 cm del
+    // xifoides: lus-sim no tiene VCI)
     // la grasa preperitoneal es la parte más honda del espesor muscular del hábito (decisión 62)
     const base: Torso = {
-      a: 160,
-      b: 105,
+      a: TORSO.params.semiWidthMm.value,
+      b: TORSO.params.semiDepthMm.value,
       zMin: -300,
       zMax: 300,
       skinMm: 2,
@@ -210,9 +246,12 @@ export class AnatomyScene {
     // a −30 mm, `anatomy.ribcage.xiphoidLengthMm`, decisión 16); el reborde costal es el de la parrilla (la medioclavicular
     // lo cruza en el 9.º cartílago, con su línea media a −90 mm).
     // Columna: cuerpo vertebral de 36 mm justo por detrás de cava y aorta (su cara
-    // posterior queda ≈ 5 cm de la piel dorsal, como en un adulto); arco posterior con
+    // posterior queda a 42 mm de la piel dorsal); arco posterior con
     // apófisis transversas de 40 mm a cada lado. Las costillas terminan en ellas.
-    this.spine = { kind: 'cylinderZ', x0: 0, y0: -46, r: 17, archHalfWidth: 40, archY0: -78, archY1: -58 };
+    // lus-sim (decisión 28): la columna va con la piel de la espalda (en VExUS, con b = 105: el cuerpo en −46, el arco de −78 a
+    // −58)
+    const back = -base.b;
+    this.spine = { kind: 'cylinderZ', x0: 0, y0: back + 59, r: 17, archHalfWidth: 40, archY0: back + 27, archY1: back + 47 };
     // La parrilla del adulto promedio (decisión 16): forra la cara interna de la pared de este hábito, con z = 0 en la
     // unión xifoesternal (el 7.º cartílago), al nivel del disco T9–T10 (Gray), y sus extremos posteriores en las
     // apófisis transversas de la columna

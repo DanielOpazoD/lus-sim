@@ -152,13 +152,17 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
   paravertebralWallMm: {
     value: 28,
     unit: 'mm',
-    range: [21, 40],
-    evidence: 'estimado',
-    sources: ['oontan-paravertebral-2013'],
+    range: [20, 35],
+    evidence: 'derivado',
+    sources: ['folli-pielcostilla-2020', 'okcu-parascapular-2026', 'lichtenstein-luci-2014', 'oontan-paravertebral-2013'],
     note:
-      'Piel → pleura en la línea media posterior: la pared heredada (28 mm); entre la infraescapular y ella, interpolada (en ' +
-      'la paravertebral, a 6 cm de la línea media, ≈ 21 por la normal). La base solo da apófisis transversa → pleura, 21 ± 4,2 mm a 25 mm ' +
-      'de la línea media (Oon Tan); piel → apófisis, NO ENCONTRADO: la pared de detrás de la columna es un supuesto',
+      'Piel → pleura junto a la columna (en la paravertebral, a 6 cm de la línea media, y hasta la línea media, detrás de la cual ' +
+      'está la columna) (decisión 28): piel → costilla 25,4 ± 4,5 mm a 2–3 cm de la apófisis de T8 en varones de IMC 22,6 (Folli, ' +
+      'ecografía en prono, el trapecio inferior) más los 5 de la cresta costal a la pleura (`anatomy.ribcage.crestToPleuraMm`, ' +
+      'Lichtenstein): 30; y 26,4 ± 6,8 mm en el punto más fino por dentro de la escápula en la TAC en supino con IMC normal ' +
+      '(Okçu, 296 adultos; 31,0 ± 8,3 en los varones de todo IMC; el artículo no da la distancia de ese punto a la línea media). ' +
+      '28, entre las dos [elegido]. El rango, ± 1 DE: de 26,4 − 6,8 (Okçu) a 30 + 4,5 (Folli más la cresta). Hasta la decisión 27 era el de la línea media (la pared heredada de VExUS), y en la paravertebral ' +
+      'quedaba 21. La apófisis transversa → pleura, 21 ± 4,2 mm a 25 mm de la línea media (Oon Tan, el resumen)',
   },
   infrascapularPhi: {
     value: 1.2 * Math.PI,
@@ -530,6 +534,7 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     [st.anteriorAxillary, L.lateralLow],
     [st.midaxillary, L.lateralLow],
     [st.infrascapular, L.posterior],
+    [st.paravertebral, L.paravertebral],
     [st.posteriorMidline, L.paravertebral],
   ];
   const high: Array<[number, StationLayers]> = [
@@ -541,6 +546,7 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     [st.midaxillary, L.lateralHigh],
     [st.posteriorAxillary, L.lateralHigh],
     [st.infrascapular, L.posterior],
+    [st.paravertebral, L.paravertebral],
     [st.posteriorMidline, L.paravertebral],
   ];
   const profile = (nodes: Array<[number, StationLayers]>, key: keyof StationLayers) =>

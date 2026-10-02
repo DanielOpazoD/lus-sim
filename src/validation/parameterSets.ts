@@ -7,6 +7,7 @@ import { CLAVICLE, RIBCAGE } from '../anatomy/organs/ribcage';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
 import { COVERAGE } from '../app/coverage';
+import { TORSO } from '../anatomy/scene';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
@@ -22,6 +23,7 @@ import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
  * Un conjunto nuevo se añade aquí en el mismo cambio que lo crea.
  */
 export const PARAMETER_SETS: readonly ParameterSet[] = [
+  TORSO,
   RIBCAGE,
   CLAVICLE,
   LUNG_APEX,

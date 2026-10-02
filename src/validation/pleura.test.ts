@@ -813,14 +813,16 @@ describe('A0: la pleura parietal es su propio tipo (3) y el espejo del diafragma
   // alcanza 53–91 mm más hondo: sin espejo, ΔL 50–82 dB, y la pasada B quitaba así de 21 a 33 dB de atenuación al
   // hígado de en medio (una banda clara en la captura con GPU). Ese pulmón es el espejo del diafragma. lus-sim (decisión 18):
   // con el borde del pulmón de la base (53 mm más abajo en el flanco: la 8.ª costilla de la LAM), la misma vista 53 mm más
-  // abajo (z −50).
+  // abajo (z −50). Lus-sim (decisión 28): con el tronco de 226 mm de profundidad, en z −50 solo 3 líneas rozaban el borde (no
+  // porque baje: la 8.ª costilla de la LAM y el borde suben 1,5 mm; el plano es oblicuo y rasante y el flanco cambia de
+  // curvatura, b²/a de 68,9 a 79,8 mm). En z −55, 56 y 46 líneas rasantes en las dos basculaciones; la aserción no cambia.
   it('una línea que roza el borde de la cortina y alcanza el pulmón del receso lejos de su pleura lo refleja (espejo, ΔL 0)', () => {
     const cal = caliberOf(0);
     const q = sceneQuery(scene, cal);
     const step = depth / N;
     let grazingLines = 0;
     for (const rock of [0.2, 0.55]) {
-      const fr = probeFrame({ phi: Math.PI * 0.98, z: -50, lift: 0, yaw: -1.25, rock, tilt: 0 }, scene.torso, CONVEX_C35);
+      const fr = probeFrame({ phi: Math.PI * 0.98, z: -55, lift: 0, yaw: -1.25, rock, tilt: 0 }, scene.torso, CONVEX_C35);
       for (let i = 0; i < CONVEX_C35.lines; i++) {
         const th = -CONVEX_C35.halfSector + (2 * CONVEX_C35.halfSector * (i + 0.5)) / CONVEX_C35.lines;
         const origin = pointOnLine(fr, CONVEX_C35, th, 0);

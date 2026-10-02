@@ -32,13 +32,15 @@ conservan su identificador (decisiones 10 y 11).
   Una vista que dibuje la escena en un marco dextrógiro debe espejarla (VExUS lo hace en su navegador 3D);
   la conversión a EchoTwin es deuda de la unión.
 - **La parrilla forra un tronco cilíndrico** (`thorax-cylindrical-cage`, decisión 16): el tronco es el cilindro elíptico
-  de VExUS (320 × 210 mm de piel) a todas las alturas, así que la parrilla no se estrecha hacia la abertura superior (Gray:
+  de VExUS a todas las alturas (320 × 210 mm de piel en VExUS; en lus-sim, desde la decisión 28, 320 × 226: la profundidad del
+  tórax de ANSUR II en los varones de IMC 18,5–25), así que la parrilla no se estrecha hacia la abertura superior (Gray:
   10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la
   medioclavicular (36 mm de espacio; en el tórax real, tras la clavícula; desde la decisión 27 la clavícula existe, pero su eje queda ≈ 24 mm sobre el de la 1.ª costilla en la LMC) y el esternón es
   vertical (Gray: oblicuo hacia delante). Con la pared heredada de 28 mm la caja mide 274 × 166 mm y 350 de alto (Robinson,
-  hombres: 303 × 195 × 366); con la pared torácica por región (decisión 17: 12,8 mm al lado), 304 × 176 mm. La 1.ª costilla cae lo que la real
-  (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de los 150 mm de profundidad del cilindro: 17,6°
-  bajo el plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 36,2 frente a 29 ± 7,7).
+  hombres: 303 × 195 × 366); con la pared torácica por región (decisión 17: 12,8 mm al lado), 303 × 182 mm, y con el tronco de
+  226 mm y la pared paravertebral de sus fuentes (decisión 28), 303 × 189 (−0,4 DE de Robinson). La 1.ª costilla cae lo que la
+  real (47,7 mm de su extremo posterior a su unión condrocostal) pero a lo largo de la profundidad del cilindro: 15,2° bajo el
+  plano transversal frente a los 31 ± 8,2 de Robinson (la 7.ª, 32,2 frente a 29 ± 7,7).
 - **Una sola sección para todas las costillas** (`rib-section-uniform`, decisión 16): las 24 costillas y sus cartílagos
   tienen la misma elipse de 14 mm de alto (medido en vertical, el corte longitudinal de la ecografía: la sección
   perpendicular de una costilla oblicua es más estrecha) y 4,7 mm de grosor, de hueso homogéneo, sin cortical ni esponjosa
@@ -56,8 +58,9 @@ conservan su identificador (decisiones 10 y 11).
   pectoral que cubre sus bordes. El contacto de la sonda toma, en cada línea, la pared donde entra en la piel, no la de cada
   profundidad. Sin escápula (la pared de detrás arriba es la infraescapular), sin los límites
   craneocaudales de la mama (la variante de mujer suma sus 2 mm a toda altura, del esternón a la axilar anterior), con la
-  pared paravertebral heredada (28 mm en la línea media posterior, ≈ 21 por la normal en la paravertebral: piel → apófisis transversa,
-  NO ENCONTRADO en la base) y el paso a la pared del abdomen en 100 mm bajo el reborde costal [SUPUESTO]. La variante de
+  pared junto a la columna de 28 mm por la normal (decisión 28: Folli, piel → costilla en prono, más la costilla; Okçu, el punto
+  más fino por dentro de la escápula en la TAC en supino), la misma de la paravertebral a la línea media, en un solo músculo (sin
+  trapecio, romboides ni erectores por separado; sus grosores en sanos, NO ENCONTRADO) y el paso a la pared del abdomen en 100 mm bajo el reborde costal [SUPUESTO]. La variante de
   mujer no tiene la sección costal 20–35 % menor ni la caja más pequeña de la base.
 - **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
@@ -82,9 +85,9 @@ conservan su identificador (decisiones 10 y 11).
   cardiaca. La cúpula baja a la pared en una rampa de 40 mm [SUPUESTO] y su diafragma sigue siendo la lámina de 2,5 mm de
   VExUS; bajo el borde, la ZOA es una lámina de grosor uniforme contra la pared (1,9 mm en FRC, 5 a TLC) con solo su cara
   abdominal (la pleural es la cara interna de la pared), hasta 20 mm bajo la reflexión [SUPUESTO; la longitud de la ZOA es NO
-  ENCONTRADO]: A-T15 a TLC depende de él (con los 53 mm de la inspiración profunda, la cortina deja la ZOA medible a ≥ 10 mm de
-  su inserción solo en el EIC 9 de la LAA, a 10,3 mm; con menos de 19,7 mm la prueba falla y con ≥ 25,6 también mide la LAM,
-  en el EIC 10; decisión 22). La lámina de la
+  ENCONTRADO]: A-T15 a TLC depende de él (con los 53 mm de la inspiración profunda, la cortina dejaba la ZOA medible a ≥ 10 mm
+  de su inserción solo en el EIC 9 de la LAA, a 10,3 mm, decisión 22; con el tronco de 226 mm de la decisión 28 ese EIC queda a
+  9,8 mm y ningún EIC cumple: A-T15 a TLC pendiente, `notYetMet`, y volvería a medirse con ≥ 20,3 mm). La lámina de la
   cortina, 3 mm de pulmón de punta roma, baja lo que el diafragma (la base en supino, decisión 22: 16 mm en respiración
   tranquila y 53 en la profunda), sin pasar de la reflexión (junto a la columna se detiene a 23 mm). El borde anterior se ancla en la línea
   paraesternal (el centro del 6.º cartílago, z 1,5) y sigue igual hasta la línea media: junto al borde del esternón, donde
@@ -101,7 +104,8 @@ conservan su identificador (decisiones 10 y 11).
   delante de la columna) no hay pulmón sobre la escotadura yugular, pero más adentro las columnas radiales del vértice convergen
   y el centro del corte sigue siendo pulmón (no hay mediastino). El contacto de la sonda toma por pared rígida la del tórax, sin
   lo que la cúpula le suma. Por la fosa supraclavicular la pleura queda 1,1 DE más honda que en Yadav (la pared de la columna es
-  la de delante, con el pectoral); en la variante obesa de mujer, más que 2 DE (40,4 mm frente a ≤ 39,6: A-T24 pendiente). Ahí
+  la de delante, con el pectoral); en la variante obesa de mujer, dentro de 2 DE desde el tronco de la decisión 28 (37,7 mm
+  frente a ≤ 39,6; con el de 210 mm, 40,4). Ahí
   el deslizamiento es nulo (`sliding-linear-height`). Desde la decisión 27, por encima de ≈ z 160 (el vértice y lo que se ve por la fosa supraclavicular) el deslizamiento
   es nulo: Lichtenstein lo da «mínimo» en el vértice, no ausente, y un alumno podría leer ahí un neumotórax.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del

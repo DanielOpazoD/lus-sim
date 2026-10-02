@@ -187,7 +187,8 @@ la salida actual no protege nada.
   de la LAM izquierda y la cortina derecha), con ≥ 0,999 de acuerdo interior, y la pleura de A0 en sus cinco planos; con la GLSL
   en dos pasos de punto fijo, falla.
 - **Una meta que cuelga de un supuesto lo dice la prueba.** A-T15 a TLC exige el EIC a ≥ 10 mm de la inserción de la ZOA, que
-  depende de su longitud estimada (`zoaBelowReflectionMm`): con 15 mm en lugar de 20 falla por su aserción.
+  depende de su longitud estimada (`zoaBelowReflectionMm`): con 15 mm en lugar de 20 falla por su aserción. Desde el tronco de
+  226 mm (decisión 28) falla también con 20 (el EIC 9 de la LAA, a 9,8 mm: la reflexión sube más que él) y es `notYetMet`; su mitad en FRC sigue en `it`.
 
 ## Banco de fidelidad (decisión 21)
 

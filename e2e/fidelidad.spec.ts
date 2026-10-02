@@ -68,8 +68,10 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       const c = r.coherence;
       const tag = `${startPoint}, ${respiration}: ${JSON.stringify({ geometry: r.geometry, coherence: c })}`;
       // el sector detectado desde la imagen, sin la verdad del simulador: los bordes, la piel y el ápice, que se extrapola 60 mm
-      // por encima de la piel (el radio de la convexa): a ≤ 1 px en el BLUE superior y el PLAPS, a 8–14 px y con el borde
-      // derecho a 1,7–2,9° en el BLUE inferior, cuyos bordes están a oscuras. El fondo no: el campo profundo es negro exacto y el
+      // por encima de la piel (el radio de la convexa): a ≤ 1 px en el BLUE superior y el PLAPS, a 2 px y con el borde derecho a
+      // 0,5° en el BLUE inferior, cuyos bordes están a oscuras (decisión 28: con el tronco de 226 mm y el punto en 51,3 mm, 1,5
+      // sobre el centro del EIC4 como en main; antes 8–14 px y 1,7–2,9°. El detector es sensible a la altura del punto: a 50,6
+      // mm, 38 px; en el centro, 49,8, 50, porque la sombra de una costilla cubre el borde derecho). El fondo no: el campo profundo es negro exacto y el
       // sector detectado acaba donde acaba lo encendido (33–42 mm de los 120). Con la geometría detectada, d_pl sale 0,1–0,6 mm
       // más larga (la piel detectada, más honda). Queda en el informe (decisión 21)
       expect(r.geometry.apexErrPx, tag).toBeLessThan(25);

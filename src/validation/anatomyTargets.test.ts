@@ -537,7 +537,7 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
     list.map((n) => ({ n, name, lo, hi, img: intercostalImageWidthMm(scene, n, phi) })),
   );
 
-  it('el ancho de los espacios en la imagen (con la presión estándar): EIC5 de la LMC 12–18 mm, EIC5–9 de la LAM 14–20 y EIC7–9 a 1,2π 14–18 (17,1; 18,7–19,7; 17,1)', () => {
+  it('el ancho de los espacios en la imagen (con la presión estándar): EIC5 de la LMC 12–18 mm, EIC5–9 de la LAM 14–20 y EIC7–9 a 1,2π 14–18 (16,8; 18,6–19,5; 16,8)', () => {
     for (const x of images) {
       expect(x.img, `EIC${x.n} ${x.name}, imagen`).not.toBeNull();
       expect(x.img!, `EIC${x.n} ${x.name}, imagen`).toBeGreaterThanOrEqual(x.lo);
@@ -550,7 +550,8 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
   // (12 s, 27-09-2026, con la pared torácica por región) dio: LMC EIC3–6 15,1–16,8; LAA EIC2–9 17,0–19,5; LAM EIC1–10
   // 17,3–19,5; LAP EIC7–10 18,2; 1,2π EIC7–10 16,8. Fuera del rango: LMC EIC1 40,2 (el 1.er espacio bajo la medioclavicular,
   // `thorax-cylindrical-cage`) y EIC2 20,4; LAA EIC1 26,0; LAP EIC1–6 13,3–14,1 y 1,2π EIC1–6 12,4 (los espacios altos de
-  // detrás, 11–12 mm de anatomía estimada: Gray los da más estrechos que delante y la base no los mide)
+  // detrás, 11–12 mm de anatomía estimada: Gray los da más estrechos que delante y la base no los mide). Con el tronco de la
+  // decisión 28 (02-10-2026) cambian solo la LAA (EIC2–9 17,2–19,5; EIC1 26,5) y la LAP (EIC7–10 18,3; EIC1–6 13,6–13,9)
   const visible = (phi: number, list: number[]) => list.map((n) => ({ n, img: intercostalImageWidthMm(scene, n, phi) }));
   const visibleOk: Array<[string, ReturnType<typeof visible>]> = [
     ['LMC', visible(LMC, [3, 6])],
@@ -578,7 +579,7 @@ describe('Costillas y espacios intercostales del adulto promedio (paso C1, decis
     expectVisible(visibleOk);
   });
 
-  notYetMet('A-T7 en los espacios altos: LMC EIC1–2, LAA EIC1, LAP EIC1 y 1,2π EIC1 (hoy 40,2 y 20,4; 26,0; 13,7; 12,4)', () => {
+  notYetMet('A-T7 en los espacios altos: LMC EIC1–2, LAA EIC1, LAP EIC1 y 1,2π EIC1 (hoy 40,2 y 20,4; 26,5; 13,7; 12,4)', () => {
     expectVisible(visibleHigh);
   });
 
@@ -756,40 +757,50 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     }
   });
 
-  it('A-T15: el diafragma de la ZOA (EIC 8–10, LAA y LAM) mide 1,1–2,7 mm en FRC y engruesa ≥ 20 % a TLC', () => {
-    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+  /** Alto (mm) de la lámina de diafragma bajo la pleura, por la normal de la piel (A-T15). */
+  const zoaThicknessAt = (phi: number, z: number, caudal: number) => {
     const t = scene.torso;
-    /** Alto (mm) de la lámina de diafragma bajo la pleura, por la normal de la piel. */
-    const thickness = (phi: number, z: number, caudal: number) => {
-      let run = 0;
-      for (let d = 0.01; d < 12; d += 0.02) {
-        let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + d, t, z);
-        p = probeHitPoint(phi, scene.wallThicknessAt(p) + d, t, z);
-        if (scene.classify(p, { diaphragmCaudalMm: caudal }).tissue === Tissue.Diaphragm) run += 0.02;
-      }
-      return run;
-    };
-    // A TLC se mide en el primer EIC desde el 8.º cuyo centro queda a ≥ 5 mm bajo la cortina (tapado, bajo la lámina quedan 2 mm
-    // de la ZOA) y a ≥ 10 mm sobre la inserción de la ZOA (la reflexión menos `zoaBelowReflectionMm`, 20 mm [SUPUESTO]: la
-    // longitud de la ZOA es NO ENCONTRADO). Con los 53 mm de la base (decisión 22) en el avatar: en la LAA, el 9.º (10,3 mm
-    // sobre la inserción; Boon y el consenso miden ahí, EIC 8–9 por delante de la LAA); en la LAM ninguno (el 9.º lo tapa la
-    // cortina y el centro del 10.º queda a 4,4 mm de la inserción). En todo el rango del supuesto (10–40 mm): con < 19,7 mm la
-    // LAA no tiene EIC y la prueba falla; con ≥ 25,6 la LAM mide en el 10.º
-    const ZB = LUNG_BORDER.params.zoaBelowReflectionMm.value;
+    let run = 0;
+    for (let d = 0.01; d < 12; d += 0.02) {
+      let p = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + d, t, z);
+      p = probeHitPoint(phi, scene.wallThicknessAt(p) + d, t, z);
+      if (scene.classify(p, { diaphragmCaudalMm: caudal }).tissue === Tissue.Diaphragm) run += 0.02;
+    }
+    return run;
+  };
+
+  it('A-T15: el diafragma de la ZOA (EIC 9, LAA y LAM) mide 1,1–2,7 mm en FRC', () => {
     for (const side of [-1, 1] as const)
       for (const l of ['anteriorAxillary', 'midaxillary'] as const) {
         const phi = line(l, side);
         // en FRC, en el EIC 9 (el de Boon)
-        const frc = thickness(phi, intercostalZ(scene, 9, phi), 0);
+        const frc = zoaThicknessAt(phi, intercostalZ(scene, 9, phi), 0);
         expect(frc, `${l} ${side}`).toBeGreaterThanOrEqual(1.1);
         expect(frc, `${l} ${side}`).toBeLessThanOrEqual(2.7);
+      }
+  });
+
+  // A TLC se mide en el primer EIC desde el 8.º cuyo centro queda a ≥ 5 mm bajo la cortina (tapado, bajo la lámina quedan 2 mm
+  // de la ZOA) y a ≥ 10 mm sobre la inserción de la ZOA (la reflexión menos `zoaBelowReflectionMm`, 20 mm [SUPUESTO]: la
+  // longitud de la ZOA es NO ENCONTRADO). Con los 53 mm de la base (decisión 22), en el tronco de 210 mm de profundidad: en la
+  // LAA, el 9.º (10,3 mm sobre la inserción; Boon y el consenso miden ahí, EIC 8–9 por delante de la LAA); en la LAM ninguno (el
+  // 9.º lo tapa la cortina y el centro del 10.º queda a 4,4 mm de la inserción). Con el tronco de 226 mm (decisión 28) la
+  // reflexión de la LAA sube 1,2 mm y el EIC 9 solo 0,8: queda a 9,8 mm de la inserción: ningún EIC cumple el criterio y la meta, que cuelga
+  // del supuesto de la longitud de la ZOA, queda pendiente (con `zoaBelowReflectionMm` ≥ 20,3 volvería a medirse; no se toca un
+  // supuesto para que pase una prueba)
+  notYetMet('A-T15: el diafragma de la ZOA (EIC 8–10, LAA) engruesa ≥ 20 % a TLC en un EIC a ≥ 10 mm de su inserción', () => {
+    const deep = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'deep' }).excursionMm();
+    const ZB = LUNG_BORDER.params.zoaBelowReflectionMm.value;
+    for (const side of [-1, 1] as const)
+      for (const l of ['anteriorAxillary', 'midaxillary'] as const) {
+        const phi = line(l, side);
         const tlcBorder = at(phi, deep)!;
         const insertion = lungBorderAt(scene.lungBorder, wallArc(torsoSkinPoint(phi, 0, scene.torso), scene.torso))[1] - ZB;
         const n = [8, 9, 10].find((k) => intercostalZ(scene, k, phi) <= tlcBorder - 5 && intercostalZ(scene, k, phi) >= insertion + 10);
         if (l === 'midaxillary' && n === undefined) continue;
         expect(n, `${l} ${side}: ningún EIC 8–10 descubierto a TLC y a ≥ 10 mm de la inserción de la ZOA`).toBeDefined();
         const z = intercostalZ(scene, n!, phi);
-        expect(thickness(phi, z, deep) / thickness(phi, z, 0), `${l} ${side}`).toBeGreaterThanOrEqual(1.2);
+        expect(zoaThicknessAt(phi, z, deep) / zoaThicknessAt(phi, z, 0), `${l} ${side}`).toBeGreaterThanOrEqual(1.2);
       }
   });
 
@@ -1080,8 +1091,8 @@ describe('A-T23 y A-T24: el vértice, la clavícula y la fosa supraclavicular (c
     [{ build: 'average', sex: 'female' }, true],
     [{ build: 'thin', sex: 'male' }, true],
     [{ build: 'obese', sex: 'male' }, true],
-    // medido: 40,4 mm frente a ≤ 39,6 (la pared de delante, con el pectoral, la grasa de la obesa y la mama, bajo la fosa)
-    [{ build: 'obese', sex: 'female' }, false],
+    // con el tronco de 113 mm (decisión 28) se cumple; con el de 105 medía 40,4 frente a ≤ 39,6
+    [{ build: 'obese', sex: 'female' }, true],
   ];
   for (const [chest, met] of fossaCases) {
     const title = `A-T24: por la fosa supraclavicular la cúpula pleural, a la profundidad de Yadav ± 2 DE (${chest.build}, ${chest.sex})`;

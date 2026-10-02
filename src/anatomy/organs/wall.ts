@@ -201,7 +201,8 @@ const smooth = (e0: number, e1: number, x: number): number => {
 /**
  * Longitud de arco de la piel (mm) desde la línea media anterior hasta el ángulo elíptico del punto, con
  * signo. Serie de ∫√(a²cos²τ + b²sin²τ)dτ hasta ε³ (ε = (a² − b²)/(a² + b²)): |du/ds| = 1 a ±0,5 % en el
- * tronco de 160 × 105 mm (el cuarto de perímetro sale 210,4 mm, el de Ramanujan).
+ * tronco de 160 × 105 mm de VExUS (el cuarto de perímetro sale 210,4 mm, el de Ramanujan); con el de 160 × 113 de lus-sim
+ * (decisión 28), ε es menor y el error de la serie también.
  */
 export function wallArc(m: Vec3, t: Pick<Torso, 'a' | 'b'>): number {
   const tau = Math.atan2(m[0] / t.a, m[1] / t.b);
