@@ -172,6 +172,14 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     ],
   },
   {
+    name: 'uLungPulse',
+    type: 'float',
+    doc:
+      'pulso pulmonar (decisión 32, organs/lungPulse.ts): la fracción del volumen latido expulsada en el instante (0 en la ' +
+      'telediástole, 1 en la telesístole), que escala el campo del latido',
+    value: (_s, c) => [c.sample.cardiacEjection],
+  },
+  {
     name: 'uCompC',
     type: 'vec4',
     doc: 'compresión de la sonda (decisión 63): centro de curvatura de la cara, radio + alcance (0 = sin compresión)',

@@ -7,6 +7,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El pulso pulmonar (32): en apnea, el pulmón junto al corazón se desliza con el latido del reloj único (la fracción del volumen
+  latido expulsada, máxima en la telesístole). Sigue a la cara del corazón por su normal, con la amplitud del borde del pulmón
+  junto a cada ventrículo por TAC (Hsu 2017: 7,4 mm el izquierdo, 2,7 el derecho), que decae hasta 0 a 40 mm del corazón
+  [ESTIMADO], y solo su parte tangente a la pared: 0,9 mm junto a la ventana, 1,2–2,0 sobre el ápex, 3,2–3,5 en el borde
+  izquierdo del corazón y nada en los puntos de partida. La arena bajo la pleura se mueve con él: el modo M sobre el ápex tiene
+  su pico a la FC (S3) y lejos del corazón sigue la estratósfera (F-T11). A-T16 se cumple. Invertible por construcción, como el
+  campo respiratorio.
+
 - La espalda (29): el paciente sentado (`PatientState.position`; la sonda da la vuelta al tronco), la escápula con los brazos a
   los lados (una lámina de 3 mm bajo la piel, la grasa y el trapecio, con el ángulo inferior a la altura de la apófisis de T8 en
   la línea escapular y el superior a 9 cm de la línea media, Cooperstein, Pontin, Garzón-Alfaro; meta A-T18), las apófisis

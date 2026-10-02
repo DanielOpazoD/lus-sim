@@ -35,3 +35,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [29](DECISIONS.md#L2084) | La espalda: el paciente sentado, la escápula y la columna | vigente |
 | [30](DECISIONS.md#L2245) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
 | [31](DECISIONS.md#L2323) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
+| [32](DECISIONS.md#L2464) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |

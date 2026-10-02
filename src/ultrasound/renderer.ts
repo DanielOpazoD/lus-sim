@@ -221,6 +221,8 @@ export interface GpuPointQuery {
   bd: Float32Array;
   normal?: Float32Array;
   gradNorm?: Float32Array;
+  /** lus-sim (decisión 32), si se pidió: el punto del pulmón antes del latido menos el material (xyz por punto, mm). */
+  lungPulse?: Float32Array;
 }
 
 /** Envolvente detectada leída de la GPU (solo pruebas): `data[muestra · lines + línea]`. */
@@ -1377,7 +1379,12 @@ export class UltrasoundRenderer {
    * salida `o2` del shader tenga destino). `_allTubes` (VExUS: todos los tubos, sin recorte por losa) no
    * cambia nada en el tórax, que no tiene tubos; se conserva la forma de la llamada.
    */
-  queryPoints(points: Float32Array, inputs: FrameInputs, _allTubes = false, opts: { normals?: boolean } = {}): GpuPointQuery {
+  queryPoints(
+    points: Float32Array,
+    inputs: FrameInputs,
+    _allTubes = false,
+    opts: { normals?: boolean; lungPulse?: boolean } = {},
+  ): GpuPointQuery {
     const gl = this.gl;
     const n = Math.floor(points.length / 3);
     const W = 256;
@@ -1387,7 +1394,7 @@ export class UltrasoundRenderer {
     const pts = createTexture(gl, W, H, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.FLOAT, data);
     const f = { internal: gl.RGBA32F, format: gl.RGBA, type: gl.FLOAT, filter: gl.NEAREST };
-    const target = createTarget(gl, W, H, [f, f, f]);
+    const target = createTarget(gl, W, H, [f, f, f, f]);
     this.pQuery ??= GLProgram.link(gl, VERT, FRAG_QUERY, 'query');
     bindTarget(gl, target);
     this.pQuery.use();
@@ -1405,6 +1412,11 @@ export class UltrasoundRenderer {
     if (out2) {
       gl.readBuffer(gl.COLOR_ATTACHMENT2);
       gl.readPixels(0, 0, W, H, gl.RGBA, gl.FLOAT, out2);
+    }
+    const out3 = opts.lungPulse ? new Float32Array(W * H * 4) : null;
+    if (out3) {
+      gl.readBuffer(gl.COLOR_ATTACHMENT3);
+      gl.readPixels(0, 0, W, H, gl.RGBA, gl.FLOAT, out3);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     deleteTarget(gl, target);
@@ -1429,7 +1441,40 @@ export class UltrasoundRenderer {
         gradNorm[i] = out2[i * 4 + 3];
       }
     }
-    return normal ? { tissue, vessel, velocity, iface, ifd, bd, normal, gradNorm } : { tissue, vessel, velocity, iface, ifd, bd };
+    const out: GpuPointQuery = normal
+      ? { tissue, vessel, velocity, iface, ifd, bd, normal, gradNorm }
+      : { tissue, vessel, velocity, iface, ifd, bd };
+    if (out3) {
+      const lungPulse = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) lungPulse.set([out3[i * 4], out3[i * 4 + 1], out3[i * 4 + 2]], i * 3);
+      out.lungPulse = lungPulse;
+    }
+    return out;
+  }
+
+  /**
+   * Modo M (solo pruebas; lus-sim, decisión 32): las columnas de la franja, de la más vieja a la última, con su instante y
+   * su gris de 8 bits (fila 0 = la cara; `M_SAMPLES` filas en la profundidad de la franja). Lectura bloqueante.
+   */
+  readMStrip(): { times: number[]; samples: number; depthMm: number; columns: Uint8Array[] } {
+    const ring = this.mStrip;
+    if (!this.tMStrip || ring.count === 0) return { times: [], samples: M_SAMPLES, depthMm: ring.depthMm, columns: [] };
+    const gl = this.gl;
+    const px = new Uint8Array(M_COLUMNS * M_SAMPLES * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.tMStrip.fbo);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.readPixels(0, 0, M_COLUMNS, M_SAMPLES, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    const times: number[] = [];
+    const columns: Uint8Array[] = [];
+    for (let i = 0; i < ring.count; i++) {
+      const slot = ring.slot(i);
+      const col = new Uint8Array(M_SAMPLES);
+      for (let r = 0; r < M_SAMPLES; r++) col[r] = px[(r * M_COLUMNS + slot) * 4];
+      times.push(ring.time(i));
+      columns.push(col);
+    }
+    return { times, samples: M_SAMPLES, depthMm: ring.depthMm, columns };
   }
 
   /**

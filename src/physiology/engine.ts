@@ -3,6 +3,7 @@ import type { PatientState } from './patientState';
 import { validatePatient } from './patientState';
 import { RespiratoryModel, type RespiratorySample } from './respiratory';
 import { RhythmGenerator } from './rhythm';
+import { ventricularEjection } from './ventricle';
 
 /**
  * Muestra del estado fisiológico en un instante del reloj. Es la única
@@ -18,6 +19,8 @@ export interface PhysiologySample {
   beatIndex: number;
   lastR: number;
   rr: number;
+  /** lus-sim (decisión 32): fracción del volumen latido expulsada (0 en la telediástole, 1 en la telesístole), `ventricle.ts`. */
+  cardiacEjection: number;
   resp: RespiratorySample;
 }
 
@@ -109,6 +112,7 @@ export class PhysiologyEngine {
       beatIndex: beat.index,
       lastR: beat.tR,
       rr: beat.rr,
+      cardiacEjection: ventricularEjection(beat, t),
       resp: r,
     };
   }

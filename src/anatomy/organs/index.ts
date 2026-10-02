@@ -3,6 +3,7 @@ import * as heart from './heart';
 import * as lungApex from './lungApex';
 import * as lungBorder from './lungBorder';
 import * as lungCurtain from './lungCurtain';
+import * as lungPulse from './lungPulse';
 import * as ribcage from './ribcage';
 import * as spine from './spine';
 import * as wall from './wall';
@@ -59,5 +60,7 @@ export const ORGAN_MODULES: readonly OrganModule[] = [
     gpuOnly: { domeRim: 'gemela: `diaphragmRim` (la tabla y el tronco van en argumentos; la GPU los lee de uniforms)' },
   },
   { id: 'heart', exports: heart, glsl: heart.HEART_GLSL },
+  // lus-sim (decisión 32): el pulso pulmonar, el deslizamiento del pulmón junto al corazón con el latido (usa el corazón)
+  { id: 'lungPulse', exports: lungPulse, glsl: lungPulse.LUNG_PULSE_GLSL },
   { id: 'lungCurtain', exports: lungCurtain, glsl: lungCurtain.LUNG_CURTAIN_GLSL },
 ];

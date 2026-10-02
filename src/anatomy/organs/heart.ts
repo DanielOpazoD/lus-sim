@@ -22,7 +22,8 @@ import { wallArc, wallInnerNormal, wallTotalMm } from './wall';
  *    la cara del elipsoide (la más honda bajo el disco, más 1 mm): miocardio, sin pulmón. Un elipsoide que tocara la pared
  *    dejaría una ventana alargada de lado a lado (la cara del corazón casi sigue la curva de la pared) y llegaría a la LMC.
  *  - Sobre la cúpula: por debajo del diafragma no hay corazón (se apoya en él).
- * Sin latido ni pulso pulmonar (`heart-static`): el corazón es estático y su pericardio no tiene cara propia.
+ * El corazón no late (`heart-simplified`): su latido solo mueve el pulmón de alrededor (el pulso pulmonar, decisión 32,
+ * `lungPulse.ts`); su pericardio no tiene cara propia.
  *
  * TS y GLSL (uniforms `uHeart*` del esquema único) viven aquí juntos.
  */

@@ -351,7 +351,11 @@ export function slidingLattice(pD: Vec3, outwardNormal: Vec3, caudalMm: number, 
   ];
 }
 
-/** Campo del deslizamiento (`slidingField` de la pasada B, sin transmisión): `seed` es el uSeed del cuadro. */
+/**
+ * Campo del deslizamiento (`slidingField` de la pasada B, sin transmisión): `seed` es el uSeed del cuadro. La GLSL ancla además
+ * la retícula al punto del pulmón antes del latido (`lungPulseInverse`, decisión 32): aquí `pD` llega ya invertido (junto al
+ * corazón), o es la pleura misma lejos de él, donde el pulso es 0.
+ */
 export function slidingField(pD: Vec3, outwardNormal: Vec3, caudalMm: number, h: number, seed: number, salt = 0): [number, number] {
   const f = scattererField(slidingLattice(pD, outwardNormal, caudalMm, h), 1, seed + SLIDING_SALT + salt);
   const a = slidingAmplitude(h);
@@ -425,10 +429,10 @@ float pleuraSeriesEcho(float cosI, float delta) {
   return interfaceProfileEcho(IF_PLEURA_WALL, cosI, 1.0, delta + (uIface[IF_PLEURA_WALL].w > 0.5 ? 0.0 : IFACE_SHIFT));
 }
 float slidingAmplitude(float h) { return SLIDING_AMP * exp(-h / SLIDING_EFOLD_MM); }
-// Deslizamiento anclado al pulmón (bajado lo que ha bajado el pulmón de su altura y su columna, lungSlideMm: decisión 19),
-// grano alargado a lo largo de la pleura
+// Deslizamiento anclado al pulmón (bajado lo que ha bajado el pulmón de su altura y su columna, lungSlideMm: decisión 19;
+// y, junto al corazón, lo que lo ha deslizado el latido, lungPulseInverse: decisión 32), grano alargado a lo largo de la pleura
 vec2 slidingField(vec3 pD, float h, float salt) {
-  vec3 m = toMaterial(pD);
+  vec3 m = lungPulseInverse(toMaterial(pD));
   vec3 q = (m + vec3(0.0, 0.0, lungSlideMm(m))) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
   return scattererField(q, 1.0, uSeed + SLIDING_SALT + salt) * slidingAmplitude(h);
 }

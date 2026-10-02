@@ -198,7 +198,7 @@ export class Simulator {
   }
 
   /**
-   * Consulta la anatomía GLSL en puntos del mundo con el estado fisiológico actual y el
+   * Consulta la anatomía GLSL en puntos del mundo con el estado fisiológico actual (u otro, `sample`; decisión 32) y el
    * plano `frame`. Solo para el gate de equivalencia y la e2e de normales (`normals`); bloqueante.
    * `compression`: el contacto de la sonda que deforma el tejido (decisión 63); por omisión, el del último marco.
    * `allTubes` no cambia nada en el tórax (sin tubos): se conserva la forma de la llamada de VExUS.
@@ -207,12 +207,12 @@ export class Simulator {
     points: Float32Array,
     frame: ProbeFrame,
     allTubes = false,
-    opts: { normals?: boolean; compression?: ProbeCompression } = {},
+    opts: { normals?: boolean; lungPulse?: boolean; compression?: ProbeCompression; sample?: PhysiologySample } = {},
   ): GpuPointQuery {
     return this.renderer.queryPoints(
       points,
       {
-        sample: this.sample,
+        sample: opts.sample ?? this.sample,
         frame,
         pose: this.pose,
         compression: opts.compression ?? this.lastContact,

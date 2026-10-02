@@ -1266,6 +1266,7 @@ uniform sampler2D uPoints;
 layout(location = 0) out vec4 o0;
 layout(location = 1) out vec4 o1;
 layout(location = 2) out vec4 o2;
+layout(location = 3) out vec4 o3;
 void main() {
   vec4 p = texelFetch(uPoints, ivec2(gl_FragCoord.xy), 0);
   vec3 m = toMaterial(p.xyz);
@@ -1274,5 +1275,7 @@ void main() {
   o0 = vec4(float(c.tissue), float(c.vessel), c.bd, c.ifd);
   o1 = vec4(v, float(c.iface));
   o2 = faceGradient(c, m);
+  // lus-sim (decisión 32): el pulso pulmonar, el desplazamiento del punto del pulmón antes del latido, y la amplitud del instante
+  o3 = vec4(lungPulseInverse(m) - m, uLungPulse);
 }
 `;

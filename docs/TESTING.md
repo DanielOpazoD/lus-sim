@@ -18,8 +18,8 @@ la salida actual no protege nada.
 ## La e2e en el CI
 
 - **Ocho fragmentos en paralelo, un trabajador cada uno** (`.github/workflows/ci.yml`, `playwright.config.ts`; PR #32,
-  decisión 30). Las 29 pruebas se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
-  da a cada fragmento ⌊29/8⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Al añadir o quitar una
+  decisión 30). Las 32 pruebas (con la del mapa de grises, decisión 31, y las dos del pulso pulmonar, decisión 32) se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
+  da a cada fragmento ⌊32/8⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Al añadir o quitar una
   prueba, mirar qué fragmento recibe las ventanas del banco de fidelidad (≈ 4 min cada una en el CI): con 29 en siete, el
   segundo juntaba tres y se acercaba a los 15 min. El agregador `check`
   exige que toda la matriz apruebe, además de `verificar`; el plazo por corredor sigue en 15 minutos.
@@ -198,6 +198,25 @@ la salida actual no protege nada.
 - **Una meta que cuelga de un supuesto lo dice la prueba.** A-T15 a TLC exige el EIC a ≥ 10 mm de la inserción de la ZOA, que
   depende de su longitud estimada (`zoaBelowReflectionMm`): con 15 mm en lugar de 20 falla por su aserción. Desde el tronco de
   226 mm (decisión 28) falla también con 20 (el EIC 9 de la LAA, a 9,8 mm: la reflexión sube más que él) y es `notYetMet`; su mitad en FRC sigue en `it`.
+
+## Pulso pulmonar (decisión 32)
+
+- **Difeomorfismo por construcción** (`src/validation/lungPulse.test.ts`, fast-check en las seis variantes del tórax, en el
+  pulmón de la banda subpleural al alcance del corazón): |∇v| ≤ 0,8 con las mayores amplitudes del rango (11,02 y 3,70 mm),
+  así que x ↦ x + v(x) tiene det ≥ (1 − L)³ > 0 y el punto fijo de 25 pasos vuelve al punto a ≤ 0,05 mm; la mutación de dos
+  pasos (la inversa de VExUS) falla. El campo es tangente a la pared, va hacia el corazón (contra la normal de su cara: un
+  error de signo falla), decae con la distancia y es 0 desde su alcance (en los puntos de partida, exacto), y es mayor en el
+  borde del corazón que sobre el ápex y la ventana. La fracción expulsada del reloj único: 0 en la R, 1 en la telesístole,
+  periódica a la FC.
+- **A-T16** (`anatomyTargets.test.ts`): en apnea, el pulmón 5 mm por fuera de la ventana se desliza ≈ 0,9 mm hacia el corazón
+  una vez por latido y vuelve a 0 en la telediástole.
+- **La medida** (`src/measure/lungPulse.ts`, `lungPulseMeasure.test.ts`): F-T11, la menor correlación entre columnas del modo
+  M de la banda 1–6 mm bajo la pleura separadas ≤ 2 s; S3, el pico del espectro del gris de esa banda. Sobre franjas
+  sintéticas.
+- **La e2e** (`e2e/pulso.spec.ts`): el gemelo GLSL del pulso frente al de TS (en la telesístole, ≤ 0,01 mm), y el modo M de
+  la línea central como lo registra la interfaz: sobre el ápex en apnea, el pico a la FC y sin estratósfera; en el punto BLUE
+  superior en apnea, estratósfera (≥ 0,95). Sin `lungPulseInverse` en `slidingField` el pico se va y la banda es una
+  estratósfera: la prueba falla (comprobado al escribirla).
 
 ## Banco de fidelidad (decisión 21)
 

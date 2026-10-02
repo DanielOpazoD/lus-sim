@@ -24,6 +24,7 @@ describe('Módulos de órgano', () => {
       'spine',
       'lungBorder',
       'heart',
+      'lungPulse',
       'lungCurtain',
     ]);
   });
