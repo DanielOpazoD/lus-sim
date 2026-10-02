@@ -24,34 +24,49 @@ async function boot(page: Page): Promise<string[]> {
   return errors;
 }
 
-test('pulso pulmonar: el gemelo GLSL, el pico a la FC sobre el ápex en apnea (S3) y la estratósfera lejos del corazón (F-T11)', async ({
-  page,
-}) => {
+/** Una llamada a los ganchos, con su duración en el registro de la prueba (para medir el costo en el CI). */
+async function timed<T>(label: string, run: () => Promise<T>): Promise<T> {
+  const t0 = Date.now();
+  const out = await run();
+  console.log(`PULSO ${label}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  return out;
+}
+
+test('pulso pulmonar: el gemelo GLSL y la estratósfera lejos del corazón en apnea (F-T11)', async ({ page }) => {
+  // en el CI (#42) la prueba entera con 73 columnas pasó de 240 s: se parte en dos y se mide cada paso
   test.setTimeout(240_000);
-  const errors = await boot(page);
+  const errors = await timed('arranque', () => boot(page));
   // el gemelo, en la telesístole (el corazón vacío del todo): float32 frente a float64
-  const eq = await page.evaluate(() => window.__lusTest!.lungPulseEquivalence());
+  const eq = await timed('gemelo', () => page.evaluate(() => window.__lusTest!.lungPulseEquivalence()));
   expect(eq.points, JSON.stringify(eq)).toBeGreaterThan(500);
   expect(eq.maxShiftMm, JSON.stringify(eq)).toBeGreaterThan(2);
   expect(eq.maxDiffMm, JSON.stringify(eq)).toBeLessThan(0.01);
-  // sobre el ápex en apnea: 4 s de modo M a 12 columnas por segundo (Nyquist 6 Hz; resolución 0,25 Hz)
-  const apex = await page.evaluate(() =>
-    window.__lusTest!.lungPulse({ site: 'apex', respiration: 'apnea-expiratory', seconds: 4, frameIntervalS: 1 / 12 }),
-  );
-  const tagA = JSON.stringify(apex);
-  expect(apex.columns, tagA).toBe(48);
-  expect(apex.pulseMm, tagA).toBeGreaterThan(1);
-  // el pico de la banda, a la FC (± una línea del espectro); en GPU real 405 veces la mediana con 120 columnas, 22 con 48
-  expect(Math.abs(apex.peakHz - apex.heartHz), tagA).toBeLessThanOrEqual(1 / 4 + 1e-6);
-  expect(apex.peakOverMedian, tagA).toBeGreaterThan(8);
-  // hay pulso: no es una estratósfera (F-T11 exige pulso 0)
-  expect(apex.correlation2s, tagA).toBeLessThan(0.9);
-  // lejos del corazón, en apnea: estratósfera
-  const far = await page.evaluate(() =>
-    window.__lusTest!.lungPulse({ site: 'blueUpper', respiration: 'apnea-expiratory', seconds: 2.5, frameIntervalS: 1 / 10 }),
+  // lejos del corazón, en apnea: estratósfera (12 columnas en 2,2 s: la ventana de 2 s de F-T11)
+  const far = await timed('BLUE superior', () =>
+    page.evaluate(() =>
+      window.__lusTest!.lungPulse({ site: 'blueUpper', respiration: 'apnea-expiratory', seconds: 2.2, frameIntervalS: 0.2 }),
+    ),
   );
   const tagF = JSON.stringify(far);
   expect(far.pulseMm, tagF).toBe(0);
   expect(far.correlation2s, tagF).toBeGreaterThanOrEqual(0.95);
+  expect(errors).toEqual([]);
+});
+
+test('pulso pulmonar: sobre el ápex en apnea, el pico del modo M a la FC (S3) y sin estratósfera', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = await timed('arranque', () => boot(page));
+  // 3 s de modo M a 10 columnas por segundo (Nyquist 5 Hz; resolución 1/3 Hz)
+  const apex = await timed('ápex', () =>
+    page.evaluate(() => window.__lusTest!.lungPulse({ site: 'apex', respiration: 'apnea-expiratory', seconds: 3, frameIntervalS: 0.1 })),
+  );
+  const tagA = JSON.stringify(apex);
+  expect(apex.columns, tagA).toBe(30);
+  expect(apex.pulseMm, tagA).toBeGreaterThan(1);
+  // el pico de la banda, a la FC (± una línea del espectro): en GPU real, 19–33 veces la mediana con 30 columnas
+  expect(Math.abs(apex.peakHz - apex.heartHz), tagA).toBeLessThanOrEqual(1 / 3 + 1e-6);
+  expect(apex.peakOverMedian, tagA).toBeGreaterThan(8);
+  // hay pulso: no es una estratósfera (F-T11 exige pulso 0)
+  expect(apex.correlation2s, tagA).toBeLessThan(0.9);
   expect(errors).toEqual([]);
 });

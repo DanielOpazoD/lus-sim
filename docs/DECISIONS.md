@@ -2539,7 +2539,7 @@ mismas garantías que la decisión 22 (invertible por construcción, inversa de 
   plano de un corte.
 - **A-T16 se cumple** (`anatomyTargets.test.ts`): en apnea, el pulmón 5 mm por fuera de la ventana se desliza 0,88 mm hacia el
   corazón una vez por latido y vuelve a 0 en la telediástole. En la imagen (`e2e/pulso.spec.ts`, modo M sobre el ápex en
-  apnea): el pico de la banda a la FC (1,17 Hz; 762 veces la mediana con 120 columnas en GPU real, 23 con las 48 de la e2e) y
+  apnea): el pico de la banda a la FC (1,17 Hz; 762 veces la mediana con 120 columnas en GPU real, 19–33 con las 30 de la e2e) y
   correlación en 2 s de 0,70: no es una estratósfera. Respirando, el deslizamiento manda (correlación 0,36 y el pico a 0,67 Hz;
   medido una vez, sin prueba).
 - **F-T11 sigue**: con deslizamiento 0 y pulso 0 (el punto BLUE superior en apnea), correlación 0,9999 (GPU real) y 1
@@ -2551,7 +2551,10 @@ mismas garantías que la decisión 22 (invertible por construcción, inversa de 
   repetida cuatro veces, mediana de 5, alternando main 6d8476d y la rama): con la GPU de este Mac (Metal), 1,92–2,14 ms en main y
   1,90–1,97 en la rama, sin diferencia medible; con SwiftShader, 211–214 ms frente a 218–229 (+4–18 ms, ≈ +5 %, con la máquina
   compartida). Lejos del corazón la GLSL sale en la primera distancia al elipsoide.
-- **La e2e suma una prueba**; con ocho fragmentos, las ventanas del banco de fidelidad no se juntan más que antes.
+- **La e2e suma dos pruebas** (el gemelo con F-T11, y S3 sobre el ápex): la primera versión, una sola con 73 columnas, pasó de los
+  240 s en el CI de #42 (4,1 min, y su reintento agotó los 15 min del fragmento); partida en dos y con 30 + 12 columnas, cada una
+  registra lo que tarda cada paso (`PULSO …` en el registro). Con 32 pruebas en ocho fragmentos, cuatro por fragmento: las
+  ventanas del banco de fidelidad no se juntan más que antes.
 - **Pendiente**: el corazón sigue sin moverse en la ventana (`heart-simplified`), y tampoco siguen al pulso el borde del pulmón
   ni el de la ventana (la arena junto a la ventana se desliza hacia ella, su borde no); la sinusoide del derrame usará la parte
   normal del campo cuando haya líquido; la amplitud ecográfica, la curva de distancia y el deslizamiento del borde a lo largo

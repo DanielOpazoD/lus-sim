@@ -18,8 +18,8 @@ la salida actual no protege nada.
 ## La e2e en el CI
 
 - **Ocho fragmentos en paralelo, un trabajador cada uno** (`.github/workflows/ci.yml`, `playwright.config.ts`; PR #32,
-  decisión 30). Las 31 pruebas (con la del mapa de grises, decisión 31, y la del pulso pulmonar, decisión 32) se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
-  da a cada fragmento ⌊31/8⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Al añadir o quitar una
+  decisión 30). Las 32 pruebas (con la del mapa de grises, decisión 31, y las dos del pulso pulmonar, decisión 32) se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
+  da a cada fragmento ⌊32/8⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Al añadir o quitar una
   prueba, mirar qué fragmento recibe las ventanas del banco de fidelidad (≈ 4 min cada una en el CI): con 29 en siete, el
   segundo juntaba tres y se acercaba a los 15 min. El agregador `check`
   exige que toda la matriz apruebe, además de `verificar`; el plazo por corredor sigue en 15 minutos.
