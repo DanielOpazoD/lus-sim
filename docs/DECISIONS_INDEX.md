@@ -33,3 +33,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [27](DECISIONS.md#L1862) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
 | [28](DECISIONS.md#L1949) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
 | [29](DECISIONS.md#L2084) | La espalda: el paciente sentado, la escápula y la columna | vigente |
+| [30](DECISIONS.md#L2245) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |

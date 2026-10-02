@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 
 async function boot(page: Page): Promise<string[]> {
   const errors: string[] = [];
@@ -87,16 +87,30 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   expect(errors).toEqual([]);
 });
 
-test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y respiración conservan sus contratos', async ({
-  browser,
-}, info) => {
-  test.setTimeout(240_000);
+/**
+ * Un teléfono (390 × 844, táctil). Las dos pruebas «M móvil» eran una sola: con SwiftShader cada cuadro con B + M tarda de
+ * 3 a 20 s en el CI y cada clic espera un par de cuadros, y la prueba entera pasaba en 2,7–4,0 min con un plazo de 4 min
+ * (decisión 30). Partida en dos, cada una arranca su página y conserva todas sus comprobaciones.
+ */
+async function onPhone(browser: Browser, info: TestInfo, body: (page: Page, errors: string[]) => Promise<void>): Promise<void> {
   const context = await browser.newContext({ baseURL: info.project.use.baseURL, viewport: { width: 390, height: 844 }, hasTouch: true });
   const page = await context.newPage();
   try {
     const errors = await boot(page);
     await page.locator('#mmode-toggle').click();
     await acquired(page);
+    await body(page, errors);
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+}
+
+test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y respiración conservan sus contratos', async ({
+  browser,
+}, info) => {
+  test.setTimeout(240_000);
+  await onPhone(browser, info, async (page) => {
     const pose = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
     await page.locator('#mmode-place').click();
     await expect(page.locator('#sector-wrap')).toBeFocused();
@@ -137,6 +151,12 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     expect(await first(page), 'una maniobra respiratoria continúa la misma línea temporal').toBe(gainStart);
     await page.getByText('Ajuste fino de la línea', { exact: true }).click();
     await expect(page.locator('#mmode-note')).toBeHidden();
+  });
+});
+
+test('M móvil: los mandos caben de 320 a 720 px, congelar revisa B y M y apagar M vacía la franja', async ({ browser }, info) => {
+  test.setTimeout(240_000);
+  await onPhone(browser, info, async (page) => {
     for (const width of [320, 390, 720]) {
       await page.setViewportSize({ width, height: 844 });
       await frame(page);
@@ -158,10 +178,7 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     await page.locator('#mmode-toggle').click();
     await expect(page.locator('#mmode-pane')).toBeHidden();
     await expect.poll(() => count(page), { timeout: 60_000 }).toBe(0);
-    expect(errors).toEqual([]);
-  } finally {
-    await context.close();
-  }
+  });
 });
 
 test('M: pérdida de GPU congelada descarta la franja y recupera adquisición viva', async ({ page }) => {

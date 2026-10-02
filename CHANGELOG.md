@@ -133,6 +133,10 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 - El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
   pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
+- La e2e estable en el CI (30): el bucle ya no dibuja sobre un contexto WebGL perdido antes de su evento (quedaba «FBO
+  incompleto» en el registro), el aviso del modo M también cambia en el acto al empezar otra franja, la prueba de la pérdida
+  espera los cuadros del renderizador nuevo y decodifica la captura en Node, «M móvil» se parte en dos y la e2e corre en ocho
+  fragmentos. Medido en el CI sin reintentos: de 2/8 y 3/8 fallos a 0/8 y 0/16.
 - El tronco con la profundidad del tórax (28): 320 × 226 mm de piel (ANSUR II, varones de IMC 18,5–25; en VExUS, 320 × 210), la
   columna atada a la piel de la espalda y la pared junto a la columna de 28 mm (Folli, Okçu; antes ≈ 21 en la paravertebral). La
   caja pasa de 303 × 182 a 303 × 189 mm (Robinson: −0,76 → −0,36 DE). El punto BLUE inferior (y la altura del PLAPS) sube con la
