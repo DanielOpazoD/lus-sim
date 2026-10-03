@@ -169,32 +169,54 @@ conservan su identificador (decisiones 10 y 11).
   tarjetas de la espalda, que sientan al paciente; el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
   a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda. La animación hacia una tarjeta
   recorre φ en línea recta: sentado, de la espalda izquierda a la derecha pasa por delante, no por la línea media posterior.
-- **El abdomen, fuera del hígado y del bazo, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el
-  diafragma están el hígado y el bazo; el resto queda en el tejido por defecto de la clasificación de VExUS, su «resto» del
-  abdomen (`Tissue.Bowel`), sin estómago, riñones, vesícula, colon, páncreas, vasos ni gas intestinal. En la cobertura, 10 de
-  las 11 celdas pendientes caen ahí: el estómago del espacio de Traube (la LMC izquierda bajo el borde, la LAA y el EIC8 de la
-  LAM izquierda: el estómago con gas bajo la cúpula izquierda puede parecer pulmón, y el modelo no lo tiene) y el riñón del
-  paralelogramo de Morris (la escapular en el EIC11 de los dos lados y la paravertebral izquierda en el 11). La cara abdominal del
-  diafragma conserva las propiedades de su cara hepática en VExUS. En la imagen el «resto» es un moteado sin estructura: la
-  textura del «resto» de VExUS (`restTexture`) no se porta (decisión 12), y con el preajuste pulmonar queda casi negro.
-- **El hígado y el bazo son formas lisas sin estructura interna** (`liver-spleen-simplified`, decisión 37): el hígado, la
+- **El abdomen, fuera de sus órganos, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el diafragma
+  están el hígado y el bazo y, desde la 42, el estómago, los riñones y el retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la
+  grasa); lo demás queda en el tejido por defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin
+  vesícula, colon, páncreas, suprarrenales, vasos ni gas intestinal. En la cobertura, la única celda pendiente cae ahí: la axilar
+  posterior izquierda en el EIC11, bajo el bazo, donde la base pone el ángulo esplénico del colon. La cara abdominal del diafragma
+  conserva las propiedades de su cara hepática en VExUS. En la imagen el «resto» es un moteado sin estructura: la textura del
+  «resto» de VExUS (`restTexture`) no se porta (decisión 12), ni la del retroperitoneo (`retroTexture`, sus septos), y con el
+  preajuste pulmonar queda casi negro.
+- **El hígado y el bazo son formas lisas sin estructura interna** (`liver-spleen-simplified`, decisiones 37 y 43): el hígado, la
   envolvente de VExUS escalada a la cavidad con el borde de Gray, sin vasos (ni la cava, ni las porta, ni las suprahepáticas),
-  tríadas portales, vesícula, fisuras ni ligamentos; el bazo, medio elipsoide rígido de 12 × 7 × 3,5 cm (Gray; medido, 11,6 × 6,9 ×
-  3,6) en las coordenadas de la pared, contra el diafragma, sin hilio ni vasos, con la retrodispersión del hígado [ESTIMADO].
-  Medidos frente a la base (metas pendientes, `notYetMet`): el hígado tiene 1,76 L, por encima del peso de Gray (1,4–1,6 kg en el
-  varón: 1,33–1,52 L) y de la fórmula de Vauthey para el avatar (≈ 1,5 L) [@vauthey-volumen-2002]: llena la cavidad del tronco de
-  226 mm (decisión 28) de delante atrás hasta el diafragma posterior, 13–17 cm, más que los 10–12,5 de Gray; su alto junto a su cara
-  derecha es de 13,4 cm (Gray: 15–17,5); su ancho (21,3 cm) y su alto en la LMC (12,9 cm, −1 DE de Kratzer
-  [@kratzer-higado-2003]) sí caen en la base. El bazo tiene 134 mL (≈ 146 g) frente a los ≈ 200 g de Gray. Su polo posterior
-  queda a 11 cm de la línea media y no a 4: es la forma del modelo (rígida, de 12 cm a lo largo de la 10.ª costilla, con su punto
-  más bajo en la axilar media), no la fuente, y por eso la escapular izquierda en el EIC10 no lo ve; su punto más bajo queda
-  ≈ 4 cm bajo la apófisis de L1 que da Gray (las dos marcas de Gray no caben juntas en esta parrilla). El lóbulo izquierdo acaba a
-  5 cm de la línea media, el extremo medial de lo que da Gray (no pocas veces llega a la línea mamilar). El riñón es solo un recorte
-  (una caja de Morris por detrás de la cara anterior del cuerpo vertebral [SUPUESTO]). Con el preajuste pulmonar el hígado a 7–11 cm
-  queda cerca del negro. Los dos se mueven con el campo respiratorio (decisión 22), cuyo peso es 0 en la pared: junto a ella bajan
-  menos que la cúpula, sin deslizar sobre el peritoneo (`respiratory-field-vertical`). Sin hepatomegalia ni esplenomegalia (el
-  tamaño variable de VExUS, `sizeFactor`, no se porta). El espejo del diafragma (F-T34) deja el virtual 1,7–2,0 dB bajo el real en
-  el nivel mostrado, no los ≥ 3 que pide la base (meta pendiente).
+  tríadas portales, vesícula, fisuras ni ligamentos; el bazo, medio elipsoide rígido en las coordenadas de la pared, contra el
+  diafragma, con el ancho y el grueso de Gray (7 × 3,5 cm) y el largo del volumen de su peso (≈ 200 g: 14,3 cm a lo largo de la
+  10.ª costilla), y un cono redondeado, en las mismas coordenadas, que sigue de su extremo posterior hasta el punto más alto de Gray
+  (a 4 cm de la línea media de la espalda, en T9, bajo el diafragma y separado de la pared por el receso del pulmón), sin hilio ni vasos, con la retrodispersión del
+  hígado [ESTIMADO]. Medidos frente a la base (metas pendientes, `notYetMet`): el hígado tiene 1,76 L, por encima del peso de Gray
+  (1,4–1,6 kg en el varón: 1,33–1,52 L) y de la fórmula de Vauthey para el avatar (≈ 1,5 L) [@vauthey-volumen-2002]: llena la
+  cavidad del tronco de 226 mm (decisión 28) de delante atrás hasta el diafragma posterior, 13–17 cm, más que los 10–12,5 de Gray;
+  su alto junto a su cara derecha es de 13,4 cm (Gray: 15–17,5); su ancho (21,3 cm) y su alto en la LMC (12,9 cm, −1 DE de Kratzer
+  [@kratzer-higado-2003]) sí caen en la base. El bazo pesa lo de Gray (171 mL, ≈ 186 g) pero mide ≈ 16 cm por su eje principal
+  (Gray, 12; Chow, hasta 14): entre las dos marcas de Gray, el punto más bajo en la axilar media (z ≈ −116: la parrilla pone ahí la
+  10.ª costilla, 4 cm bajo la espinosa de L1 que da Gray) y el más alto a 4 cm de la línea media, hay ≈ 16 cm en el avatar. El
+  lóbulo izquierdo acaba a 5 cm de la línea media, el extremo medial de lo que da Gray (no pocas veces llega a la línea mamilar).
+  Con el preajuste pulmonar el hígado a 7–11 cm queda cerca del negro. Los dos se mueven con el campo respiratorio (decisión 22),
+  cuyo peso es 0 en la pared: junto a ella bajan menos que la cúpula, sin deslizar sobre el peritoneo
+  (`respiratory-field-vertical`). Sin hepatomegalia ni esplenomegalia (el tamaño variable de VExUS, `sizeFactor`, no se porta). El
+  espejo del diafragma (F-T34) deja el virtual 1,7–2,0 dB bajo el real en el nivel mostrado, no los ≥ 3 que pide la base (meta
+  pendiente).
+- **El estómago es una lente bajo el espacio de Traube** (`stomach-traube-lens`, decisión 43): medio elipsoide en las coordenadas
+  de la pared (como el bazo), con el contorno de Traube y el grueso que da el volumen en ayunas de Fidler y cols. (167 mL: 16,7 mm
+  hacia dentro en el paciente por omisión, 14,7–18,1 en los seis hábitos; medido tras el recorte del bazo, 139 mL); sin cardias,
+  antro ni píloro, sin pliegues ni las capas de su pared (3,6 mm de Henry y cols., con el tejido del «resto»: no tiene tejido propio,
+  porque los 32 tejidos llenan las tablas de la GPU), sin la cara de la mucosa. Su gas, el del estómago en ayunas de Fidler (23 mL;
+  medido, 19), arriba de la luz por un nivel horizontal de supino que no cambia con la posición del paciente; calculado sin el
+  recorte del bazo y con la profundidad bajo la pared (no bajo el diafragma). La firma del gas (las reverberaciones y la cola sucia)
+  es la de la pasada B para el gas que no es pulmón (decisión 20), sin el eco de la propia cara del gas (`test.fail` en la e2e); con
+  el preajuste pulmonar es tenue (la sombra, 5 dB bajo lo que se vería sin gas). Bajo la cúpula, el medio elipsoide sigue al
+  diafragma hacia dentro: el fondo llega a ≈ 7 cm bajo la pared; en la LMC en el EIC6, detrás del estómago queda el lóbulo
+  izquierdo del hígado, que en el adulto está delante de él.
+- **El riñón y el retroperitoneo son los de VExUS** (`kidney-retroperitoneum-port`, decisión 43): el riñón de VExUS (contorno,
+  seno, pirámides, pelvis, cápsula y grasa perirrenal) en el sitio de la base (Gray, Morris, Xue y cols.) con los ejes de Glodny y
+  cols. y Choi y cols., sin vasos, uréter, suprarrenal ni la cara de Morison (la dibuja la cápsula del hígado o del bazo que apoya
+  en su grasa); su largo (10,7 cm) es el de VExUS, cerca de los 10,9–11,1 de Glodny y algo bajo los 11,25 de Gray; su grueso
+  (4,6 cm) pasa del «algo más de 2,5 cm» de Gray. Su profundidad, la de Xue, no cambia con el hábito: en el obeso queda a ≈ 5 mm de
+  la pared y su grasa de detrás se pierde contra ella. Detrás de él (su sombra, `kidneyShadow`) no va el hígado ni el bazo. El
+  retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la grasa) con su marco anclado a lus-sim (la unión T12–L1 y el paso lumbar
+  de VExUS: la parrilla no tiene vértebras lumbares); por encima de los riñones su grasa queda en la gotera paravertebral
+  [ESTIMADO]. Entre el diafragma y la grasa del riñón, la grasa pararrenal posterior: en el EIC11, 11 mm en la escapular izquierda,
+  15 en la derecha y 3 en la paravertebral; su grosor, NO ENCONTRADO en la base. La cobertura la cruza solo si detrás está el riñón.
 - **El campo respiratorio es una traslación caudal con pesos** (`respiratory-field-vertical`, decisión 22): el tejido baja el
   descenso del diafragma por un peso que es 0 en la pared, la columna y el corazón con su ventana, sube en sus rampas (25, 30
   y 50 mm; la de la pared y la de la columna, [EXTRAPOLACIÓN PROPIA] de VExUS) y, por encima de la cúpula más alta, baja en

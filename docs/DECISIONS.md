@@ -3611,3 +3611,165 @@ ni aviso de WebGL (dos cuadros con el campo crudo dos veces más; GPU real: enco
 la lectura ligada (una unitaria), sin lanzar (una unitaria) y `finishForTiming` vacía (la e2e: esperar = encolar, 0,35 ms). La
 revisión adversarial de contexto limpio halló, entre otras cosas, que la primera versión de esta decisión afirmaba que la lectura
 inválida esperaba a la GPU; la medida de arriba (la lectura inválida al cerrar) lo desmiente y el razonamiento se rehízo.
+
+## 43. El estómago, los riñones y el polo posterior del bazo: las bases de la cobertura, y el costo de las caras de los órganos
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Tras la decisión 37 la cobertura de exploración estaba en 127 de 138 celdas. Las 11 que faltaban eran todas bajo el
+borde del pulmón, donde la base pone un órgano que el modelo no tenía: el estómago del espacio de Traube (la LMC izquierda en los EIC
+6–8, la LAA en los 7–9 y el EIC8 de la LAM), el riñón de Morris (la escapular en el EIC11 de los dos lados y la paravertebral izquierda
+en el 11) y el polo posterior del bazo (la escapular izquierda en el EIC10). Es el requisito de cobertura de `docs/MISSION.md` (100 %
+en la v0.2.0) y O2 (fidelidad anatómica). Además, con la decisión 37 el arranque con SwiftShader (el CI) y el costo de su cuadro
+subieron un 30–45 % incluso en vistas sin órganos: había que atacarlo antes de sumar órganos (O6).
+
+**Fuentes verificadas** (texto completo salvo donde se dice «resumen»; búsqueda del 03-10-2026):
+
+- **Gray 1918, «Surface Markings of the Abdomen»** [@gray-anatomia-1918]. Estómago (moderadamente lleno, en supino): en la línea
+  lateral izquierda el fondo llega al 5.º espacio intercostal o al 6.º cartílago; el cardias, frente al 7.º cartílago izquierdo a
+  2,5 cm del esternón (T10); el píloro, en el plano transpilórico 1 cm a la derecha (L1); la parte en contacto con la pared, un
+  triángulo de vértice en el extremo del 8.º cartílago izquierdo y base del 10.º izquierdo al 9.º derecho; el espacio de Traube,
+  entre el borde inferior del pulmón izquierdo, el borde anterior del bazo, el reborde costal y el lóbulo izquierdo del hígado.
+  Riñones: el paralelogramo de Morris (de 2,5 a 9,5 cm de la línea media, desde la punta de la espinosa de T11); el derecho, 1 cm
+  más bajo. Bazo: el punto más alto a 4 cm de la línea media de la espalda a la altura de la punta de la espinosa de T9.
+- **Gray 1918, «The Kidneys»**: sus extremos superiores, al borde superior de T12; 11,25 cm de largo, 5–7,5 de ancho y algo más de
+  2,5 de grueso; el eje largo hacia abajo y afuera; la cara posterior, envuelta en tejido graso, apoya en el diafragma, los arcos
+  lumbocostales, el psoas y el cuadrado lumbar, el derecho sobre la 12.ª costilla y el izquierdo sobre la 11.ª y la 12.ª.
+  **«The Spleen»**: unos 200 g; su cara diafragmática, contra el diafragma, que la separa de las costillas 9.ª–11.ª y del borde
+  inferior del pulmón y la pleura.
+- **Fidler y cols. 2009** [@fidler-estomago-2009] (RM en supino, 20 voluntarios en ayunas): el volumen gástrico en ayunas, 167 ± 10
+  mL (media ± EEM), de los que la pared ocupa 118 ± 5; el aire, 21 ± 3 y 25 ± 5 mL.
+- **Henry y cols. 2007** [@henry-estomago-2007] (TC de 33 adultos): el volumen gástrico, 143 ± 97 cm³ con IMC normal (el proximal,
+  78 ± 54); la pared, 3,61 ± 0,51 mm.
+- **Xue y cols. 2017** [@xue-rinon-2017] (angio-TC, 167 donantes): la profundidad renal, la media de las distancias de la piel de la
+  espalda a las caras anterior y posterior a la altura del hilio, 6,82 ± 0,95 cm la izquierda y 7,03 ± 0,99 la derecha.
+- **Glodny y cols. 2009** [@glodny-rinon-2009] (TC de 64 cortes, 1040 adultos): el largo, 108,5 ± 12,2 mm el derecho y 111,3 ± 12,6
+  el izquierdo; el giro sagital (polo superior frente al inferior respecto del plano coronal), 25,8 ± 11,1° y 24,3°; la pelvis renal
+  frente al plano sagital medio, 60,3 ± 18,1° y 53,5 ± 22,5°. **Kinnunen 1986** [@kinnunen-urografia-1986] (resumen): en supino el
+  eje largo forma 16 ± 5,8° con la mesa, con el polo inferior delante (el sentido del giro). **Choi y cols. 2010**
+  [@choi-eje-renal-2010] (radiografías AP, 754): el eje polo–polo, 16,8° (6,8–28,1) con la línea de las espinosas lumbares.
+- **Sommer y Taylor 1980** [@sommer-sombra-1980] y **Rubin y cols. 1991** [@rubin-sombra-1991] (resúmenes): el gas da una sombra
+  «sucia», con reverberaciones, frente a la limpia del cálculo; cuánto, depende de la superficie.
+- NO ENCONTRADO: el tamaño de la burbuja del fondo y las medidas del fondo en ayunas; el grosor de la grasa pararrenal posterior junto
+  al polo superior del riñón; el grosor del bazo junto a su polo posterior.
+
+**Opciones.** Costo: (a) dejarlo; (b) quitar las caras de las cápsulas; (c) compilar la distancia de cada cara una sola vez. Riñón:
+(i) portar el de VExUS con su sitio de VExUS; (ii) portarlo con el sitio de la base. Detrás del riñón: (α) pegarlo al diafragma
+(contra Xue: 61 mm en vez de 68–70, porque la pared posterior del modelo no tiene el cuadrado lumbar ni el erector grueso); (β)
+portar también el retroperitoneo de VExUS (psoas, cuadrado lumbar y grasa), su lecho. Estómago: un medio elipsoide como el bazo,
+con o sin gas. Polo del bazo: estirar el medio elipsoide por la pared (21 cm y 265 mL), o un cono desde su extremo.
+
+**Decisión.** (c), (ii) con (β), el estómago con su gas y el cono del polo.
+
+- **El costo** (`faceGradient` en `anatomy.glsl.ts`): las seis diferencias centrales de cada cara se evalúan en un bucle sobre
+  `faceSdAt(sel, …)`, así que cada distancia (la cúpula, la ZOA, `organSurfaceSd`, la capa de la pared, la costilla y ahora el
+  contorno del riñón) se compila una vez y no seis; SwiftShader lo inlinea todo y el tamaño del código era la causa. Las caras de
+  las cápsulas se quedan.
+- **Los riñones** (`organs/kidney.ts`, portado de VExUS c6c81ad): su forma (contorno en judía, seno, pirámides, pelvis, cápsula y
+  grasa perirrenal) con el sitio de la base (`anatomy.kidney`): el punto más alto en la punta de la espinosa de T11, el derecho 1 cm
+  más bajo, el centro a 6 cm de la línea media (entre las verticales de Morris) y a la profundidad de Xue bajo la piel de la espalda;
+  los ejes, de Glodny (el giro sagital y el del hilio) y Choi (el coronal). Se clasifican antes que el hígado: su grasa marca la
+  impresión renal del hígado y del bazo (la de VExUS, `perirenalDistance` con 1 mm de solape), que sustituye el recorte de Morris de
+  la decisión 37, y detrás de ellos, en su silueta vista de detrás (`kidneySilhouette`), no va ningún órgano de la cavidad
+  (`kidneyShadow`, Gray: su cara posterior apoya en el diafragma y los músculos); sin la sombra, el lóbulo derecho de VExUS quedaba
+  detrás del riñón derecho (13 mL, lo halló la revisión). La cápsula dibuja su cara (`Interface.RenalCapsule`) por los dos lados; la mitad externa de la grasa gruesa se funde
+  sin la cara de Morison de VExUS (la dibuja la cápsula del hígado o del bazo).
+- **El retroperitoneo** (`organs/retroperitoneum.ts`, portado de VExUS): el psoas, el cuadrado lumbar y la grasa detrás del
+  peritoneo parietal posterior, en el «resto»; su marco, anclado a lus-sim (la unión T12–L1, el paso lumbar de VExUS, las y desde
+  la espalda y el borde anterior a la distancia de VExUS de los centros de los riñones); por encima de los riñones su grasa queda en
+  la gotera paravertebral (`RETRO_TOP` [ESTIMADO]: en VExUS no tenía tope; aquí llegaba al diafragma alrededor del bazo). En el
+  EIC11, entre el diafragma y la grasa del riñón queda la grasa pararrenal posterior: 11 mm en la escapular izquierda, 15 en la
+  derecha y 3 en la paravertebral (su grosor, NO ENCONTRADO).
+- **El estómago** (`organs/stomach.ts`, propio): medio elipsoide en las coordenadas de la pared, como el bazo, con el contorno de
+  Traube (del extremo del 8.º cartílago al centro del bazo, y del 5.º espacio en la LMC al reborde costal en su centro) y el grueso que
+  da el volumen de Fidler (16,7 mm en el paciente por omisión; 14,7–18,1 en los seis hábitos). Su pared, de 3,61 mm (Henry), con el tejido del «resto» (no hay tejido libre: los 32 llenan las
+  tablas); su luz, líquido, con el gas de Fidler (23 mL) arriba, sobre un nivel horizontal de supino (`gasY`). La firma del gas no se
+  pinta: la pasada A encuentra el primer gas de cada línea y la B forma detrás las reverberaciones y la cola sucia del gas que no es
+  pulmón (la física de VExUS, decisión 20).
+- **El bazo**: su largo a lo largo de la pared sale del peso de Gray (≈ 200 g a 1089 kg/m³: 184 mL, 14,3 cm con su ancho y su grueso),
+  y de su extremo posterior un cono redondeado (17,5 → 10 mm de radio [SUPUESTO]), en las mismas coordenadas de la pared y con el eje
+  en la cara del diafragma (como el medio elipsoide: su mitad de fuera la corta el diafragma), sigue hasta el punto más alto de Gray:
+  el centro de su redondeo, a la altura de la espinosa de T9 menos el radio y el radio por fuera de los 4 cm de Gray, en la cara
+  abdominal del diafragma, que ahí se separa de la pared por el receso del pulmón. Un primer cono recto en el espacio dejaba 7–15 mm
+  de grasa retroperitoneal entre el diafragma y el bazo en la escapular (la curva de la espalda). El bazo no pasa de 40 mm bajo la
+  pared (`SPLEEN_MAX_INSIDE_MM`): su profundidad bajo el diafragma es la altura bajo la cúpula, y donde su arco llega a la espalda
+  seguía hacia dentro hasta la columna.
+- **Uniforms**: con `uSeriesParts` de la decisión 38 la pasada B estaba en 126 (128 en su programa dirigido); el estómago y el polo
+  suman `uStomach` y `uSpleenPole`, y lo demás va en las ranuras libres (`uLiverS.zw`: la punta del polo y el nivel del gas;
+  `uLiverTip.w`: el grueso del estómago; `uSpleenPole.w`: sus mm por unidad de arco); la y de los riñones sale de `uTorso`. 128 y
+  **130, el tope** (`shaderLimits.test.ts`): lo siguiente que sume uniforms tendrá que empaquetar o revisar el tope.
+- **La cobertura** (`app/coverage.ts`): cuentan el riñón con su grasa (a los dos lados) y el estómago (a la izquierda;
+  `AnatomyScene.inStomach`, porque su pared es el tejido del «resto»); el medidor cruza la grasa retroperitoneal solo si detrás está
+  el riñón (la pararrenal posterior, como la grasa de la pared); delante de otra cosa, la grasa es lo que hay.
+
+**Consecuencias: antes → después** (main `4f2473e` frente a esta decisión).
+
+| Medida                                               | Antes                                   | Después                                              | Fuente o meta                                    |
+| ---------------------------------------------------- | --------------------------------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| Cobertura (anterior / lateral / posterior / vértice) | 127/138 (25/28, 56/60, 40/44, 6/6)      | **137/138** (28/28, 59/60, 44/44, 6/6)               | requisito de cobertura, 100 % en la v0.2.0       |
+| Las 11 celdas de la tarea                            | 0 de 11                                 | 11 de 11 (7 estómago, 3 riñón, 1 polo del bazo)      |                                                  |
+| La paravertebral derecha en el EIC11                 | el hígado (detrás del riñón)            | el riñón                                             | Gray: el riñón apoya en el diafragma             |
+| La LAP izquierda en el EIC11                         | cumplida (una lámina de 12 mm del bazo) | pendiente: bajo el bazo, el colon                    | Gray: el bazo hasta el borde inferior de la 11.ª |
+| Estómago: volumen / gas / pared                      | —                                       | 139 mL (recortado por el bazo) / 19 mL / 3,65 mm     | Fidler 167 ± 45, 21–25; Henry 3,61 ± 0,51        |
+| Riñones: largo / giro sagital / profundidad          | —                                       | 10,7 cm / 25,8° y 24,3° / 70,4 y 68,1 mm             | Glodny 10,9–11,1; Glodny; Xue 70,3 y 68,2        |
+| Riñones: punto más alto / \|x\|                      | —                                       | punta de T11 (el derecho, 1 cm más abajo) / 32–88 mm | Gray, Morris (25–95)                             |
+| Bazo: volumen                                        | 134 mL                                  | **171 mL**                                           | Gray ≈ 184 ± 10 % (antes `notYetMet`)            |
+| Bazo: largo por el eje principal                     | 11,6 cm                                 | 15,7 cm (`notYetMet`)                                | Gray 12; Chow hasta 14                           |
+| Bazo: punto más alto                                 | a 11 cm de la línea media, z −28        | z −12; su borde medial, a 3,2 cm de la línea media   | Gray: a 4 cm, en la punta de T9 (z −11,7)        |
+| Ranuras de uniforms de la pasada B (y su dirigido)   | 126 (128)                               | 128 (130)                                            | ≤ 130                                            |
+|                                                      | Chunk de entrada / total de JS          | 269,8 / 823,6 kB                                     | 292,0 / 846,2 kB (presupuestos: 300 / 860)       |     |
+
+- **Costo con SwiftShader** (el CI; `boot2.mjs`, la primera página de un navegador nuevo: el arranque es la compilación de los
+  programas, y el costo por cuadro, 4 cuadros con `frameCostMs`; tres vueltas alternando los árboles, carga 28 / 7 / 5). Antes de la
+  decisión 37 (`92aeade`) / main (`4f2473e`) / esta decisión:
+
+  | Medida                                      | Antes de la 37      | Main               | Esta decisión      |
+  | ------------------------------------------- | ------------------- | ------------------ | ------------------ |
+  | Arranque (s)                                | 112,5 / 44,1 / 30,4 | 73,6 / 42,4 / 43,4 | 58,0 / 36,1 / 31,1 |
+  | Cuadro en el BLUE superior (ms)             | 682 / 453 / 422     | 801 / 557 / 516    | 541 / 413 / 295    |
+  | Cuadro en el espacio de Traube (ms)         | 525 / 436 / 389     | 674 / 468 / 511    | 525 / 402 / 303    |
+  | Cuadro en la base izquierda (LAP EIC10, ms) | 512 / 463 / 415     | 701 / 475 / 490    | 571 / 405 / 307    |
+
+  El bucle de `faceGradient` devuelve el arranque y el cuadro a lo de antes de la decisión 37 o por debajo, con el estómago, los
+  riñones y el retroperitoneo dentro: en la medición sin órganos nuevos (03-10-2026, carga 4–17) el bucle solo daba 31–35 s y
+  408–488 ms frente a 39–65 s y 388–681 de main. Con la GPU real no se midió. |
+
+- **La celda perdida** [DISCREPANCIA]: la axilar posterior izquierda en el EIC11 la cumplía, en la decisión 37, una lámina de 12 mm
+  del borde inferior del bazo; con el bazo del peso de Gray, el medio elipsoide se corre hacia atrás y su borde queda en la banda de
+  Gray (`liverSpleen.test.ts` ya pedía que 10 mm bajo la 11.ª costilla no hubiera bazo). Ahí la base pone, bajo el bazo, el ángulo
+  esplénico del colon (Gray: el ligamento frenocólico sostiene el bazo), que el modelo no tiene: `notYetMet` con ese motivo.
+- **El largo del bazo** [DISCREPANCIA]: las dos marcas de Gray, el punto más bajo en la axilar media (la parrilla del avatar pone
+  ahí la 10.ª costilla a z ≈ −116, 4 cm bajo la espinosa de L1 que da Gray) y el más alto a 4 cm de la línea media en T9, están a
+  ≈ 16 cm en el avatar: sus 12 cm no caben entre ellas. Se siguen las marcas y el peso; el largo queda pendiente.
+- **La firma del gas** (`app/gasBench.ts`, gancho `stomachGas`, e2e): en la LMC izquierda en el EIC7, el gas a 21,8 mm (170 líneas);
+  detrás, a 10–40 mm, el nivel mostrado es −59,2 dB, y −53,8 con la mutación del estómago lleno de líquido (la pared de detrás y el
+  «resto» que el gas tapa): una sombra 5,4 dB más oscura; la primera reverberación (a 2 veces la profundidad del gas) queda 1,9 dB
+  sobre el valle (a 1,5 veces), y sin el gas 2,6 dB bajo él (SwiftShader). Emerge de la física: la mutación lo quita. Lo que no
+  está: el eco de la propia cara del gas (k = 1), que la pasada B del gas que no es pulmón no dibuja (la pleura sí, `pleuraEcho`);
+  queda con `test.fail` en la e2e y en `stomach-traube-lens`. Con el preajuste pulmonar, el «resto» que el gas tapa ya está cerca
+  del negro: la firma es tenue
+- **El riñón y la cara de Morison**: sin ella, el receso de Morison lo dibuja la cápsula del hígado.
+- **El grueso del riñón** [DISCREPANCIA]: el de VExUS, 4,6 cm, pasa del «algo más de 2,5 cm» de Gray; su largo (10,7 cm) cae en el
+  de Glodny. Se porta tal cual (sus pirámides y su seno van con él).
+- **El campo respiratorio** no cambia: el estómago y los riñones se clasifican en el marco material; `respiratoryField.test.ts`
+  comprueba la invertibilidad también en ellos.
+- Limitaciones: `abdomen-generic-tissue` (lo que queda: la vesícula, el colon, el páncreas, las suprarrenales, los vasos) y
+  `liver-spleen-simplified` actualizadas; nuevas `stomach-traube-lens` y `kidney-retroperitoneum-port`.
+
+**Verificación.** `npm run check`; `stomachKidney.test.ts` (el estómago: volumen y gas de Fidler, gas sobre su nivel, pared de Henry,
+nada en la línea media; los riñones: el punto más alto de Gray, las verticales de Morris, la profundidad de Xue, el largo y el giro
+de Glodny, la grasa detrás; las ventanas de la firma del gas, sintéticas), `liverSpleen.test.ts` (el volumen del bazo, ahora
+cumplido; su punto más alto y su polo bajo el diafragma, a más de 15 mm de la pared; el largo, `notYetMet`; el riñón fuera del
+hígado), `coverage.test.ts` (137/138, el estómago y el riñón por celda, cada órgano en su lado), `organPrefilter.test.ts` (el
+prefiltro del estómago y el bazo frente a la cuenta completa, con la impresión renal), `respiratoryField.test.ts`, `anatomy.test.ts`,
+`organs.test.ts`, `shaderLimits.test.ts`. En la e2e: la equivalencia TS ↔ GLSL con los planos nuevos (`traube`, `splenicPole`,
+`leftKidney`), los tejidos nuevos en el volumen y la cápsula renal en `capsules`; la firma del gas con su mutación. La mutación «sin
+la sombra del riñón» deja hígado detrás del riñón derecho y la prueba lo ve. Revisión adversarial de contexto limpio (ejecutando):
+tres bloqueantes, el hígado detrás del riñón derecho (13 mL; la celda de la paravertebral derecha la cumplía el hígado) y la prueba
+que lo vigilaba debilitada (ahora la sombra del riñón y una prueba que la muerde), el medidor de la cobertura que cruzaba sin límite la
+grasa retroperitoneal (el polo del bazo pasaba con 7 mm de grasa delante; ahora solo la cruza hacia el riñón, el bazo apoya en el
+diafragma y la grasa tiene tope sobre los riñones) y la distancia a la frontera del estómago que no contaba el hígado ni el bazo (se
+pasaba 31 veces junto al bazo; ahora los cuenta y la pared sigue ahí); importantes: la decisión sin las medidas del costo (ahora
+arriba), la grasa retroperitoneal sin tope, filas de procedencia que no decían lo que el código hace y la distancia de la corteza que
+no contaba la cápsula (corregidos); menores: el grueso del estómago de otro hábito, umbrales flojos, una prueba citada que no existía,
+la profundidad del riñón en el obeso y el lóbulo izquierdo detrás del estómago (documentados o corregidos). Aplicado.

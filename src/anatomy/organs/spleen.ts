@@ -2,7 +2,10 @@ import { defineParameters } from '../../core/evidence';
 import type { Vec3 } from '../../core/vec3';
 import type { Torso } from '../primitives';
 import { ribTableZ, type RibCage } from './ribcage';
-import { kidneyCutDistance, smoothMax, type LiverShape } from './liver';
+import { TISSUES, Tissue } from '../tissues';
+import { sdRoundCone } from './kidney';
+import { smoothMax, smoothMin } from './liver';
+import { spinousTipZ } from './ribcage';
 import { wallArc } from './wall';
 
 /**
@@ -17,7 +20,7 @@ import { wallArc } from './wall';
  * pared (la sigue, como la del órgano, convexa con ella) y la visceral, la mitad de dentro del elipsoide. El eje largo, el de la
  * 10.ª costilla en su centro, con su punto más bajo en la axilar media; el ancho, a lo largo de la pared y a través de las costillas
  * (los 7 cm caben de la 9.ª a la 11.ª); el grosor, el semieje hacia dentro, en el centro. La clasificación lo mira tras la cúpula, la ZOA y el hígado: arriba lo tapa el pulmón del receso, y por detrás lo
- * recorta el espacio del riñón izquierdo (`kidneyCutDistance`, el paralelogramo de Morris). La distancia de las coordenadas de la
+ * recorta la impresión del riñón izquierdo (decisión 43: la grasa perirrenal, `perirenalDistance`, como en el hígado). La distancia de las coordenadas de la
  * pared no es euclídea lejos de su centro (≤ unos %: la escala del arco se toma en él).
  *
  * TS y GLSL (uniforms `uSpleen*` del esquema único) viven aquí juntos.
@@ -50,6 +53,17 @@ export const SPLEEN = defineParameters('anatomy.spleen', {
     sources: ['gray-anatomia-1918'],
     note: 'Gray: 3 o 4 cm de grueso',
   },
+  weightG: {
+    value: 200,
+    unit: 'g',
+    range: [150, 250],
+    evidence: 'consenso',
+    sources: ['gray-anatomia-1918'],
+    note:
+      "Gray («The Spleen»): en el adulto pesa unos 200 g (lus-sim, decisión 43: con la densidad de IT'IS de la tabla de tejidos, " +
+      '1089 kg/m³, 184 mL: el volumen del medio elipsoide, que fija su largo a lo largo de la pared con el ancho y el grueso de ' +
+      'Gray). El rango, [SUPUESTO]',
+  },
   capsuleMm: {
     value: 0.8,
     unit: 'mm',
@@ -67,6 +81,34 @@ export const SPLEEN = defineParameters('anatomy.spleen', {
     evidence: 'consenso',
     sources: ['gray-anatomia-1918'],
     note: 'Gray: «the tenth rib is taken as representing its long axis»',
+  },
+  poleMidlineMm: {
+    value: 40,
+    unit: 'mm',
+    range: [40, 40],
+    evidence: 'consenso',
+    sources: ['gray-anatomia-1918'],
+    note:
+      'Gray («Surface Markings of the Abdomen»): el punto más alto del bazo, a 4 cm de la línea media de la espalda a la altura de ' +
+      'la punta de la apófisis espinosa de T9 (lus-sim, decisión 43: su proyección en la espalda, x = 40 mm)',
+  },
+  poleSpinous: {
+    value: 9,
+    unit: 'vértebra',
+    range: [9, 9],
+    evidence: 'consenso',
+    sources: ['gray-anatomia-1918'],
+    note: 'Gray: el punto más alto, a la altura de la punta de la apófisis espinosa de T9',
+  },
+  poleRadiusMm: {
+    value: 10,
+    unit: 'mm',
+    range: [5, 17.5],
+    evidence: 'estimado',
+    sources: [],
+    note:
+      'El radio del polo posterior (la punta del cono redondeado que lleva el bazo de su extremo en la pared al punto de Gray) ' +
+      '[SUPUESTO]: el grosor del bazo junto a su polo, NO ENCONTRADO; el cono empieza con la mitad del grueso de Gray',
   },
 });
 
@@ -88,6 +130,13 @@ export interface SpleenShape {
    * el centro del tronco.
    */
   readonly maxSkinDepth: number;
+  /**
+   * lus-sim (decisión 43): el polo posterior en las coordenadas locales del bazo (`spleenLocal`): el centro del redondeo del punto
+   * más alto de Gray, en la cara abdominal del diafragma (que ahí se separa de la pared por el receso del pulmón). Un cono
+   * redondeado (`SPLEEN_POLE`), con el eje en esa cara como el medio elipsoide, lo une a su extremo posterior: sigue la pared y el
+   * diafragma, y su mitad de fuera la corta el diafragma.
+   */
+  readonly pole: Vec3;
 }
 
 /** Punto a la profundidad `d` (mm bajo la piel, por la dirección radial del tronco) bajo el punto de la piel del arco u y la altura z. */
@@ -108,9 +157,10 @@ function pointAtArc(u: number, z: number, d: number, t: Torso): Vec3 {
 }
 
 /**
- * Construye el bazo: la pendiente de la 10.ª costilla izquierda en su centro, su punto más bajo en la línea axilar media
- * (`midaxillaryU`, el arco de la LAM) y la cara diafragmática en la cara interna de la pared (`wallMm`, el grosor de la pared en
- * la columna del centro).
+ * Construye el bazo con las marcas de Gray: el eje, la 10.ª costilla izquierda (su pendiente en el centro); el punto más bajo, en
+ * la línea axilar media (`midaxillaryU`); el ancho y el grueso, los suyos, y el largo a lo largo de la pared, el del volumen de su
+ * peso (lus-sim, decisión 43; en la decisión 37, sus 12 cm); y de su extremo posterior un cono redondeado sube al punto más alto
+ * (`pole`). La cara diafragmática, en la cara interna de la pared (`wallMm`, el grosor de la pared en la columna del centro).
  */
 export function buildSpleen(
   t: Torso,
@@ -118,34 +168,66 @@ export function buildSpleen(
   midaxillaryU: number,
   wallMm: (u: number, z: number) => number,
   rimFarMm: number,
+  belowDiaphragm: (m: Vec3) => number,
 ): SpleenShape {
   const P = SPLEEN.params;
   const k = cage.ribs.findIndex((r) => r.number === P.axisRib.value && r.side === 1);
   const zRib = (u: number) => ribTableZ(cage, k, u);
-  const L = P.lengthMm.value;
   const T = P.thicknessMm.value;
-  let u0 = midaxillaryU + 0.5 * L;
+  const B = 0.5 * P.breadthMm.value;
+  const { rb } = SPLEEN_POLE;
+  // el semieje largo: el volumen del peso de Gray, (2/3)·π·A·B·T (medio elipsoide)
+  const A = (3 * SPLEEN_VOLUME_ML * 1000) / (2 * Math.PI * B * T);
+  let u0 = midaxillaryU + A;
   let shape: SpleenShape | null = null;
   // el centro se busca a lo largo de la costilla: el punto más bajo (Gray) cae en la LAM
   for (let it = 0; it < 8; it++) {
     const z0 = zRib(u0);
     const depth = wallMm(u0, z0);
-    const a = pointAtArc(u0 - 1, z0, depth, t);
-    const b = pointAtArc(u0 + 1, z0, depth, t);
-    const arcScale = Math.hypot(b[0] - a[0], b[1] - a[1]) / 2;
+    const pa = pointAtArc(u0 - 1, z0, depth, t);
+    const pb = pointAtArc(u0 + 1, z0, depth, t);
+    const arcScale = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) / 2;
     const dz = (zRib(u0 + 2) - zRib(u0 - 2)) / 4;
     const len = Math.hypot(arcScale, dz);
     const cos = arcScale / len;
     const sin = dz / len;
-    shape = { u0, z0, cos, sin, arcScale, radii: [0.5 * L, 0.5 * P.breadthMm.value, T], maxSkinDepth: rimFarMm + T };
+    shape = { u0, z0, cos, sin, arcScale, radii: [A, B, T], maxSkinDepth: rimFarMm + T, pole: [0, 0, 0] };
     // el punto más bajo de la elipse de la pared (semiejes A a lo largo del eje y B de ancho, inclinada con la costilla) está a
     // s = −sen·cos·(A² − B²)/√(A²·sen² + B²·cos²) mm de arco del centro; en unidades de arco, ÷ arcScale
-    const A = 0.5 * L;
-    const B = 0.5 * P.breadthMm.value;
     const sLow = (-sin * cos * (A * A - B * B)) / Math.sqrt(A * A * sin * sin + B * B * cos * cos);
     u0 = midaxillaryU - sLow / arcScale;
   }
-  return shape!;
+  const s = shape!;
+  // el polo: a la altura de la punta de la espinosa de T9 con el centro de su redondeo `rb` más abajo y `rb` por fuera de la
+  // vertical de Gray (x = poleMidlineMm: su borde medial, a 4 cm de la línea media); de la espalda hacia delante, en la cara
+  // abdominal del diafragma (que ahí se separa de la pared por el receso del pulmón)
+  const xb = P.poleMidlineMm.value + rb;
+  const zb = spinousTipZ(P.poleSpinous.value) - rb;
+  let yb = -t.b * Math.sqrt(1 - (xb / t.a) ** 2);
+  while (belowDiaphragm([xb, yb, zb]) < 0 && yb < t.b) yb += 0.25;
+  const b: Vec3 = [xb, yb, zb];
+  return { ...s, pole: spleenLocal(wallArc(b, t), zb, 0, s) };
+}
+
+/** El volumen del bazo (mL): el peso de Gray con la densidad de la tabla de tejidos (IT'IS). */
+export const SPLEEN_VOLUME_ML = SPLEEN.params.weightG.value / (TISSUES[Tissue.Spleen].rho / 1000);
+
+/**
+ * El cono del polo posterior (lus-sim, decisión 43): radio `ra` en su arranque (la mitad del grueso de Gray) y `rb` en el polo
+ * (`poleRadiusMm`); se une al medio elipsoide con un mínimo suave de `blendMm` [SUPUESTO].
+ */
+export const SPLEEN_POLE = {
+  ra: 0.5 * SPLEEN.params.thicknessMm.value,
+  rb: SPLEEN.params.poleRadiusMm.value,
+  blendMm: 10,
+} as const;
+
+/**
+ * El arranque del cono del polo (marco local): a lo largo del eje, a `ra` de la punta posterior, en la cara del diafragma (como el
+ * centro del medio elipsoide: la mitad de fuera la corta el diafragma).
+ */
+export function poleStart(s: SpleenShape): Vec3 {
+  return [s.radii[0] - SPLEEN_POLE.ra, 0, 0];
 }
 
 /** Coordenadas locales del bazo (largo, ancho, grueso; mm) en (u, z, inside) de la pared (gemelo GLSL con el mismo nombre). */
@@ -156,12 +238,13 @@ export function spleenLocal(u: number, z: number, inside: number, s: SpleenShape
 }
 
 /**
- * Distancia con signo al bazo, negativa dentro, sin la cúpula ni la pared (las pone la clasificación) y con el espacio del riñón
- * izquierdo recortado (gemelo GLSL con el mismo nombre). `u`: el arco de la columna del punto; `below`: su profundidad bajo el
- * diafragma (la cara abdominal de la cúpula, o la de la ZOA o la pared), así la cara diafragmática del bazo sigue al diafragma;
- * `skinDepth`: su profundidad bajo la piel (`maxSkinDepth`).
+ * Distancia con signo al bazo, negativa dentro, sin la cúpula ni la pared (las pone la clasificación) y con la impresión del
+ * riñón izquierdo (`renal`, `renalImpression`: su grasa y su sombra; gemelo GLSL con el mismo nombre). `u`: el arco de la
+ * columna del punto; `below`: su profundidad bajo el diafragma (la cara abdominal de la cúpula, o la de la ZOA o la pared), así la
+ * cara diafragmática del bazo sigue al diafragma; `skinDepth`: su profundidad bajo la piel (`maxSkinDepth`); `inside`, bajo la cara
+ * interna de la pared (lus-sim, decisión 43: el medio elipsoide no pasa de `SPLEEN_MAX_INSIDE_MM`).
  */
-export function spleenSdf(m: Vec3, u: number, below: number, skinDepth: number, s: SpleenShape, liver: LiverShape): number {
+export function spleenSdf(m: Vec3, u: number, below: number, skinDepth: number, inside: number, s: SpleenShape, renal: number): number {
   const q = spleenLocal(u, m[2], below, s);
   const r = s.radii;
   const kx = q[0] / r[0];
@@ -169,44 +252,62 @@ export function spleenSdf(m: Vec3, u: number, below: number, skinDepth: number, 
   const kz = q[2] / r[2];
   const k1 = Math.hypot(kx, ky, kz);
   const k2 = Math.hypot(kx / r[0], ky / r[1], kz / r[2]);
-  const d = k2 > 0 ? (k1 * (k1 - 1)) / k2 : -Math.min(r[0], r[1], r[2]);
-  return Math.max(smoothMax(d, -kidneyCutDistance(m, liver), SPLEEN_KIDNEY_ROUND_MM), skinDepth - s.maxSkinDepth);
+  const d0 = k2 > 0 ? (k1 * (k1 - 1)) / k2 : -Math.min(r[0], r[1], r[2]);
+  const cone = sdRoundCone(q, poleStart(s), s.pole, SPLEEN_POLE.ra, SPLEEN_POLE.rb);
+  const d = Math.max(smoothMin(d0, cone, SPLEEN_POLE.blendMm), inside - SPLEEN_MAX_INSIDE_MM);
+  return Math.max(smoothMax(d, -renal, SPLEEN_KIDNEY_ROUND_MM), skinDepth - s.maxSkinDepth);
 }
 
 /**
  * El bazo solo se evalúa cerca de donde puede estar (gemelo GLSL con el mismo nombre): a la izquierda de x `SPLEEN_X_MIN_MM`
- * (el modelo lo pone a ≥ 95 mm de la línea media) y a menos de `maxSkinDepth` más `SPLEEN_NEAR_MARGIN_MM` bajo la piel. Fuera,
+ * (el modelo lo pone a ≥ 30 mm de la línea media: el polo posterior, decisión 43) y a menos de `maxSkinDepth` más `SPLEEN_NEAR_MARGIN_MM` bajo la piel. Fuera,
  * su distancia pasa de 2 × el tope del «resto» (5 mm por `ORGAN_SDF_LIPSCHITZ`) y la clasificación la toma por lejana (1e3).
  */
 export function spleenCandidate(m: Vec3, skinDepth: number, s: SpleenShape): boolean {
   return m[0] > SPLEEN_X_MIN_MM && skinDepth < s.maxSkinDepth + SPLEEN_NEAR_MARGIN_MM;
 }
-export const SPLEEN_X_MIN_MM = 40;
+export const SPLEEN_X_MIN_MM = 15;
 export const SPLEEN_NEAR_MARGIN_MM = 25;
 
-/** Redondeo del recorte del riñón en el bazo (mm, el del hígado). */
+/**
+ * lus-sim (decisión 43): el medio elipsoide no pasa de esto (mm) bajo la cara interna de la pared, su grueso de Gray más 5. Su
+ * profundidad bajo el diafragma (`below`) es la altura bajo la cúpula: donde el arco de la pared llega a la espalda, bajo la cúpula
+ * el medio elipsoide seguía hacia dentro hasta la columna (a 86 mm de la pared con el polo posterior; en la decisión 37, en la
+ * mujer obesa, 83). La parte posterior honda es la del cono del polo.
+ */
+export const SPLEEN_MAX_INSIDE_MM = SPLEEN.params.thicknessMm.value + 5;
+
+/** Redondeo de la impresión renal en el bazo (mm, el del hígado). */
 export const SPLEEN_KIDNEY_ROUND_MM = 8;
 
 /**
- * Gemelo GLSL. Uniforms: `uSpleen` (u0, z0, cos, sen) y `uSpleenR` (semiejes, escala del arco); `maxSkinDepth` es `uCurtain.z`
- * (la cota de la rampa de la cúpula, `rimFarMm`) más el grueso.
+ * Gemelo GLSL. Uniforms: `uSpleen` (u0, z0, cos, sen), `uSpleenR` (semiejes, escala del arco) y `uSpleenPole.xyz` (el polo en el
+ * marco local, `pole`); `maxSkinDepth` es `uCurtain.z` (la cota de la
+ * rampa de la cúpula, `rimFarMm`) más el grueso. `sdRoundCone` y `smoothMin`, las del módulo del riñón.
  */
+const g = (x: number): string => (Number.isInteger(x) ? x.toFixed(1) : String(x));
+
 export const SPLEEN_GLSL = /* glsl */ `
 bool spleenCandidate(vec3 m, float skinDepth) {
   return m.x > ${SPLEEN_X_MIN_MM.toFixed(1)} && skinDepth < uCurtain.z + uSpleenR.z + ${SPLEEN_NEAR_MARGIN_MM.toFixed(1)};
+}
+vec3 poleStart() {
+  return vec3(uSpleenR.x - ${g(SPLEEN_POLE.ra)}, 0.0, 0.0);
 }
 vec3 spleenLocal(float u, float z, float inside) {
   float a = (u - uSpleen.x) * uSpleenR.w;
   float b = z - uSpleen.y;
   return vec3(a * uSpleen.z + b * uSpleen.w, -a * uSpleen.w + b * uSpleen.z, inside);
 }
-float spleenSdf(vec3 m, float u, float below, float skinDepth) {
+float spleenSdf(vec3 m, float u, float below, float skinDepth, float inside, float renal) {
   vec3 q = spleenLocal(u, m.z, below);
   vec3 r = uSpleenR.xyz;
   vec3 k = q / r;
   float k1 = length(k);
   float k2 = length(k / r);
-  float d = k2 > 0.0 ? k1 * (k1 - 1.0) / k2 : -min(r.x, min(r.y, r.z));
-  return max(smoothMax(d, -kidneyCutDistance(m), ${SPLEEN_KIDNEY_ROUND_MM.toFixed(1)}), skinDepth - (uCurtain.z + uSpleenR.z));
+  float d0 = k2 > 0.0 ? k1 * (k1 - 1.0) / k2 : -min(r.x, min(r.y, r.z));
+  float cone = sdRoundCone(q, poleStart(), uSpleenPole.xyz, ${g(SPLEEN_POLE.ra)}, ${g(SPLEEN_POLE.rb)});
+  float d = max(smoothMin(d0, cone, ${g(SPLEEN_POLE.blendMm)}), inside - ${g(SPLEEN_MAX_INSIDE_MM)});
+  return max(smoothMax(d, -renal, ${SPLEEN_KIDNEY_ROUND_MM.toFixed(1)}), skinDepth - (uCurtain.z + uSpleenR.z));
 }
 `;

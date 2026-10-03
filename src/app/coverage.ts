@@ -3,7 +3,7 @@ import type { Vec3 } from '../core/vec3';
 import { AnatomyQuery } from '../anatomy/query';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { LUNG_BORDER } from '../anatomy/organs/lungBorder';
-import { LIVER } from '../anatomy/organs/liver';
+import { KIDNEY } from '../anatomy/organs/kidney';
 import { CLAVICLE, SCAPULA, ribLineArc, ribTableZ, spinousTipZ, vertebraZ } from '../anatomy/organs/ribcage';
 import { wallArc } from '../anatomy/organs/wall';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
@@ -79,6 +79,8 @@ export interface CoverageCell {
   content: CellContent | null;
   /** Bajo el diafragma, el tejido que sigue (el órgano), si `content` es `below`. */
   organ: Tissue | null;
+  /** Si ese tejido es el del estómago (decisión 43: su pared es el tejido del «resto»). */
+  stomach: boolean;
   /** Profundidad de la pleura en la línea central (mm), si se registra. */
   pleuraMm: number | null;
   /** «Sobre el vértice»: la z más alta con pulmón por encima de lo que admite la base, o null. */
@@ -148,12 +150,36 @@ const LINES: ReadonlyArray<{ line: ThoraxLine; label: string; region: CoverageRe
  * calcificado se clasifica como hueso).
  */
 const PASS_TISSUES = new Set<Tissue>([Tissue.Skin, Tissue.Fat, Tissue.Muscle, Tissue.Cartilage]);
+/** Los tejidos del riñón con su grasa (decisión 43): bajo el diafragma, detrás, cuentan como el riñón. */
+export const KIDNEY_TISSUES: ReadonlySet<Tissue> = new Set([
+  Tissue.PerirenalFat,
+  Tissue.RenalCapsule,
+  Tissue.RenalCortex,
+  Tissue.RenalMedulla,
+  Tissue.RenalSinus,
+  Tissue.RenalPelvis,
+]);
+/** Los tejidos del estómago (decisión 43): su pared, la del «resto», y su luz. */
+const STOMACH_TISSUES: ReadonlySet<Tissue> = new Set([Tissue.Bowel, Tissue.Fluid, Tissue.BowelGas]);
+/** Lo que la línea central toma por el órgano bajo el diafragma cuando lo encuentra sin cruzarlo. */
+const ABDOMINAL_TISSUES: ReadonlySet<Tissue> = new Set([
+  Tissue.Bowel,
+  Tissue.Fluid,
+  Tissue.BowelGas,
+  Tissue.Liver,
+  Tissue.LiverCapsule,
+  Tissue.Spleen,
+  ...KIDNEY_TISSUES,
+]);
 /**
- * El órgano bajo el diafragma que cuenta en cada lado: el hígado a la derecha; a la izquierda, su lóbulo o el bazo (decisión 37).
- * Donde la base pone otro (el estómago, el riñón, el colon) y el modelo tiene el «resto», la celda no se cumple.
+ * El órgano bajo el diafragma que cuenta en cada lado: el hígado a la derecha; a la izquierda, su lóbulo o el bazo (decisión 37);
+ * detrás, a los dos lados, el riñón con su grasa (decisión 43). Donde la base pone otro (el estómago, el colon) y el modelo tiene
+ * el «resto», la celda no se cumple.
  */
-export function organOk(side: CoverageSide, organ: Tissue | null): boolean {
+export function organOk(side: CoverageSide, organ: Tissue | null, stomach = false): boolean {
+  if (stomach) return side > 0;
   if (organ === Tissue.Liver || organ === Tissue.LiverCapsule) return true;
+  if (organ !== null && KIDNEY_TISSUES.has(organ)) return true;
   return side > 0 && organ === Tissue.Spleen;
 }
 
@@ -161,6 +187,8 @@ export interface CenterContent {
   content: CellContent;
   /** Bajo el diafragma, el primer tejido que no es diafragma. */
   organ: Tissue | null;
+  /** Si ese tejido es el del estómago (`AnatomyScene.inStomach`; decisión 43: su pared es el tejido del «resto»). */
+  stomach: boolean;
   pleuraMm: number | null;
 }
 
@@ -187,24 +215,37 @@ export function probeCenterContent(
     depthMm,
     2 * depthMm,
   );
-  const at = (r: number) => scene.classify(material(pointOnLine(contact.frame, tr, 0, r)), instant).tissue;
+  const pointAt = (r: number) => material(pointOnLine(contact.frame, tr, 0, r));
+  const at = (r: number) => scene.classify(pointAt(r), instant).tissue;
+  const none: CenterContent = { content: 'none', organ: null, stomach: false, pleuraMm: null };
+  // el órgano en r: el tejido y si es el estómago (su pared y su luz)
+  const below = (r: number): CenterContent => {
+    const t = at(r);
+    return { content: 'below', organ: t, stomach: STOMACH_TISSUES.has(t) && scene.inStomach(pointAt(r), instant), pleuraMm: null };
+  };
   for (let r = 0.25; r < depthMm; r += 0.25) {
     const t = at(r);
     if (PASS_TISSUES.has(t)) continue;
-    if (t === Tissue.Lung) return { content: crossing ? 'lung' : 'none', organ: null, pleuraMm: crossing ? crossing.D : null };
-    if (t === Tissue.Bone || t === Tissue.Vertebra) return { content: 'bone', organ: null, pleuraMm: null };
-    if (t === Tissue.Myocardium || t === Tissue.Blood) return { content: 'heart', organ: null, pleuraMm: null };
-    if (t === Tissue.Diaphragm) {
-      // el órgano: lo primero bajo el diafragma
+    if (t === Tissue.Lung) return { ...none, content: crossing ? 'lung' : 'none', pleuraMm: crossing ? crossing.D : null };
+    if (t === Tissue.Bone || t === Tissue.Vertebra) return { ...none, content: 'bone' };
+    if (t === Tissue.Myocardium || t === Tissue.Blood) return { ...none, content: 'heart' };
+    if (t === Tissue.Diaphragm || t === Tissue.RetroperitonealFat) {
+      // el órgano: lo primero bajo el diafragma; la grasa retroperitoneal, solo si detrás está el riñón (lus-sim, decisión 43: la
+      // grasa pararrenal posterior, entre el diafragma y la grasa del riñón, es una capa de grasa como la de la pared; delante de
+      // cualquier otra cosa, la grasa es lo que hay)
       let s = r;
       while (s < depthMm && at(s) === Tissue.Diaphragm) s += 0.25;
-      return { content: 'below', organ: s < depthMm ? at(s) : null, pleuraMm: null };
+      if (s < depthMm && at(s) === Tissue.RetroperitonealFat) {
+        let f = s;
+        while (f < depthMm && at(f) === Tissue.RetroperitonealFat) f += 0.25;
+        if (f < depthMm && KIDNEY_TISSUES.has(at(f))) s = f;
+      }
+      return s < depthMm ? below(s) : { ...none, content: 'below' };
     }
-    if (t === Tissue.Bowel || t === Tissue.Liver || t === Tissue.LiverCapsule || t === Tissue.Spleen)
-      return { content: 'below', organ: t, pleuraMm: null };
-    return { content: 'none', organ: null, pleuraMm: null };
+    if (ABDOMINAL_TISSUES.has(t)) return below(r);
+    return none;
   }
-  return { content: 'none', organ: null, pleuraMm: null };
+  return none;
 }
 
 /** z del centro de la costilla n (1–12) del lado `side` bajo la línea de piel φ. */
@@ -294,8 +335,9 @@ export function explorationCoverage(
           const m = probeCenterContent(scene, r[1]);
           cell.content = m.content;
           cell.organ = m.organ;
+          cell.stomach = m.stomach;
           cell.pleuraMm = m.pleuraMm;
-          cell.reason = judge(expected, side, m, line, z);
+          cell.reason = judge(expected, side, m, line, z, ics);
           cell.met = cell.reason === null;
         }
         cells.push(cell);
@@ -342,6 +384,7 @@ function blankCell(
     position: null,
     content: null,
     organ: null,
+    stomach: false,
     pleuraMm: null,
     lungTopZ: null,
     met: false,
@@ -381,28 +424,31 @@ function expectationOf(
 }
 
 /**
- * Lo que pone la base bajo el diafragma donde el modelo no tiene hígado ni bazo (decisión 37), para el motivo de la celda: detrás
+ * Lo que pone la base bajo el diafragma donde el modelo pone otra cosa (decisiones 37 y 43), para el motivo de la celda: detrás
  * (la escapular y la paravertebral), por debajo de la punta de la apófisis de T11 (el riñón derecho, 1 cm más abajo), el riñón
- * (el paralelogramo de Morris, Gray); detrás y más arriba a la izquierda, el bazo (su polo posterior, que el medio elipsoide del
- * modelo no alcanza); delante y al lado a la izquierda, el estómago (el espacio de Traube); a la derecha, el hígado.
+ * (el paralelogramo de Morris, Gray); detrás y más arriba a la izquierda, el bazo (su polo posterior); a la izquierda en las
+ * axilares, por debajo del borde inferior de la 11.ª costilla (el límite inferior del bazo de Gray), el ángulo esplénico del colon,
+ * que sostiene el bazo (Gray: el ligamento frenocólico); delante y al lado a la izquierda, el estómago (el espacio de Traube); a la
+ * derecha, el hígado. `below11`: si la celda está por debajo de la 11.ª costilla (el EIC11).
  */
-function baseOrganBelow(side: CoverageSide, line: ThoraxLine, z: number): string {
-  const L = LIVER.params;
+function baseOrganBelow(side: CoverageSide, line: ThoraxLine, z: number, below11: boolean): string {
+  const K = KIDNEY.params;
   const back = line === 'scapular' || line === 'paravertebral';
-  const kidneyTop = spinousTipZ(L.kidneyTopSpinous.value) - (side < 0 ? L.rightKidneyLowerMm.value : 0);
-  if (back && z < kidneyTop) return 'la base pone ahí el riñón (Morris), que el modelo no tiene';
-  if (side > 0 && back) return 'la base pone ahí el bazo, cuyo polo posterior el modelo no alcanza';
-  if (side > 0) return 'la base pone ahí el estómago (el espacio de Traube), que el modelo no tiene';
+  const kidneyTop = spinousTipZ(K.topSpinous.value) - (side < 0 ? K.rightLowerMm.value : 0);
+  if (back && z < kidneyTop) return 'la base pone ahí el riñón (Morris), que el modelo no llega a poner';
+  if (side > 0 && back) return 'la base pone ahí el bazo (su polo posterior), que el modelo no llega a poner';
+  if (side > 0 && below11) return 'la base pone ahí, bajo el bazo, el ángulo esplénico del colon, que el modelo no tiene';
+  if (side > 0) return 'la base pone ahí el estómago (el espacio de Traube), que el modelo no llega a poner';
   return 'la base pone ahí el hígado, que el modelo no llega a poner';
 }
 
 /** null si lo medido es lo esperado; si no, el motivo. */
-function judge(expected: CellExpectation, side: CoverageSide, m: CenterContent, line: ThoraxLine, z: number): string | null {
+function judge(expected: CellExpectation, side: CoverageSide, m: CenterContent, line: ThoraxLine, z: number, ics: number): string | null {
   const below = (): string | null => {
     if (m.content !== 'below') return `se espera el diafragma y el órgano de debajo, hay ${m.content}`;
-    if (organOk(side, m.organ)) return null;
+    if (organOk(side, m.organ, m.stomach)) return null;
     const what = m.organ === null ? 'nada' : Tissue[m.organ];
-    return `bajo el diafragma, ${what}: ni hígado ni bazo; ${baseOrganBelow(side, line, z)} (abdomen-generic-tissue)`;
+    return `bajo el diafragma, ${what}: ninguno de los órganos del modelo; ${baseOrganBelow(side, line, z, ics >= 11)} (abdomen-generic-tissue)`;
   };
   switch (expected) {
     case 'lung':
