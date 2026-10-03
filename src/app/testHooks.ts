@@ -925,8 +925,8 @@ export interface RibShadowLine {
   /** Pasada A: la línea cruza hueso (su primer segmento óseo) antes de la fila de la pleura. */
   bone: boolean;
   /**
-   * Líneas hasta la línea sin hueso más cercana o hasta el borde del sector, lo que esté antes (0 en el borde de la sombra; desde
-   * la decisión 42, fuera del sector no se supone hueso: `shadowEdgeLines`); −1 sin hueso.
+   * Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra); desde la decisión 42, más allá del sector con las
+   * líneas virtuales de la CPU (`shadowEdgeLines`, `beyond`); −1 sin hueso.
    */
   edgeLines: number;
   /**
@@ -965,25 +965,33 @@ export interface RibShadowStats {
    * de la curva de grises con la mitad del primer escalón, −RD·(1 − y₀) con y₀ = `levelOfGrey(0,5/255)`.
    */
   blackLevelDb: number;
+  /**
+   * lus-sim (decisión 42): las líneas virtuales más allá de cada borde del sector (la k-ésima, a k + 1 líneas del borde) que
+   * cruzan hueso antes de la pleura, según la escena de la CPU (`shadowEdgeLines`).
+   */
+  beyond: { before: boolean[]; after: boolean[] };
+  /** La misma clasificación de la CPU en las líneas del sector con pleura: la fracción que coincide con la pasada A (`bone`). */
+  cpuBoneAgreement: number;
 }
 
 /** Semiventana (mm) del pico de la línea pleural y de la línea A de orden 2, y margen de la ventana de la sombra. */
 export const RIB_SHADOW_PEAK_MM = 1;
 
 /**
- * Para cada línea con hueso, cuántas líneas hay hasta el borde de su sombra (la línea sin hueso más cercana) o hasta el borde del
- * sector, lo que esté antes; −1 en las líneas sin hueso. Lus-sim (decisión 42): fuera del sector no se sabe si la costilla sigue,
- * así que su borde cuenta como un borde de la sombra. Antes se suponía que sí seguía, y una línea del borde bajo una costilla que
- * acaba justo fuera contaba como núcleo de la sombra, aunque su cono de apertura ve la pleura de más allá (−59,8 dB en el BLUE
- * inferior de la regla de las manos, frente a los −60 que exige el núcleo).
+ * Para cada línea con hueso, cuántas líneas hay hasta el borde de su sombra (la línea sin hueso más cercana); −1 en las líneas sin
+ * hueso. Lus-sim (decisión 42): más allá del sector no se supone nada, ni hueso ni su falta. `before[k]` y `after[k]` dicen si la
+ * línea virtual k + 1 antes de la primera o después de la última cruza hueso antes de la pleura, clasificada con la escena de la
+ * CPU (`ribShadowStats`); más allá de las líneas virtuales la distancia se corta (no hace falta conocerla: basta con que
+ * supere el cono y el lóbulo de la línea).
  */
-export function shadowEdgeLines(bone: readonly boolean[]): number[] {
+export function shadowEdgeLines(bone: readonly boolean[], before: readonly boolean[], after: readonly boolean[]): number[] {
   const n = bone.length;
-  const isBone = (i: number): boolean => i >= 0 && i < n && bone[i];
+  const isBone = (i: number): boolean => (i < 0 ? before[-i - 1] === true : i >= n ? after[i - n] === true : bone[i]);
+  const limit = n + Math.max(before.length, after.length);
   return bone.map((b, line) => {
     if (!b) return -1;
     let d = 0;
-    while (d < n && isBone(line - d - 1) && isBone(line + d + 1)) d++;
+    while (d < limit && isBone(line - d - 1) && isBone(line + d + 1)) d++;
     return d;
   });
 }
@@ -1101,7 +1109,39 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const dTheta = (2 * tr.halfSector) / env.lines;
   const beam = sim.profile.beam;
   const W = Math.ceil((0.5 * beam.apertureTxMm) / (tr.curvatureRadius * dTheta));
-  const edges = shadowEdgeLines(out.map((x) => x.bone));
+  // lus-sim (decisión 42): más allá del sector, unas líneas virtuales clasificadas con la escena de la CPU, tantas como el cono
+  // de apertura más ancho (W) y el lóbulo principal más el margen: lo que decide si una línea del borde es núcleo de su sombra
+  const beyond = W + Math.ceil(Math.max(0, ...out.map((x) => (Number.isNaN(x.mainLobeLines) ? 0 : x.mainLobeLines)))) + 2;
+  const cpuBone = (l: number): boolean => {
+    const theta = -tr.halfSector + (2 * tr.halfSector * (l + 0.5)) / env.lines;
+    const origin = pointOnLine(sim.frame, tr, theta, 0);
+    const end = pointOnLine(sim.frame, tr, theta, 1);
+    const dir: [number, number, number] = [end[0] - origin[0], end[1] - origin[1], end[2] - origin[2]];
+    const cpu = pleuraCrossingLine(
+      (p) => scene.insideWallMm(toMaterial(p)),
+      (p) => scene.lungEdgeMm(toMaterial(p), instant),
+      origin,
+      dir,
+      depth,
+      COARSE_DEPTH,
+    );
+    if (!cpu) return false;
+    // como la pasada A: hueso en una fila por encima de la de la pleura (`pleuraCapMm`)
+    const top = Math.floor(pleuraCapMm(cpu.D, step) / step) * step;
+    for (let r = 0.05; r < top; r += 0.05)
+      if (sim.anatomy.classifyWorld(pointOnLine(sim.frame, tr, theta, r), sim.sample).tissue === Tissue.Bone) return true;
+    return false;
+  };
+  const beforeBone = Array.from({ length: beyond }, (_, k) => cpuBone(-1 - k));
+  const afterBone = Array.from({ length: beyond }, (_, k) => cpuBone(env.lines + k));
+  // la misma clasificación dentro del sector, frente a la de la pasada A (que la de fuera mida lo mismo)
+  const inside = out.filter((x) => !Number.isNaN(x.pleuraMm));
+  const agree = inside.filter((x) => cpuBone(x.line) === x.bone).length;
+  const edges = shadowEdgeLines(
+    out.map((x) => x.bone),
+    beforeBone,
+    afterBone,
+  );
   const taps = (line: number, half: number): number[] =>
     Array.from({ length: APERTURE_TAPS }, (_, j) =>
       Math.min(env.lines - 1, Math.max(0, line + Math.floor(half * ((2 * j) / (APERTURE_TAPS - 1) - 1) + 0.5))),
@@ -1135,10 +1175,11 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
     intercostalWindowDb: median(ic.map((x) => x.belowDb)),
     dynamicRangeDb: sim.bmode.dynamicRangeDb,
     blackLevelDb: -sim.bmode.dynamicRangeDb * (1 - levelOfGrey(0.5 / 255)),
+    beyond: { before: beforeBone, after: afterBone },
+    cpuBoneAgreement: inside.length ? agree / inside.length : Number.NaN,
   };
 }
 
-/** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
 /**
  * Lleva la sonda a una vista de medida (decisión 42; `app/measurementViews.ts`), en supino: las poses de antes de la regla de las
  * manos, donde miden el banco, la calibración y las metas físicas. Los puntos clínicos son `goTo`.
@@ -1149,6 +1190,7 @@ function goToView(sim: Simulator, id: MeasurementViewId): void {
   sim.advance(0.05);
 }
 
+/** Coloca la sonda en un punto de partida clínico (sin animación) y avanza lo justo para que el marco la siga. */
 function goTo(sim: Simulator, id: StartPoint['id']): void {
   const sp = START_POINTS.find((p) => p.id === id)!;
   // lus-sim (decisión 33): cada punto con su posición (los de la espalda, sentado; los demás, supino), para que el resultado de

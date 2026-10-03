@@ -36,7 +36,8 @@ export const HANDS = defineParameters('anatomy.hands', {
     sources: ['gordon-ansur-2014', 'greiner-mano-1991'],
     note:
       'Ancho de la mano sin el pulgar, entre las articulaciones metacarpofalángicas 2.ª y 5.ª: 86,3 ± 4,1 mm en los varones de ANSUR ' +
-      'II con IMC 18,5–25 (n 1061, IMC medio 22,9, el del avatar) [DERIVADO: de los datos públicos de la encuesta]; 88,3 ± 4,4 en ' +
+      'II con IMC 18,5–25 (n 1061, IMC medio 22,9, el del avatar) [DERIVADO: de los datos públicos de la encuesta, ' +
+      '`tools/anatomy/ansurSubgroup.ts`]; 88,3 ± 4,4 en ' +
       'todos (n 4082, el informe). Greiner, en ANSUR 1988: 90,4 ± 4,2. El rango, ± 1 DE. En la regla, la altura de cada mano: el ' +
       'punto superior a medio ancho bajo la clavícula, el inferior a uno y medio y la línea frénica a dos',
   },

@@ -387,10 +387,13 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
 
 /**
  * F-T08 en el BLUE inferior clínico de la regla de las manos (decisión 42; limitación `rib-core-leak-center`) [aún no se cumple].
- * Ahí la 5.ª costilla queda casi bajo el centro de la cara (el punto, 5 mm sobre ella) y, en el núcleo de su sombra, la línea
- * pleural sale en la pantalla 0,34 dB sobre el negro (−69,34 frente a −69,68 dB, GPU real, 03-10-2026): un gris de 0–1, pero no
- * el negro que pide la meta. La prueba exige que la meta aún falle por eso (que se vea en el núcleo); cuando se cumpla, falla y hay
- * que pasar la pose a la prueba de F-T08 de arriba.
+ * Ahí la 5.ª costilla queda casi bajo el centro de la cara (el punto, sobre su borde craneal) y, en el núcleo de su sombra, la
+ * línea pleural sale en la pantalla sobre el negro: hasta 1,03 dB con la GPU real y 1,01 con SwiftShader (la línea 84;
+ * 03-10-2026, sobre main 4f2473e). Un gris de 0–1, pero no el negro que pide la meta. La prueba exige que la meta aún falle por
+ * eso (que se vea en el núcleo de la sombra central); cuando se cumpla, falla y hay que pasar la pose a la prueba de F-T08 de
+ * abajo. El núcleo, con el borde de la sombra medido más allá del sector (`shadowEdgeLines`): la costilla de la izquierda sigue
+ * tres líneas fuera, así que la línea del borde no es núcleo (con la suposición de antes, que la costilla seguía, lo era y salía
+ * 8,1 dB sobre el negro).
  */
 test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asoma sobre el negro en el núcleo de la sombra central [aún no se cumple]', async ({
   page,
@@ -404,10 +407,12 @@ test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asom
     pose,
   );
   const core = s.lines.filter((x) => x.bone && x.fullyShadowed && x.edgeLines > x.coneHalfLines + x.mainLobeLines);
-  const worst = Math.max(...core.map((x) => x.pleuraDisplayDb - s.blackLevelDb));
-  const tag = `núcleo ${core.length} líneas; la peor, ${worst.toFixed(2)} dB sobre el negro`;
-  expect(core.length, tag).toBeGreaterThan(10);
-  // hoy: la línea pleural asoma sobre el negro en el núcleo (F-T08 pide que no)
+  const central = core.filter((x) => x.line > 48 && x.line < 144);
+  const worst = Math.max(...central.map((x) => x.pleuraDisplayDb - s.blackLevelDb));
+  const tag = `núcleo ${core.length} líneas (${central.length} en el tercio central); la peor del central, ${worst.toFixed(2)} dB sobre el negro; acuerdo CPU/pasada A ${s.cpuBoneAgreement.toFixed(3)}`;
+  expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
+  expect(central.length, tag).toBeGreaterThan(5);
+  // hoy: la línea pleural asoma sobre el negro en el núcleo de la sombra central (F-T08 pide que no)
   expect(worst, tag).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
@@ -461,6 +466,9 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
         x.a2DisplayDb.toFixed(1),
       ]),
     )}`;
+    // (decisión 42) el borde de la sombra más allá del sector lo deciden líneas virtuales clasificadas con la escena de la CPU:
+    // dentro del sector, esa clasificación es la de la pasada A (medido: 0,995–1 en las tres vistas, GPU real y SwiftShader)
+    expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
     // cada punto de partida corta costillas enteras (el signo del murciélago; desde el paso C1, también el BLUE superior)
     expect(bone.length, tag).toBeGreaterThan(50);
     expect(core.length, tag).toBeGreaterThan(20);

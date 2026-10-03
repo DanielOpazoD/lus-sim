@@ -337,12 +337,13 @@ conservan su identificador (decisiones 10 y 11).
   en el soporte por intensidad (un cuadro suelto o un clip quieto) mueve el ápice ≈ 7 px. Con `edgeInliers` muy bajo en un
   lado (≤ 5 filas) la geometría propuesta es de poca confianza; en el banco la geometría se fija igual (decisión 21).
 - **Bajo una costilla casi en el centro de la cara, la línea pleural asoma sobre el negro** (`rib-core-leak-center`,
-  decisión 42): en el BLUE inferior clínico de la regla de las manos la 5.ª costilla queda 5 mm bajo el centro de la sonda y, en
-  el núcleo de su sombra, la línea pleural sale en la pantalla a −69,34 dB, 0,34 dB sobre el negro de 8 bits (−69,68; GPU real):
-  un gris de 0–1, pero F-T08 pide el negro. En las vistas de medida (las de antes de la regla), donde las costillas caen hacia
-  los lados del sector, se cumple. Probablemente el borde de la sombra cuando la costilla cubre el centro de la apertura (el
-  pedestal de lóbulos laterales que entra por la cara, decisión 20); sin medir la causa. Lo vigila una e2e que exige que la meta
-  aún falle (`imagen.spec.ts`).
+  decisión 42): en el BLUE inferior clínico de la regla de las manos el punto queda sobre el borde craneal de la 5.ª costilla y,
+  en el núcleo de la sombra central, la línea pleural sale en la pantalla hasta 1,03 dB sobre el negro de 8 bits con la GPU real
+  y 1,01 con SwiftShader (la línea 84; en 6 líneas del núcleo, sobre 0,3 dB): un gris de 0–1, pero F-T08 pide el negro. En las
+  vistas de medida (las de antes de la regla), donde las costillas caen hacia los lados del sector, se cumple (la peor, 0,8 dB
+  bajo el negro). Probablemente el borde de la sombra cuando la costilla cubre el centro de la apertura (el pedestal de lóbulos
+  laterales que entra por la cara, decisión 20); sin medir la causa. Lo vigila una e2e que exige que la meta aún falle
+  (`imagen.spec.ts`).
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;

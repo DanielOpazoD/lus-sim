@@ -45,7 +45,10 @@ export interface StartPoint {
  * Los puntos BLUE del hemitórax derecho con la regla de las manos sobre el avatar (lus-sim, decisión 42): los valores de
  * `blueHandPoints` (`app/blueHands.ts`) con las manos de `anatomy.hands`, la clavícula y el tronco del avatar, redondeados;
  * `startPoints.test.ts` los vuelve a construir. Los rangos, con las manos a ± 1 DE (el largo del dedo, el de la palma y el ancho,
- * en todas sus combinaciones). Los del izquierdo son sus simétricos (φ → π − φ).
+ * en todas sus combinaciones): las esquinas se combinan como si las tres medidas fueran independientes, y no lo son (el ancho y
+ * el largo de la mano, r = 0,58 en el subgrupo de ANSUR II, `tools/anatomy/ansurSubgroup.ts`), así que los rangos son más anchos
+ * que los de manos reales a ± 1 DE. Los del izquierdo son sus
+ * simétricos (φ → π − φ).
  */
 const HANDS_SOURCES = ['lichtenstein-bluepoints-2011', 'lichtenstein-libro-2016', 'greiner-mano-1991', 'gordon-ansur-2014'];
 export const START_POINT_POSES = defineParameters('app.startPointPoses', {
@@ -91,22 +94,23 @@ export const START_POINT_POSES = defineParameters('app.startPointPoses', {
     sources: HANDS_SOURCES,
     note:
       'A uno y medio anchos de mano bajo el borde de arriba de la mano superior en la línea media (la mano de abajo, horizontal, ' +
-      'toca la de arriba en las puntas de los dedos [SUPUESTO]): en el EIC4 de la parrilla, 5 mm sobre la 5.ª costilla (la 4.ª a ' +
-      '51,4 mm y la 5.ª a 22,8 en esa línea). Antes (decisión 36), el centro del EIC4 de la axilar anterior, 49,5, por los reparos ' +
-      'de Yuriditsky y cols. («justo por encima del pezón»)',
+      'toca la de arriba en las puntas de los dedos [SUPUESTO]): sobre el borde craneal de la 5.ª costilla de la parrilla, no en ' +
+      'el EIC4 (la 5.ª, de 14 mm de alto, con su línea media a 22,8 mm y su borde de arriba a 29,8; la 4.ª a 51,4 en esa línea). ' +
+      'La sonda convexa abarca dos espacios: bajo ella quedan la 5.ª costilla y el EIC4 y el EIC5 a cada lado. Antes (decisión ' +
+      '36), el centro del EIC4 de la axilar anterior, 49,5, por los reparos de Yuriditsky y cols. («justo por encima del pezón»)',
   },
   phrenicZ: {
     value: -15.2,
     unit: 'mm',
     range: [-23.4, -7.0],
     evidence: 'derivado',
-    sources: HANDS_SOURCES,
+    sources: [...HANDS_SOURCES, 'ding-frenico-2015'],
     note:
       'La línea frénica, el borde inferior de la mano de abajo (dos anchos de mano bajo el borde de arriba de la superior), en la ' +
-      'axilar media (el punto frénico, Lichtenstein 2011 y 2016): en el EIC7 de la parrilla (la 7.ª costilla a −3,2 mm y la 8.ª a ' +
-      '−34,2), 19 mm sobre el borde del pulmón en espiración (A-T13, −34): la sonda ve el pulmón y, en su lado caudal, el borde. ' +
-      'Que la línea frénica marque el fin del pulmón no siempre se cumple (Ding y cols. 2015, solo el resumen: difería del ' +
-      'diafragma en el 47,5 % de los hemitórax)',
+      'axilar media (el punto frénico, Lichtenstein 2011 y 2016): en el EIC7 de la parrilla (la línea media de la 7.ª costilla a ' +
+      '−3,2 mm y la de la 8.ª a −34,2; sus bordes, a 7 mm), 19 mm sobre el borde del pulmón en espiración (A-T13, −34): la sonda ve el pulmón y, en su lado caudal, el borde. ' +
+      'Que la línea frénica marque el fin del pulmón no siempre se cumple (Ding y cols. 2015, solo el resumen: el punto frénico ' +
+      'de las manos difirió del localizado por ecografía, M-BLUE, en el 47,5 % de los casos)',
   },
   plapsPhi: {
     value: 1.15 * Math.PI,

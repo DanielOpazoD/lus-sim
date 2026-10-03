@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { POSTERIOR_START_POSES, START_POINTS, START_POINT_POSES, type StartPoint } from '../app/startPoints';
-import { blueHandPoints, skinArcOf } from '../app/blueHands';
+import { blueHandPoints, phiAtSkinArc, skinArcOf } from '../app/blueHands';
+import { RIBCAGE, clavicleSd } from '../anatomy/organs/ribcage';
 import { HANDS } from '../anatomy/hands';
 import { AnatomyScene } from '../anatomy/scene';
 import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling } from '../probe/contact';
-import { CONVEX_C35, clampPose, lineAngle, pointOnLine, type ProbePose } from '../probe/probe';
+import { CONVEX_C35, clampPose, lineAngle, pointOnLine, probeFrame, type ProbePose } from '../probe/probe';
 import { chestView, intercostalZ, ribShadows, ribZ, scanView } from './support/chestView';
 
 /**
@@ -113,18 +114,66 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
       span((x) => x.lower.phi),
       1e-3,
     );
-    // dónde caen en la parrilla del modelo (ninguna fuente lo mide: anatomy.md §4): el superior en el EIC1, el inferior en el
-    // EIC4 y la línea frénica en el EIC7 de la axilar media
-    const between = (z: number, n: number, phi: number) => z < ribZ(scene, n, phi) && z > ribZ(scene, n + 1, phi);
-    expect(between(q.upper.z, 1, q.upper.phi)).toBe(true);
-    expect(between(q.lower.z, 4, q.lower.phi)).toBe(true);
-    expect(between(q.phrenicZ, 7, q.phrenic.phi)).toBe(true);
+    // dónde caen en la parrilla del modelo (ninguna fuente lo mide: anatomy.md §4), con los bordes de las costillas (su alto,
+    // `anatomy.ribcage.ribHeightMm`, alrededor de la línea media de cada una): el superior en el EIC1 y la línea frénica en el EIC7
+    // de la axilar media; el inferior, sobre el borde craneal de la 5.ª costilla (entre su línea media y su borde de arriba). La
+    // sonda convexa abarca dos espacios, así que bajo ella quedan igual la 5.ª costilla y los espacios de cada lado
+    const hw = 0.5 * RIBCAGE.params.ribHeightMm.value;
+    const inSpace = (z: number, n: number, phi: number) => z < ribZ(scene, n, phi) - hw && z > ribZ(scene, n + 1, phi) + hw;
+    expect(inSpace(q.upper.z, 1, q.upper.phi)).toBe(true);
+    expect(inSpace(q.phrenicZ, 7, q.phrenic.phi)).toBe(true);
+    const rib5 = ribZ(scene, 5, q.lower.phi);
+    expect(q.lower.z).toBeGreaterThan(rib5);
+    expect(q.lower.z).toBeLessThan(rib5 + hw);
     // la línea frénica, por encima del borde del pulmón en espiración en la axilar media (A-T13: −34 mm)
     expect(q.phrenicZ).toBeGreaterThan(-34);
-    // el izquierdo, el simétrico
+    // el izquierdo, el simétrico (los cuatro puntos)
     const l = build(nominal, 1);
     expect(l.upper.phi).toBeCloseTo(Math.PI - q.upper.phi, 9);
-    expect(l.lower.z).toBe(q.lower.z);
+    expect(l.lower.phi).toBeCloseTo(Math.PI - q.lower.phi, 9);
+    expect(l.phrenic.phi).toBeCloseTo(Math.PI - q.phrenic.phi, 9);
+    expect(l.plaps.phi).toBeCloseTo(Math.PI - q.plaps.phi, 9);
+    expect([l.upper.z, l.lower.z, l.phrenicZ, l.plaps.z]).toEqual([q.upper.z, q.lower.z, q.phrenicZ, q.plaps.z]);
+  });
+
+  it('la regla de las manos contra la clavícula de la escena (decisión 42): el borde de la mano, los anchos de mano y la línea frénica', () => {
+    // una comprobación que no usa la fórmula de `blueHands.ts`: el borde inferior de la clavícula se mide con su distancia
+    // (`clavicleSd`, la de la clasificación) a lo largo de la línea central de la sonda apoyada en dos puntos de la piel
+    const H = HANDS.params;
+    const B = H.handBreadthMm.value;
+    const F = H.middleFingerLengthMm.value;
+    const P = START_POINT_POSES.params;
+    const c = scene.ribCage.clavicle;
+    const touches = (phi: number, z: number): boolean => {
+      const fr = probeFrame({ phi, z, lift: 0, yaw: 0, rock: 0, tilt: 0 }, scene.torso, CONVEX_C35);
+      for (let r = 0; r <= c.depth + 2 * c.radius + 5; r += 0.05)
+        if (clavicleSd(pointOnLine(fr, CONVEX_C35, 0, r), scene.torso, scene.ribCage) <= 0) return true;
+      return false;
+    };
+    // el z más bajo en que la línea central toca la clavícula, en el arco u de la piel (bisección desde el eje, que la toca)
+    const lowerBorder = (u: number): number => {
+      const phi = phiAtSkinArc(u, scene.torso);
+      let lo = c.z0 - 3 * c.radius;
+      let hi = c.z0 + c.rise;
+      for (let i = 0; i < 40; i++) {
+        const m = 0.5 * (lo + hi);
+        if (touches(phi, m)) hi = m;
+        else lo = m;
+      }
+      return hi;
+    };
+    const u1 = c.u0 + 0.25 * (c.u1 - c.u0);
+    const u2 = c.u0 + 0.75 * (c.u1 - c.u0);
+    const z1 = lowerBorder(u1);
+    const z2 = lowerBorder(u2);
+    // la recta por los dos, alargada hasta la línea media y hasta el BLUE superior
+    const topAt = (u: number) => z1 + ((z2 - z1) * (u - u1)) / (u2 - u1);
+    // la mano de arriba: su borde de arriba en esa recta; el BLUE superior, medio ancho de mano bajo ella, a un dedo medio
+    expect(Math.abs(P.blueUpperZ.value - (topAt(F) - B / 2))).toBeLessThan(0.5);
+    // la mano de abajo: su borde de arriba, un ancho de mano bajo la recta en la línea media (donde se tocan las puntas); el BLUE
+    // inferior, medio ancho bajo él; la línea frénica (su borde de abajo), otro medio ancho más abajo
+    expect(Math.abs(P.blueLowerZ.value + B / 2 - (topAt(0) - B))).toBeLessThan(0.5);
+    expect(Math.abs(P.phrenicZ.value - (P.blueLowerZ.value - B / 2))).toBeLessThan(0.15);
   });
 
   it('cada punto deja la pleura parietal bajo casi todas las líneas apoyadas, a la profundidad de la pared', () => {
