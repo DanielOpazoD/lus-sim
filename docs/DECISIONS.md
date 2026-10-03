@@ -3034,8 +3034,8 @@ las tres ventanas (172 y 86 con R_t 0,3; 163 y 78 con R_t 0,1).
   décimas (la previa sale 14,0 o 16,0; los cuadros, 14,1, 16,0 o 18,2 mm). Lo que la mueve es cualquier cambio pequeño: la
   geometría detectada (el detector viejo, a 3–9 px), el ruido del receptor de cada cuadro, el fondo detectado (que acorta las
   filas). Con el detector nuevo, en 51,3 mm, las mismas pilas siguen saltando (d_pl de 16,04 en 4 de 6, 2,6 mm sobre la
-  verdadera): el sector a 0,6 px no lo arregla. En 49,5 mm, con el detector nuevo: 12 de 12 corridas del BLUE inferior en
-  verde, 8 con la GPU real y 4 con SwiftShader, todas a 0,25–0,28 mm (la previa, 14,2: el límite, en 18,45, deja dentro 8
+  verdadera): el sector a 0,6 px no lo arregla. En 49,5 mm, con el detector nuevo y sobre `83b7544`: 30 de 30 corridas del
+  BLUE inferior en verde, 20 con la GPU real y 10 con SwiftShader, todas a 0,25–0,29 mm (la previa, 14,2: el límite, en 18,45, deja dentro 8
   columnas del espacio hondo y fuera las demás, siempre las mismas). Es estable en estas corridas, pero el mecanismo sigue
   ahí: una previa por columna (la pleura del cuadro medio en cada columna) lo quitaría y cambia las estadísticas de casi todos
   los clips del banco, así que queda para una decisión aparte (pregunta abierta en la PR). El PLAPS tiene el mismo mecanismo
