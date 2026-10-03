@@ -3391,3 +3391,138 @@ la pared (un espejo casi sin pérdida) y líneas A que caen ≥ 30 dB por orden.
   repeticiones en el BLUE inferior).
 - Soldati 2020 se leyó en texto completo (§1–3 y fig. 1).
 - Revisión adversarial de contexto limpio: resumen en la PR.
+
+## 39. La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Ciclo 3b-3, mecanismo 2 (objetivos O3 y O1). En el banco de fidelidad la pared del simulador estaba quieta:
+
+- T2 de la pared, la correlación de un cuadro con el siguiente, valía 1,000; en la exploración del banco vale 0,982–0,993.
+- La σ temporal de la pared era 0,01–0,5 grises, frente a 5,8–11,8 en los clips. Por eso el cociente S1 (bajo la pleura
+  sobre la pared) daba 9,7–17,9, frente a 1,04–1,61.
+
+En el simulador, la pared no se mueve respecto de la sonda: el campo respiratorio la deja quieta (peso 0, decisión 22) y la
+sonda queda fija en la sala. Además, con la pila de 1 s de la e2e, la arena (bajo la pleura) se decorrelaba en 0,15–0,19 s,
+frente a 0,46–0,72 s en el banco.
+
+**Opciones.**
+
+- El ruido electrónico de cada cuadro. Ya está: `uNoise`, con el contador de cuadros, a −72 dB del hígado. Con la relación
+  señal/ruido de la pared no cambia T2.
+- El movimiento de la pared con la respiración y con el latido transmitido.
+- El temblor de la mano.
+- Para la arena: el grano o la amplitud del deslizamiento.
+
+**Decisión.**
+
+- **Primero, la medida: la pila se mide como los clips.** El banco calcula T2 y S1 sobre el clip entero: 7–17 s, a
+  18–37 cuadros por segundo. La decorrelación de S1 depende de esa duración, porque la media se resta dentro de la ventana
+  y el retardo llega hasta su mitad. `e2e/fidelidad.spec.ts` toma 1 s (30 cuadros a 30 cps), así que sus medidas no se
+  comparan con las del banco.
+
+  La herramienta nueva es `e2e/pilaClips.spec.ts` (`LUS_PILA=1`). Respira tranquilo durante la mediana de la duración de los
+  clips de la exploración, a su mediana de cuadros por segundo: 8,3 s a 25 cps, 208 cuadros. Con la imagen de main, la arena
+  pasa de 0,15–0,19 s a 0,30–0,40 s. Parte de la diferencia con el banco era de método. El arreglo está en la medida, no en la
+  física.
+
+- **La pared que respira bajo la sonda** (`probe/operator.ts`, estado del operador).
+  - **El movimiento de la pared.** No hay una medida de la pared bajo una sonda. Se toma el volumen mamario en respiración
+    libre: AP 1,29 ± 0,59 mm, craneocaudal 1,00 ± 0,51 y mediolateral 0,94 ± 0,52 ([@jo-movimiento-2026]: TC 4D, 100
+    pacientes, el centro del volumen entre las 10 fases). Es una extrapolación: otra estructura (la mama), en mujeres
+    operadas, y se usa en todos los puntos, también el PLAPS y los paravertebrales con el paciente sentado.
+  - **Cómo se aplica.**
+    - AP, por la normal de la piel.
+    - SI, hacia craneal.
+    - ML, en el plano de la piel, hacia fuera y proporcional a la distancia a la línea media: 0 en el esternón y en la
+      columna, sin saltos.
+    - Escala con la fracción de la excursión tranquila del diafragma en el instante: el mismo reloj.
+    - Con la inspiración profunda (53 frente a 16 mm de diafragma) da ≈ 3,3 veces más, lo que mide la TC de la pared
+      anterior en inspiración profunda frente a espiración sostenidas: AP 4,2–5,4 mm y SI 2,5–2,6
+      ([@lowanichkiattikul-pared-2016]).
+  - **Lo que sigue la mano.** La mano que sostiene la sonda sigue una fracción de ese movimiento, `chestFollow`: 1, la sonda
+    pegada a la pared; 0, la mano quieta en la sala. Ninguna fuente mide esa fracción, así que su rango son los dos extremos
+    físicos.
+  - **Una traslación rígida.** Se mueven la sonda y su compresión juntas (`translateContact`), sin recalcular el contacto
+    (decisión 63). No comprime: con `chestFollow` 0,75 el componente AP acerca la pared entera 0,32 mm en la respiración
+    tranquila y 1,07 mm en la profunda, y la cara «muestrea» esos milímetros bajo la piel (`operator-hand-rigid`).
+  - **Lo que se guarda.** La adquisición guarda la traslación (`operatorMm`). El navegador 3D dibuja la sonda de la pose, sin
+    ella, y así un paciente quieto con la sonda quieta no se redibuja (`humanNavigator.spec.ts` lo comprueba en vivo).
+- **El temblor de la mano.** El pico de resonancia del temblor postural está en 7–11 Hz, ≈ 8 Hz de media
+  ([@lakie-temblor-2012]); con la carga de una sonda baja algo. La amplitud: 16, 2 y 24 µm rms por eje (30 µm el vector) en
+  la punta de un instrumento sostenido en el aire ([@singh-temblor-2002], cirugía de retina). Con la sonda apoyada en el
+  paciente es menor, así que 24 µm es el tope del rango. Se calcula como seis senos por eje, con frecuencias en 7–11 Hz y
+  fases de la semilla del operador, evaluados en el tiempo del reloj: el mismo instante y la misma semilla dan la misma
+  sonda (`operator.test.ts`, también en el simulador).
+- **El latido transmitido a la pared: no se modela.** La sismocardiografía mide la vibración de la pared en aceleración, y no
+  se encontró su desplazamiento bajo la sonda en los puntos de partida.
+- **El ajuste, con la exploración** (decisión 24): la pila con el protocolo de los clips, en los tres puntos de partida.
+  - **El barrido:** `chestFollow` 0–1 en pasos de 0,25, y luego de 0,05 entre 0,6 y 0,9, por temblor 0–0,024 mm en pasos de
+    0,006.
+  - **La regla, declarada antes del barrido:** la menor suma de distancias normalizadas a la banda p10–p90 entre sujetos de
+    la exploración, en T2 de la pared, S1 y su decorrelación (mediana de los tres puntos). T2 bajo la pleura queda fuera:
+    sale censurada en todos los candidatos, también sin la mano, porque el 5–8 % de su banda está en el negro.
+  - **Lo que dio el barrido:** ganaba el temblor en el tope (0,024, con `chestFollow` 0,65). Los dos mandos se compensan.
+  - **La guarda, añadida al ver el barrido y antes de mirar la comprobación:** F-T11, la estratósfera lejos del corazón en
+    apnea, debe dar ≥ 0,95 en 2 s en las ocho realizaciones de la semilla. El temblor la erosiona:
+
+    | Temblor (mm rms por eje)    | 0,006 | 0,009 | 0,012 | 0,018 | 0,024 |
+    | --------------------------- | ----- | ----- | ----- | ----- | ----- |
+    | F-T11, mínima de 8 semillas | 0,985 | 0,975 | 0,975 | 0,946 | 0,920 |
+    | F-T11, mediana              | 0,987 | 0,984 | 0,981 | 0,970 | 0,952 |
+
+    Con la guarda, el temblor queda en 0,012 y gana `chestFollow` 0,75. Se dice así porque la guarda cambia el resultado.
+    El valor de `chestFollow` lo fija, de hecho, esa guarda.
+
+**Consecuencias.** Pila con el protocolo de los clips (GPU real, Apple M4; antes = main, sin la mano; p10–p90 entre sujetos;
+≥ cota inferior):
+
+| Métrica                     | Exploración | Comprobación | BLUE superior | BLUE inferior  | PLAPS         |
+| --------------------------- | ----------- | ------------ | ------------- | -------------- | ------------- |
+| T2 de la pared              | 0,982–0,993 | 0,984–0,985  | 1,000 → 0,998 | 1,000 → 0,999  | 1,000 → 0,998 |
+| S1 (bajo / sobre la pleura) | 1,04–1,61   | 0,911–0,973  | 9,46 → 0,965  | ≥ 18,6 → 1,34  | ≥ 19,7 → 1,70 |
+| S1, decorrelación (s)       | 0,460–0,721 | 0,569–0,706  | 0,401 → 0,433 | 0,331? → 0,349 | 0,299 → 0,311 |
+
+(? : censurada.) La comprobación se miró después de elegir, sin reajustar.
+
+- **S1 se acerca al banco en los tres puntos, de 9–20 a 0,97–1,70.** Entra en la banda de la exploración en el BLUE inferior; el BLUE superior queda por debajo (dentro de la comprobación) y el PLAPS, un poco por encima. La pared ya no está quieta: su σ temporal es la del moteado que se mueve.
+- **T2 de la pared baja muy poco** (0,998) y queda sobre el banco. El temblor que la bajaría rompe F-T11. Lo que falta no
+  tiene todavía un mecanismo con fuente: podría ser la recompresión del vídeo de los clips o el ruido del equipo.
+- **La arena sigue rápida.** No es la amplitud del deslizamiento: en la respiración tranquila es de 4,2 mm en el BLUE
+  superior, 5,4 en el inferior y 5,2 en el PLAPS (decisión 19), y calza con D5 (Costamagna 2026, 5,4 ± 2,5 mm). El otro
+  mando es el grano del deslizamiento (`SLIDING_LAT_MM` 3 mm, `SLIDING_AX_MM` 0,5 mm), una estimación sin fuente que no se
+  toca. Es candidato del ciclo 3b-4, junto con el nivel del deslizamiento (decisión 38).
+- **Las métricas de un cuadro no cambian.** En la calibración C3b-A (apnea, a t = 60 s), M de la pared, M de la neblina y r₂
+  cambian ≤ 0,002: en la apnea espiratoria solo queda el temblor. En la apnea inspiratoria la sonda queda, además, corrida
+  fija ≈ 1,5 mm (1,07 mm hacia dentro en AP): la excursión profunda escala en lineal el movimiento de la pared.
+- **La guarda del modo M de `e2e/fidelidad.spec.ts` se mide con la mano apagada** (`operator.enabled`). Con la mano, la apnea
+  tiembla y la mano mueve también la pared: el cociente de σ bajo la pleura, respirando frente a la apnea, dependía de la
+  realización (3,6–10,7). Sin la mano, la guarda conserva sus 10 veces y su mutación (sin el deslizamiento falla). La
+  detección y F-T01 se siguen comprobando con la mano.
+- **La coherencia del sector detectado se mide con la mano apagada.** En el PLAPS respirando, con la mano, la guarda d_pl de
+  `e2e/fidelidad.spec.ts` (detectada frente a la verdadera, < 2 mm) falló 2 de 4 veces con SwiftShader (2,80 y 2,97 mm; con
+  main, 3 de 3 bien). En el fallo el borde de la piel detectado queda 4,8 px más hondo: la máscara temporal del detector se
+  corre con la piel que se mueve. Esa guarda es de coherencia del detector, no del banco: el banco mide el simulador con la
+  geometría verdadera (decisión 21), así que ninguna métrica que se compara con los clips pasa por ella. Las guardas del
+  sector (ápice, bordes, piel y d_pl) usan las dos pilas sin la mano que ya toma la guarda del modo M. Lo que se compara con
+  el banco se sigue midiendo con la mano encendida, como los clips: la pila de `e2e/pilaClips.spec.ts`, la calibración de
+  `e2e/calibracion.spec.ts` y el informe adjunto de `e2e/fidelidad.spec.ts`. El defecto queda como limitación
+  (`sector-detector-moving-skin`) y como prueba «aún no se cumple»: con la mano en el PLAPS respirando, seis pilas a lo largo
+  del ciclo desde t = 60 s, el borde de la piel detectado no debería moverse más de 0,5 px (sin la mano, ≤ 0,2 px en 16 fases;
+  con ella, hasta 1,2–1,6 px, con la GPU real y con SwiftShader). Fallará cuando el detector lo resuelva.
+- **El coste del cuadro en la GPU no cambia:** 4,47 ms con la mano y 4,51 sin ella, en la misma sesión (medianas de 9 medidas de 60 cuadros con `frameCostMs`, alternando). La mano es CPU, no recalcula el contacto y no hace redibujar el
+  navegador.
+- **El gancho `operator`** cambia el estado de la mano (semilla, si está activa, lo que sigue y el temblor) sin recompilar.
+
+**Verificación.**
+
+- `src/validation/operator.test.ts`: el temblor con su rms y su banda; la misma sonda con el mismo instante y la misma
+  semilla, también en el simulador (la traslación, recalculada a mano desde la muestra del reloj y el contacto de la pose);
+  la pared con sus tres amplitudes, lineal en la fracción y sin saltos en la línea media ni en la axilar media; la mano
+  apagada.
+- `acquisitionHistory.test.ts`: la adquisición guarda la traslación.
+- `e2e/humanNavigator.spec.ts`: sin redibujos en vivo con la sonda quieta.
+- El barrido y la tabla: `e2e/pilaClips.spec.ts` con la GPU real (`LUS_PILA_FOLLOW`, `LUS_PILA_TREMOR`).
+- F-T11 en ocho semillas.
+- La e2e entera con la GPU real.
+- Revisión adversarial de contexto limpio: resumen en la PR.

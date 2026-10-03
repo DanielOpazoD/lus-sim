@@ -55,8 +55,9 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     // hígado y el bazo (decisión 37) añaden su cuenta a la parte de la imagen bajo el diafragma: con SwiftShader en local,
     // alternando main y la rama (03-10-2026, carga 5–16), el BLUE inferior 2,4 / 2,7 min frente a 3,3 / 2,8 y el PLAPS 2,5 / 2,8
     // frente a 4,0 / 2,9 (×1,04–1,6); el costo por cuadro, +12–20 %. Con 7 min el BLUE inferior y el PLAPS agotaban el plazo en el
-    // CI (PR #52). Las aserciones no cambian.
-    test.setTimeout(600_000);
+    // CI (PR #52). Con la pared viva (decisión 39) el BLUE inferior tardó 10,1 min en un corredor del CI (PR #55): 15 min, con el
+    // trabajo del CI en 25. Las aserciones no cambian.
+    test.setTimeout(900_000);
     const errors = await openBench(page);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl2');
@@ -82,12 +83,8 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       // las decisiones 28 y 39). La guarda no se afloja: 25 px. El fondo no: el campo profundo es negro exacto y el sector
       // detectado acaba donde acaba lo encendido (33–42 mm de los 120). Con la geometría detectada, d_pl sale 0,1–0,6 mm más
       // larga en los puntos BLUE (la piel detectada, más honda); en el PLAPS puede salir 1,4 mm más corta: su pleura inclinada
-      // cae en dos grupos de columnas y d_pl, su mediana, salta entre ellos (decisión 36). Queda en el informe (decisión 21)
-      expect(r.geometry.apexErrPx, tag).toBeLessThan(25);
-      expect(Math.abs(r.geometry.thetaErrDeg.left), tag).toBeLessThan(4);
-      expect(Math.abs(r.geometry.thetaErrDeg.right), tag).toBeLessThan(4);
-      expect(Math.abs(r.geometry.rhoMinErrPx), tag).toBeLessThan(10);
-      expect(Math.abs(r.detectedMetrics['dPl.mm'].median - r.metrics['dPl.mm'].median), tag).toBeLessThan(2);
+      // cae en dos grupos de columnas y d_pl, su mediana, salta entre ellos (decisión 36). Queda en el informe (decisión 21).
+      // Estas guardas del sector detectado van abajo, con la mano del operador apagada (decisión 39)
       // la pleura del detector, a ±1 mm del cruce del gemelo de A0, en todas las columnas intercostales
       expect(c.pleura.columns, tag).toBeGreaterThan(50);
       expect(c.pleura.within1mm, tag).toBe(1);
@@ -129,9 +126,37 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       expect(Math.abs(a.shownErrMm), `F-T01, orden ${k} (${tag})`).toBeLessThanOrEqual(Math.max(0.5, rtMax.display.mmPerPx));
       expect(Math.abs(a.cpuErrMm), `orden ${k} frente a k·D (${tag})`).toBeLessThanOrEqual(1);
     }
-    // el modo M reconstruido distingue la respiración (orilla de mar) de la apnea: σ temporal bajo la pleura
-    const [apnea, quiet] = reports;
-    expect(quiet.stack!.S1.sigmaBelow, JSON.stringify([apnea.stack, quiet.stack])).toBeGreaterThan(10 * apnea.stack!.S1.sigmaBelow);
+    // el modo M reconstruido distingue el deslizamiento (orilla de mar) de la apnea: σ temporal bajo la pleura, con la mano del
+    // operador apagada (decisión 39): la mano mueve también la pared y la apnea tiembla, y con ella la cota dependía de la
+    // realización (3,6–10,7 veces). Sin la mano, la apnea es un cuadro quieto (0,010–0,026 grises) y el deslizamiento solo, 10
+    // veces más
+    const [apneaQuiet, quietSlide] = await page.evaluate(
+      (o) => {
+        const hooks = window.__lusTest!;
+        hooks.operator({ enabled: false });
+        try {
+          return [hooks.fidelity({ ...o, respiration: 'apnea-expiratory' }), hooks.fidelity({ ...o, respiration: 'quiet' })];
+        } finally {
+          hooks.operator(null);
+        }
+      },
+      { startPoint, frames: FRAMES, frameIntervalS: FRAME_INTERVAL_S },
+    );
+    expect(quietSlide.stack!.S1.sigmaBelow, JSON.stringify([apneaQuiet.stack, quietSlide.stack])).toBeGreaterThan(
+      10 * apneaQuiet.stack!.S1.sigmaBelow,
+    );
+    // la coherencia del sector detectado (la de arriba), con la mano apagada (decisión 39): es una guarda del detector, no del
+    // banco, que mide el simulador con la geometría verdadera (decisión 21). Con la mano, la máscara temporal del detector se
+    // corre con la piel que se mueve y en el PLAPS respirando d_pl salía 2,8–3,0 mm más larga en 2 de 4 corridas con
+    // SwiftShader (3 de 3 en main; `sector-detector-moving-skin`, la prueba «aún no se cumple» de abajo)
+    for (const r of [apneaQuiet, quietSlide]) {
+      const tag = `${startPoint}, ${r.respiration}, sin la mano: ${JSON.stringify(r.geometry)}`;
+      expect(r.geometry.apexErrPx, tag).toBeLessThan(25);
+      expect(Math.abs(r.geometry.thetaErrDeg.left), tag).toBeLessThan(4);
+      expect(Math.abs(r.geometry.thetaErrDeg.right), tag).toBeLessThan(4);
+      expect(Math.abs(r.geometry.rhoMinErrPx), tag).toBeLessThan(10);
+      expect(Math.abs(r.detectedMetrics['dPl.mm'].median - r.metrics['dPl.mm'].median), tag).toBeLessThan(2);
+    }
     // frente a la referencia, estrato a estrato (convexa, lineal, sectorial): solo informa
     const comparison = reports.map((r) => ({
       respiration: r.respiration,
@@ -147,6 +172,46 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     await testInfo.attach(`fidelidad-${startPoint}.json`, { path: file, contentType: 'application/json' });
     expect(errors).toEqual([]);
   });
+
+/**
+ * Aún no se cumple (`sector-detector-moving-skin`, decisión 39): el detector del sector con la mano del operador encendida, en el
+ * PLAPS respirando. Desde el instante fijo t = 60 s, con la semilla del operador fija, seis pilas de 30 cuadros espaciadas 0,7 s
+ * a lo largo del ciclo. La meta: el borde de la piel detectado no se mueve con la mano, |rhoMinErrPx| ≤ 0,5 px en todas (sin la
+ * mano, ≤ 0,2 px en 16 fases del ciclo con la GPU real). Con la mano la máscara temporal se corre con la piel: hasta 1,6 px en
+ * 16 fases del ciclo y 1,2 px en estas seis (GPU real y SwiftShader, que dan casi lo mismo); de vez en cuando salta a 4,8 px y d_pl sale > 2 mm de la
+ * verdadera (2 de 4 corridas de la ventana del PLAPS con SwiftShader). La prueba exige que la meta falle; cuando el detector lo
+ * resuelva, esta prueba falla y hay que pasarla a una guarda normal.
+ */
+test('el detector del sector con la mano del operador, en el PLAPS respirando [aún no se cumple]', async ({ page }) => {
+  test.setTimeout(900_000);
+  const errors = await openBench(page);
+  const diffs = await page.evaluate(
+    ({ frames, dt }) => {
+      const h = window.__lusTest!;
+      const sim = h.sim();
+      const clock = sim.physiology.clock;
+      const step = Math.round(60 / clock.dt);
+      while (clock.step < step) sim.physiology.step();
+      h.operator({ seed: 20261003 });
+      const out: { diffMm: number; rhoMinErrPx: number | null }[] = [];
+      try {
+        for (let i = 0; i < 6; i++) {
+          const r = h.fidelity({ startPoint: 'plaps', respiration: 'quiet', frames, frameIntervalS: dt, settleS: 0.7 });
+          out.push({ diffMm: r.detectedMetrics['dPl.mm'].median - r.metrics['dPl.mm'].median, rhoMinErrPx: r.geometry.rhoMinErrPx });
+        }
+      } finally {
+        h.operator(null);
+      }
+      return out;
+    },
+    { frames: FRAMES, dt: FRAME_INTERVAL_S },
+  );
+  console.log(`DETECTOR_MANO_JSON ${JSON.stringify(diffs)}`);
+  expect(() => {
+    for (const d of diffs) expect(Math.abs(d.rhoMinErrPx ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(0.5);
+  }, JSON.stringify(diffs)).toThrow();
+  expect(errors).toEqual([]);
+});
 
 /**
  * Las métricas que se declaran invariantes a la ganancia (decisión 21). Un cambio de ganancia es exactamente g → a·g + b en el

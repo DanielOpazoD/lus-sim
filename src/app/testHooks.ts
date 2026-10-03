@@ -18,6 +18,7 @@ import {
   type VolumeEquivalenceReport,
 } from './equivalenceSweep';
 import { contactCoupling } from '../probe/contact';
+import { defaultOperator, type OperatorState } from '../probe/operator';
 import { pointOnLine, type ProbePose } from '../probe/probe';
 import { Interface, isRibInterface, isWallLayerInterface } from '../anatomy/interfaces';
 import { TISSUES, Tissue } from '../anatomy/tissues';
@@ -102,6 +103,11 @@ export interface TestHooks {
   fidelity: (opts: FidelityBenchOptions) => FidelityBenchReport;
   /** Barrido de calibración (lus-sim, ciclo 3b-2): K, σz de la pleura y R_t en la pasada B; `null` vuelve al registro. */
   calibrationOverride: (o: CalibrationOverride | null) => void;
+  /**
+   * La mano del operador (lus-sim, decisión 39): cambia campos de su estado (semilla, si está activa, lo que sigue de la pared,
+   * su temblor) para el barrido de la exploración; `null` vuelve al del registro con la semilla del paciente.
+   */
+  operator: (o: Partial<OperatorState> | null) => OperatorState;
   /**
    * Pulso pulmonar (lus-sim, decisión 32): el modo M de la línea central en `site` con la respiración `respiration`, a
    * intervalos fijos del reloj, medido en la banda bajo la pleura (S3 y F-T11). Ver `LungPulseReport`.
@@ -364,6 +370,11 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       }
     },
     calibrationOverride: (o) => getSim().renderer.calibrationOverride(o),
+    operator: (o) => {
+      const sim = getSim();
+      sim.operator = o ? { ...sim.operator, ...o } : defaultOperator(sim.patient.seed);
+      return { ...sim.operator };
+    },
     fidelity: (opts) => {
       const sim = getSim();
       const pattern = sim.patient.respiratoryPattern;

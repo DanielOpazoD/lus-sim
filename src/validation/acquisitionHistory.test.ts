@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Simulator } from '../app/simulator';
 import { defaultPatient } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
+import { translateContact } from '../probe/operator';
 import { defaultPose } from '../probe/probe';
 import { CineRing, snapshotAcquisition, type AcquisitionState } from '../ultrasound/cine';
 import { recordingGl } from './support/recordingGl';
@@ -27,6 +28,7 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
           sample: sim.sample,
           respiratoryPattern: sim.patient.respiratoryPattern,
           position: 'supine',
+          operatorMm: sim.operatorOffsetMm,
         }),
       );
     }
@@ -77,6 +79,7 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
       sample: sim.sample,
       respiratoryPattern: sim.patient.respiratoryPattern,
       position: 'supine' as const,
+      operatorMm: sim.operatorOffsetMm,
     };
     const expected = snapshotAcquisition(source);
     sim.render();
@@ -86,6 +89,7 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
     source.frame.skinPoint[2] += 100;
     source.sample.resp.diaphragmCaudalMm += 100;
     source.sample.t += 10;
+    source.operatorMm[0] += 100;
     sim.frozen = true;
     sim.renderer.showCine(0);
     expect(sim.displayedAcquisition).toEqual(expected);
@@ -157,7 +161,8 @@ describe('La navegación muestra la adquisición del mismo cuadro B', () => {
     const pose = { ...sim.pose, z: sim.pose.z - 30, yaw: 0.3, lift: -2 };
     sim.setPose(pose);
     sim.advance(0);
-    const contact = probeContact(sim.pose, sim.transducer, sim.scene.torso);
+    // el contacto de la pose trasladado lo que la mano del operador movió la sonda (decisión 39)
+    const contact = translateContact(probeContact(sim.pose, sim.transducer, sim.scene.torso), sim.operatorOffsetMm);
     expect(sim.frame).toEqual(contact.frame);
     expect(sim.sample.t).toBe(t);
     sim.render();

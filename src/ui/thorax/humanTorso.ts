@@ -140,10 +140,16 @@ export class HumanTorso {
     );
     const contact = key === this.poseKey ? null : probeContact(acquisition.pose, transducer, this.scene.torso);
     const expected = contact?.frame ?? this.expectedFrame;
-    if (
-      !expected ||
-      (['face', 'axial', 'lateral', 'elevation'] as const).some((axis) => dist(expected[axis], acquisition.frame[axis]) > 1e-5)
-    )
+    // el marco mostrado es el de la pose trasladado lo que movió la sonda la mano del operador (decisión 39): se deshace
+    const d = acquisition.operatorMm ?? [0, 0, 0];
+    const f = acquisition.frame;
+    const shown = {
+      face: [f.face[0] - d[0], f.face[1] - d[1], f.face[2] - d[2]] as Vec3,
+      axial: f.axial,
+      lateral: f.lateral,
+      elevation: f.elevation,
+    };
+    if (!expected || (['face', 'axial', 'lateral', 'elevation'] as const).some((axis) => dist(expected[axis], shown[axis]) > 1e-5))
       throw new Error('Navegador: contacto distinto al cuadro mostrado');
     this.acquisition = acquisition;
     if (!contact) return;

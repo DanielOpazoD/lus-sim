@@ -23,10 +23,11 @@ la salida actual no protege nada.
   #49), y la solución de añadir un fragmento duraba hasta la prueba siguiente. Ahora cada ventana corre sola, elegida por
   nombre (`--grep "banco de fidelidad en blueUpper"`, …), y las demás se reparten en nueve fragmentos que las excluyen (siete hasta la decisión 37, cuyo hígado y bazo hicieron cada
   prueba ≈ 20 % más lenta en SwiftShader)
-  (`--grep-invert "banco de fidelidad en "`). Para ver el reparto sin correrlo:
+  (`--grep-invert "banco de fidelidad en |el detector del sector con la mano"`; la meta aún no cumplida del detector con la mano de la decisión 39, de 4,6 min, también corre sola). Para ver el reparto sin correrlo:
   `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/9`. Una ventana nueva del banco lleva
   su propia entrada en la matriz. El agregador `check` exige que toda la matriz apruebe, además de `verificar`; el plazo
-  por corredor sigue en 15 minutos.
+  por corredor es de 25 minutos (15 hasta el 03-10-2026: con el hígado y el bazo y la pared viva las ventanas del banco tardan
+  3,6–10,1 min en el CI, y su plazo de prueba pasa a 15).
   **Las pruebas lentas del banco** (02-10-2026): la del mapa de grises corría las dos vistas en 4,9–5,0 min frente a su plazo
   de 5 y pasa a una prueba por vista (1,5 min cada una en local; las aserciones no cambian). Cada ventana del banco de
   fidelidad tardó 2,0–5,1 min en el CI según el corredor (los corredores difieren hasta 2,5 veces), y su plazo pasa de 5 a 7
@@ -256,7 +257,11 @@ la salida actual no protege nada.
   Con el protocolo de C3b-A, pesa con `calibrationOverride({ seriesParts })` (el uniform `uSeriesParts` de la pasada B) la
   copia espejo, la directa, el deslizamiento y la línea pleural con sus réplicas. Informa los niveles en dB de la pared, de
   la neblina, de la línea pleural y de las líneas A, y la incidencia de la línea en la pleura. Con
-  `LUS_DESCOMPOSICION_SIGMAZ` repite la descomposición para cada σz. No es una prueba: es la herramienta de la medida Las bandas se sitúan con la geometría verdadera (`truthLevelsDb` del informe), no con la detectada, que cambia con lo que se dibuja.
+  `LUS_DESCOMPOSICION_SIGMAZ` repite la descomposición para cada σz. No es una prueba: es la herramienta de la medida. Las bandas se sitúan con la geometría verdadera (`truthLevelsDb` del informe), no con la detectada, que cambia con lo que se dibuja.
+- **La pila con el protocolo de los clips** (`e2e/pilaClips.spec.ts`, decisión 39): solo con `LUS_PILA=1`. Respira tranquilo
+  la mediana de la duración de los clips de la exploración, a su mediana de cuadros por segundo (8,3 s a 25 cps), y mide T2 y
+  S1 como el banco, que los calcula sobre el clip entero. La pila de 1 s de `e2e/fidelidad.spec.ts` no se compara con el banco
+  en la decorrelación. Con `LUS_PILA_FOLLOW` y `LUS_PILA_TREMOR` barre la mano del operador (gancho `operator`).
 - **El simulador** (`e2e/fidelidad.spec.ts`, gancho `fidelity`): en los tres puntos de partida, en apnea espiratoria y en
   respiración tranquila, 30 cuadros de la imagen mostrada; exige que el detector encuentre la pleura del gemelo de A0 a ±1 mm
   en todas las columnas, las líneas A de orden 2 (con el preajuste) y 3 (con R_t 0,5, decisión 35) a k veces la línea pleural mostrada (F-T01) y las sombras donde las

@@ -5,6 +5,7 @@ import type { PhysiologySample } from '../physiology/engine';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import type { ProbeCompression } from '../anatomy/compression';
 import { contactCoupling } from '../probe/contact';
+import type { Vec3 } from '../core/vec3';
 import { lineAngle, type PatientPosition, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
 import type { TransducerProfile } from './transducerProfile';
 import { beamToPixel, pixelToBeam, sectorLayout, type SectorLayout } from './sectorGeometry';
@@ -168,6 +169,8 @@ export interface FrameInputs {
   respiratoryPattern?: RespiratoryPattern;
   /** La posición del paciente (lus-sim, decisión 33); las llamadas directas de los bancos, en supino. */
   position?: PatientPosition;
+  /** Lo que la mano del operador movió la sonda (mm, mundo; lus-sim, decisión 39): se guarda con la adquisición. */
+  operatorMm?: Vec3;
   /**
    * Contacto de la sonda del cuadro (decisión 63, `probe/contact.ts`): la compresión del tejido (uniforms
    * `uComp*`, la misma que la CPU en `AnatomyQuery`) y el acoplamiento por línea.
@@ -769,6 +772,7 @@ export class UltrasoundRenderer {
         sample: inputs.sample,
         respiratoryPattern: inputs.respiratoryPattern ?? 'quiet',
         position: inputs.position ?? 'supine',
+        operatorMm: inputs.operatorMm ?? [0, 0, 0],
       },
     };
     this.lastFrame = frame;
