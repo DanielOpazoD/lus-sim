@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-02T11:53:56.649Z",
+ "generated": "2026-10-03T05:59:41.424Z",
  "tool": "tools/fidelity/reference.ts",
  "manifest_version": 1,
  "clips": [
@@ -24,10 +24,10 @@
     "excluded": 0
    },
    "detector": {
-    "kind": "linear",
-    "apex_px": null,
-    "left_deg": null,
-    "right_deg": null
+    "kind": "convex",
+    "apex_px": 3.7932,
+    "left_deg": -0.766463,
+    "right_deg": 0.193505
    },
    "qa": {
     "usable": true,
@@ -738,9 +738,9 @@
    },
    "detector": {
     "kind": "sector",
-    "apex_px": 0.00304874,
-    "left_deg": 0.0771641,
-    "right_deg": -0.0579803
+    "apex_px": 0.0684497,
+    "left_deg": 0.0660458,
+    "right_deg": -0.0660458
    },
    "qa": {
     "usable": true,
@@ -2172,9 +2172,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.0830265,
-    "left_deg": 0.220202,
-    "right_deg": 0.102757
+    "apex_px": 0.758875,
+    "left_deg": 0.37027,
+    "right_deg": 0.202688
    },
    "qa": {
     "usable": false,
@@ -2903,9 +2903,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.034633,
-    "left_deg": 0.273042,
-    "right_deg": 0.262623
+    "apex_px": 0.131213,
+    "left_deg": 0.297256,
+    "right_deg": 0.275701
    },
    "qa": {
     "usable": true,
@@ -5082,7 +5082,7 @@
     "excluded": 0
    },
    "detector": {
-    "kind": "convex",
+    "kind": "linear",
     "apex_px": null,
     "left_deg": null,
     "right_deg": null
@@ -5797,9 +5797,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.332819,
-    "left_deg": -0.18069,
-    "right_deg": 0.274501
+    "apex_px": 1.89794,
+    "left_deg": -0.108945,
+    "right_deg": 0.681903
    },
    "qa": {
     "usable": true,
@@ -6518,9 +6518,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.00549912,
-    "left_deg": 0.111296,
-    "right_deg": 0.0374163
+    "apex_px": 0.42502,
+    "left_deg": 0.0448752,
+    "right_deg": -0.0448752
    },
    "qa": {
     "usable": true,
@@ -7238,9 +7238,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 1.11153,
-    "left_deg": -0.141851,
-    "right_deg": 0.0969352
+    "apex_px": 1.11517,
+    "left_deg": -0.12067,
+    "right_deg": 0.12067
    },
    "qa": {
     "usable": false,
@@ -7980,9 +7980,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 2.09592,
-    "left_deg": -0.0650152,
-    "right_deg": -0.597924
+    "apex_px": 0.349443,
+    "left_deg": 0.107403,
+    "right_deg": -0.107403
    },
    "qa": {
     "usable": false,
@@ -8723,9 +8723,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.29291,
-    "left_deg": 0.247926,
-    "right_deg": -0.0599059
+    "apex_px": 0.312073,
+    "left_deg": 0.116406,
+    "right_deg": -0.116406
    },
    "qa": {
     "usable": false,
@@ -9466,9 +9466,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 1.49848,
-    "left_deg": 0.433886,
-    "right_deg": -0.0121136
+    "apex_px": 0.778599,
+    "left_deg": 0.161348,
+    "right_deg": -0.161348
    },
    "qa": {
     "usable": false,
@@ -10209,9 +10209,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 202.227,
-    "left_deg": 0.352007,
-    "right_deg": -24.7513
+    "apex_px": 4.01565,
+    "left_deg": 0.582612,
+    "right_deg": -0.582612
    },
    "qa": {
     "usable": false,
@@ -10951,9 +10951,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 3.60645,
-    "left_deg": 0.398536,
-    "right_deg": -0.721237
+    "apex_px": 2.8951,
+    "left_deg": 0.479815,
+    "right_deg": -0.479815
    },
    "qa": {
     "usable": true,
@@ -11693,9 +11693,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.202261,
-    "left_deg": -0.032016,
-    "right_deg": 0.0745214
+    "apex_px": 0.0545982,
+    "left_deg": -0.043951,
+    "right_deg": 0.043951
    },
    "qa": {
     "usable": true,
@@ -12424,9 +12424,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 169.702,
-    "left_deg": 28.6844,
-    "right_deg": -0.260965
+    "apex_px": 4.0853,
+    "left_deg": 0.291756,
+    "right_deg": -0.291756
    },
    "qa": {
     "usable": false,
@@ -13167,9 +13167,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 3.15274,
-    "left_deg": 0.0813875,
-    "right_deg": -0.722096
+    "apex_px": 2.59486,
+    "left_deg": 0.366603,
+    "right_deg": -0.366603
    },
    "qa": {
     "usable": true,
@@ -13912,9 +13912,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 241.323,
-    "left_deg": 37.6494,
-    "right_deg": -0.351015
+    "apex_px": 0.605451,
+    "left_deg": 0.275669,
+    "right_deg": -0.275669
    },
    "qa": {
     "usable": false,
@@ -14656,9 +14656,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 3.23039,
-    "left_deg": 0.488949,
-    "right_deg": -0.52461
+    "apex_px": 3.78049,
+    "left_deg": 0.57534,
+    "right_deg": -0.57534
    },
    "qa": {
     "usable": true,
@@ -15401,9 +15401,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 159.521,
-    "left_deg": 27.5097,
-    "right_deg": -0.354943
+    "apex_px": 3.689,
+    "left_deg": -0.0557079,
+    "right_deg": 0.0557079
    },
    "qa": {
     "usable": false,
@@ -16147,9 +16147,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 1.04271,
-    "left_deg": -0.215677,
-    "right_deg": 0.118346
+    "apex_px": 1.0038,
+    "left_deg": -0.242437,
+    "right_deg": 0.242437
    },
    "qa": {
     "usable": false,
@@ -16878,9 +16878,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.244406,
-    "left_deg": 0.0613001,
-    "right_deg": -0.0225588
+    "apex_px": 0.219451,
+    "left_deg": 0.0380702,
+    "right_deg": -0.0380702
    },
    "qa": {
     "usable": true,
@@ -17619,9 +17619,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.616855,
-    "left_deg": -0.12274,
-    "right_deg": 0.021446
+    "apex_px": 0.700117,
+    "left_deg": -0.0853787,
+    "right_deg": 0.0853787
    },
    "qa": {
     "usable": true,
@@ -18362,9 +18362,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 38.2565,
-    "left_deg": -0.0108844,
-    "right_deg": -8.05514
+    "apex_px": 2.5985,
+    "left_deg": 0.0209428,
+    "right_deg": -0.0209428
    },
    "qa": {
     "usable": false,
@@ -19105,9 +19105,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 2.56238,
-    "left_deg": 0.305488,
-    "right_deg": -0.396425
+    "apex_px": 2.55164,
+    "left_deg": 0.350355,
+    "right_deg": -0.350355
    },
    "qa": {
     "usable": true,
@@ -19849,9 +19849,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 86.9343,
-    "left_deg": 0.203026,
-    "right_deg": -16.6089
+    "apex_px": 4.98865,
+    "left_deg": 0.229823,
+    "right_deg": -0.229823
    },
    "qa": {
     "usable": true,
@@ -20594,9 +20594,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.203336,
-    "left_deg": -0.034202,
-    "right_deg": 0.0569736
+    "apex_px": 0.109835,
+    "left_deg": -0.0406836,
+    "right_deg": 0.0406836
    },
    "qa": {
     "usable": true,
@@ -21337,9 +21337,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 0.319156,
-    "left_deg": 0.0429839,
-    "right_deg": -0.0254095
+    "apex_px": 0.298585,
+    "left_deg": 0.033926,
+    "right_deg": -0.033926
    },
    "qa": {
     "usable": false,
@@ -22079,9 +22079,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 1.25744,
-    "left_deg": -0.103533,
-    "right_deg": 0.0856866
+    "apex_px": 0.9786,
+    "left_deg": -0.0699642,
+    "right_deg": 0.0699642
    },
    "qa": {
     "usable": true,
@@ -22822,9 +22822,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 6.1159,
-    "left_deg": 0.277002,
-    "right_deg": -14.7647
+    "apex_px": 9.56277,
+    "left_deg": 0.277616,
+    "right_deg": -0.277616
    },
    "qa": {
     "usable": true,
@@ -23566,9 +23566,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 4.28184,
-    "left_deg": 0.889333,
-    "right_deg": -0.356953
+    "apex_px": 3.91257,
+    "left_deg": 0.588149,
+    "right_deg": -0.588149
    },
    "qa": {
     "usable": true,
@@ -24309,9 +24309,9 @@
    },
    "detector": {
     "kind": "convex",
-    "apex_px": 3.23262,
-    "left_deg": 0.567853,
-    "right_deg": -0.492194
+    "apex_px": 3.35091,
+    "left_deg": 0.544543,
+    "right_deg": -0.544543
    },
    "qa": {
     "usable": true,
