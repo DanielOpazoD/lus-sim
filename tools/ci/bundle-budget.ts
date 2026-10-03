@@ -55,6 +55,9 @@
 // 2026-10-03 (decisión 37): el hígado y el bazo (sus módulos, sus gemelos GLSL en cada programa que clasifica y la medida del
 // espejo en los ganchos) llevan la entrada de 254,7 a 269,0 kB y el total de 808,0 a 822,8, a 1 kB del techo. La entrada y el
 // inicial suben a 280 kB y el total a 840.
+// 2026-10-03 (decisión 43): el estómago, los riñones (portados de VExUS, con sus pirámides y su grasa) y el retroperitoneo, con
+// sus gemelos GLSL y la medida del gas en los ganchos, llevan la entrada de 269,8 a 292,0 kB y el total de 823,6 a 846,2. La
+// entrada y el inicial suben a 300 kB y el total a 860.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -62,12 +65,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 280 * KB],
+  [/index-.*\.js$/, 300 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 280 * KB;
-const TOTAL_JS_BUDGET = 840 * KB;
+const INITIAL_JS_BUDGET = 300 * KB;
+const TOTAL_JS_BUDGET = 860 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

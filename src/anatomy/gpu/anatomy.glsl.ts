@@ -283,40 +283,95 @@ void organColumn(vec3 m, float depth, float u, float inside, out float uO, out f
   uO = u != 0.0 ? u : wallArc(m);
   inO = u != 0.0 ? inside : -depth - wallTotalAt(uO, m.z);
 }
+// Los riñones (lus-sim, decisión 43; gemelo: classifyKidneys de AnatomyScene): la cápsula, las regiones y la grasa perirrenal;
+// la cápsula dibuja la cara del contorno por los dos lados (la grasa fina o la mitad interna de la gruesa); la mitad externa de
+// la gruesa se funde sin línea. c.bd, la del riñón; perirenal, perirenalDistance si ninguno contiene el punto
+bool classifyKidneys(vec3 m, inout Cls c, out float perirenal) {
+  perirenal = 1e3;
+  for (int k = 0; k < 2; k++) {
+    float dc = distance(m, kidneyCenter(k));
+    if (dc > KIDNEY_REACH + KIDNEY_NEAR_MARGIN) { perirenal = min(perirenal, perirenalFar(m, k, dc)); continue; }
+    float inner;
+    float dOuter;
+    int region = kidneyQuery(m, k, inner, dOuter);
+    float fat = perirenalThicknessMm(kidneyLocal(m, k), k);
+    perirenal = min(perirenal, dOuter - fat);
+    if (dOuter < 0.0) {
+      if (-dOuter < RENAL_CAPSULE_MM) {
+        c.tissue = T_RENAL_CAPSULE; c.bd = min(-dOuter, RENAL_CAPSULE_MM + dOuter);
+        c.iface = IF_RENAL_CAPSULE; c.ifd = -dOuter;
+        return true;
+      }
+      c.tissue = region == 3 ? T_RENAL_PELVIS : (region == 2 ? T_RENAL_SINUS : (region == 1 ? T_RENAL_MEDULLA : T_RENAL_CORTEX));
+      c.bd = min(inner, -dOuter - RENAL_CAPSULE_MM);
+      return true;
+    }
+    if (dOuter < fat) {
+      c.tissue = T_PERIRENAL; c.bd = min(dOuter, fat - dOuter);
+      if (dOuter <= 0.5 * fat || fat <= PERI.z) { c.iface = IF_RENAL_CAPSULE; c.ifd = dOuter; }
+      return true;
+    }
+  }
+  return false;
+}
 // El hígado y el bazo bajo el diafragma (dDia: la distancia a su cara abdominal), recortados fuera por la pared o la lámina de
-// la ZOA; la cápsula dibuja su cara salvo donde la manda el diafragma. dOut: la distancia a los dos (positiva fuera). Gemelo:
-// classifyOrgans de AnatomyScene
-bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, float dSpine, vec3 tn, inout Cls c, out float dOut) {
+// la ZOA; la cápsula dibuja su cara salvo donde la manda el diafragma. Antes, los riñones (decisión 43): su grasa gana a la
+// impresión renal, que la solapa. dOut: la distancia a todos (positiva fuera). Gemelo: classifyOrgans de AnatomyScene
+bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, float dSpine, vec3 tn, inout Cls c, out float dOut, out float perirenal) {
+  float uO;
+  float inO;
+  c.n = tn;
+  if (classifyKidneys(m, c, perirenal)) {
+    organColumn(m, depth, u, inside, uO, inO);
+    c.bd = min(min(c.bd, dDia) * ORGAN_SDF_LIPSCHITZ, min(min(inO, zoaGap(m, inO, uO)), dSpine));
+    dOut = 0.0;
+    return true;
+  }
   // lejos de los lóbulos y de donde puede estar el bazo, sin la columna de la pared del punto
   float dLobes = liverLobesSd(m);
   bool spleenNear = spleenCandidate(m, -depth);
-  if (dLobes > LIVER_EARLY_OUT && !spleenNear) { dOut = dLobes * ORGAN_SDF_LIPSCHITZ; return false; }
-  float uO;
-  float inO;
+  bool stomachNear = stomachCandidate(m, -depth);
+  if (dLobes > LIVER_EARLY_OUT && !spleenNear && !stomachNear) { dOut = min(dLobes, perirenal) * ORGAN_SDF_LIPSCHITZ; return false; }
   organColumn(m, depth, u, inside, uO, inO);
   float gap = zoaGap(m, inO, uO);
   float wallSide = min(inO, gap);
-  float dLiver = dLobes > LIVER_EARLY_OUT ? dLobes : liverSdf(m, uO, inO, wallColumnTexel(uO).z);
+  float renal = renalImpression(m, perirenal);
+  float dLiver = dLobes > LIVER_EARLY_OUT ? dLobes : liverSdf(m, uO, inO, wallColumnTexel(uO).z, renal);
+  // la grasa perirrenal, que se clasifica antes, ocupa el solape de la impresión renal
+  float fatSide = min(dSpine, perirenal * ORGAN_SDF_LIPSCHITZ);
   dOut = 0.0;
-  c.n = tn;
   if (dLiver < 0.0) {
     float inner = min(min(-dLiver, dDia), wallSide);
     bool other = inner == dDia || (inner == gap && gap < inO);
     c.tissue = inner < CAPSULE_MM ? T_CAPSULE : T_LIVER;
-    c.bd = min(min(-dLiver, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, dSpine));
+    c.bd = min(min(-dLiver, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, fatSide));
     if (inner < CAPSULE_MM && !other) { c.iface = IF_LIVER_CAPSULE; c.ifd = inner; }
     return true;
   }
-  float dSpleen = spleenNear ? spleenSdf(m, uO, min(dDia, wallSide), -depth) : 1e3;
+  float dSpleen = spleenNear ? spleenSdf(m, uO, min(dDia, wallSide), -depth, inO, renal) : 1e3;
   if (dSpleen < 0.0) {
     float inner = min(min(-dSpleen, dDia), wallSide);
     bool other = inner == dDia || (inner == gap && gap < inO);
     c.tissue = T_SPLEEN;
-    c.bd = min(min(-dSpleen, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, dSpine));
+    c.bd = min(min(-dSpleen, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, fatSide));
     if (inner < SPLEEN_CAPSULE_MM && !other) { c.iface = IF_SPLEEN_CAPSULE; c.ifd = inner; }
     return true;
   }
-  dOut = min(dLiver, dSpleen) * ORGAN_SDF_LIPSCHITZ;
+  // lus-sim (decisión 43): el estómago, tras el bazo: la pared gástrica (T_BOWEL) y la luz, gas sobre su nivel y líquido debajo
+  float dStomach = stomachNear ? stomachSdf(m, uO, min(dDia, wallSide), -depth) : 1e3;
+  if (dStomach < 0.0) {
+    float inner = min(min(min(-dStomach, dDia), wallSide), min(dLiver, dSpleen));
+    if (inner < STOMACH_WALL) {
+      c.tissue = T_BOWEL;
+      c.bd = min(min(inner, STOMACH_WALL - inner) * ORGAN_SDF_LIPSCHITZ, fatSide);
+      return true;
+    }
+    float level = m.y - uLiverS.w;
+    c.tissue = level > 0.0 ? T_BOWELGAS : T_FLUID;
+    c.bd = min(min((inner - STOMACH_WALL) * ORGAN_SDF_LIPSCHITZ, abs(level)), fatSide);
+    return true;
+  }
+  dOut = min(min(min(dLiver, dSpleen), dStomach), perirenal) * ORGAN_SDF_LIPSCHITZ;
   return false;
 }
 // Distancia de las caras del hígado y del bazo (sus cápsulas): −min(−dÓrgano, dDia, pared). Gemelo: faceSdf(m, 'liverSurface' |
@@ -328,7 +383,8 @@ float organSurfaceSd(vec3 m, bool spleen) {
   float wallSide = min(inO, zoaGap(m, inO, uO));
   vec3 dn;
   float dDia = sdDome(m, dn) - DIAPHRAGM_MM;
-  float d = spleen ? spleenSdf(m, uO, min(dDia, wallSide), -depth) : liverSdf(m, uO, inO, wallColumnTexel(uO).z);
+  float renal = renalImpression(m, perirenalDistance(m));
+  float d = spleen ? spleenSdf(m, uO, min(dDia, wallSide), -depth, inO, renal) : liverSdf(m, uO, inO, wallColumnTexel(uO).z, renal);
   return -min(min(-d, dDia), wallSide);
 }
 
@@ -401,11 +457,19 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo (gemelo: classifyOrgans de AnatomyScene), con el arco y la
   // profundidad bajo la pared exactos (classifyWall no los lee más hondo que su cota: u = 0)
   float dOut;
-  if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut)) return c;
-  // Bajo el diafragma, fuera del hígado y del bazo, el «resto» (abdomen-generic-tissue): sin vesícula, riñones, estómago ni
-  // gas. Su distancia a la frontera es la de las interfaces que ganan antes (misma fórmula que scene.classify)
+  float perirenal;
+  if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut, perirenal)) return c;
+  // Bajo el diafragma, fuera de los órganos, el «resto» (abdomen-generic-tissue). Su distancia a la frontera es la de las
+  // interfaces que ganan antes (misma fórmula que scene.classify); detrás del peritoneo parietal posterior, el retroperitoneo
+  // (lus-sim, decisión 43; decisión 81 de VExUS), con la columna en su distancia. El cuadrado lumbar necesita la profundidad
+  // exacta bajo la pared: más hondo que su cota (u = 0) la de classifyWall es menor que la verdadera, y con 30 mm o más ni el
+  // músculo (≤ 14 mm) ni su distancia (pasa del tope del «resto») dependen de ella
   float bdBowel = min(min(min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_MM), inside), min(min(zoaGap(m, inside, u), clear), dOut));
-  c.tissue = T_BOWEL; c.bd = max(bdBowel, 0.0); c.n = tn;
+  float inR = inside;
+  if (u == 0.0 && inside < 30.0) { float uR; organColumn(m, depth, u, inside, uR, inR); }
+  float bdR;
+  c.tissue = retroperitoneum(m, inR, perirenal, bdR);
+  c.bd = max(min(min(bdBowel, bdR), dSpine), 0.0); c.n = tn;
   return c;
 }
 
@@ -423,41 +487,53 @@ float zoaSd(vec3 m) { return insideWallMm(m) - zoaThicknessMm(uResp.x); }
 // la de su capa o su costilla (decisión 62). Cuesta 6–8 evaluaciones: la pasada B solo lo pide en las muestras al
 // alcance de su cara. lus-sim (decisión 12): sin las ramas de la cápsula hepática, el riñón, la grasa perirrenal
 // ni la vesícula. Gemelo TS: AnatomyScene.faceGradient.
+// La distancia de la cara sel en p (0 ZOA, 1 cúpula, 2 cápsula del hígado o del bazo, 3 capa de la pared, 4 costilla k,
+// 5 contorno del riñón k):
+// faceGradient la evalúa en un bucle, así que cada distancia se compila una vez y no seis (lus-sim, decisión 43)
+float faceSdAt(int sel, vec3 p, int iface, int k, bool spleen) {
+  if (sel == 0) return zoaSd(p);
+  if (sel == 1) return domeSd(p);
+  if (sel == 2) return organSurfaceSd(p, spleen);
+  if (sel == 3) return wallFaceSd(p, iface);
+  if (sel == 5) return kidneyOuterSdf(kidneyLocal(p, k), KID_R);
+  return ribSd(p, k);
+}
 vec4 faceGradient(Cls c, vec3 m) {
-  vec2 h = vec2(FACE_GRAD_EPS, 0.0);
-  vec3 g;
+  int sel;
   if (c.tissue == T_DIAPHRAGM && c.kc > 0.5) {
     // la cara abdominal de la ZOA (decisión 18): la de su lámina, paralela a la pared
-    g = vec3(zoaSd(m + h.xyy) - zoaSd(m - h.xyy),
-             zoaSd(m + h.yxy) - zoaSd(m - h.yxy),
-             zoaSd(m + h.yyx) - zoaSd(m - h.yyx));
+    sel = 0;
   } else if (c.tissue == T_DIAPHRAGM) {
-    g = vec3(domeSd(m + h.xyy) - domeSd(m - h.xyy),
-             domeSd(m + h.yxy) - domeSd(m - h.yxy),
-             domeSd(m + h.yyx) - domeSd(m - h.yyx));
+    sel = 1;
   } else if (c.iface == IF_LIVER_CAPSULE || c.iface == IF_SPLEEN_CAPSULE) {
     // lus-sim (decisión 37): las cápsulas del hígado y del bazo, la distancia que decide la clasificación en su cara
-    bool sp = c.iface == IF_SPLEEN_CAPSULE;
-    g = vec3(organSurfaceSd(m + h.xyy, sp) - organSurfaceSd(m - h.xyy, sp),
-             organSurfaceSd(m + h.yxy, sp) - organSurfaceSd(m - h.yxy, sp),
-             organSurfaceSd(m + h.yyx, sp) - organSurfaceSd(m - h.yyx, sp));
+    sel = 2;
+  } else if (c.iface == IF_RENAL_CAPSULE) {
+    // lus-sim (decisión 43): la cápsula renal, el contorno del riñón del lado del punto
+    sel = 5;
   } else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {
     // capas de la pared (decisión 62): la distancia de su capa (wallFaceSd)
-    g = vec3(wallFaceSd(m + h.xyy, c.iface) - wallFaceSd(m - h.xyy, c.iface),
-             wallFaceSd(m + h.yxy, c.iface) - wallFaceSd(m - h.yxy, c.iface),
-             wallFaceSd(m + h.yyx, c.iface) - wallFaceSd(m - h.yyx, c.iface));
+    sel = 3;
   } else if (c.iface == IF_RIB || c.iface == IF_PERICHONDRIUM) {
     // cortical o pericondrio: la distancia de la costilla (o del esternón) cuya cara es, la de la clasificación (faceRib,
     // organs/ribcage.ts: la que contiene el punto o el hueso más cercano)
-    int k = faceRib(m);
-    g = vec3(ribSd(m + h.xyy, k) - ribSd(m - h.xyy, k),
-             ribSd(m + h.yxy, k) - ribSd(m - h.yxy, k),
-             ribSd(m + h.yyx, k) - ribSd(m - h.yyx, k));
+    sel = 4;
   } else {
     // tejidos sin cara (normal unitaria)
     float l = length(c.n);
     return l > 0.0 ? vec4(c.n / l, l) : vec4(0.0, 1.0, 0.0, 1.0);
   }
+  int k = sel == 4 ? faceRib(m) : (sel == 5 && m.x >= 0.0 ? 1 : 0);
+  bool sp = c.iface == IF_SPLEEN_CAPSULE;
+  // diferencias centrales de paso FACE_GRAD_EPS: v[2a] en m + h·e_a y v[2a + 1] en m − h·e_a
+  float v[6];
+  for (int i = 0; i < 6; i++) {
+    int a = i / 2;
+    float h = (i - 2 * a) == 0 ? FACE_GRAD_EPS : -FACE_GRAD_EPS;
+    vec3 o = vec3(a == 0 ? h : 0.0, a == 1 ? h : 0.0, a == 2 ? h : 0.0);
+    v[i] = faceSdAt(sel, m + o, c.iface, k, sp);
+  }
+  vec3 g = vec3(v[0] - v[1], v[2] - v[3], v[4] - v[5]);
   float lg = length(g);
   if (lg > 0.0) return vec4(g / lg, lg / (2.0 * FACE_GRAD_EPS));
   float ln = length(c.n);

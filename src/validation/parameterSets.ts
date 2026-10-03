@@ -6,6 +6,8 @@ import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LIVER } from '../anatomy/organs/liver';
 import { SPLEEN } from '../anatomy/organs/spleen';
+import { STOMACH } from '../anatomy/organs/stomach';
+import { KIDNEY } from '../anatomy/organs/kidney';
 import { LUNG_PULSE } from '../anatomy/organs/lungPulse';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { CLAVICLE, RIBCAGE, SCAPULA } from '../anatomy/organs/ribcage';
@@ -46,6 +48,8 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   LUNG_PULSE,
   LIVER,
   SPLEEN,
+  KIDNEY,
+  STOMACH,
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,

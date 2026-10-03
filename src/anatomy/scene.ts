@@ -62,8 +62,26 @@ import {
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { CUPOLA_CAP_MM, LUNG_APEX, lungApexColumns } from './organs/lungApex';
 import { SPINE, spinousSd, type SpinousSpec } from './organs/spine';
+import {
+  KIDNEY_NEAR_MARGIN_MM,
+  KIDNEY_REACH_MM,
+  PERIRENAL,
+  RENAL_CAPSULE_MM,
+  buildKidneys,
+  kidneyCenterY,
+  kidneyLocal,
+  kidneyOuterSdf,
+  kidneyQuery,
+  perirenalDistance,
+  perirenalFar,
+  perirenalThicknessMm,
+  renalImpression,
+  type Kidney,
+} from './organs/kidney';
+import { retroFrame, retroperitoneum, type RetroFrame } from './organs/retroperitoneum';
 import { LIVER_EARLY_OUT_MM, ORGAN_SDF_LIPSCHITZ, buildLiver, liverLobesSd, liverSdf, type LiverShape } from './organs/liver';
 import { SPLEEN, buildSpleen, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
+import { STOMACH, buildStomach, stomachCandidate, stomachSdf, type StomachShape } from './organs/stomach';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
@@ -154,11 +172,13 @@ export interface Classification {
  *    cara interna de la pared: la de `Interface.DiaphragmLiver` donde la muestra está en la ZOA.
  *  - `liverSurface` y `spleenSurface` (lus-sim, decisión 37): el borde del hígado y el del bazo, recortados por el diafragma y
  *    la pared, como en `classifyOrgans` (la `liverSurface` de VExUS).
+ *  - `kidneyOuter` (lus-sim, decisión 43): el contorno del riñón del lado del punto (`kidneyOuterSdf`, la de VExUS), la cara de la
+ *    cápsula renal.
  * lus-sim (decisión 10): las caras de los tubos, del hígado, del riñón, de la grasa perirrenal y de la
  * vesícula de VExUS no existen en el tórax.
  */
-export type FaceGeometry = 'dome' | 'zoa' | 'liverSurface' | 'spleenSurface';
-export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa', 'liverSurface', 'spleenSurface'];
+export type FaceGeometry = 'dome' | 'zoa' | 'liverSurface' | 'spleenSurface' | 'kidneyOuter';
+export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa', 'liverSurface', 'spleenSurface', 'kidneyOuter'];
 
 /**
  * Geometría cuya distancia (`faceSdf`) da la cara de interfaz `i`, o null sin cara (o las pleuras: la del
@@ -170,6 +190,7 @@ export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa', 'liverSu
 export function faceGeometryOf(i: Interface): FaceGeometry | null {
   if (i === Interface.LiverCapsule) return 'liverSurface';
   if (i === Interface.SpleenCapsule) return 'spleenSurface';
+  if (i === Interface.RenalCapsule) return 'kidneyOuter';
   return i === Interface.DiaphragmLiver ? 'dome' : null;
 }
 
@@ -237,6 +258,12 @@ export class AnatomyScene {
   readonly liver: LiverShape;
   /** El bazo bajo la cúpula izquierda (lus-sim, decisión 37: `organs/spleen.ts`). */
   readonly spleen: SpleenShape;
+  /** El estómago bajo la cúpula izquierda, en el espacio de Traube (lus-sim, decisión 43: `organs/stomach.ts`). */
+  readonly stomach: StomachShape;
+  /** Los riñones, 0 el derecho (lus-sim, decisión 43: `organs/kidney.ts`, portado de VExUS y anclado a Gray, Morris y Xue). */
+  readonly kidneys: readonly [Kidney, Kidney];
+  /** El marco del retroperitoneo (lus-sim, decisión 43: `organs/retroperitoneum.ts`, portado de VExUS), el lecho del riñón. */
+  readonly retro: RetroFrame;
   /** Las apófisis espinosas (lus-sim, decisión 29). */
   readonly spinous: SpinousSpec;
 
@@ -370,8 +397,21 @@ export class AnatomyScene {
     // lus-sim (decisión 37): el hígado (la envolvente de VExUS con la escala de las cúpulas y el borde de Gray) y el bazo (la
     // 10.ª costilla izquierda, con el polo inferior en la axilar media)
     this.liver = buildLiver(this.torso, cage, this.spine, sx, sy, (u) => wallColumnTexel(this.chestWall, u)[2]);
+    // lus-sim (decisión 43): los riñones, cuya grasa marca la impresión renal del hígado y del bazo
+    this.kidneys = buildKidneys([kidneyCenterY(0, this.torso.a, this.torso.b), kidneyCenterY(1, this.torso.a, this.torso.b)]);
+    this.retro = retroFrame(this.torso.b, [this.kidneys[0].center[1], this.kidneys[1].center[1]]);
     const lamLeft = wallArc(torsoSkinPoint(thoraxLinePhi('midaxillary', walled, 1), 0, walled), walled);
+    // lus-sim (decisión 43): el bazo normal, en el sitio de la TC (a lo largo de la 11.ª costilla, dentro del reborde costal)
     this.spleen = buildSpleen(this.torso, cage, lamLeft, (u, z) => this.chestWall.total(u, z), this.lungBorder.rimFarMm);
+    // lus-sim (decisión 43): el estómago, en el espacio de Traube (del lóbulo izquierdo al bazo, del pulmón al reborde costal)
+    this.stomach = buildStomach(
+      this.torso,
+      cage,
+      thoraxLinePhi('midclavicular', walled, 1),
+      this.spleen.u0,
+      (u, z) => this.chestWall.total(u, z),
+      this.lungBorder.rimFarMm,
+    );
     const d = this.diaphragm;
     this.domeTopZ = Math.max(d.right.apex, d.left.apex, d.edgeZ + d.edgeRise, this.lungBorder.zLMax);
     this.respiratoryHeight = { baseZ: this.domeTopZ, topZ: this.domeTopZ + this.lungBorder.slideSpanMm };
@@ -528,12 +568,15 @@ export class AnatomyScene {
     const gap = zoaGap(this.lungBorder, m, inside, u, caudal);
     const organ = this.classifyOrgans(m, dDome - DIAPHRAGM_THICKNESS_MM, inside, u, gap);
     if (organ.cls) return organ.cls;
-    // Bajo el diafragma, fuera del hígado y del bazo, el «resto» (decisión 10, `abdomen-generic-tissue`): el tejido por defecto
-    // de la clasificación de VExUS, sin más órganos ni gas. Su distancia a la frontera es la de las interfaces que ganan
-    // antes (el diafragma, la pared, el hígado y el bazo), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por
-    // interior un punto pegado al diafragma que float32 clasificaba al otro lado (CI de #39 de VExUS).
+    // Bajo el diafragma, fuera de los órganos, el «resto» (decisión 10, `abdomen-generic-tissue`): el tejido por defecto de la
+    // clasificación de VExUS. Su distancia a la frontera es la de las interfaces que ganan antes (el diafragma, la pared, los
+    // órganos), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por interior un punto pegado al diafragma que
+    // float32 clasificaba al otro lado (CI de #39 de VExUS). Detrás del peritoneo parietal posterior, el retroperitoneo (lus-sim,
+    // decisión 43; decisión 81 de VExUS): psoas, cuadrado lumbar y grasa; su distancia cuenta también la columna, que se
+    // clasifica antes (el psoas la bordea)
     const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, inside, gap, clearance, organ.dOut);
-    return { ...NONE, tissue: Tissue.Bowel, boundaryDistance: Math.max(0, bd) };
+    const [tissue, dRetro] = retroperitoneum(m, inside, organ.perirenal, this.retro);
+    return { ...NONE, tissue, boundaryDistance: Math.max(0, Math.min(bd, dRetro, organ.spine)) };
   }
 
   /**
@@ -541,31 +584,49 @@ export class AnatomyScene {
    * (`dDia`, la distancia a la cara abdominal del diafragma) y fuera por la pared o la lámina de la ZOA (`min(inside, gap)`).
    * Como en VExUS (`classifyLiver`), la cápsula es la lámina de `LIVER_CAPSULE_MM` junto al borde, y dibuja su cara salvo donde
    * la manda el diafragma (su cara es la del diafragma, la de la cúpula o la de la ZOA). El bazo, igual, con su cápsula como cara
-   * del propio bazo (sin tejido aparte). `dOut`: la distancia a los dos (positiva fuera) para el «resto».
+   * del propio bazo (sin tejido aparte). Antes, los riñones (decisión 43, `classifyKidneys`): su grasa gana a la impresión renal
+   * del hígado y del bazo, que la solapa. `dOut`: la distancia a todos (positiva fuera) para el «resto».
    */
-  private classifyOrgans(m: Vec3, dDia: number, inside: number, u: number, gap: number): { cls: Classification | null; dOut: number } {
+  private classifyOrgans(
+    m: Vec3,
+    dDia: number,
+    inside: number,
+    u: number,
+    gap: number,
+  ): { cls: Classification | null; dOut: number; perirenal: number; spine: number } {
     const wallSide = Math.min(inside, gap);
     // la distancia a la frontera: la de la columna (el hígado la bordea por detrás) y la de los órganos, cuya distancia es una
     // aproximación (mínimos y máximos suaves, coordenadas de la pared) que puede pasarse: por `ORGAN_SDF_LIPSCHITZ`
     const spine = Math.min(spinousSd(m, this.spine, this.spinous), sdSpine(m, this.spine));
+    const kidney = this.classifyKidneys(m);
+    if (kidney.cls) {
+      const bd = Math.min(kidney.cls.boundaryDistance * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine);
+      return { cls: { ...kidney.cls, boundaryDistance: bd }, dOut: 0, perirenal: kidney.perirenal, spine };
+    }
+    const perirenal = kidney.perirenal;
     // lejos de los lóbulos y de donde puede estar el bazo, sin más cuentas (la GPU se ahorra la columna de la pared del punto)
     const lobes = liverLobesSd(m, this.liver);
     const skin = -torsoDepth(m, this.torso);
     const spleenNear = spleenCandidate(m, skin, this.spleen);
-    if (lobes > LIVER_EARLY_OUT_MM && !spleenNear) return { cls: null, dOut: lobes * ORGAN_SDF_LIPSCHITZ };
-    const dLiver = liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver);
+    const stomachNear = stomachCandidate(m, skin, this.stomach);
+    if (lobes > LIVER_EARLY_OUT_MM && !spleenNear && !stomachNear)
+      return { cls: null, dOut: Math.min(lobes, perirenal) * ORGAN_SDF_LIPSCHITZ, perirenal, spine };
+    const renal = renalImpression(m, this.kidneys, perirenal);
+    const dLiver = liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver, renal);
+    // la grasa perirrenal, que se clasifica antes, ocupa el solape de la impresión renal
+    const fat = perirenal * ORGAN_SDF_LIPSCHITZ;
     if (dLiver < 0) {
       const inner = Math.min(-dLiver, dDia, wallSide);
-      const bd = Math.min(-dLiver * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine);
+      const bd = Math.min(-dLiver * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine, fat);
       if (inner < LIVER_CAPSULE_MM) {
         // `Math.min` devuelve uno de sus argumentos: la igualdad con la cara del diafragma o de la ZOA es exacta
         const other = inner === dDia || (inner === gap && gap < inside);
         const face = other ? {} : { interface: Interface.LiverCapsule, interfaceDistance: inner };
-        return { cls: { ...NONE, tissue: Tissue.LiverCapsule, boundaryDistance: bd, ...face }, dOut: 0 };
+        return { cls: { ...NONE, tissue: Tissue.LiverCapsule, boundaryDistance: bd, ...face }, dOut: 0, perirenal, spine };
       }
-      return { cls: { ...NONE, tissue: Tissue.Liver, boundaryDistance: bd }, dOut: 0 };
+      return { cls: { ...NONE, tissue: Tissue.Liver, boundaryDistance: bd }, dOut: 0, perirenal, spine };
     }
-    const dSpleen = spleenNear ? spleenSdf(m, u, Math.min(dDia, wallSide), skin, this.spleen, this.liver) : 1e3;
+    const dSpleen = spleenNear ? spleenSdf(m, u, Math.min(dDia, wallSide), skin, inside, this.spleen, renal) : 1e3;
     if (dSpleen < 0) {
       const inner = Math.min(-dSpleen, dDia, wallSide);
       const other = inner === dDia || (inner === gap && gap < inside);
@@ -574,13 +635,104 @@ export class AnatomyScene {
         cls: {
           ...NONE,
           tissue: Tissue.Spleen,
-          boundaryDistance: Math.min(-dSpleen * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine),
+          boundaryDistance: Math.min(-dSpleen * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine, fat),
           ...face,
         },
         dOut: 0,
+        perirenal,
+        spine,
       };
     }
-    return { cls: null, dOut: Math.min(dLiver, dSpleen) * ORGAN_SDF_LIPSCHITZ };
+    // lus-sim (decisión 43): el estómago, tras el bazo (que lo recorta): la pared gástrica (el tejido del «resto», el intestino de
+    // VExUS) a `wallMm` de su borde (el suyo, el del diafragma o el de la pared) y, dentro, la luz: gas sobre su nivel (supino) y
+    // líquido debajo
+    const below = Math.min(dDia, wallSide);
+    const dStomach = stomachNear ? stomachSdf(m, u, below, skin, this.stomach) : 1e3;
+    if (dStomach < 0) {
+      // su borde: el suyo, el del diafragma, el de la pared y el del hígado o el bazo que lo recortan (su pared sigue ahí)
+      const inner = Math.min(-dStomach, dDia, wallSide, dLiver, dSpleen);
+      const W = STOMACH.params.wallMm.value;
+      if (inner < W) {
+        const bd = Math.min(Math.min(inner, W - inner) * ORGAN_SDF_LIPSCHITZ, spine, fat);
+        return { cls: { ...NONE, tissue: Tissue.Bowel, boundaryDistance: bd }, dOut: 0, perirenal, spine };
+      }
+      const level = m[1] - this.stomach.gasY;
+      const bd = Math.min((inner - W) * ORGAN_SDF_LIPSCHITZ, Math.abs(level), spine, fat);
+      return { cls: { ...NONE, tissue: level > 0 ? Tissue.BowelGas : Tissue.Fluid, boundaryDistance: bd }, dOut: 0, perirenal, spine };
+    }
+    return { cls: null, dOut: Math.min(dLiver, dSpleen, dStomach, perirenal) * ORGAN_SDF_LIPSCHITZ, perirenal, spine };
+  }
+
+  /**
+   * Los riñones (lus-sim, decisión 43; `classifyKidneys` de VExUS; gemelo GLSL en `classifyKidneys`): la cápsula, la corteza, las
+   * pirámides, el seno y la pelvis, y la grasa perirrenal de grosor variable. La cápsula dibuja la cara del contorno
+   * (`Interface.RenalCapsule`) por los dos lados: desde la cápsula y desde la grasa fina o la mitad interna de la gruesa. La
+   * mitad externa de la gruesa se funde sin línea: lus-sim no tiene la cara de Morison de VExUS (su cara la dibuja la cápsula
+   * del hígado o del bazo, que apoya en ella). `boundaryDistance`, la del riñón (la clasificación la acota con el diafragma, la
+   * pared y la columna); `perirenal`, `perirenalDistance` si ninguno contiene el punto.
+   */
+  private classifyKidneys(m: Vec3): { cls: Classification | null; perirenal: number } {
+    let perirenal = 1e3;
+    for (const k of this.kidneys) {
+      const dc = Math.hypot(m[0] - k.center[0], m[1] - k.center[1], m[2] - k.center[2]);
+      if (dc > KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM) {
+        perirenal = Math.min(perirenal, perirenalFar(m, k, dc));
+        continue;
+      }
+      const kh = kidneyQuery(m, k);
+      const fat = perirenalThicknessMm(kidneyLocal(m, k), k);
+      perirenal = Math.min(perirenal, kh.dOuter - fat);
+      if (kh.dOuter < 0) {
+        if (-kh.dOuter < RENAL_CAPSULE_MM) {
+          const cls: Classification = {
+            ...NONE,
+            tissue: Tissue.RenalCapsule,
+            boundaryDistance: Math.min(-kh.dOuter, RENAL_CAPSULE_MM + kh.dOuter),
+            interface: Interface.RenalCapsule,
+            interfaceDistance: -kh.dOuter,
+          };
+          return { cls, perirenal };
+        }
+        const tissue =
+          kh.region === 'pelvis'
+            ? Tissue.RenalPelvis
+            : kh.region === 'sinus'
+              ? Tissue.RenalSinus
+              : kh.region === 'medulla'
+                ? Tissue.RenalMedulla
+                : Tissue.RenalCortex;
+        // la distancia a la frontera, también la de la cápsula (`RENAL_CAPSULE_MM` bajo el contorno)
+        return { cls: { ...NONE, tissue, boundaryDistance: Math.min(kh.inner, -kh.dOuter - RENAL_CAPSULE_MM) }, perirenal };
+      }
+      if (kh.dOuter < fat) {
+        const face = kh.dOuter <= 0.5 * fat || fat <= PERIRENAL.faceMaxMm;
+        const cls: Classification = {
+          ...NONE,
+          tissue: Tissue.PerirenalFat,
+          boundaryDistance: Math.min(kh.dOuter, fat - kh.dOuter),
+          ...(face ? { interface: Interface.RenalCapsule, interfaceDistance: kh.dOuter } : {}),
+        };
+        return { cls, perirenal };
+      }
+    }
+    return { cls: null, perirenal };
+  }
+
+  /**
+   * ¿Está el punto MATERIAL dentro del estómago (lus-sim, decisión 43)? Su medio elipsoide, con la profundidad bajo el diafragma
+   * de `classifyOrgans` (nunca por fuera de la cara abdominal del diafragma o de la pared); lo que lo recorta (el hígado, el bazo,
+   * la cúpula, la pared) se clasifica antes. Solo cobertura y pruebas.
+   */
+  inStomach(m: Vec3, instant: SceneInstant): boolean {
+    const skin = -torsoDepth(m, this.torso);
+    if (!stomachCandidate(m, skin, this.stomach)) return false;
+    const u = wallArc(m, this.torso);
+    const inside = this.insideWallMm(m);
+    const wallSide = Math.min(inside, zoaGap(this.lungBorder, m, inside, u, instant.diaphragmCaudalMm));
+    const dDia = sdDiaphragm(m, this.diaphragm, this.torso) - DIAPHRAGM_THICKNESS_MM;
+    // sobre la cara abdominal del diafragma o de la pared no hay estómago (su medio elipsoide sigue por fuera)
+    const below = Math.min(dDia, wallSide);
+    return below >= 0 && stomachSdf(m, u, below, skin, this.stomach) < 0;
   }
 
   /**
@@ -596,6 +748,10 @@ export class AnatomyScene {
         return sdDiaphragm(m, this.diaphragm, this.torso);
       case 'zoa':
         return this.insideWallMm(m) - zoaThicknessMm(instant.diaphragmCaudalMm);
+      case 'kidneyOuter': {
+        const k = this.kidneys[m[0] < 0 ? 0 : 1];
+        return kidneyOuterSdf(kidneyLocal(m, k), k);
+      }
       case 'liverSurface':
       case 'spleenSurface': {
         // −min(−dÓrgano, dDia, pared): la distancia que decide la clasificación en la cápsula (`classifyOrgans`)
@@ -604,10 +760,11 @@ export class AnatomyScene {
         const caudal = instant.diaphragmCaudalMm;
         const wallSide = Math.min(inside, zoaGap(this.lungBorder, m, inside, u, caudal));
         const dDia = sdDiaphragm(m, this.diaphragm, this.torso) - DIAPHRAGM_THICKNESS_MM;
+        const renal = renalImpression(m, this.kidneys, perirenalDistance(m, this.kidneys));
         const d =
           face === 'liverSurface'
-            ? liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver)
-            : spleenSdf(m, u, Math.min(dDia, wallSide), -torsoDepth(m, this.torso), this.spleen, this.liver);
+            ? liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver, renal)
+            : spleenSdf(m, u, Math.min(dDia, wallSide), -torsoDepth(m, this.torso), inside, this.spleen, renal);
         return -Math.min(-d, dDia, wallSide);
       }
     }

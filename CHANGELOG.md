@@ -7,6 +7,22 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El estómago, los riñones y el bazo normal (43): el estómago en ayunas bajo el espacio de Traube (el volumen y el gas de
+  Fidler y cols., la pared de Henry y cols.), con su gas arriba en supino; su sombra y su reverberación salen de la pasada B (la
+  e2e lo mide frente a la mutación sin gas; el eco de la cara del gas falta, `test.fail`). Los riñones de VExUS con el sitio de
+  Gray, Morris y Xue y cols. y los ejes de Glodny y cols., y el retroperitoneo de VExUS (psoas, cuadrado lumbar y grasa) como su
+  lecho; su grasa marca la impresión renal del hígado y del bazo. La impresión renal del hígado y del bazo, continua lejos del riñón, y la sombra del riñón solo
+  detrás de su grasa real: ni el bazo ni el hígado quedan partidos. Los riñones, del tamaño de un adulto normal con fuente (10,8 × 5,4 × 4,6 cm: Glodny
+  y cols., Kang y cols., Bhardwaj y cols.). El bazo, el de un adulto normal (11 × 6,5 × 4 cm de Chow y cols.; medido, 162 mL): una
+  lámina de su grueso contra el diafragma, con la cara visceral cóncava y su parte gástrica hundida, a lo largo de la 11.ª costilla y
+  dentro del reborde costal, como en la TC (Mirjalili y cols., Shen y cols.); las marcas de superficie de Gray que no caben en un
+  bazo normal (el punto más alto a 4 cm de la línea media en T9) quedan pendientes. Cobertura de exploración: de 127 a 136 de 138
+  (10 de las 11 celdas de la tarea; pendientes, con su motivo, la escapular izquierda en el EIC10, el polo posterior del bazo de
+  Gray, y la axilar posterior izquierda en el EIC9, que cumplía el bazo de la decisión 37 sobre la 10.ª costilla).
+  Las seis diferencias centrales de cada cara de `faceGradient` en un bucle (`faceSdAt`): con SwiftShader el arranque baja de 42–74 s a 31–58 y el cuadro de 516–801 ms a 295–541 (antes de la decisión 37, 30–113 s y 422–682 ms); la entrada sube a 300 kB y el total a 860. Ranuras de uniforms de
+  la pasada B: 127 (129 en su programa dirigido; el tope, 130). Nuevas limitaciones `stomach-traube-lens` y
+  `kidney-retroperitoneum-port`.
+
 - El hígado y el bazo bajo las cúpulas (37): el hígado de VExUS (sus dos lóbulos, su cara visceral y su recorte posteromedial,
   escalados a la cavidad) con el borde inferior de Gray contra la pared (1 cm bajo el reborde costal derecho hasta el 9.º
   cartílago, en oblicuo hasta el 8.º izquierdo; el lóbulo izquierdo acaba bajo el 6.º cartílago a 5 cm) y el riñón de Morris
