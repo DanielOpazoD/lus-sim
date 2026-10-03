@@ -64,6 +64,8 @@ jobs:
           - { label: 'banco blueUpper', grep: 'banco de fidelidad en blueUpper' }
           - { label: 'banco blueLower', grep: 'banco de fidelidad en blueLower' }
           - { label: 'banco plaps', grep: 'banco de fidelidad en plaps' }
+          # decisión 39: la meta aún no cumplida del detector con la mano (4,6 min en SwiftShader), también sola
+          - { label: 'detector con la mano', grep: 'el detector del sector con la mano' }
           - { label: '1/9', shard: '1/9' }
           - { label: '2/9', shard: '2/9' }
           - { label: '3/9', shard: '3/9' }
@@ -97,7 +99,7 @@ jobs:
       - if: matrix.grep
         run: npm run e2e -- --grep "${{ matrix.grep }}"
       - if: matrix.shard
-        run: npm run e2e -- --grep-invert "banco de fidelidad en " --shard=${{ matrix.shard }}
+        run: npm run e2e -- --grep-invert "banco de fidelidad en |el detector del sector con la mano" --shard=${{ matrix.shard }}
       - name: Capturas de B más M (solo paciente sintético)
         if: always()
         uses: actions/upload-artifact@v7
