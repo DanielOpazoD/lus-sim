@@ -95,6 +95,8 @@ export interface TestHooks {
    * `FidelityBenchReport`.
    */
   fidelity: (opts: FidelityBenchOptions) => FidelityBenchReport;
+  /** Barrido de calibración (lus-sim, ciclo 3b-2): K, σz de la pleura y R_t en la pasada B; `null` vuelve al registro. */
+  calibrationOverride: (o: { kDb?: number; pleuraSigmaZMm?: number; pleuraRt?: number } | null) => void;
   /**
    * Pulso pulmonar (lus-sim, decisión 32): el modo M de la línea central en `site` con la respiración `respiration`, a
    * intervalos fijos del reloj, medido en la banda bajo la pleura (S3 y F-T11). Ver `LungPulseReport`.
@@ -317,6 +319,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         sim.patient.respiratoryPattern = pattern;
       }
     },
+    calibrationOverride: (o) => getSim().renderer.calibrationOverride(o),
     fidelity: (opts) => {
       const sim = getSim();
       const pattern = sim.patient.respiratoryPattern;

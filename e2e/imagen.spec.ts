@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
 
 /**
  * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: con `/?e2e=1` la
@@ -277,9 +278,20 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
   const seenIn = (o: { k: number; groups: number }): number => Math.floor((o.k <= 3 ? 0.9 : 0.5) * o.groups);
   for (const compound of [false, true])
     for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
+      // F-T01 es la geometría de la serie y no depende de R_t: se mide con R_t en el borde de arriba de su rango (0,5,
+      // decisión 35), con el que se ven los órdenes 1–4. Con el preajuste (0,1) cada orden cae ≈ 30 dB y el 3.º queda bajo
+      // el ruido; el orden 2 con el preajuste lo comprueba `fidelidad.spec.ts`
       const a = await page.evaluate(
-        ([id, c]) => window.__lusTest!.aLines({ startPoint: id, respiration: 'apnea-expiratory', compound: c }),
-        [startPoint, compound] as const,
+        ([id, c, rt]) => {
+          const hooks = window.__lusTest!;
+          hooks.calibrationOverride({ pleuraRt: rt });
+          try {
+            return hooks.aLines({ startPoint: id, respiration: 'apnea-expiratory', compound: c });
+          } finally {
+            hooks.calibrationOverride(null);
+          }
+        },
+        [startPoint, compound, PLEURA_RT_RANGE[1]] as const,
       );
       const tag = `${startPoint}${compound ? ' (compuesto)' : ''}: ${JSON.stringify(a)}`;
       // Conservar detectabilidad y geometría también en ejecuciones verdes de calibración.

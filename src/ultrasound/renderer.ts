@@ -11,7 +11,8 @@ import { beamToPixel, pixelToBeam, sectorLayout, type SectorLayout } from './sec
 import { GREY_CURVE } from './greyMap';
 import { AXIAL_SIGMA_MM } from './beamModel';
 import { ANCHOR_SALT_STEP, ElevationAnchor } from './speckleField';
-import { interfaceUniforms } from './interfaceEcho';
+import { IFACE_K_DB, interfaceUniforms } from './interfaceEcho';
+import { INTERFACES, Interface } from '../anatomy/interfaces';
 import {
   GLProgram,
   bindTarget,
@@ -26,7 +27,7 @@ import {
 } from './gl';
 import { GpuPassTimer, summarizeGpuTimings, type GpuFrameTimings } from './gpuTimer';
 import { RECEIVER_NOISE } from './receiver';
-import { ELEV_SIGMA0_MM } from './pleura';
+import { ELEV_SIGMA0_MM, PLEURA_RT } from './pleura';
 import { CLUTTER, clutterParams, type ClutterParams } from './clutter';
 import { harmonicNearUniform, noiseGain, transientGain } from './harmonic';
 import { boneCoherence } from './aperture';
@@ -361,7 +362,11 @@ export class UltrasoundRenderer {
   private flags = new Float32Array(TISSUE_VEC4 * 4);
   /** Número de onda del perfil (2π/λ, 1/mm) y un vec4 por cara de interfaz (decisión 57). */
   private readonly ifaceK0: number;
-  private readonly ifaceUniforms: Float32Array;
+  private ifaceUniforms: Float32Array;
+  /** R_t de la serie de la pleura (uPleuraRt): `PLEURA_RT`, salvo el barrido de calibración (`calibrationOverride`). */
+  private pleuraRt = PLEURA_RT;
+  /** K, σz de la pleura y R_t vigentes (los del registro, o los del barrido de calibración): los lee el banco de fidelidad. */
+  private calib = { kDb: IFACE_K_DB, pleuraSigmaZMm: INTERFACES[Interface.PleuraWall].roughnessMm, pleuraRt: PLEURA_RT };
   /** Geometría de presentación del último cuadro (px). */
   display: SectorLayout = { apexX: 0, apexY: 0, scale: 1, width: 1, height: 1 };
   /**
@@ -395,6 +400,26 @@ export class UltrasoundRenderer {
   /** Escena que se dibuja; `setScene` la cambia sin recompilar los programas. */
   get scene(): AnatomyScene {
     return this.currentScene;
+  }
+
+  /**
+   * Barrido de calibración (solo pruebas): K de las caras, σz de la pleura parietal y R_t de la serie, en lugar de los del
+   * registro; `null` vuelve a ellos. La siguiente pasada B ya los usa.
+   */
+  calibrationOverride(o: { kDb?: number; pleuraSigmaZMm?: number; pleuraRt?: number } | null): void {
+    this.ifaceUniforms = interfaceUniforms(this.ifaceK0, o?.kDb ?? IFACE_K_DB);
+    if (o?.pleuraSigmaZMm !== undefined) this.ifaceUniforms[4 * Interface.PleuraWall + 1] = 2 * this.ifaceK0 * o.pleuraSigmaZMm;
+    this.pleuraRt = o?.pleuraRt ?? PLEURA_RT;
+    this.calib = {
+      kDb: o?.kDb ?? IFACE_K_DB,
+      pleuraSigmaZMm: o?.pleuraSigmaZMm ?? INTERFACES[Interface.PleuraWall].roughnessMm,
+      pleuraRt: this.pleuraRt,
+    };
+  }
+
+  /** K, σz de la pleura y R_t con que dibuja la pasada B (los del registro salvo en el barrido de calibración). */
+  get calibration(): { kDb: number; pleuraSigmaZMm: number; pleuraRt: number } {
+    return { ...this.calib };
   }
 
   constructor(
@@ -1148,6 +1173,7 @@ export class UltrasoundRenderer {
     // eco de interfaz (decisión 57): tabla de caras y PSF lateral para la coherencia de curvatura
     p.v4v('uIface', this.ifaceUniforms);
     p.f('uIfaceK0', this.ifaceK0);
+    p.f('uPleuraRt', this.pleuraRt);
     this.setLateralPsfUniforms(p, inputs);
     drawFullscreen(gl);
   }

@@ -355,7 +355,8 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     expect(PLEURA_GLSL).toContain(
       'float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }',
     );
-    expect(PLEURA_GLSL).toContain('float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * PLEURA_RT * tD; }');
+    // R_t como uniform (lus-sim, decisión 35: `uPleuraRt`, el valor del registro salvo en el barrido de calibración)
+    expect(PLEURA_GLSL).toContain('float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * uPleuraRt * tD; }');
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
       expect(src).toContain('float chi = pleuraCoherence(cosI);');
       expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');

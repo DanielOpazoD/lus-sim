@@ -2717,3 +2717,183 @@ pasada con 5 trabajadores falló casi entera por tiempo: la pasada anterior, cor
 SwiftShader huérfanos (carga media 30); se terminaron y no cuenta. Sobre `85211e4` (con la decisión 31), `npm run check`: 966
 pruebas, un fallo esperado y una omitida, con los mismos kB; la e2e completa no se pudo medir en local: con la máquina a carga media 120 (otras sesiones y suites), 15 pasaron y 12
 agotaron sus plazos antes de pararla; la referencia es la del CI de la PR.
+
+## 34. La parte difusa de la pleura rugosa en la reverberación [Estado: rechazada]
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Ciclo 3b-2, mecanismo 1. En la serie de reverberaciones bajo la pleura cada reflexión en la pleura conserva
+solo su parte coherente, R_p·χ con χ = exp(−2(k0·σz·cosθ)²) (Ament; σz 0,05 mm: χ² ≈ 0,13 a 3,5 MHz), y descarta
+(1 − χ²) de la energía. Con R_p ≈ 1 en el aire esa energía no se pierde (F-T07 en su espíritu). La hipótesis: la parte
+difusa, la que la superficie rugosa dispersa en un lóbulo y vuelve en parte a la apertura, falta en la neblina
+subpleural, y por eso el simulador la tiene oscura frente al banco (M de la neblina 1,75–2,08 frente a 0,87–1,00 entre
+sujetos de la exploración, decisión 24). Objetivo O3.
+
+**Opciones.** (a) Modelarla con Kirchhoff: la potencia difusa R²(1 − χ²), el lóbulo de la serie de Beckmann para una
+correlación gaussiana de longitud l, y la fracción que vuelve a la línea por el ensanchamiento del haz difuso; (b) no
+modelarla.
+
+**Decisión.** Se probó (a) y se rechaza: no acerca las métricas al banco.
+
+- **Lo que se probó** (rama de registro `feat/reverberacion-difusa`, dd3acff, sin integrar): `pleuraDiffuse.ts`, gemelo
+  TS y GLSL en las dos ramas de la pasada B. La potencia difusa de cada reflexión es R²(1 − χ²); su lóbulo, por eje y en
+  seno, θ_d = √(2g/(1 − e^{−g}))/(k0·l) con g = −ln χ² (la varianza media de la serie de Beckmann; tiende a 2·s_f en
+  óptica geométrica); el haz difuso que sube h mm sobre la pleura se ensancha a σ² + (θ_d·h)² por eje, y frente a la ida
+  y la vuelta coherentes una pierna difusa vale a1 = √2σ/√(2σ² + w²) por eje y las dos a2 = σ/√(σ² + w²). Sin
+  ensanchar, coherente + difusa = 1. Alimenta las copias espejo y directa de la pared con un moteado independiente
+  (incoherente); las líneas A siguen coherentes (F-T01, F-T02 sin cambio).
+- **Lo que dio** (calibración de la decisión 24, GPU real, rango dinámico 70 dB, mediana de tres réplicas, los tres
+  puntos de partida):
+
+  | Métrica         | Exploración | Comprobación | main      | l = 0,2 mm (escala alveolar) | Cota: toda la energía difusa vuelve |
+  | --------------- | ----------- | ------------ | --------- | ---------------------------- | ----------------------------------- |
+  | M de la neblina | 0,870–1,00  | 0,964–1,20   | 1,75–2,08 | 1,74–2,06                    | 1,67–1,95                           |
+  | M de la pared   | 0,851–1,40  | 0,896–0,911  | 1,54–1,91 | 1,54–1,91                    | 1,59–1,92                           |
+  | A2 r₂           | 0,168–0,246 | 0,176–0,222  | 0,50–0,57 | 0,50–0,57                    | 0,50–0,56                           |
+
+  La cota (l = 5 mm: θ_d → 0, toda la energía difusa vuelve a la línea; no es física) cierra un 12 % de la distancia de la
+  neblina y empeora un poco la pared.
+
+- **Por qué no alcanza.** (1) El difuso que vuelve es fuerte justo bajo la pleura (+7 a +15 dB en 1–5 mm) y se diluye
+  hondo: en la banda de la neblina (1,25–1,75 d_pl, 5–15 mm bajo la pleura) suma +2 a +5 dB a la copia espejo, y allí
+  domina la copia directa coherente (~+4 dB sobre la espejo); al banco le faltan 15–20 dB. (2) Con l a la escala de los
+  alvéolos subpleurales (0,13–0,28 mm, L14), kl ≈ 1,4–2,9, bajo el umbral de validez de Kirchhoff kl > 6 de Thorsos
+  ([@thorsos-kirchhoff-1988]): buena parte del difuso de Kirchhoff sería evanescente y volvería aún menos. (3) Las
+  fuentes atribuyen la textura bajo la pleura al espejo y la réplica especulares de la pared, no a un difuso de la
+  superficie: Soldati 2020, §1–3 y fig. 1 ([@soldati-trampas-2020]); en la simulación de onda completa con histología
+  porcina de Ostras 2023, la superficie histológica y el reflector plano dan niveles medios comparables bajo la pleura
+  (fig. 3E; [@ostras-histopatologia-2023]).
+
+**Consecuencias.** La serie sigue solo coherente. El parche queda en la rama `feat/reverberacion-difusa` (dd3acff) por si
+otra hipótesis lo necesita; pasa `npm run check` con las pruebas que fijan el GLSL actualizadas. Lo que falta en la
+neblina hay que buscarlo en otro mecanismo (decisión 35).
+
+**Verificación.** La tabla de arriba: `e2e/calibracion.spec.ts` con la GPU real en main (85211e4) y en la rama, con l =
+0,2 mm y con l = 5 mm. La revisión bibliográfica (Thorsos, Soldati, Ostras, Beckmann por Nayar 1989 y Olson 2021) se
+leyó en texto completo salvo Thorsos (resumen).
+
+## 35. La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24
+
+**Fecha.** 2026-10-02.
+
+**Contexto.** Ciclo 3b-2. El mecanismo difuso de la pleura no acercó la neblina al banco (decisión 34). Queda el ajuste de
+los mandos de la serie bajo la pleura dentro de rangos con fuente: σz de la pleura (la coherencia χ de cada reflexión,
+que pagan las líneas A y, dos veces, las copias de la pared), R_t (la cara de la sonda y la piel en cada ida y vuelta), K
+(el nivel de las caras) y la ganancia del preajuste. Las tres métricas relativas del banco que no dependen del mapa de
+grises (decisión 31): M de la pared, M de la neblina y A2 r₂, con la metodología de la decisión 24: se ajusta solo con la
+exploración y se comprueba con la comprobación, sin ampliar un rango para alcanzar el banco. No reescribe la decisión 24:
+la amplía, y revisa uno de sus motivos (abajo). Objetivo O3.
+
+**Opciones.** (a) Mover σz (pleura más lisa o más rugosa); (b) mover R_t; (c) K y la ganancia del preajuste; (d) no
+tocar nada.
+
+**Rangos, declarados antes del barrido** (02-10-2026; el archivo de trabajo es anterior a los barridos, salvo una prueba
+de humo con σz 0,05 y 0,02 y R_t 0,3):
+
+- σz: 0,010–0,067 mm. Ninguna fuente mide la rugosidad de la superficie aire–pleura visceral (la de Kim 2011, ~10 µm, es
+  la parietal de rata, que no es la cara que refleja). Arriba, la rugosidad de los semicírculos de aire de 200–600 µm de
+  diámetro del modelo de Mento 2023 (σ = 0,223·radio si son contiguos: cálculo propio sobre la geometría de su fantoma;
+  [@mento-rugosidad-2023], solo resumen y el del congreso). Abajo, la cota que daría la simulación con histología porcina
+  de Ostras 2023 (la línea pleural sobre la histología no difiere de la del reflector plano, §III.A, fig. 2C;
+  [@ostras-histopatologia-2023]): con Ament, σ ≲ 9–23 µm. Es una cota superior, no inferior, y el valor vigente (0,05) la
+  incumple; pero Ament no vale a esa escala (kl ≈ 3, decisión 34), así que se toma como el borde de abajo del intervalo
+  plausible y no como una restricción.
+- R_t: 0,10–0,50. Arriba, la reflexión de los transductores convencionales, −6 a −10 dB (0,50–0,32;
+  [@fujitsu-reflexion-1985]). Abajo, una lente de silicona (0,99–1,46 MRayl, [@onda-cauchos]) frente a la piel (1,80
+  MRayl, [@itis-base-2024]): 0,10–0,29 (cálculo propio de una sola interfaz; con gel entre medio, o con las capas de
+  adaptación detrás de la lente, puede ser menor: la misma patente da ≤ −15 dB, ≤ 0,18, para sus diseños adaptados). El
+  dominio heredado era [0,2; 0,5] sin fuente; `docs/knowledge/physics.md` ya listaba 0,1–0,5 como escenarios. Se dice
+  también: por los ensayos de la decisión 24 (CI 79) ya se sabía que bajar R_t aclaraba la pared y la neblina, y la
+  búsqueda de su fuente se hizo sabiéndolo; el borde de abajo lo fija el cálculo con la fuente, no el banco.
+- K: 53–57 dB y ganancia −24 a −18 dB, los registrados (decisión 24).
+
+**El barrido** (`e2e/barridoPleura.spec.ts`, `LUS_BARRIDO=1`: el protocolo de C3b-A, apnea espiratoria a t = 60 s, tres
+réplicas, rango dinámico 70 dB, GPU real; `calibrationOverride` cambia K, σz y R_t sin recompilar). 7 σz × 7 R_t × 5 K con
+ganancia −20; luego la ganancia en su dominio para σz 0,05 (R_t 0,1 y 0,15) y para σz 0,06–0,067. Es determinista: el
+mismo candidato da las mismas métricas en dos barridos. La superficie de error (K 54, ganancia −20): la distancia
+normalizada de las tres métricas a la banda p10–p90 entre sujetos de la exploración, sumada (mediana de los tres puntos),
+y P1 (la línea pleural frente a la costilla); × si la línea pleural se recorta en el blanco (> 5 % de sus columnas
+intercostales, Demi 2023, enunciado 15):
+
+| σz (mm) \ R_t | 0,1         | 0,15        | 0,2         | 0,25        | 0,3         | 0,4         | 0,5         |
+| ------------- | ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | ----------- |
+| 0,01          | × (3,58)    | × (4,70)    | × (5,82)    | × (7,01)    | × (8,58)    | × (12,03)   | × (17,31)   |
+| 0,02          | × (3,06)    | × (4,03)    | × (4,98)    | × (5,81)    | × (6,81)    | × (9,01)    | × (11,78)   |
+| 0,03          | × (2,37)    | × (3,15)    | × (3,85)    | × (4,49)    | × (5,09)    | × (6,42)    | × (7,73)    |
+| 0,04          | × (1,69)    | × (2,33)    | × (2,86)    | × (3,35)    | × (3,78)    | 4,61 / 1,28 | 5,43 / 1,28 |
+| 0,05          | 1,11 / 1,20 | 1,63 / 1,20 | 2,08 / 1,20 | 2,48 / 1,19 | 2,82 / 1,19 | 3,46 / 1,19 | 4,05 / 1,19 |
+| 0,06          | 0,55 / 1,05 | 0,94 / 1,05 | 1,24 / 1,05 | 1,54 / 1,05 | 1,83 / 1,05 | 2,33 / 1,05 | 2,75 / 1,05 |
+| 0,067         | 0,26 / 0,95 | 0,47 / 0,95 | 0,75 / 0,95 | 0,97 / 0,95 | 1,17 / 0,94 | 1,55 / 0,94 | 1,91 / 0,94 |
+
+- Una pleura más lisa (σz ≤ 0,04) aleja las tres métricas y recorta la línea pleural en el BLUE inferior (2,6–9,3 % de sus
+  columnas con K 54; no con K 53): las líneas A pierden menos por orden (χ también va en G, F-T02) y M, que se mide en
+  caídas de línea A, sube.
+- Una más rugosa (σz 0,06–0,067) las acerca, pero oscurece la línea pleural frente a la costilla: P1 baja de 1,19 a 0,95
+  (la pleura queda más oscura que la cara de la costilla; el banco da P1 2,99–5,05, un sujeto). Acerca M a costa de la
+  pleura, no por la neblina ni la pared. Con σz 0,067, R_t 0,1, K 53 y ganancia −18 (todo en el borde de sus rangos) M de
+  la pared y r₂ entran en la exploración, con P1 0,89–0,95.
+- R_t baja la ganancia de cada vuelta y no toca la línea pleural: acerca las tres métricas en toda la columna, de forma
+  monótona. Por eso el elegido queda en el suelo de su rango: el resultado lo fija la fuente del suelo.
+
+**Decisión.** (b): R_t = 0,1, con σz 0,05 mm, K 54 dB y ganancia −20 dB sin cambio. La regla declarada antes del
+barrido era la menor distancia a la exploración sin recortar la línea pleural (empate: el más cercano al preajuste). Con
+ella sola ganaba la esquina σz 0,067, R_t 0,1, K 56 (distancia 0,23), que oscurece la línea pleural (P1 0,95, y sin P1 en
+el BLUE superior) y censura la línea A del BLUE inferior con la ganancia del preajuste. Al ver el barrido de la
+exploración, y antes de mirar la comprobación del candidato final, se añadieron tres guardas que la decisión 24 y la
+revisión de este ciclo ya pedían vigilar: sin censura nueva en las tres métricas, sin perder ninguna métrica medible en el
+preajuste (salvo las del orden 3, que el banco tampoco ve: A2 r₃, N4) y sin bajar P1 (la línea pleural frente a la
+costilla). Se dice así porque las guardas cambian el resultado. Con ellas, por orden: σz 0,05 y R_t 0,1 con K 53 y
+ganancia −19 (distancia 1,060), K 53 y −18 (1,062), K 54 y −19 (1,096) y K 54 y −20 (1,105). Los tres primeros no pasan
+una guarda requerida de la e2e (decisión 24: «preservar las guardas»): con K 53 y −19, en el BLUE inferior el sector
+detectado da d_pl 2,7 mm más larga que la verdadera (la prueba admite 2; los bordes de ese punto están a oscuras, decisión
+28); con K 53 y −18 y con K 54 y −19, la línea pleural intercostal se recorta (+0,1 dB sobre el blanco: F-T08, Demi 15).
+Queda K 54 y −20: solo cambia R_t. Salvedad del protocolo: la comprobación de la esquina (σz 0,067, R_t 0,1, K 53,
+ganancia −14) se miró antes de añadir las guardas; ninguna guarda usa la comprobación. R_t queda en el borde de abajo de su
+rango: el óptimo puede estar fuera de lo que las fuentes acotan, y no se fuerza.
+
+**Revisa un motivo de la decisión 24.** Ella descartó K 53, ganancia −19 con R_t 0,2 y 0,27 porque el orden 4 de las
+líneas A se veía en menos de 6 de 12 grupos del BLUE superior (la prueba de F-T01 lo exigía con el preajuste). Esa guarda
+pedía al simulador más líneas A de las que ven los clips del banco (A2 visibles 1 en las dos particiones). F-T01 es la
+geometría de la serie y no depende de R_t: ahora los órdenes 1–4 se miden con R_t en el borde de arriba de su rango (0,5,
+`calibrationOverride`, en `e2e/imagen.spec.ts` y `e2e/fidelidad.spec.ts`) y el orden 2 con el preajuste; las tolerancias
+geométricas y los recuentos no cambian.
+
+**Consecuencias.**
+
+Calibración de la decisión 24 (GPU real, rango dinámico 70 dB, apnea espiratoria a t = 60 s, mediana de tres réplicas;
+antes = main, después = R_t 0,1; p10–p90 entre sujetos; ≥ cota inferior, ? censura desconocida):
+
+| Métrica                | Exploración p10–p90 (clips/sujetos) | Comprobación p10–p90 | BLUE superior    | BLUE inferior   | PLAPS           |
+| ---------------------- | ----------------------------------- | -------------------- | ---------------- | --------------- | --------------- |
+| M de la pared          | 0,851–1,40 (4/4)                    | 0,896–0,911 (6/2)    | 1,91 → 1,40      | 1,54 → 1,20     | 1,82 → 1,36     |
+| M de la neblina        | 0,870–1,00 (4/4)                    | 0,964–1,20 (6/2)     | 2,08 → 1,54      | 1,75 → 1,41     | 1,98 → 1,50     |
+| M del campo profundo   | 1,76–2,27 (4/4)                     | 1,59–2,20 (6/2)      | 2,22≥ → 1,63≥    | 1,95≥ → 1,52≥   | 2,14≥ → 1,61≥   |
+| A2 r₂                  | 0,168–0,246 (3/3)                   | 0,176–0,222 (6/2)    | 0,573 → 0,395    | 0,496 → 0,351   | 0,538 → 0,364   |
+| A2 pendiente de ln r_k | -1,65–-1,06 (4/4)                   | -1,36–-1,34 (6/2)    | -0,712? → -0,928 | -0,762? → -1,05 | -0,727? → -1,01 |
+| A2 visibles            | 1,00–1,00 (4/4)                     | 1,00–1,00 (6/2)      | 2,00 → 1,00      | 2,00 → 1,00     | 2,00 → 1,00     |
+| T1 σ/prominencia       | 0,118–0,179 (8/4)                   | 0,288–0,296 (9/2)    | 0,0360 → 0,0357  | 0,0424 → 0,0424 | 0,0354 → 0,0354 |
+| P1                     | 4,02–4,02 (2/1)                     | —                    | 1,12 → 1,12      | 1,19 → 1,20     | 1,20 → 1,20     |
+
+- La comprobación (la del candidato final, después de elegirlo y sin reajustar; sus agregados ya estaban publicados desde
+  la decisión 31): las tres métricas se acercan también a su banda (M de la pared 0,896–0,911, de la neblina 0,964–1,20, r₂
+  0,176–0,222) y quedan fuera. M del campo profundo pasa de ≥ 1,95–2,22 a ≥ 1,52–1,63: el campo profundo está
+  en el negro y no es una medida; la banda del banco no lo contradice.
+- La caída por orden de las líneas A pasa de ≈ 20 a ≈ 30 dB: −20·log|R_p·χ·R_t| pasa de 19,3 a 28,9 dB, y con la
+  transmisión de la pared y la compensación nominal (F-T02), de 20,2–20,4 a 29,7–29,9 dB; en la envolvente, 27,6–33,2. Con el
+  preajuste se ve una línea A, como en los clips, y la pendiente de ln r_k se mide sin censura.
+- F-T01 se sigue cumpliendo (arriba). F-T02 es la fórmula de G, que no cambia; con el preajuste solo queda medible la
+  caída del orden 1 al 2. F-T05 (anchura de la línea pleural), la línea pleural sin recorte (Demi 15) y P1 no cambian. F-T06
+  se lee con el Fresnel de la pleura (0,9995) y no cambia. En el barrido de ganancia de la e2e, N4 (necesita el orden 3)
+  deja de exigirse y entran A2 r₂ y la pendiente de ln r_k, que ahora se miden sin censura.
+- **Lo que no cierra:** M de la neblina queda 1,41–1,54 frente a 0,87–1,00. Sin recorte de la línea pleural, en toda la
+  superficie la neblina va de 0,05 a 0,28 caídas por debajo de la pared (M de la neblina > M de la pared); en el banco la
+  neblina cae dentro de la banda de la pared (exploración: neblina 0,87–1,00, pared 0,85–1,40). Ningún σz, R_t ni K lo
+  cambia, porque los tres escalan a la vez la pared copiada y la línea A. Falta otro mecanismo; el candidato, la
+  reverberación en la propia pared (la textura de Soldati 2020, §2).
+- C3b-A (decisión 24) queda como registro de su ajuste (`normal-calibration-c3b-a.json`); este es otro.
+- El informe del banco de fidelidad lee la calibración con que dibujó la pasada B (`renderer.calibration`: la del
+  registro, o la del barrido) para `acquisition` y la predicción de F-T02.
+
+**Verificación.** `npm run check` en verde; e2e con la GPU real y SwiftShader (fidelidad, calibración, imagen, mapa de
+grises); el barrido y su superficie, en la PR. Revisión adversarial de contexto limpio antes de abrir la PR (resumen en la
+PR).

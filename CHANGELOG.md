@@ -153,6 +153,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   texto completo, lo describe «mínimo» en el punto BLUE superior y «habitualmente nulo» en el ápex; la decisión 27 y
   `sliding-linear-height` decían lo contrario. Nuevas filas D5a y D5b en `physics.md` y una prueba que falla si el vértice
   desliza.
+- R_t, la reflexión de la cara de la sonda y la piel en cada vuelta de la serie de la pleura, pasa de 0,3 a 0,1 (35): el
+  borde de abajo de su rango con fuente ([0,1; 0,5]: la reflexión de los transductores convencionales y la de una lente de
+  silicona frente a la piel), elegido con la exploración del banco tras barrer σz, R_t y K. M de la pared llega a la
+  exploración (1,20–1,40; el BLUE superior, en su borde), A2 r₂ baja de 0,50–0,57 a 0,35–0,40 y se ve una línea A, como en los clips; la neblina mejora
+  (M 1,41–1,54) pero no alcanza al banco (0,87–1,00). F-T01 se comprueba en el orden 2 con el preajuste y en los órdenes
+  2–4 con R_t 0,5. Herramienta del barrido: `e2e/barridoPleura.spec.ts` y `calibrationOverride`.
+- Rechazado (34): lo difuso de la pleura rugosa en la reverberación no acerca la neblina al banco (la cota física cierra
+  un 12 %); queda en la rama `feat/reverberacion-difusa`.
 - El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
   pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
 - La e2e estable en el CI (30): el bucle ya no dibuja sobre un contexto WebGL perdido antes de su evento (quedaba «FBO
