@@ -139,8 +139,9 @@ conservan su identificador (decisiones 10 y 11).
   móviles). Lo que el modelo no tiene es el «habitualmente»: en el paciente a veces desliza algo y aquí nunca. Que el vértice no
   deslice es lo normal, no un neumotórax: un alumno no debería leerlo como tal.
 - **El techo de la cúpula es horizontal y se dibuja como pleura** (`wall-cupola-transition`, decisiones 42 y 44): desde la
-  decisión 44 la ladera anterior de la cúpula sale de la pared sin esquina y sube con pendiente acotada (|∇W| ≤ 1,9 mm por mm en
-  todo el tronco; antes, ≈ 16 junto al techo y 37 en el peor punto), pero cada columna de la pared sigue acabando en un techo
+  decisión 44 la ladera anterior de la cúpula sale de la pared sin esquina y sube con pendiente acotada (|∇W| ≤ 1,9 mm por mm por
+  delante y ≤ 4,3 junto a la línea media posterior, donde la cúpula pasa al cuello; antes, ≈ 16 junto al techo, 37 delante y 45
+  detrás), pero cada columna de la pared sigue acabando en un techo
   horizontal: por encima, la radial ya no cruza pulmón y la pared es músculo hasta el centro del tronco. Con la sonda sobre la
   clavícula o por encima (z ≳ 165 en la LMC), las líneas que pasan sobre el techo entran en el pulmón por él, casi rasantes, y A0 les
   dibuja una pleura brillante: una franja casi vertical en la imagen donde el techo de las columnas de fuera baja (zTop cae de 196
@@ -149,6 +150,13 @@ conservan su identificador (decisiones 10 y 11).
   cilíndrica (`thorax-cylindrical-cage`) tampoco está la depresión de la fosa supraclavicular. Que la equivalencia TS ↔ GLSL de la
   distancia de las caras necesite la tolerancia escalada con el gradiente (`shellDistanceTolerance`) fue por la ladera de antes;
   con la ladera nueva ya no se activa: con SwiftShader el mayor |Δd| de la cáscara baja a 0,0088 mm en espiración y 0,0129 en la inspiración profunda (antes 0,025 y 0,11), todos bajo la tolerancia fija de 0,02.
+- **La forma anterior de las costillas 2.ª–5.ª** (`anterior-rib-shape`, decisión 44): en la parrilla del modelo el punto más bajo
+  de cada una está en la medioclavicular (u ≈ 96), por fuera de su unión condrocostal (u 64–84): la 2.ª baja del esternón (118,4
+  mm) a la unión (107,9) y sigue bajando hasta 98,6; la 5.ª, de 37,0 a 13,2 y a 10,9. En la anatomía el tramo óseo anterior sube
+  hacia fuera desde la unión condrocostal (Holcombe 2017: la cara lateral de la 2.ª costilla, arriba) y el cartílago va al
+  esternón horizontal (2.º) o subiendo (3.º–7.º) (Gray): lo más bajo de la costilla ósea es su extremo anterior. Por eso el BLUE
+  superior de la regla de las manos cae en el EIC1. Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular hasta ≈ 19 mm y,
+  con ellas, las vistas de medida y los puntos BLUE: va en una decisión aparte con la recalibración (hoja de ruta).
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,

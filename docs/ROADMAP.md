@@ -74,10 +74,12 @@ Objetivos: O2, O1, O5.
 - Variantes de hábito corporal (delgado, obeso).
 - Pendientes de anatomía de las decisiones 42 y 44: la cúpula como superficie propia (un casquete con su distancia y su
   normal) en lugar del techo horizontal de cada columna, que A0 dibuja como pleura rasante (`wall-cupola-transition`); las
-  capas del cuello sobre ella con fuente (escalenos, esternocleidomastoideo, vasos subclavios); y el recorrido de la 2.ª
-  costilla: Gray pone su cartílago horizontal y en el modelo baja 12 mm del esternón a la unión condrocostal y 19 hasta la
-  medioclavicular (por eso el BLUE superior cae en el EIC1). Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular y,
-  con ellas, lo que ve la vista de medida del BLUE superior (decisión 44).
+  capas del cuello sobre ella con fuente (escalenos, esternocleidomastoideo, vasos subclavios); y la forma anterior de las
+  costillas 2.ª–5.ª (`anterior-rib-shape`): en el modelo su punto más bajo está en la medioclavicular (u ≈ 96), por fuera de su
+  unión condrocostal (u 64–84), y en la anatomía el tramo óseo sube hacia fuera desde ella y el cartílago va al esternón
+  horizontal (2.º) o subiendo; la 2.ª baja 10,5 mm del esternón a la unión y 19,8 hasta la medioclavicular (por eso el BLUE
+  superior cae en el EIC1). Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular hasta ≈ 19 mm y, con ellas, las vistas
+  de medida y los puntos BLUE: decisión aparte con la recalibración (decisión 44).
 
 ## Fase 4 — Clínica (v0.5.0)
 

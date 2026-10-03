@@ -318,7 +318,7 @@ function topPairs(pairs: ReadonlyMap<string, number>): string {
  * no dé un gradiente enorme; no `FaceGradient.norm`, que es central y lo cruzaría). Donde |∇d| ≈ 1 manda la tolerancia de siempre, `SHELL_DISTANCE_TOL_MM`; solo donde el gradiente es
  * empinado crece con él, con el δx de SwiftShader medido (`SHELL_POSITION_ERR_MM`). Hasta |∇d| = 0,02/δx la prueba es tan
  * exigente como antes. Se puso por la ladera de la cúpula pleural de la decisión 27 (≈ 16 mm de pared por mm en z, hasta ≈ 100 en
- * la inspiración profunda); con la de la decisión 44 (|∇W| ≤ 1,9) ya no se activa: con SwiftShader el mayor |Δd| de la cáscara es
+ * la inspiración profunda); con la de la decisión 44 (|∇W| ≤ 1,9 delante y ≤ 4,3 junto a la línea media posterior) ya no se activa: con SwiftShader el mayor |Δd| de la cáscara es
  * 0,0088 mm en espiración y 0,0129 en la inspiración profunda.
  */
 export const SHELL_DISTANCE_TOL_MM = 0.02;

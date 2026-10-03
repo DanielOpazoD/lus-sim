@@ -54,6 +54,7 @@ import {
   setChestWallCage,
   skinArc,
   wallCupolaBd,
+  wallCupolaRoofBd,
   wallCupolaMm,
   wallColumnTexel,
   wallLayersAt,
@@ -861,7 +862,9 @@ export class AnatomyScene {
     // del cuello y del hombro: músculo sin caras (las de la pared quedarían más allá del centro del tronco)
     const cup = wallCupolaMm(this.chestWall, u, m[2]);
     if (cup >= CUPOLA_CAP_MM && d < wall && d >= wall - cup) {
-      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]));
+      // (decisión 44) y el techo de la cúpula, horizontal en zTop desde la profundidad D de su ladera
+      const roof = wallCupolaRoofBd(this.chestWall, u, m[2], d - (wall - cup));
+      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]), roof);
       return { final: true, cls: { ...NONE, tissue: Tissue.Muscle, boundaryDistance: bd } };
     }
     if (d >= wall) {
