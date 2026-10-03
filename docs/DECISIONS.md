@@ -3195,6 +3195,16 @@ pendientes con su motivo.
 - **Costo por cuadro** (`frameCostMs`, 60 cuadros, GPU real M4, 1440 × 900, main / esta decisión / main intercalados):
   punto BLUE inferior 3,8–5,3 / 5,4–5,9 / 4,6–5,4 ms; PLAPS 3,7–5,0 / 5,4–6,1 / 5,0–5,3; la base derecha (LAM EIC9, haz craneal) 6,1–6,9 / 7,2–7,8 / 6,1–6,3; la base izquierda (LAP EIC10) 5,8–7,4 / 7,3–8,5 / 6,0–8,6 (carga media 3–15; antes de las correcciones de la revisión, con carga 86–97, la base costaba ≈ +1,3 ms). Medianas: +0,5 ms en los puntos de partida y +0,8–1,0 en las bases. Bajo el diafragma cada muestra evalúa el hígado y el bazo. O6 (≥ 30 FPS) holgado, con la reserva de
   `frame-cost-timing-sync`.
+- **Con SwiftShader (el CI)**, alternando main y la rama con el prefiltro de abajo (03-10-2026, carga 5–16): el costo por cuadro
+  sube un 12–20 % en el BLUE inferior y el PLAPS (de 700–880 a 760–1300 ms; el hígado ocupa ≈ 17 % de las muestras de esas vistas,
+  donde antes estaba el «resto»), y las ventanas del banco de fidelidad, el BLUE inferior de 2,4 / 2,7 min a 3,3 / 2,8 y el PLAPS de
+  2,5 / 2,8 a 4,0 / 2,9 (×1,04–1,6). En el CI agotaban su plazo de 7 min (4,0–6,3 en main): sube a 10 min, bajo los 15 del trabajo.
+- **El prefiltro de los órganos** (`liverLobesSd`, `spleenCandidate`): lejos de los lóbulos del hígado (su distancia pasa de
+  `LIVER_EARLY_OUT_MM`) y fuera de donde puede estar el bazo (a la derecha de x 40 o a más de su cota de profundidad más 25 mm),
+  la clasificación no evalúa la columna de la pared ni el bazo. No cambia ningún tejido ni ninguna cara
+  (`organPrefilter.test.ts`, en el tronco de las seis variantes del tórax, frente a la cuenta completa, y la e2e de equivalencia);
+  la distancia a la frontera del «resto» solo sube a su tope donde la cota de profundidad del bazo la acortaba sin que hubiera bazo
+  cerca (en el centro del tronco, 4,45 en lugar de 5 mm). En las vistas del banco ahorra poco: el costo está en el propio hígado.
 - Limitaciones: `abdomen-generic-tissue` dice lo que queda (el estómago, el riñón, la vesícula, el colon, los vasos); nueva
   `liver-spleen-simplified`.
 

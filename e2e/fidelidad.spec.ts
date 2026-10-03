@@ -50,9 +50,13 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
   test(`banco de fidelidad en ${startPoint}: el detector encuentra la pleura, las líneas A y las sombras del simulador (informe adjunto)`, async ({
     page,
   }, testInfo) => {
-    // 7 min: en el CI cada ventana tardó 2,0–5,1 min según el corredor (los corredores difieren hasta 2,5 veces; 02-10-2026,
-    // PR #46: el BLUE superior agotó dos veces los 5 min de antes, con 4,0 en main). Las aserciones no cambian.
-    test.setTimeout(420_000);
+    // 10 min: en el CI cada ventana tardó 2,0–5,1 min según el corredor (los corredores difieren hasta 2,5 veces; 02-10-2026,
+    // PR #46: el BLUE superior agotó dos veces los 5 min de antes, con 4,0 en main), y 4,0–6,3 en main tras la decisión 36. El
+    // hígado y el bazo (decisión 37) añaden su cuenta a la parte de la imagen bajo el diafragma: con SwiftShader en local,
+    // alternando main y la rama (03-10-2026, carga 5–16), el BLUE inferior 2,4 / 2,7 min frente a 3,3 / 2,8 y el PLAPS 2,5 / 2,8
+    // frente a 4,0 / 2,9 (×1,04–1,6); el costo por cuadro, +12–20 %. Con 7 min el BLUE inferior y el PLAPS agotaban el plazo en el
+    // CI (PR #52). Las aserciones no cambian.
+    test.setTimeout(600_000);
     const errors = await openBench(page);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl2');

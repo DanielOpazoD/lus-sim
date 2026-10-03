@@ -287,12 +287,16 @@ void organColumn(vec3 m, float depth, float u, float inside, out float uO, out f
 // la ZOA; la cápsula dibuja su cara salvo donde la manda el diafragma. dOut: la distancia a los dos (positiva fuera). Gemelo:
 // classifyOrgans de AnatomyScene
 bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, float dSpine, vec3 tn, inout Cls c, out float dOut) {
+  // lejos de los lóbulos y de donde puede estar el bazo, sin la columna de la pared del punto
+  float dLobes = liverLobesSd(m);
+  bool spleenNear = spleenCandidate(m, -depth);
+  if (dLobes > LIVER_EARLY_OUT && !spleenNear) { dOut = dLobes * ORGAN_SDF_LIPSCHITZ; return false; }
   float uO;
   float inO;
   organColumn(m, depth, u, inside, uO, inO);
   float gap = zoaGap(m, inO, uO);
   float wallSide = min(inO, gap);
-  float dLiver = liverSdf(m, uO, inO, wallColumnTexel(uO).z);
+  float dLiver = dLobes > LIVER_EARLY_OUT ? dLobes : liverSdf(m, uO, inO, wallColumnTexel(uO).z);
   dOut = 0.0;
   c.n = tn;
   if (dLiver < 0.0) {
@@ -303,7 +307,7 @@ bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, floa
     if (inner < CAPSULE_MM && !other) { c.iface = IF_LIVER_CAPSULE; c.ifd = inner; }
     return true;
   }
-  float dSpleen = spleenSdf(m, uO, min(dDia, wallSide), -depth);
+  float dSpleen = spleenNear ? spleenSdf(m, uO, min(dDia, wallSide), -depth) : 1e3;
   if (dSpleen < 0.0) {
     float inner = min(min(-dSpleen, dDia), wallSide);
     bool other = inner == dDia || (inner == gap && gap < inO);

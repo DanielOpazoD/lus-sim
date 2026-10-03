@@ -62,8 +62,8 @@ import {
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { CUPOLA_CAP_MM, LUNG_APEX, lungApexColumns } from './organs/lungApex';
 import { SPINE, spinousSd, type SpinousSpec } from './organs/spine';
-import { ORGAN_SDF_LIPSCHITZ, buildLiver, liverSdf, type LiverShape } from './organs/liver';
-import { SPLEEN, buildSpleen, spleenSdf, type SpleenShape } from './organs/spleen';
+import { LIVER_EARLY_OUT_MM, ORGAN_SDF_LIPSCHITZ, buildLiver, liverLobesSd, liverSdf, type LiverShape } from './organs/liver';
+import { SPLEEN, buildSpleen, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
@@ -548,6 +548,11 @@ export class AnatomyScene {
     // la distancia a la frontera: la de la columna (el hígado la bordea por detrás) y la de los órganos, cuya distancia es una
     // aproximación (mínimos y máximos suaves, coordenadas de la pared) que puede pasarse: por `ORGAN_SDF_LIPSCHITZ`
     const spine = Math.min(spinousSd(m, this.spine, this.spinous), sdSpine(m, this.spine));
+    // lejos de los lóbulos y de donde puede estar el bazo, sin más cuentas (la GPU se ahorra la columna de la pared del punto)
+    const lobes = liverLobesSd(m, this.liver);
+    const skin = -torsoDepth(m, this.torso);
+    const spleenNear = spleenCandidate(m, skin, this.spleen);
+    if (lobes > LIVER_EARLY_OUT_MM && !spleenNear) return { cls: null, dOut: lobes * ORGAN_SDF_LIPSCHITZ };
     const dLiver = liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver);
     if (dLiver < 0) {
       const inner = Math.min(-dLiver, dDia, wallSide);
@@ -560,7 +565,7 @@ export class AnatomyScene {
       }
       return { cls: { ...NONE, tissue: Tissue.Liver, boundaryDistance: bd }, dOut: 0 };
     }
-    const dSpleen = spleenSdf(m, u, Math.min(dDia, wallSide), -torsoDepth(m, this.torso), this.spleen, this.liver);
+    const dSpleen = spleenNear ? spleenSdf(m, u, Math.min(dDia, wallSide), skin, this.spleen, this.liver) : 1e3;
     if (dSpleen < 0) {
       const inner = Math.min(-dSpleen, dDia, wallSide);
       const other = inner === dDia || (inner === gap && gap < inside);

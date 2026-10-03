@@ -173,6 +173,17 @@ export function spleenSdf(m: Vec3, u: number, below: number, skinDepth: number, 
   return Math.max(smoothMax(d, -kidneyCutDistance(m, liver), SPLEEN_KIDNEY_ROUND_MM), skinDepth - s.maxSkinDepth);
 }
 
+/**
+ * El bazo solo se evalúa cerca de donde puede estar (gemelo GLSL con el mismo nombre): a la izquierda de x `SPLEEN_X_MIN_MM`
+ * (el modelo lo pone a ≥ 95 mm de la línea media) y a menos de `maxSkinDepth` más `SPLEEN_NEAR_MARGIN_MM` bajo la piel. Fuera,
+ * su distancia pasa de 2 × el tope del «resto» (5 mm por `ORGAN_SDF_LIPSCHITZ`) y la clasificación la toma por lejana (1e3).
+ */
+export function spleenCandidate(m: Vec3, skinDepth: number, s: SpleenShape): boolean {
+  return m[0] > SPLEEN_X_MIN_MM && skinDepth < s.maxSkinDepth + SPLEEN_NEAR_MARGIN_MM;
+}
+export const SPLEEN_X_MIN_MM = 40;
+export const SPLEEN_NEAR_MARGIN_MM = 25;
+
 /** Redondeo del recorte del riñón en el bazo (mm, el del hígado). */
 export const SPLEEN_KIDNEY_ROUND_MM = 8;
 
@@ -181,6 +192,9 @@ export const SPLEEN_KIDNEY_ROUND_MM = 8;
  * (la cota de la rampa de la cúpula, `rimFarMm`) más el grueso.
  */
 export const SPLEEN_GLSL = /* glsl */ `
+bool spleenCandidate(vec3 m, float skinDepth) {
+  return m.x > ${SPLEEN_X_MIN_MM.toFixed(1)} && skinDepth < uCurtain.z + uSpleenR.z + ${SPLEEN_NEAR_MARGIN_MM.toFixed(1)};
+}
 vec3 spleenLocal(float u, float z, float inside) {
   float a = (u - uSpleen.x) * uSpleenR.w;
   float b = z - uSpleen.y;

@@ -340,6 +340,14 @@ export function leftTipDistance(m: Vec3, s: LiverShape): number {
   return m[0] - xTip;
 }
 
+/**
+ * La envolvente de los dos lóbulos, su mínimo suave (gemelo GLSL con el mismo nombre): `liverSdf` sin los recortes. Más allá
+ * de `LIVER_EARLY_OUT_MM` es `liverSdf`, y la clasificación no necesita la columna de la pared del punto.
+ */
+export function liverLobesSd(m: Vec3, s: LiverShape): number {
+  return smoothMin(liverLobeSd(m, s.right), liverLobeSd(m, s.left), LIVER_BLEND_MM);
+}
+
 /** Distancia con signo a un lóbulo (el elipsoide afilado de VExUS; gemelo GLSL con el mismo nombre). */
 export function liverLobeSd(m: Vec3, e: Ellipsoid): number {
   return sdEllipsoid(m, e);
@@ -351,7 +359,7 @@ export function liverLobeSd(m: Vec3, e: Ellipsoid): number {
  * y `marginZ` son los de su columna de la pared.
  */
 export function liverSdf(m: Vec3, u: number, inside: number, marginZ: number, s: LiverShape): number {
-  let d = smoothMin(liverLobeSd(m, s.right), liverLobeSd(m, s.left), LIVER_BLEND_MM);
+  let d = liverLobesSd(m, s);
   // los recortes son intersecciones suaves (smoothMax ≥ max): lejos de los lóbulos la distancia ya es una cota, y basta para el
   // «resto» (cuya distancia a la frontera no pasa de `BOWEL_BD_CAP_MM`)
   if (d > LIVER_EARLY_OUT_MM) return d;
@@ -377,6 +385,7 @@ const lobeGlsl = (l: typeof RIGHT_LOBE | typeof LEFT_LOBE): string =>
  */
 export const LIVER_GLSL = /* glsl */ `
 #define LIVER_BLEND ${f4(LIVER_BLEND_MM)}
+#define LIVER_EARLY_OUT ${g(LIVER_EARLY_OUT_MM)}
 #define LIVER_EDGE_ROUND ${f4(EDGE_ROUND_MM)}
 #define LIVER_VIS_BLEND ${f4(VISCERAL_BLEND_MM)}
 #define LIVER_KIDNEY_ROUND ${f4(KIDNEY_CUT_ROUND_MM)}
@@ -440,9 +449,12 @@ float leftTipDistance(vec3 m) {
   float t = clamp((m.z - uLiverEdge.w) / (uLiverTip.y - uLiverEdge.w), 0.0, 1.0);
   return m.x - (uLiverTip.x + (LIVER_X_END - uLiverTip.x) * t + uLiverTip.z * sin(${g(Math.PI)} * t));
 }
+float liverLobesSd(vec3 m) {
+  return smoothMin(liverLobeSd(m, ${lobeGlsl(RIGHT_LOBE)}), liverLobeSd(m, ${lobeGlsl(LEFT_LOBE)}), LIVER_BLEND);
+}
 float liverSdf(vec3 m, float u, float inside, float marginZ) {
-  float d = smoothMin(liverLobeSd(m, ${lobeGlsl(RIGHT_LOBE)}), liverLobeSd(m, ${lobeGlsl(LEFT_LOBE)}), LIVER_BLEND);
-  if (d > ${g(LIVER_EARLY_OUT_MM)}) return d;
+  float d = liverLobesSd(m);
+  if (d > LIVER_EARLY_OUT) return d;
   d = smoothMax(d, -visceralFaceDistance(m, u, inside, marginZ), LIVER_EDGE_ROUND);
   d = smoothMax(d, medialCutDistance(m), LIVER_MEDIAL_ROUND);
   d = smoothMax(d, -kidneyCutDistance(m), LIVER_KIDNEY_ROUND);
