@@ -14,8 +14,8 @@ import { runReference, type ReferenceStats } from '../../tools/fidelity/referenc
  * mismo cambio y revisar la diferencia (qué clips y métricas se movieron, y si algún clip apto dispara una compuerta).
  *
  * Solo corre donde están la carpeta del banco (`LUS_REFERENCE_DIR` o ~/datos/lus-referencia, fuera del repo: decisión 5) y
- * ffmpeg; en CI se salta (no hay banco). Tarda de 2–4 min (27-09) a más de 15 (03-10, con el detector de la decisión 36) en un M4,
- * así que no corre en `npm run check` sino con `npm run fidelity:bank` (LUS_REFERENCE_CHECK=1), obligatorio en todo cambio que
+ * ffmpeg; en CI se salta (no hay banco). Tarda ≈ 3 min en un M4 sin carga (188 s el 03-10-2026) y más de
+ * 15 con la máquina cargada por otros agentes (el plazo del check se agotaba una y otra vez), así que no corre en `npm run check` sino con `npm run fidelity:bank` (LUS_REFERENCE_CHECK=1), obligatorio en todo cambio que
  * toque `src/measure/fidelity/`, `tools/fidelity/` o `docs/reference-bank/` (CLAUDE.md).
  */
 const ROOT = resolve(__dirname, '../..');
