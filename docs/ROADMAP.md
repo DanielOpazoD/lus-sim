@@ -72,10 +72,12 @@ Objetivos: O2, O1, O5.
   **adelantadas a la fase 1 por el requisito de cobertura de `docs/MISSION.md` (v0.2.0)**; bases con diafragma, hígado y bazo (signo de la cortina, imagen en espejo, signo de la columna).
 - Neumotórax con su geometría y el punto pulmonar; pulso pulmonar desde el reloj cardíaco.
 - Variantes de hábito corporal (delgado, obeso).
-- Pendientes de anatomía de la decisión 42: la transición de la pared sobre la 1.ª costilla y la fosa supraclavicular
-  (escalenos, esternocleidomastoideo, vasos subclavios), hoy un engrosamiento de ≈ 16 mm por mm sobre la cúpula
-  (`wall-cupola-transition`); y una fuente del recorrido de la 2.ª costilla de la paraesternal a la medioclavicular (en el
-  modelo baja 19 mm sin fuente propia, y por eso el BLUE superior de la regla de las manos cae en el EIC1).
+- Pendientes de anatomía de las decisiones 42 y 44: la cúpula como superficie propia (un casquete con su distancia y su
+  normal) en lugar del techo horizontal de cada columna, que A0 dibuja como pleura rasante (`wall-cupola-transition`); las
+  capas del cuello sobre ella con fuente (escalenos, esternocleidomastoideo, vasos subclavios); y el recorrido de la 2.ª
+  costilla: Gray pone su cartílago horizontal y en el modelo baja 12 mm del esternón a la unión condrocostal y 19 hasta la
+  medioclavicular (por eso el BLUE superior cae en el EIC1). Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular y,
+  con ellas, lo que ve la vista de medida del BLUE superior (decisión 44).
 
 ## Fase 4 — Clínica (v0.5.0)
 

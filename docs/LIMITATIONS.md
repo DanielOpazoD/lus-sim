@@ -117,7 +117,12 @@ conservan su identificador (decisiones 10 y 11).
   por encima de la 1.ª costilla de cada columna las partes blandas del cuello y del hombro engruesan la pared (músculo genérico,
   sin escalenos, esternocleidomastoideo, vasos subclavios ni plexo braquial) y su cara interna, la pleura cervical, se curva hacia
   dentro hasta el techo de la cúpula (25 mm sobre el borde superior del tercio medial de la clavícula, Gray; 5 mm sobre la 1.ª
-  costilla fuera de los tercios medial y medio). La forma de la curva (30 mm hacia dentro) es [SUPUESTO]. Como el tronco no se
+  costilla fuera de los tercios medial y medio). La forma de la curva (hasta 30 mm hacia dentro, sin esquina sobre la 1.ª
+  costilla y con pendiente ≤ 1,5 mm por mm, decisión 44) es [SUPUESTO]. El músculo genérico sobre la cúpula, 23 mm por la fosa
+  supraclavicular, cae en lo que suman los escalenos y el esternocleidomastoideo medidos a media altura del cuello (11–14 y
+  8–10 mm), pero sin sus fascias, los vasos subclavios ni el plexo braquial. Por detrás de la clavícula la pleura queda a
+  18–27 mm de la piel en el tercio medial y el medio, por debajo de los ≈ 29 mm que se derivan de Berk y cols. (la piel, la vena
+  subclavia y la pleura en el camino de la punción; antes de la decisión 44, 20–35). Como el tronco no se
   estrecha hacia la abertura superior (`thorax-cylindrical-cage`), la cúpula ocupa todo el ancho de la parrilla y no hay dos
   vértices separados por la tráquea (no hay mediastino). Por encima de la cúpula, la sonda ve solo músculo, también en el
   hombro (z ≤ 200 en todo φ). En el cuello, junto a la línea media (por delante de las articulaciones esternoclaviculares y
@@ -133,15 +138,17 @@ conservan su identificador (decisiones 10 y 11).
   deslizar el pulmón alto de detrás (el segmento posterior del lóbulo superior, que en Wang 2013 está entre los tumores más
   móviles). Lo que el modelo no tiene es el «habitualmente»: en el paciente a veces desliza algo y aquí nunca. Que el vértice no
   deslice es lo normal, no un neumotórax: un alumno no debería leerlo como tal.
-- **Sobre la cúpula, la pared engruesa a saltos** (`wall-cupola-transition`, decisión 42): la construcción de la decisión 27
-  rellena la pared hasta el medio del tronco por encima del techo de la cúpula, y junto al techo la curva es tan empinada que la
-  pared engruesa ≈ 16 mm por mm en z y ≈ 14 mm por mm a lo largo de la piel (a 102 mm de la línea media, z ≈ 177). No es
-  anatomía: es el paso de la pleura cervical al músculo genérico del cuello. Con el BLUE superior de la regla de las manos el
-  borde craneal del sector llega ahí y el alumno lo ve en la imagen. También es donde la equivalencia TS ↔ GLSL de la distancia
-  de las caras se aparta con SwiftShader (|∇d|·δx con δx ≈ 0,001 mm: hasta 0,025 mm en espiración y 0,11 en la inspiración
-  profunda, donde |∇d| llega a ≈ 100; con la GPU real, ≤ 0,0067): la prueba escala su tolerancia con el gradiente
-  (`shellDistanceTolerance`). Pendiente de anatomía: la transición de la pared sobre la 1.ª costilla y la fosa
-  supraclavicular (escalenos, esternocleidomastoideo, vasos subclavios) con sus fuentes, en lugar del engrosamiento.
+- **El techo de la cúpula es horizontal y se dibuja como pleura** (`wall-cupola-transition`, decisiones 42 y 44): desde la
+  decisión 44 la ladera anterior de la cúpula sale de la pared sin esquina y sube con pendiente acotada (|∇W| ≤ 1,9 mm por mm en
+  todo el tronco; antes, ≈ 16 junto al techo y 37 en el peor punto), pero cada columna de la pared sigue acabando en un techo
+  horizontal: por encima, la radial ya no cruza pulmón y la pared es músculo hasta el centro del tronco. Con la sonda sobre la
+  clavícula o por encima (z ≳ 165 en la LMC), las líneas que pasan sobre el techo entran en el pulmón por él, casi rasantes, y A0 les
+  dibuja una pleura brillante: una franja casi vertical en la imagen donde el techo de las columnas de fuera baja (zTop cae de 196
+  a 168 mm entre el tercio medial y el medio de la clavícula). Una pleura rasante devolvería poco eco. Lo arreglaría una cúpula con
+  su propia superficie (un casquete en 3D con su distancia y su normal) en lugar del grosor radial por columna. Por la piel
+  cilíndrica (`thorax-cylindrical-cage`) tampoco está la depresión de la fosa supraclavicular. Que la equivalencia TS ↔ GLSL de la
+  distancia de las caras necesite la tolerancia escalada con el gradiente (`shellDistanceTolerance`) fue por la ladera de antes;
+  con la ladera nueva ya no se activa: con SwiftShader el mayor |Δd| de la cáscara baja a 0,0088 mm en espiración y 0,0129 en la inspiración profunda (antes 0,025 y 0,11), todos bajo la tolerancia fija de 0,02.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,

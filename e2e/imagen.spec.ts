@@ -112,9 +112,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(shell.byInterface.ObliquePlane ?? 0, stag).toBe(0);
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
   // (decisión 42) la distancia, con la tolerancia que crece con el gradiente de la cara (`shellDistanceTolerance`): 0,02 mm donde
-  // |∇d| ≈ 1; sobre la cúpula pleural (la pared engruesa ≈ 16 mm por mm en z, limitación `wall-cupola-transition`), a donde llega
-  // el borde craneal del sector del BLUE superior nuevo, SwiftShader se aparta |∇d|·δx: 0,025 mm, y 0,11 en la inspiración
-  // profunda, con δx ≈ 0,001 mm; con la GPU real, ≤ 0,0067 mm en todos los puntos)
+  // |∇d| ≈ 1; con la ladera de la cúpula de la decisión 27 (≈ 16 mm de pared por mm en z), SwiftShader se apartaba |∇d|·δx:
+  // 0,025 mm, y 0,11 en la inspiración profunda, con δx ≈ 0,001 mm. Con la de la decisión 44 ya no se activa: 0,0088 y 0,0129
+  // mm, bajo la fija; con la GPU real, ≤ 0,0067 mm en todos los puntos)
   expect(shell.distanceMaxErrOverTol, stag).toBeLessThan(1);
   // (decisión 37) las cápsulas del hígado y del bazo en las bases: la cara, su distancia y su normal (el volumen no las ve: deja
   // fuera lo que está a menos de 1 mm de un borde)
