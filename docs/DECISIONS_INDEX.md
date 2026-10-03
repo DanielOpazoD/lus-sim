@@ -28,14 +28,15 @@ Generado por `npm run docs:index` — no editar a mano.
 | [22](DECISIONS.md#L1404) | El campo respiratorio invertible por construcción y la excursión de la base (A-T13) | vigente |
 | [23](DECISIONS.md#L1580) | Adquisición normal con navegación torácica 3D y cine espacialmente coherente | vigente |
 | [24](DECISIONS.md#L1650) | Calibración acotada del contraste del pulmón normal convexo (C3b-A) | vigente |
-| [25](DECISIONS.md#L1771) | Maniquí humano procedural y sonda convexa registrada | vigente |
-| [26](DECISIONS.md#L1800) | La cobertura de exploración: una prueba por celda del tórax | vigente |
-| [27](DECISIONS.md#L1872) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
-| [28](DECISIONS.md#L1961) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
-| [29](DECISIONS.md#L2096) | La espalda: el paciente sentado, la escápula y la columna | vigente |
-| [30](DECISIONS.md#L2268) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
-| [31](DECISIONS.md#L2346) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
-| [32](DECISIONS.md#L2487) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
-| [33](DECISIONS.md#L2598) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
-| [34](DECISIONS.md#L2721) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
-| [35](DECISIONS.md#L2775) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
+| [25](DECISIONS.md#L1777) | Maniquí humano procedural y sonda convexa registrada | vigente |
+| [26](DECISIONS.md#L1806) | La cobertura de exploración: una prueba por celda del tórax | vigente |
+| [27](DECISIONS.md#L1878) | El vértice: la cúpula pleural sobre la 1.ª costilla y la clavícula | vigente |
+| [28](DECISIONS.md#L1967) | El tronco con la profundidad del tórax: la pared posterior de sus fuentes junto a la caja de Robinson | vigente |
+| [29](DECISIONS.md#L2106) | La espalda: el paciente sentado, la escápula y la columna | vigente |
+| [30](DECISIONS.md#L2278) | La e2e espera hechos y no plazos: la pérdida del contexto WebGL, el modo M en el teléfono y ocho fragmentos | vigente |
+| [31](DECISIONS.md#L2356) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
+| [32](DECISIONS.md#L2497) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
+| [33](DECISIONS.md#L2608) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
+| [34](DECISIONS.md#L2731) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
+| [35](DECISIONS.md#L2785) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
+| [36](DECISIONS.md#L2918) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |

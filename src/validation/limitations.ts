@@ -36,6 +36,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'speckle-statistics-uncalibrated',
   'display-uncalibrated',
   'frame-cost-timing-sync',
+  'sector-detector-symmetric',
   'no-sidelobes',
   'harmonic-simplified',
 ]);

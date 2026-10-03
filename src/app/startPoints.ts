@@ -50,19 +50,18 @@ export const START_POINT_POSES = defineParameters('app.startPointPoses', {
       '`anatomy.thoraxLines.anteriorAxillaryPhi` (decisión 16). Calibrar con la regla de las manos',
   },
   blueLowerZ: {
-    value: 51.3,
+    value: 49.5,
     unit: 'mm',
     range: [20.1, 78.3],
     evidence: 'estimado',
     sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021', 'gray-anatomia-1918'],
     note:
-      'En el EIC4 de la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, Gray) con ' +
-      'la parrilla del adulto promedio (decisión 16). Con el tronco de la decisión 28 la 4.ª costilla está a 64,2 mm y la 5.ª a ' +
-      '35,4 (`intercostalZ`: centro 49,8); el punto queda 1,5 mm por encima del centro, donde estaba en main respecto de la ' +
-      'parrilla (50,6 frente a 49,1; la nota decía 65,0 y 36,1, que el código ya no medía; con la espalda de la decisión 29, 63,9 ' +
-      'y 34,8, centro 49,5): en el centro, la sombra de una ' +
-      'costilla cubre el borde derecho del sector y el detector del banco de fidelidad no lo encuentra (decisión 28). El rango ' +
-      'va del centro del EIC5 (20,1) al del EIC3 (78,3) en esa línea: sin antropometría de la mano no se sabe en qué espacio cae la palma ' +
+      'En el centro del EIC4 de la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, ' +
+      'Gray) con la parrilla del adulto promedio (decisión 16): con el tronco de la decisión 28 y la espalda de la 29, la 4.ª ' +
+      'costilla a 63,9 mm y la 5.ª a 35,0 (`intercostalZ`: centro 49,46). Entre las decisiones 28 y 39 estuvo en 51,3, 1,8 mm ' +
+      'por encima del centro, porque en el centro la sombra de una costilla tapaba el borde derecho del sector y el detector del ' +
+      'banco de fidelidad la tomaba por él; con el detector de la decisión 36 vuelve al centro. El rango va del centro del EIC5 ' +
+      '(20,1) al del EIC3 (78,3) en esa línea: sin antropometría de la mano no se sabe en qué espacio cae la palma ' +
       '(`docs/knowledge/anatomy.md` §4)',
   },
   plapsPhi: {

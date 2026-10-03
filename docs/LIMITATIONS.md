@@ -76,8 +76,9 @@ conservan su identificador (decisiones 10 y 11).
   0,14 en el centro; 7 mm (35, el valor de Wada más el complejo pleural según Okçu) dan 0,16 y 0,24, y la pleura bajo la 7.ª y la
   8.ª costilla de la paravertebral se inclina tanto que F-T08 deja un lado a 8,2 mm de la cresta (meta: 4–6). Por eso la
   espalda alta se queda en 32 y no en 35: lo fija la forma de la transición del modelo, no la anatomía. Una transición propia de
-  la espalda, que baje con la parrilla de la 5.ª a la 8.ª costilla, la quitaría (y con ella, quizá, los 20 mm de la
-  infraescapular, que fija el detector del banco de fidelidad en el PLAPS).
+  la espalda, que baje con la parrilla de la 5.ª a la 8.ª costilla, la quitaría. Los 20 mm de la infraescapular ya no los fija
+  el banco de fidelidad (decisión 36: con 24, la pleura del PLAPS se sigue en todas sus columnas y F-T08 cumple): son un
+  supuesto sin fuente (NO ENCONTRADO).
 - **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
   texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
@@ -290,6 +291,18 @@ conservan su identificador (decisiones 10 y 11).
   `GL_INVALID_OPERATION` y la lectura fallida podría no esperar a que acabe lo encolado, así que los milisegundos pueden salir
   bajos y O6 (≥ 30 FPS) medirse mal (sin medir aún cuánto). Arreglo pendiente en una PR aparte (leer del framebuffer de la
   pantalla, o una consulta de tiempo).
+- **El detector del sector supone un abanico simétrico y necesita ver algo de cada borde** (`sector-detector-symmetric`,
+  decisión 36): fuerza pendientes opuestas en los dos bordes (el eje del abanico, vertical), como en los 34 clips del banco y en
+  el simulador; pero la geometría fijada de los clips la propuso el detector de la decisión 21 y está redondeada a 0,01 rad, así
+  que esa simetría no está medida mejor que ±0,6°. Con un abanico girado alrededor del ápice el detector falla sin avisar (un
+  sintético: 0,57° → el ápice a 3,4 px y un borde a 0,75°; 1° → 13,5 px y 1,95°; 3° → 47,5 px y 6°), donde el de la decisión 21
+  acertaba; LUS-04a y 04f se apartan algo más de su geometría fijada (0,37° y 0,68°, antes 0,22° y 0,27°). Si un borde no se ve
+  en ninguna fila (la sombra lo tapa desde la piel), su ordenada sale de los extremos de la sombra y el ápice baja por el eje
+  aunque el ángulo esté bien (LUS-35v: 5 filas en el borde derecho, el ápice a 9,6 px; un sintético con la piel en el borde del
+  cuadro, 19 px). Si las sombras tapan los dos bordes desde 4 mm de la piel, el arco da el ápice pero las filas de los bordes son
+  las de una cuerda del contorno y los bordes quedan a 7–9° (el de la decisión 21, a 12,6°). Una marca encendida pegada al borde
+  en el soporte por intensidad (un cuadro suelto o un clip quieto) mueve el ápice ≈ 7 px. Con `edgeInliers` muy bajo en un
+  lado (≤ 5 filas) la geometría propuesta es de poca confianza; en el banco la geometría se fija igual (decisión 21).
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;

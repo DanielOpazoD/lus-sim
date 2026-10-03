@@ -46,21 +46,30 @@ jobs:
       - name: Índice de decisiones al día
         run: npx tsx tools/docs/decisions-index.ts --check
 
-  # En paralelo con `verificar`, con un trabajador por fragmento para no competir con SwiftShader.
-  # CI87 agotó 15 min en 2/5: concentraba las tres ventanas de fidelidad, calibración y ganancia.
-  # Siete fragmentos reparten las 28 pruebas; CI99 agotó dos veces el plazo al agrupar todo el banco de fidelidad.
-  # Ocho para 29 (decisión 30): Playwright reparte por cuenta, y con 29 en siete el 2.º juntaba tres ventanas del banco.
-  # Nueve para 33 (decisión 33): con la prueba de la espalda, el 2.º de ocho juntaba la calibración del PLAPS y las tres
-  # ventanas del banco y agotó los 15 min (cancelado en la cuarta, a 15,3); con nueve, el 2.º y el 3.º son los de main.
-  # El denominador del comando sale de la matriz; `check` sigue exigiendo toda la matriz.
+  # En paralelo con `verificar`, con un trabajador por trabajo para no competir con SwiftShader.
+  # Historia: de cinco a nueve fragmentos (decisiones 20, 30 y 33) porque Playwright reparte por cuenta y en orden, y cada
+  # prueba nueva movía las ventanas del banco de fidelidad (4–6 min cada una) hasta juntar tres en un fragmento de 15 min
+  # (CI87, CI99, #45, #49). Desde el 03-10-2026 cada ventana del banco tiene su propio trabajo, elegido por nombre
+  # (`grep`), y el resto se reparte en fragmentos sin ellas (`grep-invert`): añadir una prueba ya no junta las ventanas.
+  # `check` sigue exigiendo toda la matriz.
   e2e:
-    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.shard }}/${{ strategy.job-total }}
+    name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        include:
+          - { label: 'banco blueUpper', grep: 'banco de fidelidad en blueUpper' }
+          - { label: 'banco blueLower', grep: 'banco de fidelidad en blueLower' }
+          - { label: 'banco plaps', grep: 'banco de fidelidad en plaps' }
+          - { label: '1/7', shard: '1/7' }
+          - { label: '2/7', shard: '2/7' }
+          - { label: '3/7', shard: '3/7' }
+          - { label: '4/7', shard: '4/7' }
+          - { label: '5/7', shard: '5/7' }
+          - { label: '6/7', shard: '6/7' }
+          - { label: '7/7', shard: '7/7' }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -82,12 +91,15 @@ jobs:
       - if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - run: npx vite build
-      - run: npm run e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - if: matrix.grep
+        run: npm run e2e -- --grep "${{ matrix.grep }}"
+      - if: matrix.shard
+        run: npm run e2e -- --grep-invert "banco de fidelidad en " --shard=${{ matrix.shard }}
       - name: Capturas de B más M (solo paciente sintético)
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: mmode-${{ matrix.shard }}
+          name: mmode-${{ strategy.job-index }}
           path: test-results/**/mmode-*.png
           if-no-files-found: ignore
           retention-days: 3
@@ -95,7 +107,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ matrix.shard }}
+          name: playwright-report-${{ strategy.job-index }}
           path: |
             playwright-report
             test-results

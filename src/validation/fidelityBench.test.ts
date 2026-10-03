@@ -13,9 +13,11 @@ import { FB, FIDELITY_BENCH } from '../measure/fidelity/parameters';
 import {
   beamSampler,
   detectSector,
+  fanEdges,
   GREY_8BIT,
   insideSector,
   outsideBlack,
+  skinArcCenterY,
   temporalStats,
   type GreyFrame,
   type GreyScale,
@@ -65,6 +67,86 @@ describe('sector: detección automática desde la imagen (§3.1, pasos 2–3)', 
     expect(Math.hypot(g.apexX - cut.apexX, g.apexY - cut.apexY)).toBeLessThan(3);
     // la recta del borde derecho se ajusta con menos filas que la del izquierdo: las de abajo tocan el marco
     expect(d.edgeInliers.right).toBeLessThan(0.8 * d.edgeInliers.left);
+  });
+
+  it('una sombra costal en el borde: el borde del abanico es la recta de apoyo del soporte, no la de la sombra (decisión 36)', () => {
+    // como en el BLUE inferior del simulador con el punto en el centro del EIC4: una costilla cubre el borde derecho y bajo
+    // ella todo es negro, así que en esas filas el soporte acaba en la sombra, que también es una recta por el ápice y con
+    // más filas que el borde de verdad (solo lo ven el campo cercano y la cresta de la costilla). El detector de la decisión
+    // 21 tomaba la sombra: el borde derecho a −14,1° y el ápice a 3,9 px
+    const edge: SyntheticLusOptions = {
+      ...O,
+      ribs: [
+        { from: -0.25, to: -0.05, topMm: 10 },
+        { from: 0.32, to: 0.6, topMm: 10 },
+      ],
+      floor: 0,
+      deep: 0,
+      hazeUntilMm: 40,
+    };
+    const d = detectSector(syntheticLus(edge), CONT);
+    const g = d.geometry;
+    if (g.kind === 'linear') throw new Error('no es convexa');
+    expect(Math.abs(g.thetaRight - edge.halfSector)).toBeLessThan(0.005);
+    expect(Math.abs(g.thetaLeft + edge.halfSector)).toBeLessThan(0.005);
+    expect(Math.hypot(g.apexX - edge.apexX, g.apexY - edge.apexY)).toBeLessThan(1.5);
+  });
+
+  it('los bordes: simétricos y sin soporte por fuera; una recta con extremos por fuera no es el borde', () => {
+    // extremos de fila de un abanico x = 200 ∓ 0,6·(y + 100): en las filas 0–49 llegan al borde y en las 50–199 acaban en
+    // una sombra a cada lado (x = 200 ∓ 0,45·(y + 100)), simétricas y con más filas que el borde (150 frente a 50). La
+    // simetría sola no las separa (sin la restricción, gana la sombra con sus 50 filas por fuera); el campo cercano sí
+    const ys = Array.from({ length: 200 }, (_, i) => i);
+    const side = (s: number) => ({ ys, xs: ys.map((y) => 200 + s * (y < 50 ? 0.6 : 0.45) * (y + 100)) });
+    const e = fanEdges(side(-1), side(1))!;
+    expect(e.left.b).toBeCloseTo(-0.6, 6);
+    expect(e.right.b).toBeCloseTo(0.6, 6);
+    expect(e.left.a).toBeCloseTo(140, 4);
+    expect(e.right.a).toBeCloseTo(260, 4);
+    expect([e.left.inliers, e.right.inliers, e.left.outside, e.right.outside]).toEqual([50, 50, 0, 0]);
+    // con el campo cercano en solo 6 filas, la sombra deja 6 extremos por fuera: con una fracción (3 % de 200) pasaba; con
+    // `EDGE_OUTSIDE_ROWS` (2), no. Las 6 filas no bastan para la pendiente, pero la recta elegida pasa por ellas y no las deja fuera
+    const short = (s: number) => ({ ys, xs: ys.map((y) => 200 + s * (y < 6 ? 0.6 : 0.45) * (y + 100)) });
+    const sh = fanEdges(short(-1), short(1))!;
+    expect([sh.left.outside, sh.right.outside]).toEqual([0, 0]);
+    expect(Math.abs(sh.right.b)).not.toBeCloseTo(0.45, 2);
+    // con un borde a cada lado en todas las filas y una mota pegada por fuera en dos de ellas, el borde no se mueve
+    const clean = (s: number) => ({ ys, xs: ys.map((y) => 200 + s * (0.6 * (y + 100) + (y === 50 || y === 120 ? 6 : 0))) });
+    const c = fanEdges(clean(-1), clean(1))!;
+    expect(c.right.a).toBeCloseTo(260, 4);
+    expect(c.right.outside).toBe(2);
+  });
+
+  it('el arco de la piel sitúa el ápice cuando los bordes solo se ven en pocas filas; no si la piel es el borde del recorte', () => {
+    // las dos costillas cubren los dos bordes desde 8 mm: los bordes se ven en ≈ 20 filas y su intersección queda a 7 px
+    // del ápice (1,6° en los bordes); el arco de la piel, entero en el cuadro, lo da a < 1 px
+    const dark: SyntheticLusOptions = {
+      ...O,
+      apexY: -100,
+      ribs: [
+        { from: -0.6, to: -0.3, topMm: 8 },
+        { from: 0.3, to: 0.6, topMm: 8 },
+      ],
+      floor: 0,
+      deep: 0,
+      hazeUntilMm: 30,
+    };
+    const g = detectSector(syntheticLus(dark), CONT).geometry;
+    if (g.kind === 'linear') throw new Error('no es convexa');
+    expect(Math.hypot(g.apexX - dark.apexX, g.apexY - dark.apexY)).toBeLessThan(1.5);
+    expect(Math.abs(g.thetaRight - dark.halfSector)).toBeLessThan(0.005);
+    // el arco directamente, desde un ápice de partida a 10 px: lo encendido del sintético
+    const mask = (f: GreyFrame): Uint8Array => Uint8Array.from(f.data as Float64Array, (v) => (v > 0.02 ? 1 : 0));
+    const [f] = syntheticLus(dark);
+    const arc = skinArcCenterY(mask(f), f.width, f.height, dark.apexX, dark.apexY + 10, -dark.halfSector, dark.halfSector);
+    expect(arc).not.toBeNull();
+    expect(Math.abs(arc!.y - dark.apexY)).toBeLessThan(1);
+    // y su error típico, el que lo compara con el de los bordes (2,1 px en este caso: gana el arco)
+    expect(arc!.sigma).toBeLessThan(1);
+    // la piel en el borde superior del cuadro (los clips de Born): no hay arco que ajustar y mandan los bordes
+    const cut: SyntheticLusOptions = { ...O, apexY: -O.radiusMm * O.scale + 2 };
+    const [fc] = syntheticLus(cut);
+    expect(skinArcCenterY(mask(fc), fc.width, fc.height, cut.apexX, cut.apexY, -cut.halfSector, cut.halfSector)).toBeNull();
   });
 
   it('lineal y sectorial (sonda de fase): el tipo y el rectángulo o el ápice', () => {

@@ -52,6 +52,15 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     }
   });
 
+  it('el BLUE inferior, en el centro del EIC4 de la axilar anterior, y su rango entre los centros del EIC5 y del EIC3 (decisión 36)', () => {
+    // la anatomía no se mueve para acomodar un detector: entre las decisiones 28 y 39 estuvo 1,8 mm por encima del centro
+    const P = START_POINT_POSES.params;
+    const phi = P.blueLowerPhi.value;
+    expect(Math.abs(P.blueLowerZ.value - intercostalZ(scene, 4, phi))).toBeLessThan(0.1);
+    expect(P.blueLowerZ.range![0]).toBeCloseTo(intercostalZ(scene, 5, phi), 1);
+    expect(P.blueLowerZ.range![1]).toBeCloseTo(intercostalZ(scene, 3, phi), 1);
+  });
+
   it('cada punto deja la pleura parietal bajo casi todas las líneas apoyadas, a la profundidad de la pared', () => {
     for (const sp of START_POINTS.filter((s) => !isPosterior(s.id))) {
       const { scans, coupled } = view(sp.id);

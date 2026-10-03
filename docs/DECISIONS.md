@@ -1730,6 +1730,12 @@ alta) el ajuste tampoco cambia; las medidas, con la misma semilla: pared 30,20 /
 pared 1,911 / 1,535 / 1,818, M neblina 2,076 / 1,756 / 1,976 y A2.r2 0,5670 / 0,4984 / 0,5298 (el PLAPS, un gris de pared menos:
 dentro de la dispersión de las semillas de la decisión 28).
 
+**Nota (decisión 36, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
+51,3, el ajuste no cambia; las medidas, con la misma semilla y la GPU real (M4), antes → después: BLUE inferior, pared 41,67 →
+41,08, neblina 19,58 → 19,24, M pared 1,536 → 1,567, M neblina 1,754 → 1,780 y A2.r2 0,4962 → 0,5035; PLAPS, 33,72 → 33,55,
+17,22 → 16,83, 1,819 → 1,833, 1,977 → 1,992 y 0,5376 → 0,5357. El BLUE superior, igual. Dentro de la dispersión entre semillas
+de la decisión 28.
+
 La mejora es pequeña: las cuatro métricas primarias (M pared, M neblina, A2.r2 y T1 σ/prominencia)
 se acercan a la descripción exploratoria en las tres ventanas, a DR70 y DR80, pero siguen fuera de
 sus p10–p90. A DR70 esas métricas no están censuradas; los niveles de pared y neblina suben y su recorte
@@ -2092,6 +2098,10 @@ derivación, la fuente de los 5 mm de la cresta, el DOI de Okçu, dos puntos abs
 comentarios desfasados (`wallArc`, la cara posterior de la columna a 42 mm, el título de A-T7 alto), el umbral de A-T15 (20,3, no 21) y efectos pequeños sin declarar: todo aplicado. Comprobado correcto por el revisor: las cifras de ANSUR recalculadas de los
 CSV públicos, las de Folli y Okçu frente a sus tablas, todas las consecuencias de la tabla, A-T15 y A-T24, la ausencia de
 literales del tronco viejo en TS y GLSL, la nota de la decisión 24 y el índice.
+
+**Nota (decisión 36, 2026-10-03).** El detector del sector de la decisión 36 (bordes simétricos sin soporte por fuera y el ápice
+desde el arco de la piel) acierta en el centro del EIC4 (0,72 px con la GPU real, donde el de la decisión 21 daba 8,3–36,8): el
+punto vuelve al centro, 49,5 mm, que es su criterio, y la pregunta abierta de esta decisión se cierra.
 
 ## 29. La espalda: el paciente sentado, la escápula y la columna
 
@@ -2897,3 +2907,152 @@ antes = main, después = R_t 0,1; p10–p90 entre sujetos; ≥ cota inferior, ? 
 **Verificación.** `npm run check` en verde; e2e con la GPU real y SwiftShader (fidelidad, calibración, imagen, mapa de
 grises); el barrido y su superficie, en la PR. Revisión adversarial de contexto limpio antes de abrir la PR (resumen en la
 PR).
+
+**Nota (decisión 36, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
+51,3, este ajuste no cambia; sus medidas, con la misma semilla y la GPU real (M4) sobre la rama de la #46 (`8cf5331`), antes →
+después: BLUE inferior, pared 41,67 → 40,93, neblina 14,35 → 13,38, M pared 1,199 → 1,219, M neblina 1,409 → 1,426 y A2.r2
+0,3506 → 0,3515; PLAPS, 33,89 → 33,66, 14,23 → 13,47, 1,364 → 1,371, 1,504 → 1,515 y 0,3641 → 0,3684. El BLUE superior, igual.
+Las columnas de coherencia a DR70, 163 y 78 (> 50). El candidato K 53 y ganancia −19, descartado aquí por la guarda de d_pl
+del BLUE inferior, la pasa con el punto en 49,5 y el detector de la decisión 36 (allí, el porqué).
+
+## 36. El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Dos números de la anatomía los fijaba un detector y no su fuente (la misión: «que no mienta»). El punto BLUE
+inferior (`app.startPointPoses.blueLowerZ`, también la altura del PLAPS) estaba en 51,3 mm, 1,8 mm sobre el centro del EIC4 de
+la axilar anterior (49,46 con el tronco de la decisión 28 y la espalda de la 29), porque en el centro el detector del sector de
+la decisión 21 se equivocaba: la sombra de una costilla tapa el borde derecho del abanico, bajo ella todo es negro y el RANSAC
+por lado, que gana con más filas, tomaba la recta de la sombra (también radial, también por el ápice) por el borde. Con los
+cuadros del simulador en el centro (GPU real, M4): el ápice a 8,3 px en apnea y a 36,8 respirando, el borde derecho a 1,7° y
+7,4°; con SwiftShader, 50 px (decisión 28); la e2e exige < 25 px. En los clips del banco, el mismo error: LUS-35r y LUS-35v (el
+borde derecho a 16,6° y 14,8°), LUS-35e (24,8°) y LUS-35p (8,1°), y en 35h, 35j y 35l un borde oscuro tomado por el del abanico
+(27,5–37,6°). Y la pared infraescapular alta (`anatomy.chestWall.infrascapularHighWallMm`, 20 mm) no tenía fuente: la fijaban
+el banco (con 24, el detector de estructuras perdía la pleura del PLAPS, 61 % de sus columnas) y F-T08. Objetivos O2 (las
+dimensiones de sus fuentes) y O3 (el banco mide igual el simulador y los clips).
+
+**Opciones.** Para el detector: (a) aflojar la guarda de 25 px de la e2e (no: esconde el error); (b) mover el punto hasta donde
+el detector acierte (lo de la decisión 28; no: la anatomía no se mueve para acomodar un detector); (c) un detector que use lo
+que la sombra no cumple: el borde del abanico es una recta de apoyo del soporte (nada encendido por fuera; la sombra tiene por
+fuera la pared y la cresta ósea, en el campo cercano), los dos bordes son simétricos respecto de un eje vertical (los 34 clips
+con su geometría fijada, dentro de 0,6°, y el simulador) y en una convexa la piel es un arco alrededor del ápice; (d) la
+varianza temporal o lo encendido en toda la pila (no ayuda en el simulador: la pared está quieta y la sombra no se mueve con la
+respiración lo bastante para destapar el borde). Para la pared: una fuente verificada (ecografía o TAC) o, sin ella, decir que
+no la hay.
+
+**Decisión.** (c) y el punto en el centro; la pared, sin cambiar de valor (no hay fuente).
+
+- **Los bordes** (`fanEdges`, `src/measure/fidelity/sector.ts`): RANSAC determinista conjunto. Cada par de extremos de fila de
+  un lado da una recta, que se descarta si deja más de `EDGE_OUTSIDE_ROWS` (2) extremos de su lado a más de `EDGE_OUTSIDE_PX`
+  (3 px) por fuera; el otro lado lleva la pendiente opuesta y solo busca su ordenada de apoyo (`supportingOffset`: la que deja
+  a lo sumo 2 extremos por fuera y, entre esas, la de más filas a ≤ 1,5 px). Gana el par con más filas en los dos lados y se
+  refina por mínimos cuadrados con la pendiente común. Dos extremos y no una fracción: con un 3 % de 170 filas pasaba la recta
+  de una sombra cuando el campo cercano era corto. Si ningún par cumple (no ocurre en los clips ni en el simulador), cada borde
+  se ajusta solo, como antes; un lado que toca el marco en todas las filas sigue siendo el marco.
+- **El ápice desde el arco de la piel** (`skinArcCenterY`): lo primero encendido de cada columna, entre el 6 % y el 94 % del
+  ángulo, se ajusta a un círculo con el centro en la x del ápice de los bordes (mínimos cuadrados algebraicos: la primera vez,
+  con la mitad de los puntos más cercana al círculo del ápice de los bordes; después, con los de ≤ 2 px). Se usa si el arco
+  está entero (por debajo del borde del cuadro, ≥ 80 % de los ángulos cubiertos, la mitad de sus puntos ajustados, residuo
+  mediano ≤ 1 px) y si su error típico es menor que el de la altura que dan los bordes (`edgeApexSigma`: |y₀ − ȳ|·σ_b/|b|). En
+  el BLUE inferior los bordes se ven en ≈ 50 filas y dan σ 1,4 px (su error real, 9 px: 1° en los bordes), y el arco, 0,45. Un
+  arco corto y llano frente a bordes largos (el sintético de 300 px de la invariancia afín, 10 px de flecha) pierde: σ 4–5
+  frente a 0,2–0,3 (sin esa comparación, la tubería de la invariancia falló: el ápice a 21,6 px). Con el ápice del arco, los
+  bordes pasan por él con la pendiente común de sus filas. En los clips de Born la piel es el borde del recorte: no se usa.
+- `detectSectorFromStats`: lo mismo que `detectSector` desde la media y la σ temporal ya calculadas.
+- **El punto BLUE inferior** vuelve a **49,5 mm**, el centro del EIC4 de la axilar anterior en la parrilla (49,46), y con él el
+  PLAPS. La guarda de 25 px de la e2e no cambia.
+- **La pared infraescapular alta**: búsqueda del 03-10-2026 (PubMed, Europe PMC a texto completo y web: «posterior axillary
+  line», «chest wall thickness» por TAC para toracocentesis o descompresión con aguja, bloqueos del serrato y del erector,
+  ecografía pulmonar posterior): **NO ENCONTRADO** en adultos, ni por ecografía ni por TAC, en la LAP o la infraescapular. Lo
+  único que nombra la LAP (Jin y cols. 2014, TAC de 6 pacientes con derrame en supino, 16 ± 3 mm sin decir el espacio ni la
+  capa) es solo el resumen: NO VERIFICADO, no entra. Con el detector y el punto nuevos, 24 mm ya no rompen nada (la pleura del
+  PLAPS a ±1 mm del gemelo en el 100 % de sus 83–86 columnas con la GPU real; F-T08 en verde con 23 y con 24), así que ninguna
+  prueba fija el valor: queda en 20 [SUPUESTO], y lo dicen su nota, `docs/APPROXIMATIONS.md` y `chest-wall-height-transition`.
+  Sin ese nodo, la interpolación entre la axila (18, McLean) y la espalda alta (32, Wada y Okçu) daría ≈ 23 en 1,2π: no se
+  elige sin fuente (pregunta abierta en la PR).
+
+**Consecuencias.**
+
+- **El simulador** (los 30 cuadros de la e2e de fidelidad, GPU real M4, con R_t 0,3 como en main antes de la #46; antes →
+  después; el ápice y el peor borde):
+
+  | Punto                    | Apnea                        | Respiración tranquila      |
+  | ------------------------ | ---------------------------- | -------------------------- |
+  | BLUE superior            | 2,6 px, 0,55° → 0,66, 0,004° | 2,4, 0,55° → 0,67, 0,003°  |
+  | BLUE inferior en 51,3 mm | 1,7, 0,42° → 0,6, 0,00°      | 2,3, 0,53° → 0,6, 0,00°    |
+  | BLUE inferior en 49,5 mm | 8,3, 1,69° → 0,72, 0,004°    | 36,8, 7,37° → 0,72, 0,004° |
+  | PLAPS en 49,5 mm         | 0,3, 0,11° → 0,60, 0,003°    | 0,6, 0,06° → 0,59, 0,003°  |
+
+  Con R_t 0,1 (main desde la #46), sobre esta rama: BLUE superior 1,15 / 1,03 px y 0,15°, BLUE inferior 0,65 px y 0,003°,
+  PLAPS 0,73 px y 0,09° (en el BLUE superior y el PLAPS manda la intersección de los bordes, de menor error típico que el
+  arco). La piel detectada, a −0,8–0,5 px; la pleura del detector de estructuras, a ±1 mm del gemelo en todas sus columnas
+  (163–193 en el BLUE inferior, 75–88 en el PLAPS). d_pl con la geometría detectada, 0,2–0,3 mm más larga en los puntos BLUE;
+  en el PLAPS, con R_t 0,1, 1,4 mm más corta en apnea: no es el sector (a 0,7 px) sino d_pl, la mediana de una pleura inclinada
+  cuyas columnas caen en dos grupos (15,0 y 16,5 mm con la geometría verdadera, que respirando alterna entre los dos), y la
+  guarda (2 mm) no cambia. Con SwiftShader lo mide el CI.
+
+- **Los clips** (la geometría fijada del manifiesto como referencia; antes → después, el ápice y el peor borde). Esa geometría
+  la propuso el detector de la decisión 21 y la fijó una persona (decisión 21), con los ángulos redondeados a 0,01 rad: donde
+  el detector viejo acertaba, «antes → después» mide acuerdo con él, no precisión. Aptos: LUS-35r 86,9 px y 16,6° → 5,0 y
+  0,23°; LUS-35v 6,1 y 14,8° → 9,6 y 0,28° (el borde, 50 veces mejor; el ápice, 8 px más abajo en el eje: su borde derecho no
+  se ve en ninguna fila, solo 5 extremos caen en él, y su ordenada sale de los de la sombra; `sector-detector-symmetric`);
+  LUS-01, que se proponía lineal, convexa a 3,8 px y 0,77°; los demás aptos convexos y LUS-02, ≤ 3,9 px y ≤ 0,68° (antes ≤ 4,3
+  y ≤ 0,9), con dos que se apartan algo más que antes por la simetría que se impone: LUS-04f 0,3 px y 0,27° → 1,9 y 0,68°, y
+  LUS-04a 0,1 y 0,22° → 0,8 y 0,37°. No aptos con un borde oscuro: LUS-35e 202 → 4,0 px, 35h 170 → 4,1, 35j 241 → 0,6, 35l 160
+  → 3,7, 35p 38 → 2,6, con los bordes a ≤ 0,6°; LUS-04e (lineal en el manifiesto) se proponía convexa y ahora lineal. El banco
+  regenerado (`npm run fidelity:ref`, los 34 clips, 8 277 cuadros, con carga media ≈ 80): `reference-stats.json` cambia solo
+  en `detector` y en la fecha; las métricas se miden con la geometría fijada y no cambian. La partición de C3b-A anota la
+  revisión (`calibration-split.json`).
+- **Lo que no arregla** (`sector-detector-symmetric`, revisión adversarial): un abanico asimétrico (girado 1° alrededor del
+  ápice: el ápice a 13,5 px y un borde a 1,95°, donde el detector viejo acertaba), un borde que no se ve en ninguna fila (el
+  ápice baja por el eje) y los dos bordes tapados desde 4 mm de la piel (el arco da el ápice, pero los bordes quedan a 7–9°;
+  el viejo, a 12,6°). Ningún clip del banco ni ningún punto del simulador cae en el primer caso.
+- **La calibración del contraste**, con la misma semilla y el mismo protocolo (DR70, t = 60 s, GPU real): la de la decisión 24
+  (R_t 0,3, medida sobre main `4edaf7d`) y la de la decisión 35 (R_t 0,1, el preajuste de main desde la #46, medida sobre su
+  rama `8cf5331`), con el punto en 51,3 y en 49,5 (notas en las decisiones 24 y 35). El BLUE superior no cambia. Pared y
+  neblina (gris de 8 bits del primer cuadro), M de la pared y de la neblina y A2.r2 (medianas de tres réplicas):
+
+| Ajuste y punto     | 51,3 mm                                | 49,5 mm                                |
+| ------------------ | -------------------------------------- | -------------------------------------- |
+| R_t 0,3, BLUE inf. | 41,67 / 19,58 / 1,536 / 1,754 / 0,4962 | 41,08 / 19,24 / 1,567 / 1,780 / 0,5035 |
+| R_t 0,3, PLAPS     | 33,72 / 17,22 / 1,819 / 1,977 / 0,5376 | 33,55 / 16,83 / 1,833 / 1,992 / 0,5357 |
+| R_t 0,1, BLUE inf. | 41,67 / 14,35 / 1,199 / 1,409 / 0,3506 | 40,93 / 13,38 / 1,219 / 1,426 / 0,3515 |
+| R_t 0,1, PLAPS     | 33,89 / 14,23 / 1,364 / 1,504 / 0,3641 | 33,66 / 13,47 / 1,371 / 1,515 / 0,3684 |
+
+Todo se mueve dentro de la dispersión entre semillas de la decisión 28 (M de la pared del BLUE inferior, 1,628–1,679 en tres
+semillas de main): M sube 0,01–0,03 (se aleja algo del banco) y A2.r2 no cambia. Las columnas de coherencia a DR70, > 50 en
+las tres ventanas (172 y 86 con R_t 0,3; 163 y 78 con R_t 0,1).
+
+- **La guarda de d_pl del BLUE inferior, inestable en main** (aviso del 03-10-2026; la guarda no se afloja). Reproducida en
+  main `83b7544`: con la GPU real fallan 3 de 12 corridas (`--repeat-each=6`, dos tandas) y con SwiftShader 2 de 4, con la
+  d_pl de la geometría detectada 4,8–5,0 mm más larga que la verdadera (la guarda admite 2). **No es una estructura falsa ni,
+  en el fondo, el sector**: en la
+  vista del BLUE inferior la pleura del espacio intercostal del lado izquierdo de la imagen está a 17,5–19,6 mm y la de los otros
+  dos a 12,8–14,2 (el gemelo de A0, línea a línea: la pared sube hacia la axila). El detector de estructuras busca la pleura de
+  cada cuadro a ±30 % de la d_pl del cuadro medio (`detectStructures` con `prior`), una sola profundidad: con una previa de 14,0
+  el límite cae en 18,2 mm, en medio de ese espacio, y cuántas de sus columnas entran —y con ellas la mediana, d_pl— depende de
+  décimas (la previa sale 14,0 o 16,0; los cuadros, 14,1, 16,0 o 18,2 mm). Lo que la mueve es cualquier cambio pequeño: la
+  geometría detectada (el detector viejo, a 3–9 px), el ruido del receptor de cada cuadro, el fondo detectado (que acorta las
+  filas). Con el detector nuevo, en 51,3 mm, las mismas pilas siguen saltando (d_pl de 16,04 en 4 de 6, 2,6 mm sobre la
+  verdadera): el sector a 0,6 px no lo arregla. En 49,5 mm, con el detector nuevo y sobre `83b7544`: 30 de 30 corridas del
+  BLUE inferior en verde, 20 con la GPU real y 10 con SwiftShader, todas a 0,25–0,29 mm (la previa, 14,2: el límite, en 18,45, deja dentro 8
+  columnas del espacio hondo y fuera las demás, siempre las mismas). Es estable en estas corridas, pero el mecanismo sigue
+  ahí: una previa por columna (la pleura del cuadro medio en cada columna) lo quitaría y cambia las estadísticas de casi todos
+  los clips del banco, así que queda para una decisión aparte (pregunta abierta en la PR). El PLAPS tiene el mismo mecanismo
+  en menor grado: 1,37 mm constante en apnea y 0,17–1,37 respirando (8 corridas con la GPU real y 4 con SwiftShader, todas
+  < 2).
+- **El candidato que la decisión 35 descartó** (σz 0,05, R_t 0,1, K 53 y ganancia −19, el mejor de su exploración) cayó por esta
+  misma guarda: «en el BLUE inferior el sector detectado da d_pl 2,7 mm más larga». Con el punto en 49,5 y el detector nuevo,
+  ese candidato la pasa (0,28 mm en apnea, 0,22 respirando; una corrida con la GPU real, en los tres puntos). No se reabre aquí
+  la decisión 35: queda como pregunta abierta.
+- **Metas A.** Ninguna se mueve: el punto vuelve a su criterio (el centro del EIC4) y F-T08 sigue en verde en los tres puntos de
+  partida y en los cortes de la meta. La cobertura no depende de los puntos de partida.
+
+**Verificación.** Las unitarias del detector (`fidelityBench.test.ts`): una sombra costal en el borde derecho de un sintético
+(con el detector de la decisión 21, el borde a −14,1°: 0,246 rad frente a < 0,005), los bordes con una sombra simétrica a cada
+lado con más filas que el borde (sin la restricción de apoyo gana la sombra) y con dos motas por fuera, y el arco de la piel con
+los dos bordes tapados desde 8 mm (sin el arco, el ápice a 7 px y los bordes a 1,6°) o cortado por el borde del cuadro (null).
+**Mutaciones**, cada una atrapada: el detector de la decisión 21 (dos pruebas), sin la restricción de apoyo (dos), sin el arco
+(una). `startPoints.test.ts`: el punto en el centro del EIC4 a < 0,1 mm y su rango entre los centros del EIC5 y del EIC3. La
+invariancia afín con fast-check (200 corridas por propiedad), la e2e de fidelidad y de calibración con la GPU real. `npm run check` y el CI de la PR (la e2e con
+SwiftShader: con la máquina a carga media 50–150, en local solo se corrió con la GPU real).

@@ -4,7 +4,7 @@
   "created_utc": "2026-09-28T19:37:52.188305+00:00",
   "baseline_commit": "e28aaa0c4deb092d3fd76b52d3d2032de8aa5ae8",
   "manifest_sha256": "611fb7dee9edbbc66dd0f0ae0c862a8f862598b03db1e6cc1dbbce50cd54a233",
-  "reference_stats_sha256": "4e85b73949fb15c5ed819df02220be16066cd832d4c00f5d7804f5d46b84e6ab",
+  "reference_stats_sha256": "3284a143fc21863c4889363808495c580ac0b13489fa1bf97e22d77e1e25986f",
   "scope": {
     "pattern": "normal",
     "probe": "convex",
@@ -44,6 +44,14 @@
       "previous_reference_stats_sha256": "dd15a0e7699075161d69e3f024cec941cfcfb141db04c3b54b20c219a46d7a83",
       "change": "Decisión 31: el detector de líneas A busca los picos sobre el perfil sin su tendencia de profundidad, con el ruido correlado en el umbral de visibilidad y r_k solo de los órdenes visibles; LUS-35f (exploración) pasa a tener líneas A medidas (a_lines true); cada clip lleva además su mapa de grises estimado desde el moteado (ninguno fiable). La partición por sujetos no cambia.",
       "effect": "Exploración: M pared entre sujetos 1,19–1,43 (2 clips/2 sujetos) → 0,851–1,40 (4/4); M neblina 0,955–1,03 → 0,870–1,00; M campo profundo 1,76–2,29 → 1,76–2,27; A1 0,113–0,197 (2/2) → 0,059–0,185 (3/3); A2 r₂ 0,129–0,248 (2/2) → 0,168–0,246 (3/3); A2 visibles 3/3 → 4/4; T1 σ/prominencia 0,117 → 0,118 en el p10, lo demás igual. Comprobación: M pared 0,880–0,917 → 0,896–0,911, M neblina 0,959–1,18 → 0,964–1,20, M campo profundo 1,59–2,23 → 1,59–2,20, A1 0,165–0,203 → 0,145–0,152, A2 r₂ 0,222–0,235 → 0,176–0,222 (6/2 en todas); T1 igual. Los ajustes de C3b-A se eligieron con la versión anterior."
+    },
+    {
+      "date": "2026-10-03",
+      "decision": 39,
+      "previous_manifest_sha256": "611fb7dee9edbbc66dd0f0ae0c862a8f862598b03db1e6cc1dbbce50cd54a233",
+      "previous_reference_stats_sha256": "4e85b73949fb15c5ed819df02220be16066cd832d4c00f5d7804f5d46b84e6ab",
+      "change": "Decisión 36: el detector del sector (bordes simétricos sin soporte por fuera y el ápice desde el arco de la piel) cambia solo el acuerdo del detector con la geometría fijada de cada clip (`detector`) y la fecha de generación; las métricas se miden con la geometría fijada y no cambian. La partición por sujetos no cambia.",
+      "effect": "Ninguno en las distribuciones de exploración ni de comprobación (los mismos números)."
     }
   ]
 }
