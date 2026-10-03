@@ -17,16 +17,15 @@ la salida actual no protege nada.
 
 ## La e2e en el CI
 
-- **Nueve fragmentos en paralelo, un trabajador cada uno** (`.github/workflows/ci.yml`, `playwright.config.ts`; PR #32,
-  decisiones 30 y 33). Las 34 pruebas (con las dos del mapa de grises, decisión 31, las dos del pulso pulmonar, decisión 32, y la de
-  la espalda en el navegador, decisión 33) se reparten por prueba y no por archivo (`fullyParallel`), **por cuenta y en orden**: Playwright
-  da a cada fragmento ⌊34/9⌋ pruebas consecutivas y una más a los primeros, sin mirar cuánto duran. Con 33 en ocho, el 2.º
-  juntó la calibración del PLAPS y las tres ventanas del banco y el CI lo canceló a los 15 min (decisión 33); con nueve, los
-  fragmentos del banco son los mismos que con 32 en ocho (12,3 y 12,5 min en el CI). Para ver el reparto sin correrlo:
-  `CI=1 npx playwright test --list --shard=2/9`. Al añadir o quitar una
-  prueba, mirar qué fragmento recibe las ventanas del banco de fidelidad (≈ 4 min cada una en el CI): con 29 en siete, el
-  segundo juntaba tres y se acercaba a los 15 min. El agregador `check`
-  exige que toda la matriz apruebe, además de `verificar`; el plazo por corredor sigue en 15 minutos.
+- **Las ventanas del banco, cada una en su trabajo; el resto, en siete fragmentos** (`.github/workflows/ci.yml`; 03-10-2026).
+  Playwright reparte `--shard` por cuenta y en orden, sin mirar cuánto dura cada prueba: cada prueba nueva movía las tres
+  ventanas del banco de fidelidad (4–6 min cada una en el CI) hasta juntarlas en un fragmento de 15 min (CI87, CI99, #45,
+  #49), y la solución de añadir un fragmento duraba hasta la prueba siguiente. Ahora cada ventana corre sola, elegida por
+  nombre (`--grep "banco de fidelidad en blueUpper"`, …), y las demás se reparten en siete fragmentos que las excluyen
+  (`--grep-invert "banco de fidelidad en "`). Para ver el reparto sin correrlo:
+  `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/7`. Una ventana nueva del banco lleva
+  su propia entrada en la matriz. El agregador `check` exige que toda la matriz apruebe, además de `verificar`; el plazo
+  por corredor sigue en 15 minutos.
   **Las pruebas lentas del banco** (02-10-2026): la del mapa de grises corría las dos vistas en 4,9–5,0 min frente a su plazo
   de 5 y pasa a una prueba por vista (1,5 min cada una en local; las aserciones no cambian). Cada ventana del banco de
   fidelidad tardó 2,0–5,1 min en el CI según el corredor (los corredores difieren hasta 2,5 veces), y su plazo pasa de 5 a 7
