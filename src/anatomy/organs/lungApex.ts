@@ -30,8 +30,22 @@ export const LUNG_APEX = defineParameters('anatomy.lungApex', {
     evidence: 'estimado',
     sources: [],
     note:
-      'Profundidad bajo la cara interna de la pared en la que la pleura cervical pasa de la vertical (la pared) a la ' +
-      'horizontal (el techo de la cúpula) [SUPUESTO]: e = Rc·(1 − √(1 − h)), con h la fracción de la altura entre zApex y zTop',
+      'Profundidad bajo la cara interna de la pared a la que la ladera anterior de la cúpula llega al techo [SUPUESTO]. Desde la ' +
+      'decisión 44, la ladera sale de la pared sin esquina y sube con pendiente acotada: e = D·h², con h la fracción de la ' +
+      'altura entre zApex y zTop y D = min(Rc, `cupolaMaxSlope`·(zTop − zApex)/2); sobre zTop, el techo (horizontal)',
+  },
+  cupolaMaxSlope: {
+    value: 1.5,
+    unit: 'mm/mm',
+    range: [1, 3],
+    evidence: 'estimado',
+    sources: ['gray-anatomia-1918'],
+    note:
+      'La mayor pendiente de la ladera anterior de la cúpula (mm hacia dentro por mm de altura), la que tendría en el vértice ' +
+      'medial con Rc 30 [SUPUESTO] y la altura de la cúpula sobre la 1.ª costilla ahí (≈ 39 mm en el avatar, la de Gray: el vértice ' +
+      '2,5–5 cm sobre el extremo esternal de la 1.ª costilla y ≈ 2,5 cm sobre el tercio medial de la clavícula): 2·30/39 ≈ 1,5 ' +
+      '(decisión 44). Como ninguna columna de la cúpula sube más de 40 mm, el min de D casi nunca actúa: D ≈ 0,75·H en todas, y Rc ' +
+      'solo pone el tope. Gray da la altura, no la pendiente: la pendiente de la ladera no tiene fuente (NO ENCONTRADO)',
   },
   lateralRiseMm: {
     value: 5,
@@ -62,25 +76,38 @@ export const NECK_BLEND_MM = 24;
 export const CUPOLA_CAP_MM = 200;
 
 /**
- * Grosor extra de la pared (mm, radial) a la altura z en una columna con la cúpula (zApex, zTop): 0 hasta zApex; la curva
- * Rc·(1 − √(1 − h)) hasta zTop (la pleura cervical: vertical en la pared, horizontal a Rc mm por dentro); `CUPOLA_CAP_MM` más
- * arriba (gemelo GLSL `cupolaMm`).
+ * Grosor extra de la pared (mm, radial) a la altura z en una columna con la cúpula (zApex, zTop): 0 hasta zApex; la ladera
+ * anterior de la cúpula, D·h² hasta zTop (sale de la pared sin esquina, como una membrana, y llega al techo con la pendiente
+ * 2D/(zTop − zApex) ≤ `cupolaMaxSlope`, D = min(Rc, pendiente·altura/2)); `CUPOLA_CAP_MM` más arriba, el techo: la radial ya no
+ * cruza pulmón (gemelo GLSL `cupolaMm`). Lus-sim (decisión 44): antes Rc·(1 − √(1 − h)), con una esquina en zApex (la pared
+ * engruesa de golpe Rc/2H por mm) y la pendiente infinita junto al techo (≈ 16 mm por mm en la ladera de la cúpula, a donde llega
+ * el sector del BLUE superior clínico).
  */
+/** La profundidad D de la ladera en su techo (mm por dentro de la pared): donde empieza el techo horizontal (gemelo GLSL). */
+export function cupolaRoofDepthMm(zApex: number, zTop: number): number {
+  const P = LUNG_APEX.params;
+  return Math.min(P.cupolaCurveMm.value, 0.5 * P.cupolaMaxSlope.value * Math.max(zTop - zApex, 1e-3));
+}
+
 export function cupolaMm(zApex: number, zTop: number, z: number): number {
   if (z <= zApex) return 0;
-  const h = (z - zApex) / Math.max(zTop - zApex, 1e-3);
-  if (h >= 1) return CUPOLA_CAP_MM;
-  return LUNG_APEX.params.cupolaCurveMm.value * (1 - Math.sqrt(1 - h));
+  const span = Math.max(zTop - zApex, 1e-3);
+  if (z >= zApex + span) return CUPOLA_CAP_MM;
+  const h = (z - zApex) / span;
+  return cupolaRoofDepthMm(zApex, zTop) * h * h;
 }
 
 export const LUNG_APEX_GLSL = /* glsl */ `
 #define CUPOLA_RC ${LUNG_APEX.params.cupolaCurveMm.value.toFixed(4)}
+#define CUPOLA_SLOPE ${LUNG_APEX.params.cupolaMaxSlope.value.toFixed(4)}
 #define CUPOLA_CAP ${CUPOLA_CAP_MM.toFixed(4)}
+float cupolaRoofDepthMm(vec2 a) { return min(CUPOLA_RC, 0.5 * CUPOLA_SLOPE * max(a.y - a.x, 1e-3)); }
 float cupolaMm(vec2 a, float z) {
   if (z <= a.x) return 0.0;
-  float h = (z - a.x) / max(a.y - a.x, 1e-3);
-  if (h >= 1.0) return CUPOLA_CAP;
-  return CUPOLA_RC * (1.0 - sqrt(1.0 - h));
+  float span = max(a.y - a.x, 1e-3);
+  if (z >= a.x + span) return CUPOLA_CAP;
+  float h = (z - a.x) / span;
+  return cupolaRoofDepthMm(a) * h * h;
 }
 `;
 
