@@ -7,6 +7,17 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El estómago, los riñones y el polo posterior del bazo (43): el estómago en ayunas bajo el espacio de Traube (el volumen y el gas de
+  Fidler y cols., la pared de Henry y cols.), con su gas arriba en supino; su sombra y su reverberación salen de la pasada B (la
+  e2e lo mide frente a la mutación sin gas; el eco de la cara del gas falta, `test.fail`). Los riñones de VExUS con el sitio de
+  Gray, Morris y Xue y cols. y los ejes de Glodny y cols., y el retroperitoneo de VExUS (psoas, cuadrado lumbar y grasa) como su
+  lecho; su grasa marca la impresión renal del hígado y del bazo. El bazo, con el peso de Gray (171 mL) y un polo posterior que
+  llega a 4 cm de la línea media en T9, bajo el diafragma. Cobertura de exploración: de 127 a 137 de 138 (las 11 celdas de la
+  tarea; la axilar posterior izquierda en el EIC11, que cumplía una lámina del bazo, pasa a pendiente: la base pone ahí el colon).
+  Las seis diferencias centrales de cada cara de `faceGradient` en un bucle (`faceSdAt`): con SwiftShader el arranque baja de 42–74 s a 31–58 y el cuadro de 516–801 ms a 295–541 (antes de la decisión 37, 30–113 s y 422–682 ms); la entrada sube a 300 kB y el total a 860. Ranuras de uniforms de
+  la pasada B: 128 (130 en su programa dirigido, el tope). Nuevas limitaciones `stomach-traube-lens` y
+  `kidney-retroperitoneum-port`.
+
 - El hígado y el bazo bajo las cúpulas (37): el hígado de VExUS (sus dos lóbulos, su cara visceral y su recorte posteromedial,
   escalados a la cavidad) con el borde inferior de Gray contra la pared (1 cm bajo el reborde costal derecho hasta el 9.º
   cartílago, en oblicuo hasta el 8.º izquierdo; el lóbulo izquierdo acaba bajo el 6.º cartílago a 5 cm) y el riñón de Morris

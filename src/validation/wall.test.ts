@@ -486,7 +486,7 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     expect(glsl).toContain('if (d >= wall) return -1;');
     // faceGradient: la distancia de la capa y la de la costilla cuya cara es (la de la clasificación)
     expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
-    expect(glsl).toContain('int k = faceRib(m);');
+    expect(glsl).toContain('int k = sel == 4 ? faceRib(m) : (sel == 5 && m.x >= 0.0 ? 1 : 0);');
   });
 
   it('la pasada B aplica la textura solo a la grasa y al músculo, y el eco de las caras de pared y costilla', () => {

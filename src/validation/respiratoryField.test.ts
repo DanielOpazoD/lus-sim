@@ -330,13 +330,27 @@ describe('Campo respiratorio: la inversa exacta a la tolerancia declarada (decis
   });
 });
 
-describe('El hígado y el bazo en el campo respiratorio (decisión 37)', () => {
+describe('El hígado y el bazo (decisión 37), el estómago y los riñones (decisión 43) en el campo respiratorio', () => {
   // Los órganos se clasifican en el marco material, como todo lo demás: el campo los lleva sin tocar su invertibilidad. Se
   // muestrea donde están (puntos del tronco cuyo tejido es el hígado, su cápsula o el bazo, en las 18 escenas) y se exige lo
   // que exige el resto del tronco, más que el órgano en el mundo sea el del marco material: el mundo de un punto del hígado,
   // devuelto al marco material, sigue en el hígado (salvo a menos de la tolerancia de su borde)
-  const ORGANS = new Set([Tissue.Liver, Tissue.LiverCapsule, Tissue.Spleen]);
-  const isOrgan = (v: number, m: Vec3) => ORGANS.has(SCENES[v].classify(m, { diaphragmCaudalMm: 0 }).tissue);
+  const ORGANS = new Set([
+    Tissue.Liver,
+    Tissue.LiverCapsule,
+    Tissue.Spleen,
+    Tissue.RenalCapsule,
+    Tissue.RenalCortex,
+    Tissue.RenalMedulla,
+    Tissue.RenalSinus,
+    Tissue.RenalPelvis,
+    Tissue.PerirenalFat,
+  ]);
+  const STOMACH = new Set([Tissue.Bowel, Tissue.Fluid, Tissue.BowelGas]);
+  const isOrgan = (v: number, m: Vec3) => {
+    const t = SCENES[v].classify(m, { diaphragmCaudalMm: 0 }).tissue;
+    return ORGANS.has(t) || (STOMACH.has(t) && SCENES[v].inStomach(m, { diaphragmCaudalMm: 0 }));
+  };
   /** Los nodos de una rejilla de 8 mm que caen en el hígado o el bazo, por escena (el muestreo por rechazo sobre el tronco, lento). */
   const GRID = 8;
   let cache: Vec3[][] | null = null;

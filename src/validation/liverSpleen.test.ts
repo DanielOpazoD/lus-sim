@@ -2,7 +2,7 @@ import { chai, describe, expect, it } from 'vitest';
 import { wallColumnTexel } from '../anatomy/organs/chestWall';
 import { LIVER, liverEdgeZ } from '../anatomy/organs/liver';
 import { lungBorderAt } from '../anatomy/organs/lungBorder';
-import { ribLineArc, ribTableZ } from '../anatomy/organs/ribcage';
+import { ribLineArc, ribTableZ, spinousTipZ } from '../anatomy/organs/ribcage';
 import { SPLEEN } from '../anatomy/organs/spleen';
 import { wallArc } from '../anatomy/organs/wall';
 import { torsoSkinPoint } from '../anatomy/primitives';
@@ -166,12 +166,13 @@ describe('El hígado bajo la cúpula derecha (decisión 37; Gray, «Surface Mark
     expect(liverBox.mL).toBeLessThanOrEqual(1524);
   });
 
-  it('el riñón de Morris queda fuera: detrás, bajo la punta de T11 (el derecho 1 cm más bajo), entre 2,5 y 9,5 cm de la línea media', () => {
-    const K = scene.liver.kidney;
-    for (let z = K.zRight - 30; z < K.zRight - 8; z += 2)
-      for (const x of [-40, -60, -80]) expect(isLiver(cls([x, K.yAnt - 15, z])), `${x}, z ${z}`).toBe(false);
-    // por encima del riñón, la cara posterior del lóbulo derecho llega a la espalda (el EIC10 de la escapular derecha)
-    expect(isLiver(cls([-75, -70, K.zRight + 15]))).toBe(true);
+  it('el riñón derecho queda fuera del hígado (decisión 43: su impresión renal, la de la grasa perirrenal de VExUS)', () => {
+    const k = scene.kidneys[0];
+    // el centro del riñón y un punto de su grasa detrás no son hígado; por encima del riñón, la cara posterior del lóbulo derecho
+    // llega a la espalda (el EIC10 de la escapular derecha)
+    expect(isLiver(cls(k.center))).toBe(false);
+    expect(isLiver(cls([k.center[0], k.center[1] - 20, k.center[2]]))).toBe(false);
+    expect(isLiver(cls([-75, -70, -40]))).toBe(true);
   });
 });
 
@@ -180,7 +181,10 @@ describe('El bazo bajo la cúpula izquierda (decisión 37; Gray, «The Spleen» 
   for (let x = 0; x <= 160; x += 2)
     for (let y = -113; y <= 113; y += 2) for (let z = -180; z <= 20; z += 2) if (cls([x, y, z]) === Tissue.Spleen) pts.push([x, y, z]);
 
-  it('su largo (el eje principal de sus puntos) es el de Gray o el de Chow (10–14 cm)', () => {
+  // decisión 43: con el polo posterior de Gray, el bazo del peso de Gray mide ≈ 16 cm por el eje principal; las marcas de Gray en
+  // el avatar (el punto más bajo en la LAM, que la parrilla pone a z ≈ −116 en vez de en la espinosa de L1, y el más alto a 4 cm
+  // de la línea media en T9) están a ≈ 16 cm, y sus 12 cm no caben entre ellas
+  notYetMet('su largo (el eje principal de sus puntos) es el de Gray o el de Chow (10–14 cm; decisión 43: ≈ 16)', () => {
     const n = pts.length;
     const c = [0, 1, 2].map((k) => pts.reduce((a, p) => a + p[k], 0) / n);
     const C = [0, 1, 2].map((i) => [0, 1, 2].map((j) => pts.reduce((a, p) => a + (p[i] - c[i]) * (p[j] - c[j]), 0) / n));
@@ -213,10 +217,21 @@ describe('El bazo bajo la cúpula izquierda (decisión 37; Gray, «The Spleen» 
     for (const d of [3, 8, 15]) expect(cls(underWall(lap, below, d)), `${d} mm`).not.toBe(Tissue.Spleen);
   });
 
-  notYetMet('su volumen es el del peso de Gray (≈ 200 g; a la densidad de IT’IS, 1089 kg/m³, ≈ 184 mL ± 10 %; hoy ≈ 134)', () => {
+  it('su volumen es el del peso de Gray (≈ 200 g; a la densidad de IT’IS, 1089 kg/m³, ≈ 184 mL ± 10 %; decisión 43: ≈ 190)', () => {
     const mL = (pts.length * 8) / 1000;
     expect(mL).toBeGreaterThanOrEqual(184 * 0.9);
     expect(mL).toBeLessThanOrEqual(184 * 1.1);
+  });
+
+  it('su punto más alto es el de Gray: a 4 cm de la línea media de la espalda, a la altura de la espinosa de T9, bajo el diafragma y no contra la pared (decisión 43)', () => {
+    const top = pts.reduce((a, p) => (p[2] > a[2] ? p : a));
+    expect(Math.abs(top[2] - spinousTipZ(SPLEEN.params.poleSpinous.value))).toBeLessThan(6);
+    // su proyección en la espalda: |x| a 4 cm ± 1 de la línea media
+    const pole = pts.filter((p) => p[2] > top[2] - 6);
+    expect(Math.min(...pole.map((p) => p[0]))).toBeGreaterThan(SPLEEN.params.poleMidlineMm.value - 12);
+    expect(Math.min(...pole.map((p) => p[0]))).toBeLessThan(SPLEEN.params.poleMidlineMm.value);
+    // bajo el diafragma, con el receso del pulmón entre él y la pared: el polo está a más de 15 mm de la cara interna de la pared
+    for (const p of pole) expect(scene.insideWallMm(p), p.join(',')).toBeGreaterThan(15);
   });
 
   it('no pasa por delante de la axilar anterior (Gray: el estómago, en el espacio de Traube) ni a la derecha', () => {

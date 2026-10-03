@@ -26,9 +26,14 @@ describe('Módulos de órgano', () => {
       'heart',
       'lungPulse',
       'lungCurtain',
-      // (decisión 37) el hígado, portado de VExUS, y el bazo, que usa su recorte del riñón
+      // (decisión 43) los riñones y el retroperitoneo, portados de VExUS: la grasa perirrenal marca la impresión renal del hígado y
+      // del bazo, y el GLSL del riñón define smoothMin, smoothMax, sdEllipsoidLocal y sdRoundCone
+      'kidney',
+      'retroperitoneum',
+      // (decisión 37) el hígado, portado de VExUS, y el bazo; (decisión 43) el estómago, tras el bazo
       'liver',
       'spleen',
+      'stomach',
     ]);
   });
 
