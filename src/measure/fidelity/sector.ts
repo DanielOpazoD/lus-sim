@@ -90,7 +90,7 @@ export interface EdgeLine {
 
 /**
  * Los dos bordes laterales del abanico desde los extremos de fila del soporte, con dos restricciones que una sombra costal
- * no cumple (lus-sim, decisión 39):
+ * no cumple (lus-sim, decisión 36):
  *
  *  1. **Ningún soporte por fuera.** El borde del abanico es una recta de apoyo del soporte: lo encendido queda dentro. La
  *     sombra de una costilla junto al borde también es una recta que pasa por el ápice (el haz es radial) y, bajo la costilla,
@@ -215,7 +215,7 @@ const ARC_MIN_COVERAGE = 0.8;
 const ARC_MAX_MEDIAN_RESIDUAL_PX = 1;
 
 /**
- * La altura del ápice desde el arco de la piel (lus-sim, decisión 39): en una convexa, lo primero encendido de cada columna
+ * La altura del ápice desde el arco de la piel (lus-sim, decisión 36): en una convexa, lo primero encendido de cada columna
  * es la piel, un arco de radio `rhoMin` alrededor del ápice, y su curvatura sitúa el ápice mucho mejor que la intersección de
  * dos bordes que solo se ven en unas decenas de filas (60 mm por encima de la piel en el simulador: un error de 1° en el
  * ángulo de los bordes es 9 px de ápice). Ajuste del círculo con el centro en la x del ápice de los bordes (y² + (x − x₀)² =

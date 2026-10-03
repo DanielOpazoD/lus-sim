@@ -1730,7 +1730,7 @@ alta) el ajuste tampoco cambia; las medidas, con la misma semilla: pared 30,20 /
 pared 1,911 / 1,535 / 1,818, M neblina 2,076 / 1,756 / 1,976 y A2.r2 0,5670 / 0,4984 / 0,5298 (el PLAPS, un gris de pared menos:
 dentro de la dispersión de las semillas de la decisión 28).
 
-**Nota (decisión 39, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
+**Nota (decisión 36, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
 51,3, el ajuste no cambia; las medidas, con la misma semilla y la GPU real (M4), antes → después: BLUE inferior, pared 41,67 →
 41,08, neblina 19,58 → 19,24, M pared 1,536 → 1,567, M neblina 1,754 → 1,780 y A2.r2 0,4962 → 0,5035; PLAPS, 33,72 → 33,55,
 17,22 → 16,83, 1,819 → 1,833, 1,977 → 1,992 y 0,5376 → 0,5357. El BLUE superior, igual. Dentro de la dispersión entre semillas
@@ -2099,7 +2099,7 @@ comentarios desfasados (`wallArc`, la cara posterior de la columna a 42 mm, el t
 CSV públicos, las de Folli y Okçu frente a sus tablas, todas las consecuencias de la tabla, A-T15 y A-T24, la ausencia de
 literales del tronco viejo en TS y GLSL, la nota de la decisión 24 y el índice.
 
-**Nota (decisión 39, 2026-10-03).** El detector del sector de la decisión 39 (bordes simétricos sin soporte por fuera y el ápice
+**Nota (decisión 36, 2026-10-03).** El detector del sector de la decisión 36 (bordes simétricos sin soporte por fuera y el ápice
 desde el arco de la piel) acierta en el centro del EIC4 (0,72 px con la GPU real, donde el de la decisión 21 daba 8,3–36,8): el
 punto vuelve al centro, 49,5 mm, que es su criterio, y la pregunta abierta de esta decisión se cierra.
 
@@ -2908,14 +2908,14 @@ antes = main, después = R_t 0,1; p10–p90 entre sujetos; ≥ cota inferior, ? 
 grises); el barrido y su superficie, en la PR. Revisión adversarial de contexto limpio antes de abrir la PR (resumen en la
 PR).
 
-**Nota (decisión 39, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
+**Nota (decisión 36, 2026-10-03).** Con el punto BLUE inferior (y el PLAPS) de vuelta en el centro del EIC4, 49,5 mm en lugar de
 51,3, este ajuste no cambia; sus medidas, con la misma semilla y la GPU real (M4) sobre la rama de la #46 (`8cf5331`), antes →
 después: BLUE inferior, pared 41,67 → 40,93, neblina 14,35 → 13,38, M pared 1,199 → 1,219, M neblina 1,409 → 1,426 y A2.r2
 0,3506 → 0,3515; PLAPS, 33,89 → 33,66, 14,23 → 13,47, 1,364 → 1,371, 1,504 → 1,515 y 0,3641 → 0,3684. El BLUE superior, igual.
 Las columnas de coherencia a DR70, 163 y 78 (> 50). El candidato K 53 y ganancia −19, descartado aquí por la guarda de d_pl
-del BLUE inferior, la pasa con el punto en 49,5 y el detector de la decisión 39 (allí, el porqué).
+del BLUE inferior, la pasa con el punto en 49,5 y el detector de la decisión 36 (allí, el porqué).
 
-## 39. El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4
+## 36. El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4
 
 **Fecha.** 2026-10-03.
 

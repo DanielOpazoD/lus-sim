@@ -52,7 +52,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     }
   });
 
-  it('el BLUE inferior, en el centro del EIC4 de la axilar anterior, y su rango entre los centros del EIC5 y del EIC3 (decisión 39)', () => {
+  it('el BLUE inferior, en el centro del EIC4 de la axilar anterior, y su rango entre los centros del EIC5 y del EIC3 (decisión 36)', () => {
     // la anatomía no se mueve para acomodar un detector: entre las decisiones 28 y 39 estuvo 1,8 mm por encima del centro
     const P = START_POINT_POSES.params;
     const phi = P.blueLowerPhi.value;

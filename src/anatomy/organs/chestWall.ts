@@ -192,9 +192,9 @@ export const CHEST_WALL = defineParameters('anatomy.chestWall', {
     sources: ['wada-pared-2025', 'okcu-parascapular-2026'],
     note:
       'Piel → pleura arriba en la estación infraescapular (decisión 29), bajo la parte lateral de la escápula: NO ENCONTRADO ' +
-      '(búsqueda del 03-10-2026, decisión 39: ni ecografía ni TAC de adultos en la LAP o la infraescapular) [SUPUESTO]. Entre los ' +
+      '(búsqueda del 03-10-2026, decisión 36: ni ecografía ni TAC de adultos en la LAP o la infraescapular) [SUPUESTO]. Entre los ' +
       '32 de la espalda alta (Wada, Okçu) y los 18 de la axila (sin este nodo, la interpolación daría ≈ 23); abajo, 16,1. Hasta ' +
-      'la decisión 39 lo fijaban dos pruebas (con 24, el detector del banco perdía la pleura del PLAPS y F-T08 fallaba a 1,2π); ' +
+      'la decisión 36 lo fijaban dos pruebas (con 24, el detector del banco perdía la pleura del PLAPS y F-T08 fallaba a 1,2π); ' +
       'con el punto BLUE inferior en el centro del EIC4 y la espalda alta de 32, 24 ya no rompe ninguna: ninguna prueba lo fija',
   },
   infrascapularPhi: {

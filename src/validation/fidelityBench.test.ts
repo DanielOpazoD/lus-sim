@@ -69,7 +69,7 @@ describe('sector: detección automática desde la imagen (§3.1, pasos 2–3)', 
     expect(d.edgeInliers.right).toBeLessThan(0.8 * d.edgeInliers.left);
   });
 
-  it('una sombra costal en el borde: el borde del abanico es la recta de apoyo del soporte, no la de la sombra (decisión 39)', () => {
+  it('una sombra costal en el borde: el borde del abanico es la recta de apoyo del soporte, no la de la sombra (decisión 36)', () => {
     // como en el BLUE inferior del simulador con el punto en el centro del EIC4: una costilla cubre el borde derecho y bajo
     // ella todo es negro, así que en esas filas el soporte acaba en la sombra, que también es una recta por el ápice y con
     // más filas que el borde de verdad (solo lo ven el campo cercano y la cresta de la costilla). El detector de la decisión

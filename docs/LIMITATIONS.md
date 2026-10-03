@@ -77,7 +77,7 @@ conservan su identificador (decisiones 10 y 11).
   8.ª costilla de la paravertebral se inclina tanto que F-T08 deja un lado a 8,2 mm de la cresta (meta: 4–6). Por eso la
   espalda alta se queda en 32 y no en 35: lo fija la forma de la transición del modelo, no la anatomía. Una transición propia de
   la espalda, que baje con la parrilla de la 5.ª a la 8.ª costilla, la quitaría. Los 20 mm de la infraescapular ya no los fija
-  el banco de fidelidad (decisión 39: con 24, la pleura del PLAPS se sigue en todas sus columnas y F-T08 cumple): son un
+  el banco de fidelidad (decisión 36: con 24, la pleura del PLAPS se sigue en todas sus columnas y F-T08 cumple): son un
   supuesto sin fuente (NO ENCONTRADO).
 - **La pared es genérica en sus tejidos** (`wall-generic-layers`): un solo músculo sobre los intercostales (el pectoral, el
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
@@ -292,7 +292,7 @@ conservan su identificador (decisiones 10 y 11).
   bajos y O6 (≥ 30 FPS) medirse mal (sin medir aún cuánto). Arreglo pendiente en una PR aparte (leer del framebuffer de la
   pantalla, o una consulta de tiempo).
 - **El detector del sector supone un abanico simétrico y necesita ver algo de cada borde** (`sector-detector-symmetric`,
-  decisión 39): fuerza pendientes opuestas en los dos bordes (el eje del abanico, vertical), como en los 34 clips del banco y en
+  decisión 36): fuerza pendientes opuestas en los dos bordes (el eje del abanico, vertical), como en los 34 clips del banco y en
   el simulador; pero la geometría fijada de los clips la propuso el detector de la decisión 21 y está redondeada a 0,01 rad, así
   que esa simetría no está medida mejor que ±0,6°. Con un abanico girado alrededor del ápice el detector falla sin avisar (un
   sintético: 0,57° → el ápice a 3,4 px y un borde a 0,75°; 1° → 13,5 px y 1,95°; 3° → 47,5 px y 6°), donde el de la decisión 21

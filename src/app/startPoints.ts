@@ -60,7 +60,7 @@ export const START_POINT_POSES = defineParameters('app.startPointPoses', {
       'Gray) con la parrilla del adulto promedio (decisión 16): con el tronco de la decisión 28 y la espalda de la 29, la 4.ª ' +
       'costilla a 63,9 mm y la 5.ª a 35,0 (`intercostalZ`: centro 49,46). Entre las decisiones 28 y 39 estuvo en 51,3, 1,8 mm ' +
       'por encima del centro, porque en el centro la sombra de una costilla tapaba el borde derecho del sector y el detector del ' +
-      'banco de fidelidad la tomaba por él; con el detector de la decisión 39 vuelve al centro. El rango va del centro del EIC5 ' +
+      'banco de fidelidad la tomaba por él; con el detector de la decisión 36 vuelve al centro. El rango va del centro del EIC5 ' +
       '(20,1) al del EIC3 (78,3) en esa línea: sin antropometría de la mano no se sabe en qué espacio cae la palma ' +
       '(`docs/knowledge/anatomy.md` §4)',
   },

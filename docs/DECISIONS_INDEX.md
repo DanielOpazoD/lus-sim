@@ -39,4 +39,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [33](DECISIONS.md#L2608) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
 | [34](DECISIONS.md#L2731) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
 | [35](DECISIONS.md#L2785) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
-| [39](DECISIONS.md#L2918) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |
+| [36](DECISIONS.md#L2918) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |

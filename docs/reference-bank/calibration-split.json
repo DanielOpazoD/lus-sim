@@ -50,7 +50,7 @@
       "decision": 39,
       "previous_manifest_sha256": "611fb7dee9edbbc66dd0f0ae0c862a8f862598b03db1e6cc1dbbce50cd54a233",
       "previous_reference_stats_sha256": "4e85b73949fb15c5ed819df02220be16066cd832d4c00f5d7804f5d46b84e6ab",
-      "change": "Decisión 39: el detector del sector (bordes simétricos sin soporte por fuera y el ápice desde el arco de la piel) cambia solo el acuerdo del detector con la geometría fijada de cada clip (`detector`) y la fecha de generación; las métricas se miden con la geometría fijada y no cambian. La partición por sujetos no cambia.",
+      "change": "Decisión 36: el detector del sector (bordes simétricos sin soporte por fuera y el ápice desde el arco de la piel) cambia solo el acuerdo del detector con la geometría fijada de cada clip (`detector`) y la fecha de generación; las métricas se miden con la geometría fijada y no cambian. La partición por sujetos no cambia.",
       "effect": "Ninguno en las distribuciones de exploración ni de comprobación (los mismos números)."
     }
   ]
