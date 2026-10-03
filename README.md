@@ -98,23 +98,24 @@ npm run fidelity:geometry -- --out <carpeta fuera del repo>  # propuestas de geo
 
 ## Documentos
 
-| Documento                | Qué contiene                                                                              |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `docs/MISSION.md`        | Misión, objetivos medibles y cómo se prioriza: cada PR declara qué objetivo mueve.        |
-| `docs/GUIDE.md`          | Guía de desarrollo: misión, principios, reglas de física y de proceso. Documento rector.  |
-| `docs/KNOWLEDGE.md`      | Base de conocimiento: física, anatomía, fisiopatología y clínica con fuentes verificadas. |
-| `docs/REFERENCES.md`     | Bibliografía con claves (`[@clave]` en los documentos, `sources` en el código).           |
-| `docs/DECISIONS.md`      | Decisiones de diseño numeradas (índice en `docs/DECISIONS_INDEX.md`).                     |
-| `docs/ARCHITECTURE.md`   | Tres estados, capas y reglas de dependencia.                                              |
-| `docs/PROVENANCE.md`     | Código portado de VExUS y EchoTwin: origen, commit y estado.                              |
-| `docs/UNIFICATION.md`    | Cómo se unirá con VExUS y EchoTwin y qué reglas lo hacen barato.                          |
-| `docs/ROADMAP.md`        | Fases, entregables y criterios de cierre.                                                 |
-| `docs/TESTING.md`        | Estrategia de pruebas.                                                                    |
-| `docs/LIMITATIONS.md`    | Limitaciones conocidas, con identificador.                                                |
-| `docs/APPROXIMATIONS.md` | Parámetros estimados pendientes de calibración.                                           |
-| `docs/GLOSSARY.md`       | Términos clínicos, físicos y del código.                                                  |
-| `CONTRIBUTING.md`        | Flujo de trabajo, commits, plantilla de decisión, publicación.                            |
-| `CLAUDE.md`              | Guía para agentes.                                                                        |
+| Documento                | Qué contiene                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| `docs/MISSION.md`        | Misión, objetivos medibles y cómo se prioriza: cada PR declara qué objetivo mueve.               |
+| `docs/GUIDE.md`          | Guía de desarrollo: misión, principios, reglas de física y de proceso. Documento rector.         |
+| `docs/KNOWLEDGE.md`      | Base de conocimiento: física, anatomía, fisiopatología y clínica con fuentes verificadas.        |
+| `docs/REFERENCES.md`     | Bibliografía con claves (`[@clave]` en los documentos, `sources` en el código).                  |
+| `docs/DECISIONS.md`      | Decisiones de diseño numeradas (índice en `docs/DECISIONS_INDEX.md`).                            |
+| `docs/ARCHITECTURE.md`   | Tres estados, capas y reglas de dependencia.                                                     |
+| `docs/PROVENANCE.md`     | Código portado de VExUS y EchoTwin: origen, commit y estado.                                     |
+| `docs/UNIFICATION.md`    | Cómo se unirá con VExUS y EchoTwin y qué reglas lo hacen barato.                                 |
+| `docs/HEART_FAILURE.md`  | Propuesta sin implementar: protocolos de insuficiencia cardiaca y presión de llenado → líneas B. |
+| `docs/ROADMAP.md`        | Fases, entregables y criterios de cierre.                                                        |
+| `docs/TESTING.md`        | Estrategia de pruebas.                                                                           |
+| `docs/LIMITATIONS.md`    | Limitaciones conocidas, con identificador.                                                       |
+| `docs/APPROXIMATIONS.md` | Parámetros estimados pendientes de calibración.                                                  |
+| `docs/GLOSSARY.md`       | Términos clínicos, físicos y del código.                                                         |
+| `CONTRIBUTING.md`        | Flujo de trabajo, commits, plantilla de decisión, publicación.                                   |
+| `CLAUDE.md`              | Guía para agentes.                                                                               |
 
 ## Licencia
 

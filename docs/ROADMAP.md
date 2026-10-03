@@ -86,6 +86,11 @@ Objetivos: O4, O5.
   EPOC o TEP, entre otros).
 - `measure/` y `lus/`: puntaje LUS y perfiles BLUE calculados sobre la señal; modo examen ciego; modo
   docente con verdad y medida lado a lado.
+- Protocolos de insuficiencia cardiaca (28 sitios, 8 zonas y 4 sitios de estrés) con un mando hemodinámico: el usuario
+  elige la PAI, la PD2VI, la PCWP o el agua extravascular, y las líneas B de cada sitio salen de la cadena presión → agua
+  (con umbral y cinética) → reparto por gravedad → trampas subpleurales → señal → regla del protocolo. Propuesta, con sus
+  anclas y lo no encontrado: `docs/HEART_FAILURE.md` (metas P-T30–T31 y C-T32). Necesita la física de las líneas B de la
+  fase 2.
 - Revisión clínica experta en ciego.
 
 ## Fase 5 — Puentes (v1.0.0)
