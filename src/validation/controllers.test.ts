@@ -82,6 +82,7 @@ describe('Diagnóstico exportable (Fase 3)', () => {
         caseId: 'adulto-sano',
         simTimeS: 12.5,
         fps: 58,
+        bmodeFps: { fps: 57.9, frames: 579, windowS: 9.98, frameMsP50: 16.7, frameMsP95: 18.1 },
         gpuMs: { frameMs: 5.7, perPass: { transmission: 1.5, rawField: 4.2 } },
         equipment: defaultEquipment(),
         errors: [{ source: 'gpu', message: 'contexto WebGL perdido', firstAt: 1, lastAt: 2, count: 2 }],

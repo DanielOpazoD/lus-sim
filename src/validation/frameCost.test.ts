@@ -189,3 +189,48 @@ describe('repeatPass en el renderizador real (WebGL falso)', () => {
     for (const f of scratch) expect(deleted.has(f!)).toBe(true);
   });
 });
+
+/**
+ * La sincronización de la medida (decisión 40): `finishForTiming` lee un píxel de la pantalla, que escribe la última pasada,
+ * y no del framebuffer que esté ligado. Tras guardar un cuadro en el cine queda ligada para lectura la envolvente (R32F), donde
+ * RGBA/UNSIGNED_BYTE es inválido: en la GPU real cada medida dejaba un `GL_INVALID_OPERATION`. El WebGL falso rechaza la
+ * lectura como WebGL.
+ */
+describe('finishForTiming: espera al cuadro leyendo la pantalla', () => {
+  const rigRead = () => {
+    const rec = realRig();
+    const gl = rec.canvas.getContext('webgl2') as unknown as WebGL2RenderingContext;
+    return { ...rec, gl };
+  };
+
+  it('tras un cuadro que va al cine (la lectura ligada es la envolvente, de coma flotante), lee la pantalla y deja la lectura como estaba', () => {
+    const { sim, gl, reads, attachments } = rigRead();
+    sim.render();
+    // la trampa: lo ligado para lectura al acabar el cuadro es un FBO de coma flotante
+    const bound = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING) as object | null;
+    expect(bound).not.toBeNull();
+    expect(attachments.get(bound as never)?.[0]?.internal).toBe(gl.R32F);
+    sim.renderer.finishForTiming();
+    expect(reads.at(-1)).toEqual({ fbo: null, internal: null, valid: true });
+    expect(gl.getParameter(gl.READ_FRAMEBUFFER_BINDING)).toBe(bound);
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  });
+
+  it('una lectura de coma flotante del renderizador (RGBA/FLOAT, la transmisión) no deja error', () => {
+    const { sim, gl, reads } = rigRead();
+    sim.render();
+    sim.renderer.readTransmission();
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads.every((r) => r.valid)).toBe(true);
+    expect(() => sim.renderer.finishForTiming()).not.toThrow();
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  });
+
+  it('lanza si WebGL informa un error en vez de devolver una medida sin sincronizar', () => {
+    const { sim, gl } = rigRead();
+    sim.render();
+    // una lectura inválida pendiente (la de antes de la decisión 40: RGBA/UNSIGNED_BYTE sobre lo que esté ligado)
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    expect(() => sim.renderer.finishForTiming()).toThrow(/finishForTiming: WebGL informa el error 0x502/);
+  });
+});
