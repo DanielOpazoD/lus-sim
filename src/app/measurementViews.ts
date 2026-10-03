@@ -1,5 +1,5 @@
 import { defineParameters } from '../core/evidence';
-import { BLUE_UPPER_POSE, type ProbePose } from '../probe/probe';
+import type { ProbePose } from '../probe/probe';
 
 /**
  * Las vistas de medida (lus-sim, decisión 42): las poses donde miden el banco de fidelidad (decisión 21), la calibración del
@@ -20,6 +20,27 @@ export interface MeasurementView {
 }
 
 export const MEASUREMENT_VIEW_POSES = defineParameters('app.measurementViews', {
+  blueUpperPhi: {
+    value: Math.PI - Math.acos(95 / 160),
+    unit: 'rad',
+    range: [0.65 * Math.PI, 0.8 * Math.PI],
+    evidence: 'estimado',
+    sources: ['lichtenstein-bluepoints-2011', 'gray-anatomia-1918'],
+    note:
+      'La vista de medida del BLUE superior (decisión 42): la línea medioclavicular derecha (decisión 16, ' +
+      '`anatomy.thoraxLines.midclavicularXMm`), 95 mm de la línea media en la piel del tronco de 160 mm de semiancho, φ = π − ' +
+      'acos(95/160) = 0,702π; la pose por omisión de la sonda de las decisiones 10–41, y el sitio de la meta A-T1',
+  },
+  blueUpperZ: {
+    value: 83.7,
+    unit: 'mm',
+    range: [53.7, 124.7],
+    evidence: 'estimado',
+    sources: ['lichtenstein-bluepoints-2011', 'seong-espaciosic-2020'],
+    note:
+      'El centro del EIC2 de la medioclavicular con la parrilla del adulto promedio (decisión 16): la 2.ª costilla a 99,7 mm y la ' +
+      '3.ª a 67,7 (el EIC2 de 18 mm de la base). El rango va del centro del EIC3 (53,7) al del EIC1 (124,7)',
+  },
   blueLowerPhi: {
     value: 0.875 * Math.PI,
     unit: 'rad',
@@ -56,7 +77,7 @@ const V = MEASUREMENT_VIEW_POSES.params;
 
 /** Las tres vistas de medida, en el orden de siempre. */
 export const MEASUREMENT_VIEWS: readonly MeasurementView[] = [
-  { id: 'blueUpper', phi: BLUE_UPPER_POSE.params.phi.value, z: BLUE_UPPER_POSE.params.z.value, yaw: 0 },
+  { id: 'blueUpper', phi: V.blueUpperPhi.value, z: V.blueUpperZ.value, yaw: 0 },
   { id: 'blueLower', phi: V.blueLowerPhi.value, z: V.blueLowerZ.value, yaw: 0 },
   { id: 'plaps', phi: V.plapsPhi.value, z: V.blueLowerZ.value, yaw: 0 },
 ];

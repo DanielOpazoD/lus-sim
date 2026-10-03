@@ -189,39 +189,42 @@ export function clampPose(p: ProbePose, position: PatientPosition = 'supine'): P
 }
 
 /**
- * Punto BLUE superior derecho aproximado (lus-sim, decisión 10): la pose por omisión. La regla de las manos
- * (centro de la mano superior) no tiene correspondencia medida con los espacios intercostales ni con las
- * líneas (docs/knowledge/anatomy.md §4, NO ENCONTRADO): se supone el EIC2 en la línea medioclavicular, el
- * sitio de la meta A-T1. Desde la decisión 16, sobre la parrilla del adulto promedio (`anatomy/organs/ribcage.ts`) y la
- * medioclavicular de `anatomy/thoraxLines.ts`. Números nuevos, así que con su evidencia (docs/APPROXIMATIONS.md).
+ * Punto BLUE superior derecho (lus-sim, decisión 42): la pose por omisión, la de la tarjeta con la que arranca la app. Sale de la
+ * regla de las manos de Lichtenstein sobre el avatar (`app/blueHands.ts`, con las manos de `anatomy.hands`, la clavícula y el
+ * tronco), redondeada; `startPoints.test.ts` la vuelve a construir y la comprueba contra la clavícula de la escena. Los rangos,
+ * con las manos a ± 1 DE. Antes (decisiones 10 y 16), el centro del EIC2 de la medioclavicular, un supuesto: hoy es la vista de
+ * medida del BLUE superior (`app.measurementViews`), donde miden A-T1, el foco del preajuste y el banco.
  */
+const HANDS_SOURCES = ['lichtenstein-bluepoints-2011', 'lichtenstein-libro-2016', 'greiner-mano-1991', 'gordon-ansur-2014'];
 export const BLUE_UPPER_POSE = defineParameters('probe.blueUpperPose', {
   phi: {
-    value: Math.PI - Math.acos(95 / 160),
+    value: 0.6706 * Math.PI,
     unit: 'rad',
-    range: [0.65 * Math.PI, 0.8 * Math.PI],
-    evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011', 'gray-anatomia-1918'],
+    range: [0.6592 * Math.PI, 0.6822 * Math.PI],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
     note:
-      'Línea medioclavicular derecha (decisión 16, `anatomy.thoraxLines.midclavicularXMm`): 95 mm de la línea media en la ' +
-      'piel del tronco de 160 mm de semiancho, φ = π − acos(95/160) = 0,702π. Que el punto BLUE caiga en ella es el ' +
-      'supuesto; calibrar con la regla de las manos y la antropometría de la mano',
+      'La inserción palmar de los dedos medio y anular de la mano de arriba (Lichtenstein 2011 y 2016): a un largo de dedo medio ' +
+      '(83,8 mm, Greiner) de la línea media por la piel, entre la paraesternal y la medioclavicular. Antes (decisión 10), la ' +
+      'medioclavicular (0,702π) [SUPUESTO]',
   },
   z: {
-    value: 83.7,
+    value: 122.3,
     unit: 'mm',
-    range: [53.7, 124.7],
-    evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011', 'seong-espaciosic-2020'],
+    range: [119.7, 124.9],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
     note:
-      'Centro del EIC2 en la línea medioclavicular con la parrilla del adulto promedio (decisión 16): la 2.ª costilla a 99,7 ' +
-      'mm y la 3.ª a 67,7 (el EIC2 de 18 mm de la base). El rango va del centro del EIC3 (53,7) al del EIC1 (124,7): la ' +
-      'regla de las manos no dice en qué espacio cae (anatomy.md §4)',
+      'A medio ancho de la mano (86,3 mm, ANSUR II con IMC 18,5–25) bajo su borde de arriba, la recta del borde inferior de la ' +
+      'clavícula (que sube 15 mm en sus 156, `anatomy.clavicle`): en el EIC1 de la parrilla del modelo (la 1.ª costilla a 147,8 mm y ' +
+      'la 2.ª a 99,3 en esa línea). [DISCREPANCIA] con los reparos sin medida de Yuriditsky y cols. y otros (2.º–3.er EIC en la ' +
+      'medioclavicular): en el modelo la 2.ª costilla baja 19 mm del esternón a la medioclavicular sin fuente propia (decisión 42). ' +
+      'Antes, el centro del EIC2 de la medioclavicular, 83,7 [SUPUESTO]',
   },
 });
 
-/** Pose inicial: el punto BLUE superior derecho aproximado (`BLUE_UPPER_POSE`), marcador craneal (corte longitudinal). */
+/** Pose inicial: el punto BLUE superior derecho de la regla de las manos (`BLUE_UPPER_POSE`), marcador craneal (corte longitudinal). */
 export function defaultPose(): ProbePose {
-  // φ ≈ 0,70π → línea medioclavicular derecha (−x, +y); yaw 0: el marcador hacia la cabeza.
+  // φ ≈ 0,67π → entre la paraesternal y la medioclavicular derechas (−x, +y); yaw 0: el marcador hacia la cabeza.
   return { phi: BLUE_UPPER_POSE.params.phi.value, z: BLUE_UPPER_POSE.params.z.value, lift: 0, yaw: 0, rock: 0, tilt: 0 };
 }

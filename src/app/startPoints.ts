@@ -1,7 +1,7 @@
 import { defineParameters } from '../core/evidence';
 import { TORSO } from '../anatomy/scene';
 import { THORAX_LINES } from '../anatomy/thoraxLines';
-import type { PatientPosition } from '../probe/probe';
+import { BLUE_UPPER_POSE, type PatientPosition } from '../probe/probe';
 
 /**
  * «Puntos de partida» (decisión 17 de VExUS): posiciones cutáneas con ángulos casi neutros hacia las que la sonda
@@ -52,29 +52,6 @@ export interface StartPoint {
  */
 const HANDS_SOURCES = ['lichtenstein-bluepoints-2011', 'lichtenstein-libro-2016', 'greiner-mano-1991', 'gordon-ansur-2014'];
 export const START_POINT_POSES = defineParameters('app.startPointPoses', {
-  blueUpperPhi: {
-    value: 0.6706 * Math.PI,
-    unit: 'rad',
-    range: [0.6592 * Math.PI, 0.6822 * Math.PI],
-    evidence: 'derivado',
-    sources: HANDS_SOURCES,
-    note:
-      'La inserción palmar de los dedos medio y anular de la mano de arriba (Lichtenstein 2011 y 2016): a un largo de dedo medio ' +
-      '(83,8 mm, Greiner) de la línea media por la piel, entre la paraesternal y la medioclavicular. Antes (decisión 10), la ' +
-      'medioclavicular (0,702π) [SUPUESTO]',
-  },
-  blueUpperZ: {
-    value: 122.3,
-    unit: 'mm',
-    range: [119.7, 124.9],
-    evidence: 'derivado',
-    sources: HANDS_SOURCES,
-    note:
-      'A medio ancho de la mano (86,3 mm, ANSUR II con IMC 18,5–25) bajo su borde de arriba, la recta del borde inferior de la ' +
-      'clavícula (que sube 15 mm en sus 156, `anatomy.clavicle`): en el EIC1 de la parrilla del modelo (la 1.ª costilla a 147,8 mm y ' +
-      'la 2.ª a 99,3 en esa línea; centro 123,6). [DISCREPANCIA] con los reparos sin medida de Yuriditsky y cols. y otros (2.º–3.er ' +
-      'EIC en la medioclavicular). Antes, el centro del EIC2 de la medioclavicular, 83,7 [SUPUESTO]',
-  },
   blueLowerPhi: {
     value: 0.7955 * Math.PI,
     unit: 'rad',
@@ -179,8 +156,9 @@ const RIGHT: readonly Omit<StartPoint, 'side'>[] = [
   {
     id: 'blueUpper',
     label: 'BLUE superior',
-    phi: P.blueUpperPhi.value,
-    z: P.blueUpperZ.value,
+    // la pose por omisión de la sonda (decisión 42): la app arranca en esta tarjeta
+    phi: BLUE_UPPER_POSE.params.phi.value,
+    z: BLUE_UPPER_POSE.params.z.value,
     yaw: 0,
     hint:
       'Punto BLUE superior: con las dos manos del paciente sin los pulgares, la de arriba con el meñique bajo la clavícula y las ' +

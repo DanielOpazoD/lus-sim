@@ -25,7 +25,6 @@ import { CONTACT, contactCoupling, probeContact, type ProbeContact } from '../pr
 import {
   CONVEX_C35,
   clampPose,
-  defaultPose,
   lineAngle,
   lineDirection,
   pointOnLine,
@@ -33,6 +32,7 @@ import {
   type ProbeFrame,
   type ProbePose,
 } from '../probe/probe';
+import { measurementViewPose } from '../app/measurementViews';
 
 /**
  * La sonda comprime el tejido (decisión 63): gemelo TS del campo de compresión y del contacto en los puntos de
@@ -60,11 +60,13 @@ type ViewId = 'blueUpper' | 'lateral' | 'lateralTransverse' | 'posterior' | 'lef
 /** EIC5 en la línea axilar media, entre la 5.ª y la 6.ª costillas de la parrilla (decisión 16). */
 const EIC5_LAM_Z = intercostalZ(scene, 5, Math.PI);
 const VIEWS: Record<ViewId, ProbePose> = {
-  blueUpper: defaultPose(),
+  // (decisión 42) la vista de medida del BLUE superior (el EIC2 de la LMC), donde se midió la compresión (decisión 63); en el BLUE
+  // superior clínico, junto a la cúpula, la cara interna de la pared varía 3,05 mm bajo la cara (`wall-cupola-transition`)
+  blueUpper: measurementViewPose('blueUpper'),
   lateral: { phi: Math.PI, z: EIC5_LAM_Z, lift: 0, yaw: 0, rock: 0, tilt: 0 },
   lateralTransverse: { phi: Math.PI, z: EIC5_LAM_Z, lift: 0, yaw: Math.PI / 2, rock: 0, tilt: 0 },
   posterior: { phi: 1.15 * Math.PI, z: 20, lift: 0, yaw: 0, rock: 0, tilt: 0 },
-  leftUpper: { ...defaultPose(), phi: Math.PI - defaultPose().phi },
+  leftUpper: { ...measurementViewPose('blueUpper'), phi: Math.PI - measurementViewPose('blueUpper').phi },
 };
 const VIEW_IDS = Object.keys(VIEWS) as ViewId[];
 

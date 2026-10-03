@@ -10,6 +10,7 @@ import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, clampPose, defaultPose, lineAngle, pointOnLine, type ProbePose } from '../probe/probe';
+import { measurementViewPose } from '../app/measurementViews';
 import { IFACE_SLOPE_REF, facetLobe } from '../ultrasound/interfaceEcho';
 import {
   PLEURA_RT_RANGE,
@@ -115,10 +116,11 @@ describe('la pleura de A0 es el cambio de tejido de la clasificación', () => {
     // Umbral: la bisección (0,5 mm / 2⁷ ≈ 0,004 mm) más el paso fino del barrido (0,002 mm)
     let lung = 0;
     let band = 0;
-    const lmc = defaultPose().phi;
+    // la medioclavicular y su EIC2: la vista de medida del BLUE superior (decisión 42)
+    const lmc = measurementViewPose('blueUpper').phi;
     const lamL = 0;
     for (const pose of [
-      defaultPose(),
+      measurementViewPose('blueUpper'),
       longitudinalPose(lmc, intercostalZ(scene, 5, lmc)),
       longitudinalPose(lmc, intercostalZ(scene, 6, lmc)),
       longitudinalPose(Math.PI, intercostalZ(scene, 8, Math.PI)),

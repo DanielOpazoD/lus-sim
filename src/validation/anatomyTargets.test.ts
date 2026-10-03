@@ -25,7 +25,7 @@ import { RespiratoryModel } from '../physiology/respiratory';
 import { PhysiologyEngine } from '../physiology/engine';
 import { HEART, heartSd } from '../anatomy/organs/heart';
 import { LUNG_PULSE, lungPulseInverse } from '../anatomy/organs/lungPulse';
-import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/probe';
+import { CONVEX_C35, pointOnLine, type ProbePose } from '../probe/probe';
 import { AXIAL_SIGMA_MM } from '../ultrasound/beamModel';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import { START_POINTS } from '../app/startPoints';
@@ -157,6 +157,12 @@ function batSign(v: ChestView) {
 
 const deepInspiration = new RespiratoryModel({ ...defaultPatient(), respiratoryPattern: 'apnea-inspiratory' }).sample(0);
 
+/**
+ * El EIC2 de la medioclavicular (A-T1): la vista de medida del BLUE superior (decisión 42). Hasta la decisión 41 era la pose por
+ * omisión de la sonda; hoy esa es el BLUE superior de la regla de las manos, en el EIC1.
+ */
+const EIC2_LMC = measurementViewPose('blueUpper');
+
 describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anatomy.md §3)', () => {
   // La pared torácica por región (decisión 17, `organs/chestWall.ts`): el estado ecográfico de la base, medido como la
   // ecografía (la sonda apoyada, su pleura bajo la línea central). Medido (27-09-2026): EIC2-LMC 16,1 mm; EIC5-LAA 12,8 y
@@ -164,13 +170,13 @@ describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anat
   // tronco): 25,3; 26,8 y 28,0 (1,06–1,11); 28,0
 
   it('A-T1: la pleura en EIC2-LMC (el punto BLUE superior) está a 12–20 mm (16,1)', () => {
-    const d = pleuraDepth(defaultPose());
+    const d = pleuraDepth(EIC2_LMC);
     expect(d).toBeGreaterThanOrEqual(12);
     expect(d).toBeLessThanOrEqual(20);
   });
 
   it('A-T2: en EIC5 LAA/LAM a 10–16 mm y el cociente lateral/anterior entre 0,7 y 0,9 (12,8 y 12,8; 0,79–0,80)', () => {
-    const anterior = pleuraDepth(defaultPose());
+    const anterior = pleuraDepth(EIC2_LMC);
     for (const phi of [LAA, LAM]) {
       const d = pleuraDepth(icsPose(5, phi));
       expect(d).toBeGreaterThanOrEqual(10);
@@ -184,7 +190,7 @@ describe('A-T1–A-T3: profundidad de la pleura por región (docs/knowledge/anat
     // la axila alta (McLean, 18 en la base) y la pared lateral baja (Nelson, 13) en dos espacios vecinos: la transición va
     // del centro del EIC5 a la 4.ª costilla (`setChestWallCage`), y el EIC4 queda a 16,7
     const d = pleuraDepth(icsPose(4, LAM));
-    expect(d).toBeGreaterThan(pleuraDepth(defaultPose()));
+    expect(d).toBeGreaterThan(pleuraDepth(EIC2_LMC));
     expect(d).toBeGreaterThanOrEqual(14);
     expect(d).toBeLessThanOrEqual(22);
   });
@@ -205,7 +211,7 @@ describe('A-T4, A-T5 y la variante delgada: la pared por hábito (decisión 17)'
 
   it('A-T4: la obesa, EIC2-LMC a 20–30 mm y EIC5-LAM / EIC2-LMC ≥ 1,0 (23,6; 1,07)', () => {
     const obese = withChest({ build: 'obese', sex: 'male' });
-    const anterior = depthIn(obese, defaultPose());
+    const anterior = depthIn(obese, EIC2_LMC);
     expect(anterior).toBeGreaterThanOrEqual(20);
     expect(anterior).toBeLessThanOrEqual(30);
     expect(depthIn(obese, icsIn(obese, 5, LAM)) / anterior).toBeGreaterThanOrEqual(1);
@@ -213,7 +219,7 @@ describe('A-T4, A-T5 y la variante delgada: la pared por hábito (decisión 17)'
 
   it('A-T5: la mujer, EIC2-LMC = el varón + 0–4 mm en ecografía (+2,0), y sus espacios 1–2 mm más estrechos', () => {
     const woman = withChest({ build: 'average', sex: 'female' });
-    const dif = depthIn(woman, defaultPose()) - pleuraDepth(defaultPose());
+    const dif = depthIn(woman, EIC2_LMC) - pleuraDepth(EIC2_LMC);
     expect(dif).toBeGreaterThanOrEqual(0);
     expect(dif).toBeLessThanOrEqual(4);
     for (const [n, phi] of [
@@ -229,7 +235,7 @@ describe('A-T4, A-T5 y la variante delgada: la pared por hábito (decisión 17)'
 
   it('la delgada (anatomy.md §2.4): EIC2-LMC 12 mm (10–15) y la pared lateral × 0,8, 10 (8–12) (12,1 y 10,0)', () => {
     const thin = withChest({ build: 'thin', sex: 'male' });
-    const anterior = depthIn(thin, defaultPose());
+    const anterior = depthIn(thin, EIC2_LMC);
     expect(anterior).toBeGreaterThanOrEqual(10);
     expect(anterior).toBeLessThanOrEqual(15);
     const lateral = depthIn(thin, icsIn(thin, 5, LAM));
@@ -244,7 +250,7 @@ describe('A-T6: líneas A a múltiplos de la profundidad de la pleura', () => {
     // superior: la réplica k del eco pleural. Se buscan los máximos de su amplitud a lo largo de la línea
     // central (incidencia normal); la línea pleural es la réplica 1. Cumple: el modelo es la física de la
     // reverberación (docs/knowledge/physics.md, F-T01)
-    const D = pleuraDepth(defaultPose());
+    const D = pleuraDepth(EIC2_LMC);
     const k0 = (2 * Math.PI) / (1540 / 2500);
     const chi = pleuraCoherence(1, k0);
     const tD = 0.5;
@@ -277,7 +283,7 @@ describe('A-T7–A-T10: signo del murciélago, periodo costal, espacios y banda 
   // intercostal (del plano músculo–intercostal a la fascia endotorácica): EIC3-LMC 2,0 mm (2,7 en inspiración profunda),
   // EIC5-LAM 3,0 (igual) y EIC7 a 1,2π 4,0. Antes (la pared heredada): 0,0 / 2,5 / 2,6, sin cambio al inspirar
   const lateral = batSign(chestView(scene, icsPose(5, LAM)));
-  const anterior = batSign(chestView(scene, defaultPose()));
+  const anterior = batSign(chestView(scene, EIC2_LMC));
 
   it('A-T7: la línea pleural está 4–6 mm bajo la línea costal (4,2 en EIC5-LAM; 4,7 en el punto BLUE superior)', () => {
     for (const b of [lateral, anterior]) {

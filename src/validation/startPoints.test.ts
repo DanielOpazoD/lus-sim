@@ -7,7 +7,7 @@ import { AnatomyScene } from '../anatomy/scene';
 import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling } from '../probe/contact';
-import { CONVEX_C35, clampPose, lineAngle, pointOnLine, probeFrame, type ProbePose } from '../probe/probe';
+import { BLUE_UPPER_POSE, CONVEX_C35, clampPose, defaultPose, lineAngle, pointOnLine, probeFrame, type ProbePose } from '../probe/probe';
 import { chestView, intercostalZ, ribShadows, ribZ, scanView } from './support/chestView';
 
 /**
@@ -20,6 +20,8 @@ import { chestView, intercostalZ, ribShadows, ribZ, scanView } from './support/c
  * lus-sim (decisión 33): y los tres paravertebrales derechos de la espalda (`POSTERIOR_START_POSES`), con el paciente sentado.
  */
 const scene = new AnatomyScene(defaultPatient());
+/** El BLUE superior es la pose por omisión de la sonda (decisión 42): sus números viven en `probe.blueUpperPose`. */
+const U = BLUE_UPPER_POSE.params;
 const poseOf = (sp: StartPoint): ProbePose => ({ phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 });
 const byId = (id: StartPoint['id']) => START_POINTS.find((s) => s.id === id)!;
 const POSTERIOR = ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'] as const;
@@ -37,7 +39,9 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
   it('los cuatro de la regla de las manos y los tres paravertebrales en cada hemitórax, el izquierdo simétrico del derecho (decisión 42)', () => {
     expect(START_POINTS.map((s) => s.id)).toEqual([...RIGHT, ...RIGHT.map((id) => `${id}Left`)]);
     const P = START_POINT_POSES.params;
-    expect([byId('blueUpper').phi, byId('blueUpper').z]).toEqual([P.blueUpperPhi.value, P.blueUpperZ.value]);
+    expect([byId('blueUpper').phi, byId('blueUpper').z]).toEqual([U.phi.value, U.z.value]);
+    // (decisión 42) la app arranca en la tarjeta del BLUE superior: es la pose por omisión de la sonda
+    expect(defaultPose()).toEqual(poseOf(byId('blueUpper')));
     expect([byId('blueLower').phi, byId('blueLower').z]).toEqual([P.blueLowerPhi.value, P.blueLowerZ.value]);
     expect([byId('phrenic').phi, byId('phrenic').z]).toEqual([thoraxLinePhi('midaxillary', scene.torso), P.phrenicZ.value]);
     // el PLAPS es la continuación horizontal del BLUE inferior, más atrás
@@ -72,10 +76,10 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     const q = build(nominal);
     // los valores declarados son los de la construcción, redondeados: a ≤ 0,1 mm en z y a ≤ 0,5 mm por la piel
     const arcErr = (phi: number, ref: number) => Math.abs(skinArcOf(phi, scene.torso) - skinArcOf(ref, scene.torso));
-    expect(Math.abs(P.blueUpperZ.value - q.upper.z)).toBeLessThan(0.1);
+    expect(Math.abs(U.z.value - q.upper.z)).toBeLessThan(0.1);
     expect(Math.abs(P.blueLowerZ.value - q.lower.z)).toBeLessThan(0.1);
     expect(Math.abs(P.phrenicZ.value - q.phrenicZ)).toBeLessThan(0.1);
-    expect(arcErr(P.blueUpperPhi.value, q.upper.phi)).toBeLessThan(0.5);
+    expect(arcErr(U.phi.value, q.upper.phi)).toBeLessThan(0.5);
     expect(arcErr(P.blueLowerPhi.value, q.lower.phi)).toBeLessThan(0.5);
     // las distancias por la piel: un dedo medio y un dedo más media palma
     expect(skinArcOf(q.upper.phi, scene.torso)).toBeCloseTo(H.middleFingerLengthMm.value, 6);
@@ -90,7 +94,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
       expect(Math.abs(r![1] - e[1])).toBeLessThan(tol);
     };
     near(
-      P.blueUpperZ.range,
+      U.z.range,
       span((x) => x.upper.z),
       0.1,
     );
@@ -105,7 +109,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
       0.1,
     );
     near(
-      P.blueUpperPhi.range,
+      U.phi.range,
       span((x) => x.upper.phi),
       1e-3,
     );
@@ -169,7 +173,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     // la recta por los dos, alargada hasta la línea media y hasta el BLUE superior
     const topAt = (u: number) => z1 + ((z2 - z1) * (u - u1)) / (u2 - u1);
     // la mano de arriba: su borde de arriba en esa recta; el BLUE superior, medio ancho de mano bajo ella, a un dedo medio
-    expect(Math.abs(P.blueUpperZ.value - (topAt(F) - B / 2))).toBeLessThan(0.5);
+    expect(Math.abs(U.z.value - (topAt(F) - B / 2))).toBeLessThan(0.5);
     // la mano de abajo: su borde de arriba, un ancho de mano bajo la recta en la línea media (donde se tocan las puntas); el BLUE
     // inferior, medio ancho bajo él; la línea frénica (su borde de abajo), otro medio ancho más abajo
     expect(Math.abs(P.blueLowerZ.value + B / 2 - (topAt(0) - B))).toBeLessThan(0.5);
