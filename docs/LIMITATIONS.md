@@ -133,6 +133,15 @@ conservan su identificador (decisiones 10 y 11).
   deslizar el pulmón alto de detrás (el segmento posterior del lóbulo superior, que en Wang 2013 está entre los tumores más
   móviles). Lo que el modelo no tiene es el «habitualmente»: en el paciente a veces desliza algo y aquí nunca. Que el vértice no
   deslice es lo normal, no un neumotórax: un alumno no debería leerlo como tal.
+- **Sobre la cúpula, la pared engruesa a saltos** (`wall-cupola-transition`, decisión 42): la construcción de la decisión 27
+  rellena la pared hasta el medio del tronco por encima del techo de la cúpula, y junto al techo la curva es tan empinada que la
+  pared engruesa ≈ 16 mm por mm en z y ≈ 14 mm por mm a lo largo de la piel (a 102 mm de la línea media, z ≈ 177). No es
+  anatomía: es el paso de la pleura cervical al músculo genérico del cuello. Con el BLUE superior de la regla de las manos el
+  borde craneal del sector llega ahí y el alumno lo ve en la imagen. También es donde la equivalencia TS ↔ GLSL de la distancia
+  de las caras se aparta con SwiftShader (|∇d|·δx con δx ≈ 0,001 mm: hasta 0,025 mm en espiración y 0,11 en la inspiración
+  profunda, donde |∇d| llega a ≈ 100; con la GPU real, ≤ 0,0067): la prueba escala su tolerancia con el gradiente
+  (`shellDistanceTolerance`). Pendiente de anatomía: la transición de la pared sobre la 1.ª costilla y la fosa
+  supraclavicular (escalenos, esternocleidomastoideo, vasos subclavios) con sus fuentes, en lugar del engrosamiento.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,

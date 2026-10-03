@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SHELL_DISTANCE_TOL_MM,
+  SHELL_POSITION_ERR_MM,
   equivalenceSweep,
   inspirationSweepPoses,
   interfaceShellEquivalence,
   pleuraEquivalence,
+  shellDistanceTolerance,
+  shellGradNorm,
   volumeEquivalence,
 } from '../app/equivalenceSweep';
 import type { Simulator } from '../app/simulator';
@@ -189,6 +193,28 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
       24,
     );
     expect(wavy.distanceMaxErr).toBeGreaterThan(0.02);
+    expect(wavy.distanceMaxErrOverTol).toBeGreaterThan(1);
+  });
+
+  it('la tolerancia de la distancia crece con el gradiente de la cara y no en las zonas planas (decisión 42)', () => {
+    expect(shellDistanceTolerance(1)).toBe(SHELL_DISTANCE_TOL_MM);
+    expect(shellDistanceTolerance(SHELL_DISTANCE_TOL_MM / SHELL_POSITION_ERR_MM)).toBeCloseTo(SHELL_DISTANCE_TOL_MM, 12);
+    expect(shellDistanceTolerance(30)).toBeCloseTo(30 * SHELL_POSITION_ERR_MM, 12);
+    // la mutación: 0,05 mm en una cara plana (la fascia profunda, |∇d| ≈ 1) sigue sin pasar
+    const flat = interfaceShellEquivalence(
+      fakeSim((_p, q) => (q.interface === Interface.DeepFascia ? { ifd: q.interfaceDistance + 0.05 } : {})),
+      24,
+    );
+    expect(flat.distanceMaxErrOverTol, flat.distanceWorstOverTol).toBeGreaterThan(2);
+    // un error de posición de 0,9·δx en todas las caras (Δd = 0,9·δx·|∇d|, el de la coma flotante) pasa
+    const sim: Simulator = fakeSim((p, q) =>
+      q.interface === Interface.None
+        ? {}
+        : { ifd: q.interfaceDistance + 0.9 * SHELL_POSITION_ERR_MM * shellGradNorm(sim, p, q.interface, q.interfaceDistance) },
+    );
+    const pos = interfaceShellEquivalence(sim, 24);
+    expect(pos.distanceMaxErrOverTol, pos.distanceWorstOverTol).toBeLessThan(1);
+    expect(pos.distanceMaxErr).toBeGreaterThan(0);
   });
 
   it('la cáscara ve la cara de la pleura parietal (la cara interna de la pared) cambiada de dueño', () => {

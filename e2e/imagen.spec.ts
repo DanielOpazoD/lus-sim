@@ -111,7 +111,11 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     expect(shell.byInterface[face] ?? 0, `${face}: ${stag}`).toBeGreaterThan(50);
   expect(shell.byInterface.ObliquePlane ?? 0, stag).toBe(0);
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
-  expect(shell.distanceMaxErr, stag).toBeLessThan(0.02);
+  // (decisión 42) la distancia, con la tolerancia que crece con el gradiente de la cara (`shellDistanceTolerance`): 0,02 mm donde
+  // |∇d| ≈ 1; sobre la cúpula pleural (la pared engruesa ≈ 16 mm por mm en z, limitación `wall-cupola-transition`), a donde llega
+  // el borde craneal del sector del BLUE superior nuevo, SwiftShader se aparta |∇d|·δx: 0,025 mm, y 0,11 en la inspiración
+  // profunda, con δx ≈ 0,001 mm; con la GPU real, ≤ 0,0067 mm en todos los puntos)
+  expect(shell.distanceMaxErrOverTol, stag).toBeLessThan(1);
   // (decisión 37) las cápsulas del hígado y del bazo en las bases: la cara, su distancia y su normal (el volumen no las ve: deja
   // fuera lo que está a menos de 1 mm de un borde)
   const caps = await page.evaluate(() => window.__lusTest!.capsules());
@@ -215,7 +219,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // GLSL en dos pasos de punto fijo la GPU real da 0,992 en el peor: ≥ 0,999 la ve (con 0,99 no la veía)
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
-  expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.shell.distanceMaxErrOverTol, itag).toBeLessThan(1);
   expect(insp.pleura.lines, itag).toBe((START_POINTS.length + 3) * 192);
   expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
   expect(insp.pleura.registrationMismatch, itag).toBe(0);
