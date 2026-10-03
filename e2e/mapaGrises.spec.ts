@@ -32,20 +32,26 @@ import {
 const GAINS_DB = [-20, -12, -4, 4, 12, 20] as const;
 const TILE = 16;
 
-test('el mapa de grises se lee del moteado del simulador, y el diagnóstico delata que su pared no es moteado de Rayleigh', async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(300_000);
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-  page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`console: ${m.text()}`);
-  });
-  await page.goto('/?e2e=1');
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
-  type Run = Pick<FidelityBenchReport, 'display' | 'wallSpeckle'> & { startPoint: string; wallTiles: SpeckleTile[] };
-  const runs: Run[] = [];
-  for (const startPoint of ['blueUpper', 'plaps'] as const)
+type StartPoint = 'blueUpper' | 'plaps';
+
+/**
+ * Una prueba por vista (02-10-2026): las dos juntas tardaban 4,9–5,0 min en el CI frente a su plazo de 5, y en un corredor
+ * lento el primer intento agotaba el plazo y el reintento se comía el del fragmento (PR #45). Las aserciones son las mismas.
+ */
+for (const startPoint of ['blueUpper', 'plaps'] as const)
+  test(`el mapa de grises se lee del moteado del simulador, y el diagnóstico delata que su pared no es moteado de Rayleigh (${startPoint})`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(300_000);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(`console: ${m.text()}`);
+    });
+    await page.goto('/?e2e=1');
+    await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
+    type Run = Pick<FidelityBenchReport, 'display' | 'wallSpeckle'> & { startPoint: StartPoint; wallTiles: SpeckleTile[] };
+    const runs: Run[] = [];
     for (const gainDb of GAINS_DB)
       runs.push(
         await page.evaluate(
@@ -70,38 +76,30 @@ test('el mapa de grises se lee del moteado del simulador, y el diagnóstico dela
           { sp: startPoint, g: gainDb, tile: TILE },
         ),
       );
-  expect(runs.every((r) => r.display.dynamicRangeDb === 70 && r.display.greyCurve === 3.5)).toBe(true);
-  // 1. por ubicación, a través de las ganancias (cada vista por separado: las ubicaciones son de su cuadro)
-  const sweeps = ['blueUpper', 'plaps'].map((sp) =>
-    fitGreyMapAcrossGains(runs.filter((r) => r.startPoint === sp).map((r) => ({ gainDb: r.display.gainDb, tiles: r.wallTiles }))),
-  );
-  // 2. el estimador de una imagen, con todas las teselas de la pared de cada vista juntas
-  const single = ['blueUpper', 'plaps'].map((sp) => {
-    const { dbBetween, ...fit } = fitGreyMap(runs.filter((r) => r.startPoint === sp).flatMap((r) => r.wallTiles));
+    expect(runs.every((r) => r.display.dynamicRangeDb === 70 && r.display.greyCurve === 3.5)).toBe(true);
+    // 1. por ubicación, a través de las ganancias
+    const sweep = fitGreyMapAcrossGains(runs.map((r) => ({ gainDb: r.display.gainDb, tiles: r.wallTiles })));
+    // 2. el estimador de una imagen, con todas las teselas de la pared juntas
+    const { dbBetween, ...single } = fitGreyMap(runs.flatMap((r) => r.wallTiles));
     void dbBetween;
-    return fit;
-  });
-  const envelope = runs.filter((r) => r.display.gainDb === GAINS_DB[0]).map((r) => ({ startPoint: r.startPoint, ...r.wallSpeckle }));
-  const file = testInfo.outputPath('mapa-grises.json');
-  writeFileSync(file, JSON.stringify({ sweeps, single, envelope, rayleighP90P50Db: RAYLEIGH_P90_P50_DB }, null, 1));
-  await testInfo.attach('mapa-grises.json', { path: file, contentType: 'application/json' });
-  console.log(`MAPA_GRISES ${JSON.stringify({ sweeps, single, envelope })}`);
-  for (const s of sweeps) {
-    expect(s.locations, JSON.stringify(s)).toBeGreaterThanOrEqual(30);
-    expect(Math.abs(s.c - 3.5), JSON.stringify(s)).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(s.rangeDb / 70 - 1), JSON.stringify(s)).toBeLessThanOrEqual(0.05);
-  }
-  for (const [i, f] of single.entries()) {
+    const envelope = { startPoint, ...runs.find((r) => r.display.gainDb === GAINS_DB[0])!.wallSpeckle };
+    const file = testInfo.outputPath(`mapa-grises-${startPoint}.json`);
+    writeFileSync(file, JSON.stringify({ sweep, single, envelope, rayleighP90P50Db: RAYLEIGH_P90_P50_DB }, null, 1));
+    await testInfo.attach(`mapa-grises-${startPoint}.json`, { path: file, contentType: 'application/json' });
+    console.log(`MAPA_GRISES ${JSON.stringify({ sweep, single, envelope })}`);
+    expect(sweep.locations, JSON.stringify(sweep)).toBeGreaterThanOrEqual(30);
+    expect(Math.abs(sweep.c - 3.5), JSON.stringify(sweep)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(sweep.rangeDb / 70 - 1), JSON.stringify(sweep)).toBeLessThanOrEqual(0.05);
     // la región de la pared en la envolvente no tiene la forma de Rayleigh (la verdad del simulador)…
-    expect(envelope[i].region.patches, JSON.stringify(envelope[i])).toBeGreaterThanOrEqual(10);
+    expect(envelope.region.patches, JSON.stringify(envelope)).toBeGreaterThanOrEqual(10);
     // en parches finitos y con grano, p90 − p50 del moteado de Rayleigh sale ≤ 5,21 dB: más ancho, no es de Rayleigh
-    expect(envelope[i].region.p90p50Db, JSON.stringify(envelope[i])).toBeGreaterThan(RAYLEIGH_P90_P50_DB + 1);
+    expect(envelope.region.p90p50Db, JSON.stringify(envelope)).toBeGreaterThan(RAYLEIGH_P90_P50_DB + 1);
     // …y el estimador de una imagen no da su mapa por fiable (su rango dinámico, 44–51 dB, estaría mal: es 70): lo delata
     // la asimetría en dB
-    expect(f.reliable, JSON.stringify(f)).toBe(false);
-    expect(f.asymmetry, JSON.stringify(f)).toBeLessThan(ASYMMETRY_BAND[0]);
-  }
-  // en el BLUE superior la región es casi simétrica en dB (0,94–0,96 frente a 1,57); en el PLAPS, 1,28–1,30
-  expect(envelope[0].region.asymmetry, JSON.stringify(envelope[0])).toBeLessThan(RAYLEIGH_QUANTILE_ASYMMETRY - 0.3);
-  expect(errors).toEqual([]);
-});
+    expect(single.reliable, JSON.stringify(single)).toBe(false);
+    expect(single.asymmetry, JSON.stringify(single)).toBeLessThan(ASYMMETRY_BAND[0]);
+    // en el BLUE superior la región es casi simétrica en dB (0,94–0,96 frente a 1,57); en el PLAPS, 1,28–1,30
+    if (startPoint === 'blueUpper')
+      expect(envelope.region.asymmetry, JSON.stringify(envelope)).toBeLessThan(RAYLEIGH_QUANTILE_ASYMMETRY - 0.3);
+    expect(errors).toEqual([]);
+  });
