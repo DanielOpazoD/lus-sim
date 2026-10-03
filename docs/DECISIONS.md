@@ -3514,6 +3514,42 @@ frente a 0,46–0,72 s en el banco.
   (`sector-detector-moving-skin`) y como prueba «aún no se cumple»: con la mano en el PLAPS respirando, seis pilas a lo largo
   del ciclo desde t = 60 s, el borde de la piel detectado no debería moverse más de 0,5 px (sin la mano, ≤ 0,2 px en 16 fases;
   con ella, hasta 1,2–1,6 px, con la GPU real y con SwiftShader). Fallará cuando el detector lo resuelva.
+- **Nota posterior (03-10-2026): la paridad de la transmisión con apertura se mide en potencia, en la escala de los términos
+  del cono.**
+  Desde esta decisión, `e2e/imagen.spec.ts` fallaba a ratos en la transmisión con apertura de la mirada 0 frente a su gemelo
+  (`apertureMaxDiffDb` 0,011–0,027 dB con un límite de 0,01). No es la pose: el gemelo lee los segmentos, los impactos y el
+  prefijo que la GPU escribió en el mismo cuadro. Con SwiftShader, en 24 instantes del reloj en el BLUE inferior (una línea de
+  cada 8), la diferencia se reparte así según la cancelación coherente del cono (dB entre la media incoherente y la coherente
+  con la fase del hueso):
+
+  | Cancelación | Muestras con la mano | Máx. con la mano (dB) | Máx. sin la mano (dB) |
+  | ----------- | -------------------- | --------------------- | --------------------- |
+  | < 1 dB      | 13 159               | 0,0007                | 0,0004                |
+  | 1–3 dB      | 643                  | 0,0008                | 0,0006                |
+  | 3–6 dB      | 390                  | 0,0008                | 0,0008                |
+  | 6–10 dB     | 455                  | 0,0013                | 0,0014                |
+  | 10–20 dB    | 506                  | 0,0135                | 0,0071                |
+  | > 20 dB     | 62                   | 0,028                 | 0,0054                |
+
+  Sin la mano la geometría es la misma en los 24 instantes (0,0071 dB); con ella, en tres barridos de 24 instantes, 18–20
+  pasan de 0,01 (máximo 0,030). La diferencia cruda crece como (T_incoherente/T)²: un error en los términos de la suma de
+  fasores es un error absoluto en la potencia, del tamaño de los términos. Emular float32 en el gemelo (k y σ, las cuerdas, el
+  argumento k·ΔL y toda la aritmética del cono) no la cambia (0,0297 frente a 0,0297): es atribuible a las trascendentes de la
+  GPU. La paridad se mide ahora en potencia frente a la incoherente al cuadrado, 10·log10(1 + |T_TS² − T_GPU²|/T_inc²)
+  (`apertureParity.ts`), que sin cancelación es la diferencia cruda en dB y con ella no crece: con la mano, ≤ 0,0006 dB en los
+  24 instantes (sin la mano, 0,0004). El umbral baja de 0,01 a 0,005 dB, ≈ 8 veces el máximo medido. Se midió también la
+  alternativa en amplitud, 20·log10(1 + |ΔT|/T_inc): ≤ 0,0016 dB, pero solo frena el crecimiento a T_inc/T y su margen se
+  acabaría hacia los 44 dB de cancelación (hoy, como mucho, 28 dB). La cruda, la cancelación máxima y la fracción de muestras
+  con cancelación > 20 dB (0,16–0,63 % con la mano) van en el informe.
+
+  Lo que se pierde: ante errores paramétricos pequeños la prueba es menos sensible que con la cruda (que de todos modos ya no
+  servía). Con SwiftShader y la mano, k × 1,001 en la GLSL da 0,042 dB crudo y 0,0078 en potencia (pasa el umbral 1,6 veces,
+  frente a 4 veces la cruda con 0,01); k × 1,003, 0,136 y 0,024. En la rejilla sintética de `boneTransmission.test.ts`
+  (fundamental y armónica), σ × 1,01 da 0,005–0,007 en potencia frente a 0,03–0,15 crudo: en el umbral. Se pierden unas 3
+  veces de sensibilidad ante errores de ≈ 0,1 % en k y 3–10 ante ≈ 1 % en σ. Los errores de verdad siguen cayendo (mutaciones de la
+  GLSL con la mano, en potencia): la fase de una sola toma, cos(k·(L_j + L_m)), 3,0 dB; k × 1,1, 0,67 dB; la cuerda de la costilla una fila más honda, 2,9 dB; el signo de la decoherencia de la banda, e^(+(σ·ΔL)²/2), 20 dB (dos instantes cada una). Invertir el signo de la fase entera, cos(−k·ΔL), no es una mutación: el coseno es
+  par y la suma por pares no cambia.
+
 - **El coste del cuadro en la GPU no cambia:** 4,47 ms con la mano y 4,51 sin ella, en la misma sesión (medianas de 9 medidas de 60 cuadros con `frameCostMs`, alternando). La mano es CPU, no recalcula el contacto y no hace redibujar el
   navegador.
 - **El gancho `operator`** cambia el estado de la mano (semilla, si está activa, lo que sigue y el temblor) sin recompilar.

@@ -170,14 +170,20 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(t.samples, ttag).toBeGreaterThan(300);
   expect(t.maxDiffDb, ttag).toBeLessThan(0.01);
   // lus-sim (decisión 20): la transmisión con apertura de A, con la fase del hueso de cada toma, y la que dibuja B, frente a
-  // sus gemelos sobre los segmentos de la GPU (con GPU real y con SwiftShader: ≤ 3·10⁻⁵ dB, ningún empate; ≈ 5200 de las
-  // ≈ 5800 muestras con hueso en el cono en el BLUE inferior con una línea de cada 4); y la costilla de cada línea de A0
-  // (su entrada y su salida exactas, la bisección del espejo) frente a la de TS sobre la clasificación de la CPU: 0 mm
+  // sus gemelos sobre los segmentos de la GPU (ningún empate; ≈ 2500–2700 de las ≈ 2800–3000 muestras con hueso en el cono en el BLUE
+  // inferior con una línea de cada 8); y la costilla de cada línea de A0 (su entrada y su salida exactas, la bisección del
+  // espejo) frente a la de TS sobre la clasificación de la CPU: 0 mm. El desacuerdo se exige en potencia en la escala de los
+  // términos del cono, 10·log10(1 + |T_TS² − T_GPU²|/T_incoherente²) (`apertureParity.ts`; decisión 39, nota de la paridad):
+  // bajo una costilla la suma coherente casi se anula (hasta 28 dB por debajo de la incoherente) y la diferencia cruda
+  // amplifica el error float32 de la GPU. Con SwiftShader, en 24 instantes del reloj con la mano (03-10-2026): la cruda hasta
+  // 0,030 dB (18–20 de 24 por encima de 0,01 en tres barridos), en potencia ≤ 0,0006 dB; sin la mano, 0,0071 y 0,0004. El umbral, 0,005 dB:
+  // ≈ 8 veces el máximo medido, y por debajo de lo que da k × 1,001 en la GLSL (0,0078). La cruda, la cancelación máxima y
+  // la fracción con cancelación > 20 dB van en el mensaje
   const la = t.look0Aperture!;
   const latag = JSON.stringify(la);
   expect(la.boneSamples, latag).toBeGreaterThan(0.5 * la.samples);
-  expect(la.apertureMaxDiffDb, latag).toBeLessThan(0.01);
-  expect(la.drawnMaxDiffDb, latag).toBeLessThan(0.01);
+  expect(la.apertureMaxPowerDiffDb, latag).toBeLessThan(0.005);
+  expect(la.drawnMaxPowerDiffDb, latag).toBeLessThan(0.005);
   expect(la.ambiguous, latag).toBeLessThan(0.01 * la.samples);
   const bc = t.boneChord!;
   expect(bc.lines, JSON.stringify(bc)).toBeGreaterThan(5);

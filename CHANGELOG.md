@@ -161,6 +161,11 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- La paridad de la transmisión con apertura (39, nota): la e2e de la anatomía la exige en potencia frente a la media
+  incoherente del cono (≤ 0,005 dB), no en dB crudos (≤ 0,01). Con la mano del operador la sonda recorre geometrías donde la
+  suma coherente bajo una costilla se anula hasta 28 dB y el error float32 de la GPU llegaba a 0,03 dB crudos
+  (`imagen.spec.ts` fallaba a ratos); en potencia, ≤ 0,0006. La diferencia cruda, la cancelación máxima y la fracción con
+  cancelación > 20 dB quedan en el informe.
 - Rechazado (41): la neblina de los clips es compatible con el espejo de la pared. Con una pleura lisa (σz ≤ 0,01) y la
   ganancia que no recorta la línea pleural, la neblina queda a 2–2,5 dB de la pared y la arena se frena (0,43–0,61 s), pero
   las líneas A caen solo 19–21 dB por orden y M y r₂ se alejan del banco: falta una pérdida de ≥ 15 dB por orden que paguen
