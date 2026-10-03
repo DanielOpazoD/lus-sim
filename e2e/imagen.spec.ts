@@ -415,6 +415,8 @@ test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asom
   const worst = Math.max(...central.map((x) => x.pleuraDisplayDb - s.blackLevelDb));
   const tag = `núcleo ${core.length} líneas (${central.length} en el tercio central); la peor del central, ${worst.toFixed(2)} dB sobre el negro; acuerdo CPU/pasada A ${s.cpuBoneAgreement.toFixed(3)}`;
   expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
+  // en las líneas de cada borde, las que deciden si la del borde es núcleo (medido: 1 y 1)
+  expect(Math.min(s.cpuBoneAgreementEdges.before, s.cpuBoneAgreementEdges.after), tag).toBeGreaterThanOrEqual(0.95);
   expect(central.length, tag).toBeGreaterThan(5);
   // hoy: la línea pleural asoma sobre el negro en el núcleo de la sombra central (F-T08 pide que no)
   expect(worst, tag).toBeGreaterThan(0);
@@ -471,8 +473,10 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
       ]),
     )}`;
     // (decisión 42) el borde de la sombra más allá del sector lo deciden líneas virtuales clasificadas con la escena de la CPU:
-    // dentro del sector, esa clasificación es la de la pasada A (medido: 0,995–1 en las tres vistas, GPU real y SwiftShader)
+    // dentro del sector, esa clasificación es la de la pasada A (medido: 0,990–1 en las tres vistas, GPU real y SwiftShader; en
+    // las 41–42 líneas de cada borde, 0,976–1: una línea a lo sumo)
     expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
+    expect(Math.min(s.cpuBoneAgreementEdges.before, s.cpuBoneAgreementEdges.after), tag).toBeGreaterThanOrEqual(0.95);
     // cada punto de partida corta costillas enteras (el signo del murciélago; desde el paso C1, también el BLUE superior)
     expect(bone.length, tag).toBeGreaterThan(50);
     expect(core.length, tag).toBeGreaterThan(20);

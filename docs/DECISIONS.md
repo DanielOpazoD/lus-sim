@@ -3825,8 +3825,8 @@ pantalla falla (0,34 dB entonces; 1,0 hoy, abajo) y el mapa de grises del PLAPS 
   pasada A (hueso en una fila por encima de la de la pleura), y el gancho devuelve cuáles cruzan hueso (`beyond`) y cuánto coincide
   esa clasificación con la de la pasada A dentro del sector (`cpuBoneAgreement`). Una primera versión de esta PR suponía lo contrario (fuera, sin
   hueso), lo que arreglaba una línea por 0,2 dB; el revisor lo marcó y se cambió por la medida. Medido (03-10-2026, apnea
-  espiratoria, GPU real y SwiftShader, mismas cifras): la clasificación de la CPU coincide con la de la pasada A en 99,5–100 % de
-  las líneas del sector (la e2e exige ≥ 98 %); en el BLUE inferior clínico la costilla de la izquierda sigue tres líneas fuera del
+  espiratoria, GPU real y SwiftShader, mismas cifras): la clasificación de la CPU coincide con la de la pasada A en 99,0–100 % de
+  las líneas del sector (la e2e exige ≥ 98 %), y en las 41–42 líneas de cada borde en 97,6–100 % (una línea a lo sumo; en el BLUE inferior clínico, 100 %; la e2e exige ≥ 95 %); en el BLUE inferior clínico la costilla de la izquierda sigue tres líneas fuera del
   sector, así que la línea del borde no es núcleo (con la suposición de antes lo era y salía 8,1 dB sobre el negro). Unitarias con
   las dos mutaciones (suponer hueso fuera, suponer que no) atrapadas (`shadowEdge.test.ts`).
 
