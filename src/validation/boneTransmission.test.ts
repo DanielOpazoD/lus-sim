@@ -362,6 +362,8 @@ describe('paridades de la GPU (los gemelos que usa la e2e)', () => {
     const ok = compareLook0Aperture(g, AP, COH, gpu, 4);
     expect(ok.apertureMaxDiffDb).toBeLessThan(1e-4);
     expect(ok.drawnMaxDiffDb).toBeLessThan(1e-4);
+    expect(ok.apertureMaxPowerDiffDb).toBeLessThan(1e-4);
+    expect(ok.drawnMaxPowerDiffDb).toBeLessThan(1e-4);
     expect(ok.boneSamples).toBeGreaterThan(50);
     // bajo la pleura (fila tope de 16 mm) la transmisión dibujada es la de su fila
     const kCap = Math.floor(15.5 / g.stepMm);
@@ -376,6 +378,81 @@ describe('paridades de la GPU (los gemelos que usa la e2e)', () => {
         (m) => (g.boneEntryMm![m] >= 0 ? (Math.floor(g.boneEntryMm![m] / g.stepMm) + 0.5) * g.stepMm : Infinity),
       );
     expect(db(plain(96, 25)) - db(twin.at(96, 25))).toBeGreaterThan(3);
+  });
+
+  it('la paridad de A en la escala de los términos del cono: tolera el error float32 donde la suma se anula, no la fase perdida', () => {
+    // la armónica (emisión a f/2, el cono de emisión al cuadrado) cancela más bajo esta costilla: hasta ≈ 29 dB
+    const HCOH = boneCoherence(harmonicBeam(CONVEX_BEAM));
+    const g = ribGrid();
+    const twin = look0ApertureTwin(g, AP, HCOH);
+    const lines = g.lines;
+    // todas las filas (180 mm): las más hondas pasan de −60 dB y la apertura no se compara, pero lo dibujado bajo la pleura sí
+    const rows = g.rows;
+    const kCap = Math.floor(15.5 / g.stepMm);
+    // la cancelación (dB entre la media incoherente y la coherente; db() es el nivel, 20·log10) de cada muestra comparada
+    const canc = (l: number, k: number): number => db(twin.incoherent(l, k)) - db(twin.at(l, k));
+    let deep = { l: -1, k: -1, c: 0 };
+    let deepCount = 0;
+    let compared = 0;
+    for (let k = 0; k < rows; k++)
+      for (let l = 0; l < lines; l += 4) {
+        if (db(twin.at(l, k)) <= -60) continue;
+        compared++;
+        if (canc(l, k) > 20) deepCount++;
+        if (k <= kCap && canc(l, k) > deep.c) deep = { l, k, c: canc(l, k) };
+      }
+    expect(deep.c).toBeGreaterThan(10);
+    expect(deepCount).toBeGreaterThan(0);
+    // la GPU con un error de 2·10⁻⁴ de la media incoherente (el tamaño de los términos) en la muestra más cancelada por encima
+    // de la fila tope, y en lo dibujado bajo la pleura en esa línea (la fila tope y una más honda: dibuja la de la fila tope)
+    const eps = 2e-4;
+    const kDeep = kCap + 3;
+    const aperture = new Float32Array(rows * lines);
+    const drawn = new Float32Array(rows * lines);
+    for (let k = 0; k < rows; k++)
+      for (let l = 0; l < lines; l++) {
+        aperture[k * lines + l] = twin.at(l, k);
+        drawn[k * lines + l] = twin.drawn(l, k);
+      }
+    aperture[deep.k * lines + deep.l] += eps * twin.incoherent(deep.l, deep.k);
+    drawn[kDeep * lines + deep.l] += eps * twin.drawnIncoherent(deep.l, kDeep);
+    const noisy = compareLook0Aperture(g, AP, HCOH, { lines, samples: rows, aperture, drawn }, 4);
+    // la cruda pasa de 0,01 dB; en potencia es exactamente 10·log10(1 + |(T + ε·I)² − T²|/I²), con la incoherente I de la
+    // misma fila (la tope en lo dibujado bajo la pleura): ni la coherente, ni la de la fila sin tope, ni la de la apertura
+    const expected = (T: number, I: number): number => 10 * Math.log10(1 + Math.abs((T + eps * I) ** 2 - T * T) / (I * I));
+    const Ta = twin.at(deep.l, deep.k);
+    const Ia = twin.incoherent(deep.l, deep.k);
+    const Td = twin.drawn(deep.l, kDeep);
+    const Id = twin.drawnIncoherent(deep.l, kDeep);
+    expect(noisy.apertureMaxDiffDb).toBeGreaterThan(0.01);
+    expect(noisy.apertureMaxPowerDiffDb).toBeCloseTo(expected(Ta, Ia), 6);
+    expect(noisy.drawnMaxDiffDb).toBeGreaterThan(0.01);
+    expect(noisy.drawnMaxPowerDiffDb).toBeCloseTo(expected(Td, Id), 6);
+    expect(noisy.apertureMaxPowerDiffDb).toBeLessThan(0.001);
+    expect(Id).toBe(twin.incoherent(deep.l, kCap));
+    expect(Math.abs(twin.incoherent(deep.l, kDeep) / Id - 1)).toBeGreaterThan(1e-3);
+    expect(noisy.worstPower).toMatchObject({ line: deep.l, depthMm: (deep.k + 0.5) * g.stepMm });
+    expect(noisy.worstPower!.cancellationDb).toBeCloseTo(deep.c, 6);
+    // la cancelación del informe: la fracción profunda sobre las muestras donde se compara la apertura, y la máxima
+    expect(noisy.apertureCompared).toBe(compared);
+    expect(noisy.samples).toBeGreaterThan(noisy.apertureCompared);
+    expect(noisy.deepCancellationFraction).toBeCloseTo(deepCount / compared, 12);
+    expect(noisy.maxCancellationDb).toBeGreaterThan(20);
+    // una GPU sin la fase del hueso (la media incoherente) sí falla, también en potencia
+    const plainGpu = compareLook0Aperture(
+      g,
+      AP,
+      HCOH,
+      {
+        lines,
+        samples: rows,
+        aperture: Float32Array.from({ length: rows * lines }, (_, i) => twin.incoherent(i % lines, Math.floor(i / lines))),
+        drawn: Float32Array.from({ length: rows * lines }, (_, i) => twin.drawnIncoherent(i % lines, Math.floor(i / lines))),
+      },
+      4,
+    );
+    expect(plainGpu.apertureMaxPowerDiffDb).toBeGreaterThan(1);
+    expect(plainGpu.drawnMaxPowerDiffDb).toBeGreaterThan(1);
   });
 
   it('la paridad de D ve el pedestal en sombra: el gemelo sin él se aparta de la GPU', () => {
