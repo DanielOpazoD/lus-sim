@@ -2728,6 +2728,10 @@ SwiftShader huérfanos (carga media 30); se terminaron y no cuenta. Sobre `85211
 pruebas, un fallo esperado y una omitida, con los mismos kB; la e2e completa no se pudo medir en local: con la máquina a carga media 120 (otras sesiones y suites), 15 pasaron y 12
 agotaron sus plazos antes de pararla; la referencia es la del CI de la PR.
 
+**Nota (decisión 40, 2026-10-03).** `frame-cost-timing-sync` se cerró. La lectura inválida no espera a la GPU, pero en
+`frameCostMs` solo lo era la del principio (el cuadro de calentamiento va al cine); la del final era válida, así que los costos
+de arriba no salían bajos (si acaso algo altos). Ahora las dos leen la pantalla.
+
 ## 34. La parte difusa de la pleura rugosa en la reverberación [Estado: rechazada]
 
 **Fecha.** 2026-10-02.
@@ -3526,3 +3530,84 @@ frente a 0,46–0,72 s en el banco.
 - F-T11 en ocho semillas.
 - La e2e entera con la GPU real.
 - Revisión adversarial de contexto limpio: resumen en la PR.
+
+## 40. El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** La meta de O6 (modo B a ≥ 30 FPS en un computador moderno) se sostiene con `frameCostMs` (ganchos de la e2e): el
+tiempo de pared de n cuadros entre dos `finishForTiming`, que leía un píxel RGBA/UNSIGNED_BYTE del framebuffer que estuviera
+ligado. La decisión 33 vio un aviso de WebGL por medida en la GPU real y dejó la duda de si la lectura esperaba a la GPU
+(`frame-cost-timing-sync`). El informe técnico solo traía las vueltas del bucle en el último cuarto de segundo (`fps`), que
+siguen con la imagen congelada.
+
+**Lo que pasaba** (Chrome con Metal, Apple M4; `e2e` temporales fuera del repositorio). Tras guardar un cuadro en el cine
+(`cineStore`, a ≤ `CINE_RATE_HZ`) queda ligado para lectura el FBO de la envolvente (R32F), donde RGBA/UNSIGNED_BYTE es inválido
+(«Invalid format and type combination»). **Una lectura inválida no espera**: tras encolar 30 cuadros (0,09–0,15 ms cada uno), la
+lectura inválida vuelve a los 0,46–0,51 ms por cuadro y la válida que la sigue, a los 5,0–6,4; con la GPU cargada (el campo
+crudo nueve veces por cuadro), 0,69–0,94 frente a 24,3–33,0. En `frameCostMs` la lectura inválida era la **del principio**:
+`goTo` avanza el reloj, el cuadro de calentamiento va al cine y deja ligada la envolvente; los n cuadros medidos tienen el mismo
+instante, no van al cine y la presentación deja ligada la pantalla, así que la lectura **del final** era válida (la revisión lo
+comprobó con el WebGL falso: [inválida, válida] en las 9 medidas con `startPoint`). Por eso la medida de main no salía baja
+sino, si acaso, alta: el trabajo del calentamiento, sin esperar, se colaba en el intervalo (con la GPU cargada, +0,6–2,0 ms por
+cuadro, +5–7 %). **Los costos de las decisiones anteriores valen** (la 33: 4,9–6,8 ms). Pero el resultado dependía de que
+ningún cuadro medido fuera al cine: si uno lo hacía, la lectura del final era inválida y la medida salía ≈ 10 veces baja.
+
+**Medida independiente** (ventana de 1440 × 900, lienzo de 1006 × 717; las seis vistas, tres pasadas intercaladas de 60
+cuadros), ms por cuadro:
+
+| Vista                  | Gancho de main | Lectura válida de la pantalla | Cada cuadro esperado | Solo encolar | TIME_ELAPSED |
+| ---------------------- | -------------- | ----------------------------- | -------------------- | ------------ | ------------ |
+| BLUE superior          | 5,44–5,51      | 5,44–5,48                     | 6,50–6,59            | 0,11–0,20    | 13,9–15,0    |
+| BLUE inferior          | 5,45–5,50      | 5,47–5,59                     | 6,60–6,70            | 0,10–0,11    | 13,8–15,4    |
+| PLAPS                  | 5,50–5,62      | 5,50–5,61                     | 6,68–6,75            | 0,10–0,13    | 13,9–14,7    |
+| Paravertebral superior | 5,36–5,93      | 5,31–5,92                     | 6,40–7,03            | 0,10–0,11    | 13,6–15,8    |
+| Paravertebral media    | 6,04–6,29      | 6,05–6,22                     | 7,11–7,36            | 0,10–0,13    | 15,8–16,7    |
+| Paravertebral basal    | 6,65–6,83      | 6,59–6,76                     | 7,68–7,85            | 0,10–0,12    | 17,1–18,5    |
+
+**El temporizador de la GPU no sirve de referencia aquí**: TIME_ELAPSED alrededor de los mismos 60 cuadros da 2,5–2,8 veces el
+tiempo de pared, más que dibujar y esperar cada cuadro: imposible para un temporizador correcto. La media por pasada del
+renderizador (`gpuMs` del informe técnico) sale 6,7–59 ms. Queda como limitación (`gpu-timer-unverified`).
+
+**Opciones.** (a) Leer un píxel de la pantalla, que escribe la última pasada (la presentación) y depende de todas las anteriores;
+(b) `gl.finish()` (en WebGL no garantiza la espera); (c) una valla (`fenceSync`), que WebGL no deja esperar dentro de una tarea
+(su estado solo cambia al volver al bucle de eventos); (d) la consulta TIME_ELAPSED, descartada por lo de arriba.
+
+**Decisión.** (a).
+
+- `finishForTiming` (`src/ultrasound/renderer.ts`) liga para lectura la pantalla, lee 1 × 1 RGBA/UNSIGNED_BYTE, vuelve a ligar
+  lo que había y **lanza** si WebGL informa un error (una medida sin sincronizar no se devuelve en silencio; con el contexto
+  perdido, `CONTEXT_LOST_WEBGL`). Se llama en la misma tarea que el último `render` (`frameCostMs` y la e2e lo hacen). La copia al
+  cine va después de la presentación y no está en esa dependencia, pero en `frameCostMs` los cuadros medidos no van al cine (el
+  mismo instante): el costo medido es el de las pasadas del cuadro, sin la copia al cine (≤ `CINE_RATE_HZ`) ni la captura del
+  modo M del bucle real.
+- **Los FPS reales del modo B** (`src/app/frameRate.ts`, `BmodeFrameRate`; campo `bmodeFps` del informe técnico): los cuadros que
+  se dibujan de verdad (tras `render`, en vivo y con la GPU) en los últimos 10 s, con la mediana y el p95 del intervalo entre
+  cuadros (los tirones que la media esconde); congelar, perder la GPU u ocultar la pestaña vacían la ventana. `fps` sigue siendo
+  lo de la barra de estado.
+
+**Consecuencias.**
+
+- **Después** (el gancho con la lectura válida, mismas condiciones, ms por cuadro): BLUE superior 5,33–5,65, BLUE inferior
+  5,23–5,43, PLAPS 5,38–5,46, paravertebral superior 5,23–5,79, media 5,92–6,12, basal 6,53–6,87; ningún aviso de WebGL y
+  `getError` limpio en las 36 medidas. Con la GPU cargada, el gancho y la lectura válida a mano difieren 0,1–0,6 ms por cuadro
+  (antes 0,6–2,0; no se midió de dónde sale lo que queda).
+- **O6, medido en el navegador** (GPU real, 1440 × 900): el bucle va a **60 FPS en las seis vistas**, con la mediana y el p95 del
+  intervalo en 16,7 ms (el refresco de la pantalla); el informe técnico da `bmodeFps` 59,8 con 599 cuadros en 10 s. El cuadro
+  cuesta 5,2–6,9 ms: margen de 2,4–3,2 veces para 60 FPS y de 4,8–6,4 para la meta de 30.
+- VExUS tiene la misma lectura: queda en «Mejoras para ofrecer al origen» (`docs/PROVENANCE.md`).
+- `frame-cost-timing-sync` se cierra; nueva `gpu-timer-unverified`.
+- La pregunta abierta de la decisión 36 sobre d_pl (la mediana de una pleura a dos profundidades) es el issue #53; no se toca
+  aquí.
+
+**Verificación.** `frameCost.test.ts` sobre el renderizador real con el WebGL falso, que ahora rechaza las lecturas como WebGL 2
+(RGBA/UNSIGNED_BYTE solo de la pantalla o de un adjunto RGBA8; RGBA/FLOAT solo de uno de coma flotante): tras un cuadro que va
+al cine la lectura ligada es la envolvente (R32F), `finishForTiming` lee la pantalla y la deja como estaba; una lectura RGBA/FLOAT
+del renderizador no deja error; con un error pendiente, lanza. `frameRate.test.ts` (60 FPS, los tirones en el p95 con más y con
+menos del 5 %, la ventana y su vaciado). La e2e `e2e/costo.spec.ts`: dibujar cuadros pesados y esperar con `finishForTiming`
+cuesta más de 3 veces lo que encolarlos y más de 1 ms por cuadro, el gancho sigue a la carga de la GPU y ninguna medida deja error
+ni aviso de WebGL (dos cuadros con el campo crudo dos veces más; GPU real: encolar 0,40 ms por cuadro, esperar 10,0; SwiftShader: 0,30 y 1 847). `smoke.spec.ts`: con la imagen en vivo, el informe técnico trae
+`bmodeFps`. **Mutaciones**, cada una atrapada: la lectura de antes (las dos unitarias; en la e2e, `getError` 0x502), sin restaurar
+la lectura ligada (una unitaria), sin lanzar (una unitaria) y `finishForTiming` vacía (la e2e: esperar = encolar, 0,35 ms). La
+revisión adversarial de contexto limpio halló, entre otras cosas, que la primera versión de esta decisión afirmaba que la lectura
+inválida esperaba a la GPU; la medida de arriba (la lectura inválida al cerrar) lo desmiente y el razonamiento se rehízo.

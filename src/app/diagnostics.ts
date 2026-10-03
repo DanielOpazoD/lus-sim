@@ -1,6 +1,7 @@
 import type { EquipmentSettings } from './simulator';
 import type { ErrorEntry } from './errorLog';
 import type { CoverageRegion } from './coverage';
+import type { BmodeFrameRateSummary } from './frameRate';
 
 /**
  * Diagnóstico exportable (Fase 3): lo que un equipo necesita para reproducir un informe de
@@ -19,7 +20,13 @@ export interface DiagnosticsInput {
   viewport: { width: number; height: number; devicePixelRatio: number };
   caseId: string;
   simTimeS: number;
+  /** Vueltas del bucle por segundo en el último cuarto de segundo (lo que dice la barra de estado; sigue con la imagen congelada). */
   fps: number;
+  /**
+   * FPS reales del modo B (lus-sim, decisión 40; el indicador de O6): solo los cuadros dibujados de verdad, en vivo y con la
+   * GPU, en los últimos 10 s, con la mediana y el p95 del intervalo entre cuadros; null con menos de dos cuadros.
+   */
+  bmodeFps: BmodeFrameRateSummary | null;
   /** Tiempo de GPU del cuadro y por pasada si el navegador los separa (ms); null sin temporizadores. */
   gpuMs: { frameMs: number; perPass: Readonly<Record<string, number>> | null } | null;
   equipment: EquipmentSettings;

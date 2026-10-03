@@ -1723,12 +1723,25 @@ export class UltrasoundRenderer {
   }
 
   /**
-   * Espera a que la GPU acabe lo encolado (lectura de 1 píxel de la pantalla). Solo pruebas y banco:
-   * sirve para medir el coste de un cuadro en tiempo de pared.
+   * Espera a que la GPU acabe el cuadro: lee 1 píxel de la pantalla, que escribe la última pasada (la presentación) y depende
+   * de todas las anteriores, así que la lectura no vuelve hasta que el cuadro está hecho. Solo pruebas y banco: sirve para
+   * medir el coste de un cuadro en tiempo de pared, y hay que llamarla en la misma tarea que el último `render` (después, el
+   * navegador puede haber cambiado el búfer de la pantalla). Lee del framebuffer de la pantalla (RGBA8) y no del que esté
+   * ligado: tras guardar un cuadro en el cine queda ligado para lectura el de la envolvente (R32F), donde RGBA/UNSIGNED_BYTE es
+   * inválido (decisión 40: un `GL_INVALID_OPERATION` por medida). Deja la lectura ligada como estaba y lanza si WebGL informa un
+   * error: una medida sin sincronizar no se devuelve en silencio.
    */
   finishForTiming(): void {
-    const px = new Uint8Array(4);
-    this.gl.readPixels(0, 0, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, px);
+    const gl = this.gl;
+    const prev = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, prev);
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR)
+      throw new Error(
+        `finishForTiming: WebGL informa el error 0x${err.toString(16)} (la lectura de sincronización o una llamada anterior)`,
+      );
   }
 
   /**

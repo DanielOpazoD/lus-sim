@@ -3,14 +3,16 @@
  * programa (y su nombre de shader) y qué textura hay en cada unidad en cada dibujo, los uniforms de
  * cada programa en ese momento, los adjuntos (formato y tamaño) de cada FBO y los FBO y programas
  * liberados. Un uniform subido con la ubicación de un programa que no es el puesto (WebGL lo rechaza con
- * INVALID_OPERATION y no lo sube) queda en `misuse`. Todo lo demás (parámetros de textura, lecturas) no
- * hace nada; los shaders «compilan», salvo el de `fail` (compilación o enlace fallidos, con su registro).
+ * INVALID_OPERATION y no lo sube) queda en `misuse`. Las lecturas (`readPixels`, lus-sim, decisión 40) se registran en
+ * `reads` con el FBO ligado para lectura y se rechazan como en WebGL 2: RGBA/UNSIGNED_BYTE solo de la pantalla o de un adjunto
+ * RGBA8, RGBA/FLOAT solo de un adjunto de coma flotante; una rechazada deja INVALID_OPERATION para `getError`. Todo lo demás
+ * (parámetros de textura) no hace nada; los shaders «compilan», salvo el de `fail` (compilación o enlace fallidos, con su registro).
  * `calls` guarda en orden las extensiones pedidas, las compilaciones, los enlaces y las consultas de estado
  * (lo que bloquea en un navegador) y `programs`, los programas creados. Como WebGL, un dibujo con un
  * adjunto activo (`drawBuffers`) sin salida en el shader de fragmentos se rechaza: queda en `misuse` y no se
- * registra en `draws` (el destino conserva lo anterior). Lo usan `frameCost.test.ts`
- * (repeticiones de medida) y `compoundRenderer.test.ts` (anillo de miradas, programas por mirada y su
- * enlace en lote al arrancar, decisión 58).
+ * registra en `draws` (el destino conserva lo anterior). Lo usan `frameCost.test.ts` (repeticiones de medida y la
+ * sincronización de la medida), `compoundRenderer.test.ts` (anillo de miradas, programas por mirada y su enlace en lote al
+ * arrancar, decisión 58), `acquisitionHistory.test.ts` y `harmonic.test.ts`.
  */
 import { fragmentOutputCount } from '../../ultrasound/gl';
 
@@ -25,6 +27,11 @@ export function recordingGl(
     FRAMEBUFFER_COMPLETE: 0x8cd5,
     COLOR_ATTACHMENT0: 0x8ce0,
     NONE: 0,
+    NO_ERROR: 0,
+    INVALID_OPERATION: 0x0502,
+    READ_FRAMEBUFFER: 0x8ca8,
+    DRAW_FRAMEBUFFER: 0x8ca9,
+    READ_FRAMEBUFFER_BINDING: 0x8caa,
   };
   let nextConst = 0x10000;
   let nextId = 1;
@@ -32,6 +39,10 @@ export function recordingGl(
   const make = (kind: string): Obj => ({ kind, id: nextId++ });
   const state = {
     fbo: null as Obj | null,
+    /** FBO ligado para lectura (`READ_FRAMEBUFFER`; `FRAMEBUFFER` liga los dos). */
+    readFbo: null as Obj | null,
+    /** Error pendiente de `getError` (como WebGL: el primero, hasta que se lee). */
+    error: 0,
     program: null as Obj | null,
     unit: 0,
     units: new Map<number, Obj | null>(),
@@ -65,6 +76,9 @@ export function recordingGl(
     uniformsOf.set(loc.program, m);
   };
   const binds: (Obj | null)[] = [];
+  /** Lecturas con `readPixels`: de qué FBO (null, la pantalla), su formato interno y si WebGL la aceptaría. */
+  const reads: { fbo: Obj | null; internal: number | null; valid: boolean }[] = [];
+  const constant = (name: string): number => (K[name] ??= nextConst++);
   /** Adjuntos activos de cada FBO (`drawBuffers`); sin llamada, todos los que tenga (como `createTarget`). */
   const drawBuffersOf = new Map<Obj, number[]>();
   const fboTextures = new Map<Obj, Obj[]>();
@@ -121,10 +135,29 @@ export function recordingGl(
       const tex = state.units.get(state.unit);
       if (tex) texInfo.set(tex, { internal, w, h });
     },
-    bindFramebuffer: (_t: number, fbo: Obj | null) => {
-      state.fbo = fbo;
+    bindFramebuffer: (t: number, fbo: Obj | null) => {
+      if (t !== K.READ_FRAMEBUFFER) state.fbo = fbo;
+      if (t !== K.DRAW_FRAMEBUFFER) state.readFbo = fbo;
       binds.push(fbo);
     },
+    // WebGL 2 garantiza RGBA/UNSIGNED_BYTE sobre un adjunto normalizado de 8 bits (o la pantalla) y RGBA/FLOAT sobre uno de coma
+    // flotante (con EXT_color_buffer_float); cualquier otra combinación falla con INVALID_OPERATION y no espera a nada
+    readPixels: (_x: number, _y: number, _w: number, _h: number, format: number, type: number) => {
+      const internal = state.readFbo ? (attachments.get(state.readFbo)?.[0]?.internal ?? null) : null;
+      const float = ['R32F', 'RG32F', 'RGBA32F', 'R16F', 'RG16F', 'RGBA16F'].some((f) => internal === constant(f));
+      const valid =
+        format === constant('RGBA') &&
+        ((type === constant('UNSIGNED_BYTE') && (state.readFbo === null || internal === constant('RGBA8'))) ||
+          (type === constant('FLOAT') && state.readFbo !== null && float));
+      reads.push({ fbo: state.readFbo, internal, valid });
+      if (!valid && state.error === K.NO_ERROR) state.error = K.INVALID_OPERATION;
+    },
+    getError: () => {
+      const e = state.error;
+      state.error = K.NO_ERROR;
+      return e;
+    },
+    getParameter: (p: number) => (p === K.READ_FRAMEBUFFER_BINDING ? state.readFbo : undefined),
     framebufferTexture2D: (_t: number, att: number, _tt: number, tex: Obj) => {
       const list = attachments.get(state.fbo!) ?? [];
       list[att - K.COLOR_ATTACHMENT0] = texInfo.get(tex)!;
@@ -177,5 +210,5 @@ export function recordingGl(
   );
   const canvas = { ...canvasSize, getContext: () => gl } as unknown as HTMLCanvasElement;
   /** Textura de cada FBO por adjunto (para saber qué destino lee cada unidad). */
-  return { canvas, draws, binds, attachments, deleted, fboTextures, misuse, calls, programs };
+  return { canvas, draws, binds, reads, attachments, deleted, fboTextures, misuse, calls, programs };
 }

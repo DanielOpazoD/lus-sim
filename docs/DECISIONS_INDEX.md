@@ -37,9 +37,10 @@ Generado por `npm run docs:index` — no editar a mano.
 | [31](DECISIONS.md#L2356) | La medida en dB: el detector de líneas A sin la tendencia y el mapa de grises desde el moteado | vigente |
 | [32](DECISIONS.md#L2497) | El pulso pulmonar: el pulmón junto al corazón se desliza con el latido (A-T16) | vigente |
 | [33](DECISIONS.md#L2608) | La espalda en el navegador: sentar al paciente y los puntos de partida paravertebrales | vigente |
-| [34](DECISIONS.md#L2731) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
-| [35](DECISIONS.md#L2785) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
-| [36](DECISIONS.md#L2918) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |
-| [37](DECISIONS.md#L3060) | El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34) | vigente |
-| [38](DECISIONS.md#L3234) | Lo que falta de la reverberación de la pared no cierra la neblina; el espejo la cerraría con una pleura lisa, pero choca con la caída de las líneas A | rechazada |
-| [39](DECISIONS.md#L3395) | La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips | vigente |
+| [34](DECISIONS.md#L2735) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
+| [35](DECISIONS.md#L2789) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
+| [36](DECISIONS.md#L2922) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |
+| [37](DECISIONS.md#L3064) | El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34) | vigente |
+| [38](DECISIONS.md#L3238) | Lo que falta de la reverberación de la pared no cierra la neblina; el espejo la cerraría con una pleura lisa, pero choca con la caída de las líneas A | rechazada |
+| [39](DECISIONS.md#L3399) | La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips | vigente |
+| [40](DECISIONS.md#L3534) | El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico | vigente |

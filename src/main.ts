@@ -1,5 +1,6 @@
 import { registerDevtools } from './app/devtools';
 import { buildDiagnostics, buildLabel, diagnosticsFileName, gpuInfo } from './app/diagnostics';
+import { BmodeFrameRate } from './app/frameRate';
 import { ErrorBudget } from './app/errorBudget';
 import { errorLog, errorMessage } from './app/errorLog';
 import { ProbeAnimator } from './app/probeAnimation';
@@ -183,6 +184,7 @@ async function downloadTechReport(): Promise<void> {
     caseId: s.patient.id,
     simTimeS: s.physiology.clock.t,
     fps: lastFps,
+    bmodeFps: bmodeRate.summary(),
     gpuMs: s.renderer.gpuTimings(),
     equipment: s.equipment,
     errors: errorLog.recent(50),
@@ -269,6 +271,12 @@ new ResizeObserver(fitCanvases).observe(sectorWrap);
 let last = performance.now();
 let frames = 0;
 let fpsWindowStarted = last;
+// los FPS del modo B del informe técnico (decisión 40): solo los cuadros que se dibujan de verdad
+const bmodeRate = new BmodeFrameRate();
+// con la pestaña oculta el navegador no da cuadros: al volver, el hueco no es un cuadro de varios segundos
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) bmodeRate.reset();
+});
 let lastStatus = 0;
 const errorBudget = new ErrorBudget();
 let loopDegraded = false;
@@ -282,9 +290,13 @@ function frame(now: number, dt: number): void {
   s.advance(dt);
   if (!gpu.lost) {
     s.render({ mline: mMode.prepare(s) });
+    // un cuadro del modo B solo si se dibujó (con la imagen congelada `render` no dibuja)
+    if (s.frozen) bmodeRate.reset();
+    else bmodeRate.frame(now);
     cine.tick();
     requestNavigator();
   }
+  if (gpu.lost) bmodeRate.reset();
   try {
     navigator3D?.sync();
   } catch (error) {

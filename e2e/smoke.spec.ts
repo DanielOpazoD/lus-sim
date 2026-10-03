@@ -193,6 +193,9 @@ test('«Restablecer paciente» vuelve a la respiración de su definición y el i
   expect(await page.evaluate(() => window.__lusTest!.sim().patient.respiratoryPattern)).toBe('quiet');
   const t1 = tOf(await page.locator('#status').textContent());
   await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 60_000 }).toBeGreaterThan(t1);
+  // con la imagen en vivo al menos tres cuadros más (el reloj avanza ≤ 0,25 s por cuadro): el informe tiene FPS del modo B
+  const t2 = tOf(await page.locator('#status').textContent());
+  await expect.poll(async () => tOf(await page.locator('#status').textContent()), { timeout: 120_000 }).toBeGreaterThan(t2 + 0.6);
   // el informe técnico: un JSON con el formato, la versión y el equipo (sin datos del usuario)
   await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
   await page.locator('.help-menu > summary').click();
@@ -205,8 +208,14 @@ test('«Restablecer paciente» vuelve a la respiración de su definición y el i
     version: string;
     equipment: { bmode: { depthMm: number } };
     coverage: { met: number; total: number } | null;
+    bmodeFps: { fps: number; frames: number; frameMsP95: number } | null;
   };
   expect(report.format).toBe('lus-diagnostico/1');
+  // los FPS reales del modo B (decisión 40, el indicador de O6): solo cuadros dibujados en vivo, en los últimos 10 s
+  expect(report.bmodeFps).not.toBeNull();
+  expect(report.bmodeFps!.frames).toBeGreaterThanOrEqual(2);
+  expect(report.bmodeFps!.fps).toBeGreaterThan(0);
+  expect(report.bmodeFps!.frameMsP95).toBeGreaterThan(0);
   // la cobertura de exploración de la escena (requisito de cobertura de docs/MISSION.md): N de M celdas
   expect(report.coverage?.total).toBeGreaterThan(0);
   expect(report.coverage!.met).toBeLessThanOrEqual(report.coverage!.total);

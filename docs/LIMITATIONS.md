@@ -317,12 +317,12 @@ conservan su identificador (decisiones 10 y 11).
   parches en las vistas del banco. El mapa de grises de los clips no se puede estimar desde su moteado (grano lateral de
   2,1–4,8 px, asimetría en dB 0,55–1,18 en la pared, recomprimidos), así que la comparación de la dispersión del moteado en
   dB queda pendiente.
-- **El costo por cuadro puede medirse bajo** (`frame-cost-timing-sync`, decisión 33): `frameCostMs` espera a la GPU con
-  `finishForTiming` (`ultrasound/renderer.ts`), que lee un píxel con `readPixels` RGBA/UNSIGNED_BYTE del framebuffer ligado en
-  ese momento. Si es uno de coma flotante, la combinación no es válida: en la GPU real (Metal, M4) cada medida deja un aviso
-  `GL_INVALID_OPERATION` y la lectura fallida podría no esperar a que acabe lo encolado, así que los milisegundos pueden salir
-  bajos y O6 (≥ 30 FPS) medirse mal (sin medir aún cuánto). Arreglo pendiente en una PR aparte (leer del framebuffer de la
-  pantalla, o una consulta de tiempo).
+- **El tiempo de GPU por pasada del informe técnico no se ha validado en la GPU real** (`gpu-timer-unverified`, decisión 40):
+  `gpuMs` sale de `EXT_disjoint_timer_query_webgl2` (`ultrasound/gpuTimer.ts`). En Chrome con Metal (Apple M4) la consulta
+  TIME_ELAPSED alrededor de 60 cuadros da 13,6–18,5 ms por cuadro, y la media del renderizador, 6,7–59 ms, mientras el cuadro
+  sincronizado en tiempo de pared cuesta 5,2–6,9 ms y dibujar y esperar cada cuadro, 6,4–7,9: más tiempo de GPU que de pared,
+  imposible. El indicador de O6 es el tiempo de pared (`frameCostMs`, ya sincronizado) y los FPS del modo B (`bmodeFps`);
+  `gpuMs` es orientativo hasta medirlo contra ellos en otras GPU. Con SwiftShader no hay temporizadores (null).
 - **El detector del sector supone un abanico simétrico y necesita ver algo de cada borde** (`sector-detector-symmetric`,
   decisión 36): fuerza pendientes opuestas en los dos bordes (el eje del abanico, vertical), como en los 34 clips del banco y en
   el simulador; pero la geometría fijada de los clips la propuso el detector de la decisión 21 y está redondeada a 0,01 rad, así
