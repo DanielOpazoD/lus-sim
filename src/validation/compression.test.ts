@@ -22,7 +22,17 @@ import type { Vec3 } from '../core/vec3';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { CONTACT, contactCoupling, probeContact, type ProbeContact } from '../probe/contact';
-import { CONVEX_C35, clampPose, lineAngle, lineDirection, pointOnLine, probeFrame, type ProbeFrame, type ProbePose } from '../probe/probe';
+import {
+  CONVEX_C35,
+  clampPose,
+  defaultPose,
+  lineAngle,
+  lineDirection,
+  pointOnLine,
+  probeFrame,
+  type ProbeFrame,
+  type ProbePose,
+} from '../probe/probe';
 import { measurementViewPose } from '../app/measurementViews';
 
 /**
@@ -47,17 +57,19 @@ const tr = CONVEX_C35;
  */
 const wallAt = (m: Vec3): number => scene.wallThicknessAt(m);
 
-type ViewId = 'blueUpper' | 'lateral' | 'lateralTransverse' | 'posterior' | 'leftUpper';
+type ViewId = 'blueUpper' | 'lateral' | 'lateralTransverse' | 'posterior' | 'leftUpper' | 'blueUpperClinical';
 /** EIC5 en la línea axilar media, entre la 5.ª y la 6.ª costillas de la parrilla (decisión 16). */
 const EIC5_LAM_Z = intercostalZ(scene, 5, Math.PI);
 const VIEWS: Record<ViewId, ProbePose> = {
-  // (decisión 42) la vista de medida del BLUE superior (el EIC2 de la LMC), donde se midió la compresión (decisión 63); en el BLUE
-  // superior clínico, junto a la cúpula, la cara interna de la pared varía 3,05 mm bajo la cara (`wall-cupola-transition`)
+  // (decisión 42) la vista de medida del BLUE superior (el EIC2 de la LMC), donde se midió la compresión (decisión 63)
   blueUpper: measurementViewPose('blueUpper'),
   lateral: { phi: Math.PI, z: EIC5_LAM_Z, lift: 0, yaw: 0, rock: 0, tilt: 0 },
   lateralTransverse: { phi: Math.PI, z: EIC5_LAM_Z, lift: 0, yaw: Math.PI / 2, rock: 0, tilt: 0 },
   posterior: { phi: 1.15 * Math.PI, z: 20, lift: 0, yaw: 0, rock: 0, tilt: 0 },
   leftUpper: { ...measurementViewPose('blueUpper'), phi: Math.PI - measurementViewPose('blueUpper').phi },
+  // (decisión 44) el BLUE superior clínico, donde arranca la app: el borde craneal del sector llega a la base de la cúpula pleural
+  // (con la cúpula de la decisión 27, la cara interna variaba 3,05 mm bajo la cara)
+  blueUpperClinical: defaultPose(),
 };
 const VIEW_IDS = Object.keys(VIEWS) as ViewId[];
 
@@ -114,6 +126,7 @@ describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared baj
     ['lateralTransverse', 110, 2.1],
     ['posterior', 192, 2.3],
     ['leftUpper', 192, 3],
+    ['blueUpperClinical', 192, 3],
   ];
   it.each(cases)(
     '%s: ≥ %s líneas acopladas; bajo ellas la piel en la cara y cada capa de la pared a la misma profundidad (cara interna ≤ %s mm)',
@@ -151,7 +164,14 @@ describe('la sonda comprime el tejido (decisión 63): solo empuja y la pared baj
     // (BLUE e izquierdo), 5,1° (lateral), 9,0° (transversal) y 8,4° (posterior); rígido 34–49°. La tabla es lineal
     // entre nodos (la pendiente de las capas oscila con el periodo de un nodo) y en las vistas oblicuas a los ejes
     // de la elipse queda la inclinación de la métrica radial. Umbrales: lo medido más ≈ 0,5°
-    const limit: Record<ViewId, number> = { blueUpper: 11, lateral: 5.6, lateralTransverse: 9.5, posterior: 9, leftUpper: 11 };
+    const limit: Record<ViewId, number> = {
+      blueUpper: 11,
+      lateral: 5.6,
+      lateralTransverse: 9.5,
+      posterior: 9,
+      leftUpper: 11,
+      blueUpperClinical: 11,
+    };
     for (const id of VIEW_IDS) {
       const { frame, k } = view(id);
       let worst = 0;
