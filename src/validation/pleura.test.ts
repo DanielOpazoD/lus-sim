@@ -491,7 +491,8 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
           // compararla): sobre la cúpula, el pulmón del tórax (o el corazón); bajo ella, el diafragma (el de la cúpula junto al
           // borde, o el de la ZOA, que engruesa al inspirar) o el «resto» (en VExUS, el hígado)
           if (sdDiaphragm(m, scene.diaphragm, scene.torso) < 0) expect([Tissue.Lung, Tissue.Myocardium, Tissue.Blood]).toContain(b.tissue);
-          else expect([Tissue.Diaphragm, Tissue.Bowel]).toContain(b.tissue);
+          // lus-sim (decisión 37): o el hígado o el bazo
+          else expect([Tissue.Diaphragm, Tissue.Bowel, Tissue.Liver, Tissue.LiverCapsule, Tissue.Spleen]).toContain(b.tissue);
         } else {
           other++;
           expect(b).toEqual(a);

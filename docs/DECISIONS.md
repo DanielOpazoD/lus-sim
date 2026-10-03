@@ -3056,3 +3056,167 @@ los dos bordes tapados desde 8 mm (sin el arco, el ápice a 7 px y los bordes a 
 (una). `startPoints.test.ts`: el punto en el centro del EIC4 a < 0,1 mm y su rango entre los centros del EIC5 y del EIC3. La
 invariancia afín con fast-check (200 corridas por propiedad), la e2e de fidelidad y de calibración con la GPU real. `npm run check` y el CI de la PR (la e2e con
 SwiftShader: con la máquina a carga media 50–150, en local solo se corrió con la GPU real).
+
+## 37. El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34)
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** La cobertura de exploración (decisión 26) estaba en 106 de 138 celdas: las 32 que faltaban eran todas las de
+debajo del borde del pulmón, donde la base pone «el diafragma y el órgano subdiafragmático» y el modelo tenía el diafragma y,
+debajo, el «resto» genérico de VExUS (`abdomen-generic-tissue`), sin hígado ni bazo. El requisito de cobertura de
+`docs/MISSION.md` (meta del 100 % en la v0.2.0) y O2 (fidelidad anatómica, cobertura); con el órgano, el signo de la cortina
+(A-T13) tiene lo que tapa y el espejo del diafragma (F-T34, O1) tiene qué reflejar. VExUS tiene el hígado (su módulo de
+órgano) y no el bazo.
+
+**Fuentes verificadas** (texto completo salvo donde se dice «resumen»; búsqueda del 03-10-2026):
+
+- **Gray 1918, «Surface Markings of the Abdomen».** Hígado: el límite superior del lóbulo derecho, en la línea media a la altura
+  de la unión xifoesternal, sube hasta el 5.º cartílago en la línea mamilar y baja a la 7.ª costilla al lado; el del lóbulo
+  izquierdo sigue hacia abajo y a la izquierda hasta el 6.º cartílago, a 5 cm de la línea media. El inferior, 1 cm bajo el margen
+  inferior del tórax a la derecha hasta el 9.º cartílago, de ahí en oblicuo hasta el 8.º cartílago izquierdo, cruzando la línea
+  media justo sobre el plano transpilórico, y con una leve convexidad a la izquierda hasta el final del superior. La marca de
+  Birmingham que recoge el mismo texto (1,25 cm bajo el pezón derecho, 1,25 cm bajo la punta de la 10.ª costilla, 2,5 cm bajo el
+  pezón izquierdo) lleva el lóbulo izquierdo a la LMC. Bazo: su eje largo es la 10.ª costilla; en vertical, del borde superior de
+  la 9.ª al inferior de la 11.ª; su punto más alto a 4 cm de la línea media de la espalda a la altura de la punta de la apófisis de
+  T9, el más bajo en la axilar media a la altura de la apófisis espinosa de L1. Estómago: el espacio de Traube (entre el borde
+  inferior del pulmón izquierdo, el borde anterior del bazo, el reborde costal y el borde inferior del lóbulo izquierdo del hígado)
+  está sobre el estómago. Riñones: el paralelogramo de Morris, de 2,5 a 9,5 cm de la línea media desde la punta de la apófisis de
+  T11; el derecho, 1 cm más bajo.
+- **Gray 1918, «The Liver».** Ocupa casi todo el hipocondrio derecho y la mayor parte del epigastrio, y no pocas veces llega en el
+  hipocondrio izquierdo hasta la línea mamilar. En el varón pesa 1,4–1,6 kg (densidad 1,05: 1,33–1,52 L); su mayor medida
+  transversal, 20–22,5 cm; en vertical, junto a su cara derecha, 15–17,5 cm; de delante atrás, 10–12,5 cm a la altura del extremo
+  superior del riñón derecho y ≈ 7,5 frente a la columna.
+- **Gray 1918, «The Spleen».** Unos 12 cm de largo, 7 de ancho y 3–4 de grueso; ≈ 200 g; su cara diafragmática, convexa, contra el
+  diafragma, que la separa de las costillas 9.ª–11.ª izquierdas y del borde inferior del pulmón y la pleura.
+- **Kratzer y cols. 2003** (ecografía, 2080 sujetos; resumen): el hígado en la LMC mide 14,0 ± 1,7 cm; en el varón, 14,5 ± 1,6.
+- **Vauthey y cols. 2002** (TAC, 292 adultos occidentales; resumen): volumen total = 191,8 + 18,51 × peso (kg), o −794,41 +
+  1267,28 × superficie corporal (m²): para el avatar (≈ 176 cm y 71 kg), 1,50–1,56 L.
+- **Chow y cols. 2016** (ecografía, 1230 adultos sanos; resumen): el largo del bazo crece con la talla y es mayor en el varón;
+  pasa de 12 cm en el 26 % de los varones y el 6 % de las mujeres.
+- **IT'IS** (la hoja de la base, fila «Spleen»): ρ 1089 kg/m³, c 1567,6 m/s, α0 4,3726 Np/m/MHz con b 1,3832.
+- NO ENCONTRADO: la retrodispersión del bazo (su BSC) y una fuente primaria humana accesible de su ecogenicidad frente al hígado;
+  el grosor de la cápsula esplénica; cuánto es la «leve convexidad» del lóbulo izquierdo; la profundidad del riñón en el tronco.
+
+**Opciones.** Para el hígado: (a) portar el de VExUS tal cual (sus faldas están ajustadas a sus costillas 5.ª–10.ª derechas y a
+su cúpula 41 mm más alta: el borde lateral quedaba en z −112 y el posterolateral en −97, sobre la LAP EIC11 de la base); (b) la
+envolvente de VExUS escalada a la cavidad, como las cúpulas (decisión 17), con el borde inferior de Gray por columna de la pared;
+(c) un hígado propio desde cero. Para el bazo: (i) un elipsoide en el espacio (con su cara recta, solo toca la pared en su
+centro y deja una lámina de «resto» entre la pared y él); (ii) un elipsoide en las coordenadas de la pared, con el centro a medio
+grosor; (iii) medio elipsoide en las coordenadas de la pared con su cara diafragmática en el diafragma (la cúpula o la ZOA). Para
+lo que la base pone y el modelo no tiene (el estómago, el riñón): estirar el hígado y el bazo hasta esas celdas, o dejarlas
+pendientes con su motivo.
+
+**Decisión.** (b), (iii) y dejar pendiente lo que no es hígado ni bazo.
+
+- **El hígado** (`src/anatomy/organs/liver.ts`, portado de VExUS, `anatomy.liver`): los dos lóbulos de VExUS (el izquierdo más
+  ancho, para llegar a la pared bajo el 6.º cartílago a 5 cm), la cuádrica de su cara visceral interior y su recorte posteromedial,
+  escalados con la cavidad (sx 1,115, sy 1,12). El borde inferior contra la pared, por columna (`liverEdgeZ`): el reborde costal
+  de la tabla de la pared torácica menos 1 cm a la derecha del 9.º cartílago (Gray) y, de él al 8.º izquierdo, la recta de Gray
+  (cruza la línea media en z −62, 16 mm sobre las puntas de los 9.º cartílagos); desde el borde, la cara visceral sube hacia dentro
+  con la cotangente de VExUS (0,75 a la derecha, 1,6 en el lóbulo izquierdo). El límite lateral izquierdo, en proyección frontal
+  (`leftTipDistance`): del 8.º cartílago (x 68) al 6.º a 5 cm, con la convexidad de 8 mm [SUPUESTO]. El lóbulo izquierdo es el de
+  las marcas de superficie de Gray (5 cm); el mismo texto dice que no pocas veces llega a la línea mamilar (el rango de
+  `leftEndXMm`, 50–95): el modelo toma el extremo medial, no toda la variación. El riñón de Morris, que lus-sim no tiene, recorta el
+  hígado y el bazo (`kidneyCutDistance`: por detrás de la cara anterior del cuerpo vertebral [SUPUESTO]). La cápsula, como en VExUS:
+  la lámina de 0,8 mm junto al borde, con su cara salvo donde la manda el diafragma.
+- **El bazo** (`src/anatomy/organs/spleen.ts`, propio, `anatomy.spleen`): medio elipsoide de Gray (semiejes de 60 y 35 mm a lo largo
+  de la pared y 35 hacia dentro) en las coordenadas de la pared (su arco, z y la profundidad bajo el diafragma, la cúpula o la ZOA),
+  con el eje largo en la pendiente de la 10.ª costilla izquierda en su centro y el punto más bajo de su elipse en la axilar media;
+  una cota de profundidad bajo la piel (la rampa de la cúpula más su grosor) lo deja junto a la pared. Tejido nuevo
+  (`Tissue.Spleen`, 32 tejidos: llenan exactamente los 8 vec4 de las tablas por tejido; uno más sumaría una ranura por tabla) con
+  las propiedades de IT'IS y la retrodispersión del hígado [ESTIMADO], homogéneo; su cápsula, una cara (`Interface.SpleenCapsule`)
+  sin tejido aparte.
+- **Clasificación** (TS `classifyOrgans`, GLSL `classifyOrgans` en `anatomy.glsl.ts`): tras la cúpula, el hígado, el bazo y el
+  «resto», cuya distancia a la frontera cuenta la de los dos. En la GPU, más hondo que la cota de la pared (`classifyWall` deja el
+  arco en 0), el arco y la profundidad bajo la pared se calculan: el borde depende de ellos. Las caras `liverSurface` y
+  `spleenSurface` dan la normal de las cápsulas (`organSurfaceSd` en la GLSL). Lejos de los lóbulos, `liverSdf` devuelve la distancia
+  a ellos (su cota; basta para el «resto», cuyo tope es 5 mm).
+- **La distancia a la frontera** (la que funde los bordes en la pasada B y la que usa la equivalencia para dar un punto por
+  interior) cuenta la columna y toma la de los órganos y la de la cúpula por `ORGAN_SDF_LIPSCHITZ` = 0,5: sus mínimos y máximos
+  suaves, las coordenadas de la pared y la cúpula junto a su rampa la hacían pasarse de la real (medido con un rastreo de 200
+  direcciones: hasta 5,0 mm junto a la columna, 3,3 junto al diafragma y 3,0 junto al «resto»; con el factor y la columna, ≤ 0,24 en
+  el hígado y el bazo y 0,06 en la cápsula). La cara de la cápsula usa la distancia sin el factor.
+- **Uniforms**: la escala de la cavidad y el espacio del riñón en `uLiverS`, el borde en `uLiverEdge`, el límite izquierdo en
+  `uLiverTip`; los lóbulos, las |x| del riñón y `leftEndXMm`, constantes en la GLSL; el bazo en `uSpleen` y `uSpleenR` (su cota de
+  profundidad sale de `uCurtain.z`). Con la cápsula del bazo en `uIface`, +6 ranuras: 125 en la pasada B y 127 en su programa
+  dirigido, bajo el techo de 130 que deja sitio a la THI.
+- **La cobertura** (`src/app/coverage.ts`): el bazo cuenta a la izquierda; donde hay «resto», el motivo dice lo que pone la base
+  (el estómago, el riñón o el polo posterior del bazo, `baseOrganBelow`).
+- **F-T34** (`src/app/mirrorBench.ts`, gancho `mirror`, e2e): el espejo se mide en el nivel mostrado (la envolvente con la TGC
+  nominal y la ganancia del preajuste), en 20 mm de tejido real antes del espejo y 20 de virtual detrás, en las líneas que lo
+  tienen; la columna, en el nivel mostrado donde la línea, recta tras el espejo, la encontraría.
+
+**Consecuencias: antes → después** (main `83b7544` frente a esta decisión).
+
+| Medida                                                   | Antes                              | Después                                                             | Fuente o meta                                 |
+| -------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| Cobertura (anterior / lateral / posterior / vértice)     | 106/138 (20/28, 42/60, 38/44, 6/6) | **127/138** (25/28, 56/60, 40/44, 6/6)                              | requisito de cobertura, 100 % en la v0.2.0    |
+| Celdas bajo el borde                                     | 0 de 32                            | 21 de 32 (16 con hígado, 5 con bazo)                                |                                               |
+| Hígado: ancho transverso                                 | —                                  | 21,3 cm                                                             | Gray: 20–22,5                                 |
+| Hígado: alto en el plano de la LMC (95 mm)               | —                                  | 12,9 cm                                                             | Kratzer: 14,5 ± 1,6 (−1,0 DE)                 |
+| Hígado: alto junto a su cara derecha (máximo)            | —                                  | 13,4 cm (a 120 mm de la línea media)                                | Gray: 15–17,5 (`notYetMet`)                   |
+| Hígado: de delante atrás                                 | —                                  | 13,3–17,0 cm                                                        | Gray: 10–12,5 [el tronco de 226 mm]           |
+| Hígado: volumen                                          | —                                  | 1,76 L                                                              | Gray 1,33–1,52; Vauthey ≈ 1,5 (`notYetMet`)   |
+| Bazo: largo × ancho × grueso (ejes principales)          | —                                  | 11,6 × 6,9 × 3,6 cm                                                 | Gray: 12 × 7 × 3–4; Chow                      |
+| Bazo: volumen                                            | —                                  | 134 mL (≈ 146 g a la densidad de IT'IS)                             | Gray ≈ 200 g, ≈ 184 mL (`notYetMet`)          |
+| Bazo: punto más bajo / más alto                          | —                                  | axilar media, z −122 / a 11 cm de la línea media, z −28             | Gray: axilar media a la altura de L1 / a 4 cm |
+| F-T34: el virtual, en el nivel mostrado (cuatro vistas)  | sin órgano que reflejar            | −69,0 / −76,1 / −70,7 / −76,0 dB, presente (≥ −82; sin espejo, −88) | presente                                      |
+| F-T34: real − virtual, en el nivel mostrado              | —                                  | 2,0 / 2,0 / 1,7 dB (la cuarta, con la columna: 9,6)                 | ≥ 3 dB (`test.fail`)                          |
+| F-T34: la columna (45 líneas que la encontrarían rectas) | —                                  | −72,9 dB, bajo el tejido real (−66,4): no se ve                     | invisible                                     |
+| Ranuras de uniforms de la pasada B (y su dirigido)       | 119 (121)                          | 125 (127)                                                           | ≤ 130 (la THI)                                |
+| Chunk principal / total de JS                            | 254,7 / 808,0 kB                   | 269,0 / 822,8 kB (presupuestos: 280 / 840)                          |                                               |
+
+- **Lo que queda pendiente en la cobertura (11 celdas), con su motivo, sin estirar ningún órgano**: el estómago del espacio de
+  Traube (la LMC izquierda en los EIC 6–8, la LAA en los 7–9 y el EIC8 de la LAM, sobre el bazo), el riñón de Morris (la escapular
+  en el EIC11 de los dos lados y la paravertebral izquierda en el 11) y el polo posterior del bazo (la escapular izquierda en el
+  EIC10, donde la base pone el bazo: el medio elipsoide rígido del modelo, de 12 cm a lo largo de la 10.ª costilla y con su punto más
+  bajo en la axilar media, acaba a 11 cm de la línea media; es un límite de la forma del modelo, no de la fuente). Con el lóbulo
+  izquierdo de Gray en la línea mamilar (el otro extremo de su rango) la LMC izquierda podría tener hígado; el modelo no lo toma.
+  Lo que sigue: el estómago (con su gas, que bajo la cúpula izquierda puede parecer pulmón), el riñón y un bazo que se curve con la
+  costilla.
+- **El polo inferior del bazo** [DISCREPANCIA]: Gray lo pone en la axilar media a la altura de la apófisis espinosa de L1; el modelo
+  no tiene vértebras lumbares, y con el segmento torácico de la parrilla (23,3 mm) L1 cae en z ≈ −82, unos 4 cm sobre el punto más
+  bajo del modelo (−122). Anclarlo ahí dejaría el bazo, en la axilar media, por encima de la 10.ª costilla (z −96 en esa línea), su
+  eje según el mismo texto: las dos marcas de Gray no caben juntas en esta parrilla. Se sigue el eje (la 10.ª costilla y la banda de
+  la 9.ª a la 11.ª).
+- **El signo de la cortina** con el órgano debajo: en la LAM derecha (EIC9) se ve el hígado en espiración y el pulmón en la
+  inspiración profunda; en la LAP izquierda (EIC10), el bazo y el pulmón.
+- **F-T34**, con el pulmón aireado: el virtual presente y la columna invisible se cumplen, y emergen del camino reflejado (la
+  mutación de la GLSL «sin espejo, el rayo sigue recto» deja detrás del espejo solo el ruido, −88 a −89,5 dB, y la prueba lo ve).
+  La tercera parte no: en el nivel mostrado el virtual queda 1,7–2,0 dB por debajo del real en las tres vistas de la base, no ≥ 3.
+  Medido sobre la envolvente sin compensar daba 9–10 dB, pero eso es la atenuación de 30 mm más de camino que la TGC del equipo
+  compensa (la primera versión de esta decisión lo daba por cumplido: lo halló la revisión). La pérdida propia del espejo en el
+  modelo es 0,5 dB (pasada A) más las caras del diafragma; cuánto pierde de verdad el virtual no está en la base (la fuente primaria
+  del espejo sigue NO ENCONTRADA, `docs/knowledge/clinical.md` §5.6). Queda con `test.fail`; la otra mitad de F-T34 (derrame o
+  consolidación: sin espejo y con la columna visible) espera al derrame. Con el preajuste pulmonar el hígado a 7–11 cm queda cerca
+  del negro (−67 a −76 dB de los −70 del rango dinámico).
+- **El campo respiratorio** no cambia (los órganos se clasifican en el marco material): su invertibilidad y su inversa se
+  comprueban ahora también donde están el hígado y el bazo. Junto a la pared bajan menos que la cúpula (el peso es 0 en ella).
+- **Costo por cuadro** (`frameCostMs`, 60 cuadros, GPU real M4, 1440 × 900, main / esta decisión / main intercalados):
+  punto BLUE inferior 3,8–5,3 / 5,4–5,9 / 4,6–5,4 ms; PLAPS 3,7–5,0 / 5,4–6,1 / 5,0–5,3; la base derecha (LAM EIC9, haz craneal) 6,1–6,9 / 7,2–7,8 / 6,1–6,3; la base izquierda (LAP EIC10) 5,8–7,4 / 7,3–8,5 / 6,0–8,6 (carga media 3–15; antes de las correcciones de la revisión, con carga 86–97, la base costaba ≈ +1,3 ms). Medianas: +0,5 ms en los puntos de partida y +0,8–1,0 en las bases. Bajo el diafragma cada muestra evalúa el hígado y el bazo. O6 (≥ 30 FPS) holgado, con la reserva de
+  `frame-cost-timing-sync`.
+- Limitaciones: `abdomen-generic-tissue` dice lo que queda (el estómago, el riñón, la vesícula, el colon, los vasos); nueva
+  `liver-spleen-simplified`.
+
+**Verificación.** `npm run check`; `src/validation/liverSpleen.test.ts` (el borde de Gray en la LMC, la LAA, la LAM y la LAP a ≤ 5 mm
+a 3 mm bajo la pared; la línea media sobre el plano transpilórico; el lóbulo izquierdo de las marcas de Gray; el ancho de Gray y el
+alto de Kratzer a ± 2 DE; el riñón fuera; el bazo con su largo, su punto más bajo en la axilar media, la banda de la 9.ª a la 11.ª en
+la LAP y nada por delante de la LAA; el signo de la cortina en las dos bases; con `notYetMet`, el alto junto a la cara derecha y los
+volúmenes del hígado y del bazo), `coverage.test.ts` (127/138, cada celda, el bazo solo a la izquierda y el motivo de cada
+pendiente), `respiratoryField.test.ts` (fast-check en el hígado y el bazo de las 18 escenas: jacobiano, ida y vuelta y la mutación de
+los dos pasos de punto fijo), `mirrorBench.test.ts` (la medida en el nivel mostrado: una TGC que compensa la atenuación borra el
+contraste; la mutación sin espejo), `anatomy.test.ts`, `organs.test.ts` (los gemelos), `shaderLimits.test.ts`. En la e2e: la
+equivalencia TS ↔ GLSL con los planos nuevos de las bases (`rightBase`, `leftBase`), el hígado y el bazo en el volumen (que baja a
+z −150) y las cápsulas en las bases (cara, distancia y normal, `capsules`); F-T34 en cuatro vistas. La mutación de la GLSL sin espejo
+se corrió aparte, en una copia del árbol, con GPU real. Revisión adversarial de contexto limpio (ejecutando): dos bloqueantes, el recuento de ranuras de uniforms tras el rebase (129/131, sobre el techo de 130 de la THI; ahora 125/127) y F-T34
+medido sobre la envolvente sin la TGC (medía la atenuación del camino de más: ≈ 9 dB; en el nivel mostrado, 1,7–2,0: queda pendiente,
+con la mutación sin espejo y la columna medidas); importantes: el alto del hígado junto a su cara derecha y los volúmenes del hígado
+y del bazo frente a Gray (ahora `notYetMet` con su cifra), el polo inferior del bazo frente a L1 (documentado), el polo posterior
+atribuido a Gray cuando es la forma del modelo y el motivo falso de la celda escapular izquierda (corregidos), el lóbulo izquierdo
+tomado como la anatomía cuando es el extremo medial de Gray, la distancia a la frontera optimista junto al hígado (5,0 mm contra la
+columna; ahora ≤ 0,6) y las cápsulas sin gemelo verificado (ahora en la e2e, con el volumen hasta z −150); menores: un título
+equivocado, una mutación de la cobertura que no mordía, una propiedad tautológica (quitada) y los 32 tejidos que llenan las tablas.
+Aplicado. Además, un escalón de 9 mm del borde del hígado en la punta del 9.º cartílago (el reborde de la costilla frente al de la
+tabla), corregido. Medido con GPU real tras las correcciones: las cápsulas, 1226 puntos (840 del hígado, 386 del bazo), acuerdo 1,
+error de la distancia 9·10⁻⁵ mm y coseno mínimo de la normal 0,999995; el volumen, 42 226 puntos interiores (4248 de hígado y 284 de
+bazo) con acuerdo 1; los planos de las bases, acuerdo 1.

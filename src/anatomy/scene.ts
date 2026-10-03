@@ -62,8 +62,10 @@ import {
 import { preperitonealMm, wallArc, wallDepths, wallFace, wallFaceSd, wallLayers, wallTotalMm } from './organs/wall';
 import { CUPOLA_CAP_MM, LUNG_APEX, lungApexColumns } from './organs/lungApex';
 import { SPINE, spinousSd, type SpinousSpec } from './organs/spine';
+import { ORGAN_SDF_LIPSCHITZ, buildLiver, liverSdf, type LiverShape } from './organs/liver';
+import { SPLEEN, buildSpleen, spleenSdf, type SpleenShape } from './organs/spleen';
 import { thoraxLinePhi } from './thoraxLines';
-import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, Tissue } from './tissues';
+import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
 import { FACE_GRADIENT_EPS_MM, Interface, isRibInterface, isWallLayerInterface } from './interfaces';
 
 /**
@@ -150,11 +152,13 @@ export interface Classification {
  *  - `dome`: la superficie pleural del diafragma (su cara hepática es paralela).
  *  - `zoa`: la cara abdominal de la lámina del diafragma de la zona de aposición (lus-sim, decisión 18), paralela a la
  *    cara interna de la pared: la de `Interface.DiaphragmLiver` donde la muestra está en la ZOA.
+ *  - `liverSurface` y `spleenSurface` (lus-sim, decisión 37): el borde del hígado y el del bazo, recortados por el diafragma y
+ *    la pared, como en `classifyOrgans` (la `liverSurface` de VExUS).
  * lus-sim (decisión 10): las caras de los tubos, del hígado, del riñón, de la grasa perirrenal y de la
  * vesícula de VExUS no existen en el tórax.
  */
-export type FaceGeometry = 'dome' | 'zoa';
-export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa'];
+export type FaceGeometry = 'dome' | 'zoa' | 'liverSurface' | 'spleenSurface';
+export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa', 'liverSurface', 'spleenSurface'];
 
 /**
  * Geometría cuya distancia (`faceSdf`) da la cara de interfaz `i`, o null sin cara (o las pleuras: la del
@@ -164,6 +168,8 @@ export const FACE_GEOMETRIES: readonly FaceGeometry[] = ['dome', 'zoa'];
  * vesícula, cápsula hepática, riñón) tampoco: null.
  */
 export function faceGeometryOf(i: Interface): FaceGeometry | null {
+  if (i === Interface.LiverCapsule) return 'liverSurface';
+  if (i === Interface.SpleenCapsule) return 'spleenSurface';
   return i === Interface.DiaphragmLiver ? 'dome' : null;
 }
 
@@ -227,6 +233,10 @@ export class AnatomyScene {
    */
   readonly respiratoryHeight: { readonly baseZ: number; readonly topZ: number };
   readonly spine: Spine;
+  /** El hígado bajo la cúpula derecha (lus-sim, decisión 37: `organs/liver.ts`, portado de VExUS y anclado a Gray). */
+  readonly liver: LiverShape;
+  /** El bazo bajo la cúpula izquierda (lus-sim, decisión 37: `organs/spleen.ts`). */
+  readonly spleen: SpleenShape;
   /** Las apófisis espinosas (lus-sim, decisión 29). */
   readonly spinous: SpinousSpec;
 
@@ -357,6 +367,11 @@ export class AnatomyScene {
     };
     // el corazón (decisión 18): su ápex donde lo pone Gray y la ventana cardiaca izquierda
     this.heart = buildHeart(this.torso, cage);
+    // lus-sim (decisión 37): el hígado (la envolvente de VExUS con la escala de las cúpulas y el borde de Gray) y el bazo (la
+    // 10.ª costilla izquierda, con el polo inferior en la axilar media)
+    this.liver = buildLiver(this.torso, cage, this.spine, sx, sy, (u) => wallColumnTexel(this.chestWall, u)[2]);
+    const lamLeft = wallArc(torsoSkinPoint(thoraxLinePhi('midaxillary', walled, 1), 0, walled), walled);
+    this.spleen = buildSpleen(this.torso, cage, lamLeft, (u, z) => this.chestWall.total(u, z), this.lungBorder.rimFarMm);
     const d = this.diaphragm;
     this.domeTopZ = Math.max(d.right.apex, d.left.apex, d.edgeZ + d.edgeRise, this.lungBorder.zLMax);
     this.respiratoryHeight = { baseZ: this.domeTopZ, topZ: this.domeTopZ + this.lungBorder.slideSpanMm };
@@ -509,12 +524,58 @@ export class AnatomyScene {
         ...(liverFace ? { interface: Interface.DiaphragmLiver, interfaceDistance: DIAPHRAGM_THICKNESS_MM - dDome } : {}),
       };
     }
-    // Bajo el diafragma, el «resto» (decisión 10, `abdomen-generic-tissue`): el tejido por defecto de la
-    // clasificación de VExUS, sin órganos ni gas. Su distancia a la frontera es la de las interfaces que ganan
-    // antes (el diafragma y la pared), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por
+    // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo
+    const gap = zoaGap(this.lungBorder, m, inside, u, caudal);
+    const organ = this.classifyOrgans(m, dDome - DIAPHRAGM_THICKNESS_MM, inside, u, gap);
+    if (organ.cls) return organ.cls;
+    // Bajo el diafragma, fuera del hígado y del bazo, el «resto» (decisión 10, `abdomen-generic-tissue`): el tejido por defecto
+    // de la clasificación de VExUS, sin más órganos ni gas. Su distancia a la frontera es la de las interfaces que ganan
+    // antes (el diafragma, la pared, el hígado y el bazo), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por
     // interior un punto pegado al diafragma que float32 clasificaba al otro lado (CI de #39 de VExUS).
-    const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, inside, zoaGap(this.lungBorder, m, inside, u, caudal), clearance);
+    const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, inside, gap, clearance, organ.dOut);
     return { ...NONE, tissue: Tissue.Bowel, boundaryDistance: Math.max(0, bd) };
+  }
+
+  /**
+   * El hígado y el bazo bajo el diafragma (lus-sim, decisión 37; gemelo GLSL en `classifyWith`), recortados arriba por la cúpula
+   * (`dDia`, la distancia a la cara abdominal del diafragma) y fuera por la pared o la lámina de la ZOA (`min(inside, gap)`).
+   * Como en VExUS (`classifyLiver`), la cápsula es la lámina de `LIVER_CAPSULE_MM` junto al borde, y dibuja su cara salvo donde
+   * la manda el diafragma (su cara es la del diafragma, la de la cúpula o la de la ZOA). El bazo, igual, con su cápsula como cara
+   * del propio bazo (sin tejido aparte). `dOut`: la distancia a los dos (positiva fuera) para el «resto».
+   */
+  private classifyOrgans(m: Vec3, dDia: number, inside: number, u: number, gap: number): { cls: Classification | null; dOut: number } {
+    const wallSide = Math.min(inside, gap);
+    // la distancia a la frontera: la de la columna (el hígado la bordea por detrás) y la de los órganos, cuya distancia es una
+    // aproximación (mínimos y máximos suaves, coordenadas de la pared) que puede pasarse: por `ORGAN_SDF_LIPSCHITZ`
+    const spine = Math.min(spinousSd(m, this.spine, this.spinous), sdSpine(m, this.spine));
+    const dLiver = liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver);
+    if (dLiver < 0) {
+      const inner = Math.min(-dLiver, dDia, wallSide);
+      const bd = Math.min(-dLiver * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine);
+      if (inner < LIVER_CAPSULE_MM) {
+        // `Math.min` devuelve uno de sus argumentos: la igualdad con la cara del diafragma o de la ZOA es exacta
+        const other = inner === dDia || (inner === gap && gap < inside);
+        const face = other ? {} : { interface: Interface.LiverCapsule, interfaceDistance: inner };
+        return { cls: { ...NONE, tissue: Tissue.LiverCapsule, boundaryDistance: bd, ...face }, dOut: 0 };
+      }
+      return { cls: { ...NONE, tissue: Tissue.Liver, boundaryDistance: bd }, dOut: 0 };
+    }
+    const dSpleen = spleenSdf(m, u, Math.min(dDia, wallSide), -torsoDepth(m, this.torso), this.spleen, this.liver);
+    if (dSpleen < 0) {
+      const inner = Math.min(-dSpleen, dDia, wallSide);
+      const other = inner === dDia || (inner === gap && gap < inside);
+      const face = inner < SPLEEN.params.capsuleMm.value && !other ? { interface: Interface.SpleenCapsule, interfaceDistance: inner } : {};
+      return {
+        cls: {
+          ...NONE,
+          tissue: Tissue.Spleen,
+          boundaryDistance: Math.min(-dSpleen * ORGAN_SDF_LIPSCHITZ, dDia * ORGAN_SDF_LIPSCHITZ, wallSide, spine),
+          ...face,
+        },
+        dOut: 0,
+      };
+    }
+    return { cls: null, dOut: Math.min(dLiver, dSpleen) * ORGAN_SDF_LIPSCHITZ };
   }
 
   /**
@@ -530,6 +591,20 @@ export class AnatomyScene {
         return sdDiaphragm(m, this.diaphragm, this.torso);
       case 'zoa':
         return this.insideWallMm(m) - zoaThicknessMm(instant.diaphragmCaudalMm);
+      case 'liverSurface':
+      case 'spleenSurface': {
+        // −min(−dÓrgano, dDia, pared): la distancia que decide la clasificación en la cápsula (`classifyOrgans`)
+        const u = wallArc(m, this.torso);
+        const inside = this.insideWallMm(m);
+        const caudal = instant.diaphragmCaudalMm;
+        const wallSide = Math.min(inside, zoaGap(this.lungBorder, m, inside, u, caudal));
+        const dDia = sdDiaphragm(m, this.diaphragm, this.torso) - DIAPHRAGM_THICKNESS_MM;
+        const d =
+          face === 'liverSurface'
+            ? liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver)
+            : spleenSdf(m, u, Math.min(dDia, wallSide), -torsoDepth(m, this.torso), this.spleen, this.liver);
+        return -Math.min(-d, dDia, wallSide);
+      }
     }
   }
 

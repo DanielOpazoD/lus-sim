@@ -10,6 +10,7 @@ import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
 import { Tissue } from '../anatomy/tissues';
+import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { contactCoupling, probeContact } from '../probe/contact';
@@ -69,8 +70,11 @@ describe('Anatomía implícita (base B)', () => {
     expect(cls([-55, -5, 70]).tissue).toBe(Tissue.Lung);
     expect(cls([80, 50, 90]).tissue).toBe(Tissue.Lung);
     expect(cls([0, 60, 100]).tissue).toBe(Tissue.Lung);
-    // bajo el diafragma, el «resto» de VExUS donde en VExUS está el hígado (`abdomen-generic-tissue`)
-    expect(cls([-60, 20, -10]).tissue).toBe(Tissue.Bowel);
+    // bajo el diafragma derecho, el hígado (lus-sim, decisión 37; el de VExUS con el borde de Gray); bajo el izquierdo, contra la
+    // pared posterolateral sobre la 10.ª costilla, el bazo; delante y abajo, el «resto» (`abdomen-generic-tissue`)
+    expect(cls([-60, 20, -10]).tissue).toBe(Tissue.Liver);
+    expect(cls(underWall(scene, thoraxLinePhi('posteriorAxillary', scene.torso, 1), scene.spleen.z0, 15)).tissue).toBe(Tissue.Spleen);
+    expect(cls([40, 40, -120]).tissue).toBe(Tissue.Bowel);
     // la 5.ª costilla derecha en la línea axilar media es hueso; junto al esternón, cartílago con su pericondrio; el
     // esternón, hueso en la línea media (decisión 16, `organs/ribcage.ts`)
     const onRib = (phi: number, n = 5): [number, number, number] => {
@@ -133,7 +137,8 @@ describe('Anatomía implícita (base B)', () => {
         const c = cls([x, y, z]);
         if (c.tissue === Tissue.Bowel) samples.push({ z, bd: c.boundaryDistance });
         else if (samples.length && samples[samples.length - 1].z === z - 0.25) {
-          expect(c.tissue, `${x},${y}`).toBe(Tissue.Diaphragm);
+          // lus-sim (decisión 37): bajo la cúpula derecha, el hígado se interpone (su cápsula); bajo la izquierda, el bazo
+          expect([Tissue.Diaphragm, Tissue.LiverCapsule, Tissue.Spleen], `${x},${y}: ${Tissue[c.tissue]}`).toContain(c.tissue);
           zT = z;
           break;
         }
@@ -166,7 +171,10 @@ describe('Anatomía implícita (base B)', () => {
         const c = cls([dx * r, dy * r, -120]);
         if (c.tissue === Tissue.Bowel) samples.push({ r, bd: c.boundaryDistance });
         else {
-          expect([Tissue.Fat, Tissue.Muscle], `${dx},${dy}: ${Tissue[c.tissue]} a ${r} mm`).toContain(c.tissue);
+          // lus-sim (decisión 37): o el hígado, que baja hasta 1 cm bajo el reborde costal derecho (Gray), o el bazo
+          expect([Tissue.Fat, Tissue.Muscle, Tissue.LiverCapsule, Tissue.Spleen], `${dx},${dy}: ${Tissue[c.tissue]} a ${r} mm`).toContain(
+            c.tissue,
+          );
           rT = r;
           break;
         }
@@ -351,15 +359,17 @@ describe('Cortina pulmonar (decisión 43)', () => {
     const p = underWall(scene, phi, zL - 20, 2.5);
     const at = (q: [number, number, number], caudal: number) =>
       scene.classify(q, { ...BASELINE_INSTANT, diaphragmCaudalMm: caudal }).tissue;
-    expect(at(p, 0)).toBe(Tissue.Bowel);
+    // lus-sim (decisión 37): bajo la ZOA, el hígado (su cápsula, la lámina de 0,8 mm junto a la ZOA de 1,9)
+    expect(at(p, 0)).toBe(Tissue.LiverCapsule);
     expect(at(p, 30)).toBe(Tissue.Lung);
     expect(scene.inLungCurtain(p, { diaphragmCaudalMm: 30 })).toBe(true);
     expect(scene.inLungRecess(p)).toBe(true);
     // el mismo punto 10 mm más hondo nunca es cortina (lámina de 3 mm)
     const deep = underWall(scene, phi, zL - 20, 12.5);
-    expect(at(deep, 30)).toBe(Tissue.Bowel);
+    expect(at(deep, 30)).toBe(Tissue.Liver);
     // y en el lado izquierdo, lo mismo (la tabla de los bordes es la misma a los dos lados)
     const left: [number, number, number] = [-p[0], p[1], p[2]];
+    // a la izquierda, por delante de la axilar media, ni hígado ni bazo: el «resto» donde la base pone el estómago
     expect(at(left, 0)).toBe(Tissue.Bowel);
     expect(at(left, 30)).toBe(Tissue.Lung);
     // sin la cortina (withCurtain = false) el punto de la lámina es lo que hay detrás: el diafragma de la ZOA, que engruesa
@@ -416,10 +426,13 @@ describe('Caras geométricas del banco de interfaces (faceSdf)', () => {
   };
 
   it('el tórax tiene la cara de la cúpula y la de la ZOA (lus-sim, decisión 18)', () => {
-    expect(FACE_GEOMETRIES).toEqual(['dome', 'zoa']);
+    // lus-sim (decisión 37): y las del hígado y el bazo
+    expect(FACE_GEOMETRIES).toEqual(['dome', 'zoa', 'liverSurface', 'spleenSurface']);
     // la geometría por interfaz es la de la cúpula; en la ZOA, `faceGradient` la cambia por la de su lámina
     expect(faceGeometryOf(Interface.DiaphragmLiver)).toBe('dome');
-    for (const i of [Interface.None, Interface.PleuraWall, Interface.LiverCapsule, Interface.IvcLumen, Interface.RenalCapsule])
+    expect(faceGeometryOf(Interface.LiverCapsule)).toBe('liverSurface');
+    expect(faceGeometryOf(Interface.SpleenCapsule)).toBe('spleenSurface');
+    for (const i of [Interface.None, Interface.PleuraWall, Interface.IvcLumen, Interface.RenalCapsule])
       expect(faceGeometryOf(i)).toBeNull();
   });
 
@@ -504,7 +517,8 @@ describe('Caras de interfaz en classify (decisión 57)', () => {
   it('el «resto» y el pulmón no dibujan cara; el músculo de la pared, la de su capa (decisión 62)', () => {
     for (const [p, t] of [
       [[40, 40, -120], Tissue.Bowel],
-      [[-60, 20, -10], Tissue.Bowel],
+      // lus-sim (decisión 37): el interior del hígado tampoco (su cápsula sí, junto a su borde)
+      [[-60, 20, -10], Tissue.Liver],
       [[-55, -5, 70], Tissue.Lung],
     ] as [V, Tissue][]) {
       expect(cls(p).tissue).toBe(t);

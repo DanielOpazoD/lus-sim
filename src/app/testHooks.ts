@@ -6,11 +6,13 @@ import {
   equivalenceSweep,
   inspirationSweepPoses,
   interfaceShellEquivalence,
+  capsuleEquivalence,
   pleuraEquivalence,
   ribEndsEquivalence,
   volumeEquivalence,
   type EquivalencePoseReport,
   type InterfaceShellReport,
+  type CapsuleReport,
   type PleuraEquivalenceReport,
   type RibEndsReport,
   type VolumeEquivalenceReport,
@@ -34,6 +36,7 @@ import { compoundActive } from '../ultrasound/compound';
 import { COARSE_DEPTH, displayLevelDb, type CompoundState } from '../ultrasound/renderer';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { speckleStats, type SpeckleOptions, type SpeckleStats } from './speckle';
+import { columnLevel, mirrorContrast, mirrorDepths, type ColumnStats, type MirrorStats } from './mirrorBench';
 import { fidelityBench, type FidelityBenchOptions, type FidelityBenchReport } from './fidelityBench';
 import {
   lungPulseEquivalence,
@@ -66,6 +69,8 @@ export interface TestHooks {
   volumeEquivalence: (n?: number, apex?: boolean) => VolumeEquivalenceReport;
   /** Equivalencia de la cara de interfaz y su distancia a 0,01–0,6 mm de cada cara, en los planos de partida. */
   interfaceShell: () => InterfaceShellReport;
+  /** Las cápsulas del hígado y del bazo, TS ↔ GLSL: cara, distancia y normal en las bases (lus-sim, decisión 37). */
+  capsules: () => CapsuleReport;
   /** La pleura parietal de A0 frente a su gemelo de TS, línea a línea, en los puntos de partida. */
   pleuraEquivalence: () => PleuraEquivalenceReport;
   /** Equivalencia TS ↔ GLSL en nubes alrededor de los extremos de las 24 costillas (tejido, cara y su normal). */
@@ -116,6 +121,11 @@ export interface TestHooks {
    * ≈ 0 ms) con la imagen congelada o con `n` que no sea un entero ≥ 1. Ver `FrameCostOptions`.
    */
   frameCostMs: (n: number, opts?: FrameCostOptions) => number;
+  /**
+   * El espejo del diafragma (lus-sim, decisión 37; meta F-T34): en la pose, en apnea espiratoria y con la profundidad `depthMm`,
+   * el contraste entre el tejido real antes del espejo y el virtual detrás, en la envolvente de la mirada 0 (`mirrorBench.ts`).
+   */
+  mirror: (opts: { pose: ProbePose; depthMm: number }) => MirrorStats & { column: ColumnStats };
   /**
    * Paridad de la pasada A (un solo rayo) con el modelo de CPU `rayAttenuationDb` en los mismos
    * puntos de muestra, cada `every` líneas y en todas las profundidades gruesas; se saltan las líneas
@@ -268,8 +278,42 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     },
     volumeEquivalence: (n, apex) => volumeEquivalence(getSim(), n, undefined, apex ? APEX_VOLUME_Z_MM : VOLUME_Z_MM),
     interfaceShell: () => interfaceShellEquivalence(getSim()),
+    capsules: () => capsuleEquivalence(getSim()),
     ribEnds: () => ribEndsEquivalence(getSim()),
     pleuraEquivalence: () => withCompound(getSim(), dispatch, false, () => pleuraEquivalence(getSim())),
+    mirror: (opts) => {
+      const sim = getSim();
+      const pattern = sim.patient.respiratoryPattern;
+      const depth = sim.bmode.depthMm;
+      try {
+        sim.patient.respiratoryPattern = 'apnea-expiratory';
+        dispatch({ type: 'bmode', patch: { depthMm: opts.depthMm } });
+        return withCompound(sim, dispatch, false, () => {
+          sim.setPose(opts.pose);
+          sim.advance(1);
+          sim.render();
+          const env = sim.renderer.readEnvelope();
+          const tr = sim.renderer.readTransmission();
+          const depthMm = sim.bmode.depthMm;
+          const fB = sim.profile.bEffectiveMHz;
+          const level = (envDb: number, r: number) => displayLevelDb(envDb, r, sim.bmode, fB);
+          const mirror = mirrorDepths(tr.lines, tr.samples, tr.mirrorHit);
+          // la columna: dónde la encontraría cada línea con espejo si siguiera recta (la anatomía de TS, en el mismo instante)
+          const t = sim.transducer;
+          const vertebra = mirror.map((m, u) => {
+            if (m < 0) return -1;
+            const theta = -t.halfSector + (2 * t.halfSector * (u + 0.5)) / env.lines;
+            for (let r = m; r < depthMm; r += 0.5)
+              if (sim.anatomy.classifyWorld(pointOnLine(sim.frame, t, theta, r), sim.sample).tissue === Tissue.Vertebra) return r;
+            return -1;
+          });
+          return { ...mirrorContrast(env, mirror, depthMm, level), column: columnLevel(env, vertebra, depthMm, level) };
+        });
+      } finally {
+        sim.patient.respiratoryPattern = pattern;
+        dispatch({ type: 'bmode', patch: { depthMm: depth } });
+      }
+    },
     speckle: (opts) => {
       const sim = getSim();
       return withCompound(sim, dispatch, opts.compound, () => {

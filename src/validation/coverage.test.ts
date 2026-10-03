@@ -11,6 +11,7 @@ import {
   explorationCoverage,
   probeCenterContent,
   vertebraZ,
+  organOk,
   type CoverageCell,
   type PositionReach,
 } from '../app/coverage';
@@ -34,21 +35,25 @@ const ics = (s: string, line: string, from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => `${s} ${line} EIC${from + i}`);
 
 /**
- * Celdas que aún no se cumplen (02-10-2026, medido: 106 de 138; en main, 68: la cara posterior se alcanza sentado desde la
- * decisión 29), con su motivo: las 32 bajo el borde del pulmón (13 por lado delante y al lado, y desde la decisión 29 las 3 de
- * detrás: la escapular en los EIC 10–11 y la paravertebral en el 11): el diafragma está, pero debajo el abdomen es un tejido
- * genérico, sin hígado ni bazo (`abdomen-generic-tissue`).
+ * Celdas que aún no se cumplen (03-10-2026, medido: 127 de 138; antes del hígado y el bazo de la decisión 37, 106), con su motivo:
+ * bajo el borde del pulmón el diafragma está, pero debajo queda el abdomen genérico (`abdomen-generic-tissue`) donde la base no
+ * pone ni el hígado ni el bazo, y el modelo no tiene lo que pone:
+ *  - el estómago, en el espacio de Traube (Gray: entre el borde inferior del pulmón izquierdo, el borde anterior del bazo, el
+ *    reborde costal y el borde inferior del lóbulo izquierdo del hígado): la LMC izquierda bajo el borde, la LAA y el EIC8 de la
+ *    LAM (sobre el bazo, que empieza en el borde superior de la 9.ª costilla);
+ *  - el riñón, en el paralelogramo de Morris (de 2,5 a 9,5 cm de la línea media, desde la punta de la apófisis de T11; el
+ *    derecho, 1 cm más bajo): la escapular en el EIC11 de los dos lados y la paravertebral izquierda en el 11;
+ *  - el polo posterior del bazo en la escapular izquierda (EIC10): la base pone ahí el bazo (Gray lleva su punto más alto a 4 cm
+ *    de la línea media), pero el medio elipsoide rígido del modelo, de 12 cm a lo largo de la 10.ª costilla y con su punto más bajo
+ *    en la axilar media, acaba a 11 cm: es un límite de la forma del modelo (`liver-spleen-simplified`).
  */
 const NOT_YET_MET: ReadonlySet<string> = new Set([
-  ...BOTH.flatMap((s) => [
-    `${s} PE EIC6`,
-    ...ics(s, 'LMC', 6, 8),
-    ...ics(s, 'LAA', 7, 9),
-    ...ics(s, 'LAM', 8, 10),
-    ...ics(s, 'LAP', 9, 11),
-    ...ics(s, 'LE', 10, 11),
-    `${s} PV EIC11`,
-  ]),
+  'D LE EIC11',
+  ...ics('I', 'LMC', 6, 8),
+  ...ics('I', 'LAA', 7, 9),
+  'I LAM EIC8',
+  ...ics('I', 'LE', 10, 11),
+  'I PV EIC11',
 ]);
 
 function notYetMet(title: string, body: () => void): void {
@@ -78,7 +83,17 @@ describe('cobertura de exploración: cada celda', () => {
 });
 
 describe('cobertura de exploración: el total', () => {
-  // medido (02-10-2026): 106/138 (anterior 20/28, lateral 42/60, posterior 38/44, vértice 6/6); en main, 68/138
+  // medido (03-10-2026): 127/138 (anterior 25/28, lateral 56/60, posterior 40/44, vértice 6/6); antes de la decisión 37, 106/138
+  // (anterior 20/28, lateral 42/60, posterior 38/44)
+  it('el total y las regiones: lo medido con el hígado y el bazo (decisión 37)', () => {
+    expect(`${report.met}/${report.total}`).toBe('127/138');
+    expect(report.byRegion).toEqual({
+      anterior: { met: 25, total: 28 },
+      lateral: { met: 56, total: 60 },
+      posterior: { met: 40, total: 44 },
+      apex: { met: 6, total: 6 },
+    });
+  });
   notYetMet('la cobertura es completa (meta v0.2.0: 100 %)', () => {
     expect(`${report.met}/${report.total}`).toBe(`${report.total}/${report.total}`);
   });
@@ -187,11 +202,41 @@ describe('cobertura de exploración: el medidor mira lo que hay', () => {
     expect(m.content).toBe('lung');
   });
 
-  it('bajo el borde, el diafragma y lo que sigue: hoy el abdomen genérico (sin hígado), que no cuenta', () => {
-    const c = report.cells.find((x) => x.id === 'D LAM EIC9')!;
-    expect(c.content).toBe('below');
-    expect(c.organ).toBe(Tissue.Bowel);
-    expect(c.met).toBe(false);
+  it('bajo el borde, el diafragma y el órgano: el hígado a la derecha, el bazo a la izquierda y el «resto», que no cuenta', () => {
+    const at = (id: string) => report.cells.find((x) => x.id === id)!;
+    for (const id of ['D LAM EIC9', 'D LMC EIC7', 'D PV EIC11', 'I PE EIC6']) {
+      expect(at(id).content, id).toBe('below');
+      expect([Tissue.Liver, Tissue.LiverCapsule], id).toContain(at(id).organ);
+      expect(at(id).met, id).toBe(true);
+    }
+    for (const id of ['I LAM EIC9', 'I LAM EIC10', 'I LAP EIC9', 'I LAP EIC10', 'I LAP EIC11']) {
+      expect(at(id).organ, id).toBe(Tissue.Spleen);
+      expect(at(id).met, id).toBe(true);
+    }
+    // en el espacio de Traube, el «resto» (sin estómago): no cuenta
+    const traube = at('I LAA EIC8');
+    expect(traube.content).toBe('below');
+    expect(traube.organ).toBe(Tissue.Bowel);
+    expect(traube.met).toBe(false);
+    expect(traube.reason).toContain('estómago');
+  });
+
+  it('el órgano cuenta solo en su lado: el bazo no vale a la derecha, ni el «resto» en ninguno', () => {
+    expect(organOk(1, Tissue.Spleen)).toBe(true);
+    expect(organOk(-1, Tissue.Spleen)).toBe(false);
+    for (const s of [-1, 1] as const) {
+      expect(organOk(s, Tissue.Liver)).toBe(true);
+      expect(organOk(s, Tissue.LiverCapsule)).toBe(true);
+      expect(organOk(s, Tissue.Bowel)).toBe(false);
+      expect(organOk(s, null)).toBe(false);
+    }
+  });
+
+  it('el motivo de cada celda pendiente dice lo que pone ahí la base', () => {
+    const reason = (id: string) => report.cells.find((x) => x.id === id)!.reason!;
+    for (const id of ['I LMC EIC7', 'I LAA EIC8', 'I LAM EIC8']) expect(reason(id), id).toContain('estómago');
+    for (const id of ['D LE EIC11', 'I LE EIC11', 'I PV EIC11']) expect(reason(id), id).toContain('riñón');
+    expect(reason('I LE EIC10')).toContain('bazo');
   });
 
   it('con la sonda en cualquier sitio (sin posición que la limite), la espalda muestra el pulmón y la base lo de debajo', () => {

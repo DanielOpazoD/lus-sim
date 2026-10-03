@@ -59,9 +59,11 @@ export enum Interface {
   RibCortex = 20,
   /** Pericondrio del cartílago costal (lo dibuja el cartílago). */
   Perichondrium = 21,
+  /** Cápsula del bazo (lus-sim, decisión 37): la dibuja el bazo junto a su borde, salvo contra el diafragma. */
+  SpleenCapsule = 22,
 }
 
-export const INTERFACE_COUNT = 22;
+export const INTERFACE_COUNT = 23;
 /** Las caras de tubo van primero (ids ≤ esta): solo ellas llevan coherencia de curvatura. */
 export const LAST_TUBE_INTERFACE = Interface.DuctLumen;
 /** Caras de las capas de la pared (decisión 62): ids consecutivos de `SkinFat` a `Peritoneum`. */
@@ -136,6 +138,7 @@ export const INTERFACE_GLSL_NAME: Record<Interface, string> = {
   [Interface.Peritoneum]: 'IF_PERITONEUM',
   [Interface.RibCortex]: 'IF_RIB',
   [Interface.Perichondrium]: 'IF_PERICHONDRIUM',
+  [Interface.SpleenCapsule]: 'IF_SPLEEN_CAPSULE',
 };
 
 /** Propiedades de una cara lisa (tabla de la decisión 57). */
@@ -373,6 +376,15 @@ export const INTERFACES: Readonly<Record<Interface, InterfaceProps>> = {
     twoSided: false,
     source:
       'Fresnel cartílago / músculo 0,021 (TISSUES); lámina densa de colágeno: suelo 0,025, σz 0,06 y s 0,3 como las fascias [ESTIMADO]: su eco especular (K·|R|·Λ·χ a 2,5 MHz) queda en 9,8 dB a 0° y 5,9 a 30°; con el suelo 0,06, σz 0,03 y s 0,2 (25,8 y 10,6), en la subxifoidea los cortes de los cartílagos del reborde eran una cadena de rizos blancos (capturas con GPU, 25-09-2026)',
+  },
+  [Interface.SpleenCapsule]: {
+    name: 'cápsula del bazo',
+    sides: [Tissue.Spleen, Tissue.Bowel],
+    floor: 0.03,
+    roughnessMm: 0.03,
+    slopeRms: 0.25,
+    twoSided: false,
+    source: 'lus-sim (decisión 37): la de la cápsula hepática (capa de colágeno sub-resolución, suelo 0,03) [ESTIMADO]',
   },
 };
 

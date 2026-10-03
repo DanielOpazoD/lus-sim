@@ -169,12 +169,32 @@ conservan su identificador (decisiones 10 y 11).
   tarjetas de la espalda, que sientan al paciente; el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
   a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda. La animación hacia una tarjeta
   recorre φ en línea recta: sentado, de la espalda izquierda a la derecha pasa por delante, no por la línea media posterior.
-- **El abdomen es un tejido genérico** (`abdomen-generic-tissue`): bajo el diafragma queda el tejido por
-  defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin hígado, bazo, riñones,
-  vesícula, vasos ni gas intestinal. La cara abdominal del diafragma conserva las propiedades de su cara
-  hepática en VExUS. En la imagen es un moteado sin estructura: la textura del «resto» de VExUS
-  (`restTexture`) no se porta (decisión 12), y con el preajuste pulmonar queda casi negro (mediana 0–8 de gris
-  bajo la cúpula). El hígado vuelve en la fase 3 como módulo portado.
+- **El abdomen, fuera del hígado y del bazo, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el
+  diafragma están el hígado y el bazo; el resto queda en el tejido por defecto de la clasificación de VExUS, su «resto» del
+  abdomen (`Tissue.Bowel`), sin estómago, riñones, vesícula, colon, páncreas, vasos ni gas intestinal. En la cobertura, 10 de
+  las 11 celdas pendientes caen ahí: el estómago del espacio de Traube (la LMC izquierda bajo el borde, la LAA y el EIC8 de la
+  LAM izquierda: el estómago con gas bajo la cúpula izquierda puede parecer pulmón, y el modelo no lo tiene) y el riñón del
+  paralelogramo de Morris (la escapular en el EIC11 de los dos lados y la paravertebral izquierda en el 11). La cara abdominal del
+  diafragma conserva las propiedades de su cara hepática en VExUS. En la imagen el «resto» es un moteado sin estructura: la
+  textura del «resto» de VExUS (`restTexture`) no se porta (decisión 12), y con el preajuste pulmonar queda casi negro.
+- **El hígado y el bazo son formas lisas sin estructura interna** (`liver-spleen-simplified`, decisión 37): el hígado, la
+  envolvente de VExUS escalada a la cavidad con el borde de Gray, sin vasos (ni la cava, ni las porta, ni las suprahepáticas),
+  tríadas portales, vesícula, fisuras ni ligamentos; el bazo, medio elipsoide rígido de 12 × 7 × 3,5 cm (Gray; medido, 11,6 × 6,9 ×
+  3,6) en las coordenadas de la pared, contra el diafragma, sin hilio ni vasos, con la retrodispersión del hígado [ESTIMADO].
+  Medidos frente a la base (metas pendientes, `notYetMet`): el hígado tiene 1,76 L, por encima del peso de Gray (1,4–1,6 kg en el
+  varón: 1,33–1,52 L) y de la fórmula de Vauthey para el avatar (≈ 1,5 L) [@vauthey-volumen-2002]: llena la cavidad del tronco de
+  226 mm (decisión 28) de delante atrás hasta el diafragma posterior, 13–17 cm, más que los 10–12,5 de Gray; su alto junto a su cara
+  derecha es de 13,4 cm (Gray: 15–17,5); su ancho (21,3 cm) y su alto en la LMC (12,9 cm, −1 DE de Kratzer
+  [@kratzer-higado-2003]) sí caen en la base. El bazo tiene 134 mL (≈ 146 g) frente a los ≈ 200 g de Gray. Su polo posterior
+  queda a 11 cm de la línea media y no a 4: es la forma del modelo (rígida, de 12 cm a lo largo de la 10.ª costilla, con su punto
+  más bajo en la axilar media), no la fuente, y por eso la escapular izquierda en el EIC10 no lo ve; su punto más bajo queda
+  ≈ 4 cm bajo la apófisis de L1 que da Gray (las dos marcas de Gray no caben juntas en esta parrilla). El lóbulo izquierdo acaba a
+  5 cm de la línea media, el extremo medial de lo que da Gray (no pocas veces llega a la línea mamilar). El riñón es solo un recorte
+  (una caja de Morris por detrás de la cara anterior del cuerpo vertebral [SUPUESTO]). Con el preajuste pulmonar el hígado a 7–11 cm
+  queda cerca del negro. Los dos se mueven con el campo respiratorio (decisión 22), cuyo peso es 0 en la pared: junto a ella bajan
+  menos que la cúpula, sin deslizar sobre el peritoneo (`respiratory-field-vertical`). Sin hepatomegalia ni esplenomegalia (el
+  tamaño variable de VExUS, `sizeFactor`, no se porta). El espejo del diafragma (F-T34) deja el virtual 1,7–2,0 dB bajo el real en
+  el nivel mostrado, no los ≥ 3 que pide la base (meta pendiente).
 - **El campo respiratorio es una traslación caudal con pesos** (`respiratory-field-vertical`, decisión 22): el tejido baja el
   descenso del diafragma por un peso que es 0 en la pared, la columna y el corazón con su ventana, sube en sus rampas (25, 30
   y 50 mm; la de la pared y la de la columna, [EXTRAPOLACIÓN PROPIA] de VExUS) y, por encima de la cúpula más alta, baja en

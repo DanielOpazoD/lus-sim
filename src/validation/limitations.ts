@@ -22,6 +22,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'heart-simplified',
   'lung-border-table',
   'abdomen-generic-tissue',
+  'liver-spleen-simplified',
   'sliding-linear-height',
   'respiratory-field-vertical',
   // sonda
