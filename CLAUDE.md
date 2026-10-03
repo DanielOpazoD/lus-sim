@@ -8,6 +8,8 @@ señal → imagen (modo B y M) → observables → puntaje. Lee primero `docs/MI
 
 - `npm run check > /tmp/lus-check.log 2>&1; echo EXIT $?` — nunca `npm run check | grep`: cuenta el
   código de salida.
+- `npm run fidelity:bank` si tocas `src/measure/fidelity/`, `tools/fidelity/` o `docs/reference-bank/`: la prueba dorada del
+  banco de referencia real (fuera del repo, decisión 5), que tarda ≈ 3 min sin carga y más de 15 con la máquina cargada, y no corre en `check` ni en CI.
 - `npm run e2e` si tocas GPU, UI o la cadena de imagen (necesita `npx vite build` antes). Puerto 6709.
 - Decisión nueva → `docs/DECISIONS.md` con la plantilla de `CONTRIBUTING.md` y `npm run docs:index`.
 - Aproximación o limitación nueva → `docs/APPROXIMATIONS.md` / `docs/LIMITATIONS.md` (las limitaciones

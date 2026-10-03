@@ -21,6 +21,7 @@
     "docs:index": "tsx tools/docs/decisions-index.ts",
     "provenance": "tsx tools/provenance/drift.ts",
     "fidelity:ref": "tsx tools/fidelity/reference.ts",
+    "fidelity:bank": "LUS_REFERENCE_CHECK=1 VITEST_TIER=all vitest run src/validation/fidelityReferenceBank.test.ts --testTimeout=3600000",
     "fidelity:compare": "tsx tools/fidelity/compare.ts",
     "fidelity:db": "tsx tools/fidelity/dbTable.ts",
     "fidelity:geometry": "tsx tools/fidelity/geometry.ts",
