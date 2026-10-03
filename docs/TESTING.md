@@ -256,7 +256,11 @@ la salida actual no protege nada.
   Con el protocolo de C3b-A, pesa con `calibrationOverride({ seriesParts })` (el uniform `uSeriesParts` de la pasada B) la
   copia espejo, la directa, el deslizamiento y la línea pleural con sus réplicas. Informa los niveles en dB de la pared, de
   la neblina, de la línea pleural y de las líneas A, y la incidencia de la línea en la pleura. Con
-  `LUS_DESCOMPOSICION_SIGMAZ` repite la descomposición para cada σz. No es una prueba: es la herramienta de la medida Las bandas se sitúan con la geometría verdadera (`truthLevelsDb` del informe), no con la detectada, que cambia con lo que se dibuja.
+  `LUS_DESCOMPOSICION_SIGMAZ` repite la descomposición para cada σz. No es una prueba: es la herramienta de la medida. Las bandas se sitúan con la geometría verdadera (`truthLevelsDb` del informe), no con la detectada, que cambia con lo que se dibuja.
+- **La pila con el protocolo de los clips** (`e2e/pilaClips.spec.ts`, decisión 39): solo con `LUS_PILA=1`. Respira tranquilo
+  la mediana de la duración de los clips de la exploración, a su mediana de cuadros por segundo (8,3 s a 25 cps), y mide T2 y
+  S1 como el banco, que los calcula sobre el clip entero. La pila de 1 s de `e2e/fidelidad.spec.ts` no se compara con el banco
+  en la decorrelación. Con `LUS_PILA_FOLLOW` y `LUS_PILA_TREMOR` barre la mano del operador (gancho `operator`).
 - **El simulador** (`e2e/fidelidad.spec.ts`, gancho `fidelity`): en los tres puntos de partida, en apnea espiratoria y en
   respiración tranquila, 30 cuadros de la imagen mostrada; exige que el detector encuentre la pleura del gemelo de A0 a ±1 mm
   en todas las columnas, las líneas A de orden 2 (con el preajuste) y 3 (con R_t 0,5, decisión 35) a k veces la línea pleural mostrada (F-T01) y las sombras donde las

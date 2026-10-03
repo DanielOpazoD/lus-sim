@@ -1,4 +1,5 @@
 import type { ParameterSet } from '../core/evidence';
+import { OPERATOR_HAND } from '../probe/operator';
 import { POSTERIOR_START_POSES, START_POINT_POSES } from '../app/startPoints';
 import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
@@ -54,4 +55,5 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   RESPIRATORY_WALL,
   FIDELITY_BENCH,
   COVERAGE,
+  OPERATOR_HAND,
 ];

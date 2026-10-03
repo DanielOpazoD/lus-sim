@@ -1,5 +1,6 @@
 import type { PhysiologySample } from '../physiology/engine';
 import type { RespiratoryPattern } from '../physiology/patientState';
+import type { Vec3 } from '../core/vec3';
 import type { PatientPosition, ProbeFrame, ProbePose } from '../probe/probe';
 
 /**
@@ -22,6 +23,8 @@ export interface AcquisitionState {
   respiratoryPattern: RespiratoryPattern;
   /** La posición del paciente al adquirirlo (lus-sim, decisión 33). */
   position: PatientPosition;
+  /** Lo que la mano del operador movió la sonda respecto del tórax (mm, mundo; lus-sim, decisión 39): el marco es el de la pose más esto. */
+  operatorMm?: Vec3;
 }
 
 /**
@@ -43,6 +46,7 @@ export function snapshotAcquisition(source: AcquisitionState): AcquisitionState 
     sample: { ...source.sample, resp: { ...source.sample.resp } },
     respiratoryPattern: source.respiratoryPattern,
     position: source.position,
+    ...(source.operatorMm ? { operatorMm: [...source.operatorMm] as Vec3 } : {}),
   };
 }
 

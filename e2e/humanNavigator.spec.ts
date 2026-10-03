@@ -17,6 +17,11 @@ test('humano procedural: vistas, presupuesto, contacto histórico y cámara sin 
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   const errors = await boot(page);
+  // en vivo, con la sonda quieta, la mano del operador mueve el marco en cada cuadro (decisión 39), pero el navegador dibuja
+  // la sonda de la pose: no rehace el cable ni el sector
+  const live = await stats(page);
+  for (let i = 0; i < 6; i++) await settle(page);
+  expect((await stats(page)).cableUpdates).toBe(live.cableUpdates);
   await page.locator('#freeze').click();
   await settle(page);
   const nav = page.locator('#thorax-navigator');

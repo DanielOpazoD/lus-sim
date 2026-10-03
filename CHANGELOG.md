@@ -161,6 +161,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- La pared viva (39). La mano del ecografista mueve la sonda respecto del tórax con el reloj único y la semilla del operador
+  (`probe/operator.ts`). Por un lado, la pared que respira bajo la sonda (AP 1,29, craneocaudal 1,00 y mediolateral 0,94 mm
+  en respiración libre, TC 4D), de la que la mano sigue el 75 %; por otro, el temblor fisiológico de 7–11 Hz, 12 µm rms
+  por eje, acotado por F-T11. La pila se mide como los clips (8,3 s a 25 cps, `e2e/pilaClips.spec.ts`): S1 pasa de 9–20 a
+  0,97–1,70 (banco 1,04–1,61), T2 de la pared de 1,000 a 0,998–0,999 (banco 0,982–0,993) y la arena se decorrela en
+  0,31–0,43 s (banco 0,46–0,72). El navegador 3D dibuja la sonda de la pose, y la guarda del modo M de la e2e se mide con
+  la mano apagada.
 - El deslizamiento en el vértice (corrección de la decisión 27): sigue nulo, como lo da la fuente. Lichtenstein 2017, leído en el
   texto completo, lo describe «mínimo» en el punto BLUE superior y «habitualmente nulo» en el ápex; la decisión 27 y
   `sliding-linear-height` decían lo contrario. Nuevas filas D5a y D5b en `physics.md` y una prueba que falla si el vértice

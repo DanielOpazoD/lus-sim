@@ -6,6 +6,16 @@ import { AnatomyScene } from '../anatomy/scene';
 import { PhysiologyEngine, type PhysiologySample } from '../physiology/engine';
 import type { PatientState } from '../physiology/patientState';
 import { probeContact, type ProbeContact } from '../probe/contact';
+import {
+  defaultOperator,
+  operatorOffsetMm,
+  translateContact,
+  tremorComponents,
+  type OperatorState,
+  type TremorComponents,
+} from '../probe/operator';
+import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
+import type { Vec3 } from '../core/vec3';
 import { clampPose, defaultPose, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
 import { DEFAULT_BMODE, UltrasoundRenderer, type BModeSettings, type GpuPointQuery, type PassRepeat } from '../ultrasound/renderer';
 
@@ -66,6 +76,17 @@ export class Simulator {
   /** Contacto de la sonda del cuadro (decisión 63): el marco efectivo (hundido), la compresión y el acoplamiento. */
   private lastContact: ProbeContact;
   private contactPose: ProbePose;
+  /** El contacto de la pose, sin la mano del operador (se reutiliza con la sonda quieta). */
+  private poseContact: ProbeContact;
+  /**
+   * La mano del ecografista (lus-sim, decisión 39, `probe/operator.ts`): su semilla, si está activa y lo que sigue de la
+   * pared. Mueve la sonda respecto del tórax con el reloj único; las pruebas de geometría la apagan.
+   */
+  operator: OperatorState;
+  private tremor: TremorComponents;
+  private tremorSeed: number;
+  /** Traslación de la sonda por la mano en el cuadro (mm, mundo): la del contacto efectivo. */
+  private operatorMm: Vec3 = [0, 0, 0];
 
   /**
    * `renderer`: el de otro simulador (cambio de caso), que se queda con sus programas compilados y
@@ -76,10 +97,14 @@ export class Simulator {
     this.scene = new AnatomyScene(patient);
     this.anatomy = new AnatomyQuery(this.scene);
     this.physiology = new PhysiologyEngine(patient);
-    this.lastContact = probeContact(this.pose, this.transducer, this.scene.torso);
+    this.operator = defaultOperator(patient.seed);
+    this.tremorSeed = this.operator.seed;
+    this.tremor = tremorComponents(this.tremorSeed);
+    this.poseContact = probeContact(this.pose, this.transducer, this.scene.torso);
+    this.lastContact = this.poseContact;
     this.lastFrame = this.lastContact.frame;
     this.contactPose = this.pose;
-    this.anatomy.setProbeCompression(this.lastContact);
+    this.applyOperator();
     if (renderer) renderer.setScene(this.scene);
     this.renderer = renderer ?? new UltrasoundRenderer(canvas, this.scene, this.profile);
   }
@@ -108,6 +133,7 @@ export class Simulator {
         sample: this.sample,
         respiratoryPattern: this.patient.respiratoryPattern,
         position: this.patient.position ?? 'supine',
+        operatorMm: this.operatorMm,
       }
     );
   }
@@ -121,6 +147,29 @@ export class Simulator {
   /** Contacto de la sonda del último marco (decisión 63): la misma compresión que ven la CPU y la GPU. */
   get contact(): ProbeContact {
     return this.lastContact;
+  }
+  /** Traslación de la sonda por la mano del operador en el último marco (mm, mundo; decisión 39). */
+  get operatorOffsetMm(): Vec3 {
+    return this.operatorMm;
+  }
+
+  /**
+   * El contacto efectivo del cuadro (lus-sim, decisión 39): el de la pose trasladado lo que la mano mueve la sonda respecto
+   * del tórax en este instante del reloj (la pared que respira bajo la sonda y el temblor), sin recalcular el contacto: los
+   * desplazamientos son de décimas de milímetro a ~2 mm. La CPU y la GPU ven el mismo.
+   */
+  private applyOperator(): void {
+    if (this.operator.seed !== this.tremorSeed) {
+      this.tremorSeed = this.operator.seed;
+      this.tremor = tremorComponents(this.tremorSeed);
+    }
+    const s = this.physiology.sample;
+    const breath = s.resp.diaphragmCaudalMm / DIAPHRAGM_EXCURSION.params.quietMm.value;
+    const k = this.poseContact;
+    this.operatorMm = operatorOffsetMm(this.operator, k.frame.skinPoint, this.scene.torso, breath, s.t, this.tremor);
+    this.lastContact = translateContact(k, this.operatorMm);
+    this.lastFrame = this.lastContact.frame;
+    this.anatomy.setProbeCompression(this.lastContact);
   }
 
   setPose(p: ProbePose): void {
@@ -153,13 +202,12 @@ export class Simulator {
     // el efectivo (la sonda hundida). Se actualiza aun sin paso fisiológico: un gesto no puede llegar con el marco previo.
     // Con la sonda quieta el contacto no cambia (sale solo de la pose): se reutiliza.
     if (!samePose(this.pose, this.contactPose)) {
-      this.lastContact = probeContact(this.pose, this.transducer, this.scene.torso);
+      this.poseContact = probeContact(this.pose, this.transducer, this.scene.torso);
       this.contactPose = this.pose;
-      this.anatomy.setProbeCompression(this.lastContact);
     }
-    this.lastFrame = this.lastContact.frame;
-    if (steps === 0) return;
     for (let i = 0; i < steps; i++) this.physiology.step();
+    // la mano del operador, con el instante del reloj ya avanzado (decisión 39)
+    this.applyOperator();
   }
 
   /** Dibuja B y, si se pide, registra su línea M; solo `repeat` es exclusivo del banco de medida. */
@@ -172,6 +220,7 @@ export class Simulator {
         pose: this.pose,
         respiratoryPattern: this.patient.respiratoryPattern,
         position: this.patient.position ?? 'supine',
+        operatorMm: this.operatorMm,
         compression: this.lastContact,
         transducer: this.transducer,
         bmode: this.bmode,
