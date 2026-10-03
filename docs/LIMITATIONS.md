@@ -259,7 +259,9 @@ conservan su identificador (decisiones 10 y 11).
 - **La serie bajo la pleura remuestrea la pared en la misma línea** (`pleura-series-same-line`): las copias
   de la pared y las líneas A se forman con la pared del propio camino, no con la de la dirección reflejada
   por una pleura oblicua; las líneas A llevan el lóbulo de Kirchhoff una sola vez y tienen la anchura de la
-  línea pleural.
+  línea pleural. Así, al inclinar la sonda, las líneas A no se apagan antes que la línea pleural (F-T04). El lóbulo en cada
+  ida y vuelta se probó y quedó aplazado (decisión 38, rama `feat/lobulo-pleura`): censura M y r₂ en el BLUE inferior y su
+  modelo (un Λ(θ) constante por orden) no es aún el de la desviación acumulada de `physics.md` §2.3.
 - **El eco de interfaz es solo la parte coherente de una cara lisa** (`interface-echo-coherent-only`): sin
   destellos ni parte difusa de las superficies rugosas, una cara por estructura y sin interferencia de capa
   fina. Su nivel depende de K, una escala estimada del modelo registrada en `normalCalibration.ts`; las fuentes del
@@ -335,6 +337,11 @@ conservan su identificador (decisiones 10 y 11).
   1,20–1,40 (exploración 0,85–1,40; el BLUE superior, en su borde), A2 r₂ en 0,35–0,40 (0,17–0,25) y se ve una línea A,
   como en los clips; M de la neblina, 1,41–1,54 frente a 0,87–1,00: la neblina sigue 0,05–0,28 caídas por debajo de la
   pared, y ningún σz, R_t ni K lo cambia. Falta un mecanismo de la neblina (decisión 34: no es lo difuso de la pleura).
+  Decisión 38: la neblina del simulador es el campo del deslizamiento (`SLIDING_DB`, estimado y en el tope de su rango), a
+  9–13 dB bajo la pared en la envolvente. El espejo y la réplica de la pared quedan 20–27 dB bajo ella, porque cada rebote
+  en la pleura conserva solo su parte coherente (χ); lo que falta de la reverberación entre las caras de la pared suma
+  ≤ 1,4 dB. Con una pleura lisa (σz 0,01–0,02) el espejo calza con el banco, pero la línea pleural se recorta y las líneas
+  A caen solo 20–23 dB por orden: falta una pérdida que paguen las líneas A y no el espejo.
 
   Referencia histórica de la decisión 21, con K = 55 dB y R_t = 0,3: el rango dinámico
   (70 dB, de VExUS), la curva de grises (c = 3,5, de EchoTwin) y la ganancia del preajuste (−21 dB, decisión 20) dejan, medido

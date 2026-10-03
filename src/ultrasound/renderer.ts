@@ -285,6 +285,17 @@ interface LookPrograms {
   steered: GLProgram;
 }
 
+/**
+ * Barrido de calibración y descomposición de la neblina (solo pruebas): K de las caras, σz de la pleura parietal, R_t de la
+ * serie y los pesos de las partes del pulmón bajo la pleura (espejo, directa, deslizamiento, línea pleural con sus réplicas).
+ */
+export interface CalibrationOverride {
+  kDb?: number;
+  pleuraSigmaZMm?: number;
+  pleuraRt?: number;
+  seriesParts?: readonly [number, number, number, number];
+}
+
 export class UltrasoundRenderer {
   readonly gl: WebGL2RenderingContext;
   private pTransHits: GLProgram;
@@ -365,6 +376,8 @@ export class UltrasoundRenderer {
   private ifaceUniforms: Float32Array;
   /** R_t de la serie de la pleura (uPleuraRt): `PLEURA_RT`, salvo el barrido de calibración (`calibrationOverride`). */
   private pleuraRt = PLEURA_RT;
+  /** Pesos de las partes del pulmón bajo la pleura (espejo, directa, deslizamiento, línea pleural y réplicas): 1 salvo en la descomposición de la neblina (`calibrationOverride`). */
+  private seriesParts: [number, number, number, number] = [1, 1, 1, 1];
   /** K, σz de la pleura y R_t vigentes (los del registro, o los del barrido de calibración): los lee el banco de fidelidad. */
   private calib = { kDb: IFACE_K_DB, pleuraSigmaZMm: INTERFACES[Interface.PleuraWall].roughnessMm, pleuraRt: PLEURA_RT };
   /** Geometría de presentación del último cuadro (px). */
@@ -406,7 +419,8 @@ export class UltrasoundRenderer {
    * Barrido de calibración (solo pruebas): K de las caras, σz de la pleura parietal y R_t de la serie, en lugar de los del
    * registro; `null` vuelve a ellos. La siguiente pasada B ya los usa.
    */
-  calibrationOverride(o: { kDb?: number; pleuraSigmaZMm?: number; pleuraRt?: number } | null): void {
+  calibrationOverride(o: CalibrationOverride | null): void {
+    this.seriesParts = o?.seriesParts ? [...o.seriesParts] : [1, 1, 1, 1];
     this.ifaceUniforms = interfaceUniforms(this.ifaceK0, o?.kDb ?? IFACE_K_DB);
     if (o?.pleuraSigmaZMm !== undefined) this.ifaceUniforms[4 * Interface.PleuraWall + 1] = 2 * this.ifaceK0 * o.pleuraSigmaZMm;
     this.pleuraRt = o?.pleuraRt ?? PLEURA_RT;
@@ -1174,6 +1188,7 @@ export class UltrasoundRenderer {
     p.v4v('uIface', this.ifaceUniforms);
     p.f('uIfaceK0', this.ifaceK0);
     p.f('uPleuraRt', this.pleuraRt);
+    p.v4('uSeriesParts', ...this.seriesParts);
     this.setLateralPsfUniforms(p, inputs);
     drawFullscreen(gl);
   }

@@ -117,6 +117,52 @@ describe('gemelo de la cortina: la imagen bajo la pleura parietal (decisión 61)
     expect(pk3).toBeLessThan(pk2);
   });
 
+  it('descomposición de la neblina (lus-sim, decisión 38): el deslizamiento la llena; el espejo y la réplica de la pared, muy por debajo', () => {
+    // la mediana del nivel en la banda de la pared (u 0,2–0,85) y en la de la neblina (u 1,25–1,75), como el banco de fidelidad
+    const lv = (o: PleuraTwinOut) => (u: number, r: number) => levelDbAt(envAt(o, u, r), r, liver);
+    const wallDb = median(
+      band(
+        full,
+        central,
+        (D) => 0.2 * D,
+        (D) => 0.85 * D,
+        lv(full),
+      ),
+    );
+    const hazeOf = (parts: Parameters<typeof simulatePleura>[0]['parts']) => {
+      const o = simulatePleura({ edgeMm: -Infinity, seed: 1, parts });
+      return median(
+        band(
+          o,
+          central,
+          (D) => 1.25 * D,
+          (D) => 1.75 * D,
+          lv(o),
+        ),
+      );
+    };
+    const none = { pleura: false, series: false, mirror: false, forward: false, sliding: false, tissue: false };
+    const all = median(
+      band(
+        full,
+        central,
+        (D) => 1.25 * D,
+        (D) => 1.75 * D,
+        lv(full),
+      ),
+    );
+    const sliding = hazeOf({ ...none, sliding: true });
+    const mirror = hazeOf({ ...none, series: true, mirror: true });
+    const forward = hazeOf({ ...none, series: true, forward: true });
+    // gemelo (main 83b7544, R_t 0,1): la pared −12,4 dB sobre el hígado; neblina −12,7, deslizamiento −13,0, espejo −31,3 y
+    // réplica −36,2. El espejo paga χ² (−17,7 dB) y la réplica 2·χ·R_t (−23 dB) frente a la pared
+    expect(Math.abs(all - sliding)).toBeLessThan(1.5);
+    expect(wallDb - mirror).toBeGreaterThan(15);
+    expect(wallDb - mirror).toBeLessThan(23);
+    expect(wallDb - forward).toBeGreaterThan(20);
+    expect(wallDb - forward).toBeLessThan(28);
+  });
+
   it('el deslizamiento se ve a SLIDING_DB del hígado junto a la pleura (la ganancia de C y D, calibrada)', () => {
     const o = simulatePleura({ edgeMm: -Infinity, seed: 1, parts: { pleura: false, series: false, sliding: true, tissue: false } });
     // sin su caída con la profundidad: el nivel a 1–3 mm bajo la pleura, sobre el hígado a esa profundidad

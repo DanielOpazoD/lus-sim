@@ -252,6 +252,11 @@ la salida actual no protege nada.
   σz, R_t, K y la ganancia (`LUS_BARRIDO_SIGMAZ`, `_RT`, `_K`, `_GAIN`) con el protocolo de C3b-A y `calibrationOverride`
   (sin recompilar) y adjunta las métricas por punto de partida. No es una prueba: es la herramienta del ajuste con la
   exploración (decisión 24).
+- **La descomposición de la neblina** (`e2e/descomposicionNeblina.spec.ts`, decisión 38): solo con `LUS_DESCOMPOSICION=1`.
+  Con el protocolo de C3b-A, pesa con `calibrationOverride({ seriesParts })` (el uniform `uSeriesParts` de la pasada B) la
+  copia espejo, la directa, el deslizamiento y la línea pleural con sus réplicas. Informa los niveles en dB de la pared, de
+  la neblina, de la línea pleural y de las líneas A, y la incidencia de la línea en la pleura. Con
+  `LUS_DESCOMPOSICION_SIGMAZ` repite la descomposición para cada σz. No es una prueba: es la herramienta de la medida Las bandas se sitúan con la geometría verdadera (`truthLevelsDb` del informe), no con la detectada, que cambia con lo que se dibuja.
 - **El simulador** (`e2e/fidelidad.spec.ts`, gancho `fidelity`): en los tres puntos de partida, en apnea espiratoria y en
   respiración tranquila, 30 cuadros de la imagen mostrada; exige que el detector encuentre la pleura del gemelo de A0 a ±1 mm
   en todas las columnas, las líneas A de orden 2 (con el preajuste) y 3 (con R_t 0,5, decisión 35) a k veces la línea pleural mostrada (F-T01) y las sombras donde las

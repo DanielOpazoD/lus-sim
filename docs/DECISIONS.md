@@ -3230,3 +3230,164 @@ Aplicado. Además, un escalón de 9 mm del borde del hígado en la punta del 9.�
 tabla), corregido. Medido con GPU real tras las correcciones: las cápsulas, 1226 puntos (840 del hígado, 386 del bazo), acuerdo 1,
 error de la distancia 9·10⁻⁵ mm y coseno mínimo de la normal 0,999995; el volumen, 42 226 puntos interiores (4248 de hígado y 284 de
 bazo) con acuerdo 1; los planos de las bases, acuerdo 1.
+
+## 38. Lo que falta de la reverberación de la pared no cierra la neblina; el espejo la cerraría con una pleura lisa, pero choca con la caída de las líneas A [Estado: rechazada]
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Ciclo 3b-3, mecanismo 1 (objetivos O3 y O1). Con R_t 0,1 (decisión 35), la pared y las líneas A quedan cerca
+del banco. La neblina no: M de la neblina vale 1,41–1,54, frente a 0,87–1,00 en la exploración. Además queda 0,05–0,28
+caídas de línea A por debajo de la pared, y ningún σz, R_t ni K lo cambia. La revisión de la decisión 35 propuso como
+candidato la reverberación dentro de la propia pared. Soldati 2020, §2–3 y fig. 1 ([@soldati-trampas-2020], leído en texto
+completo), describe lo que se suma bajo la pleura sana:
+
+- «la réplica» de la pared de arriba: la reverberación de los planos miofasciales y de la pleura con la sonda;
+- «el espejo» de la pared de abajo.
+
+Su expresión depende del grosor de la pared. La hipótesis: al simulador le falta algo de esa reverberación, y por eso su
+neblina queda oscura.
+
+**Opciones.**
+
+- (a) Medir primero qué hay hoy en la neblina, y modelar lo que falte de la reverberación de la pared: entre sus caras, entre
+  la pared y la pleura, y entre la pared y la cara de la sonda.
+- (b) Subir el campo del deslizamiento, que es lo que llena la neblina (abajo).
+- (c) No tocar nada.
+
+**Decisión.** Se midió (a). Se rechaza que lo que falta de la reverberación de la pared cierre la neblina. Se descarta (b),
+porque no tiene fuente. El espejo de la pared, que ya está dibujado, la cerraría con una pleura lisa, pero entonces fallan la
+línea pleural y las líneas A: es el dilema que queda para la próxima hipótesis.
+
+- **Qué hay hoy bajo la pleura.** La descomposición se hizo con la GPU real (Apple M4) sobre main 83b7544, con el protocolo
+  de la decisión 24: apnea espiratoria a t = 60 s, tres réplicas y rango dinámico 70 dB. La herramienta nueva es
+  `e2e/descomposicionNeblina.spec.ts`, con `LUS_DESCOMPOSICION=1`. Usa `calibrationOverride({ seriesParts })` y el uniform
+  `uSeriesParts` para pesar cuatro partes: la copia espejo, la directa, el deslizamiento y la línea pleural con sus réplicas.
+
+  Las bandas son las del banco, pero situadas con la geometría verdadera (`truthLevelsDb`), no con la detectada. La detección
+  cambia con lo que se dibuja: sin el deslizamiento, el BLUE inferior detectaba 278–296 columnas intercostales en lugar de
+  142, y así las medianas no eran sobre las mismas muestras. Se miden en las líneas intercostales libres con la pleura del
+  gemelo de A0:
+  - la pared, u 0,2–0,85;
+  - la neblina, u 1,25–1,75.
+
+  Niveles de la envolvente en la pantalla (dB), mediana de la banda:
+
+  | Punto         | Pared | Neblina | Solo deslizamiento | Espejo + directa | Solo espejo | Solo directa | El resto (línea pleural, pasada C, ruido) |
+  | ------------- | ----- | ------- | ------------------ | ---------------- | ----------- | ------------ | ----------------------------------------- |
+  | BLUE superior | −54,0 | −62,6   | −63,4              | −71,5            | −74,4       | −79,4        | −107,2                                    |
+  | BLUE inferior | −48,8 | −61,4   | −63,4              | −67,6            | −70,9       | −75,6        | −100,0                                    |
+  | PLAPS         | −51,8 | −62,1   | −63,6              | −69,4            | −72,6       | −77,9        | −105,5                                    |
+  - **La neblina es el campo del deslizamiento.** Queda a 0,8–2,0 dB del total, con `SLIDING_DB` −8 dB, el borde de arriba de
+    su rango estimado.
+  - **Las dos copias de Soldati suman a la neblina 0,8–2,0 dB.** El espejo queda 20–22 dB bajo la pared y la réplica, 25–27
+    dB. Juntas, 17–19 dB bajo la pared.
+  - **La neblina queda 8,6–12,6 dB bajo la pared en la envolvente.** En M, 0,14–0,21 caídas de línea A, con 28–31 dB por
+    caída. Las dos cifras miden lo mismo con dos escalas. M va en gris, y la curva de grises (exponencial en el nivel) comprime
+    las diferencias en el gris bajo, donde está la neblina (el 4–8 % de sus píxeles está en el negro). La meta es M; en la
+    envolvente, a la neblina le faltan 9–13 dB para la mediana de la pared.
+  - **El resto queda 51–54 dB bajo la pared.** Es, sobre todo, la réplica de VExUS en la pasada C (`CLUTTER.reverbFirstDb`
+    −50 dB). Esa réplica sí está dibujada. Su ganancia es fija y no sigue a R_t: es una incoherencia menor del modelo, porque
+    con R_t 0,1 la cota física de abajo da −30 dB y no −50.
+  - **El gemelo de CPU confirma la descomposición.** `support/pleuraTwin.ts`, ahora con `mirror` y `forward` por separado, y
+    la prueba nueva de `pleuraTwin.test.ts`, sobre una pared plana de 28 mm, dan:
+    - la neblina, a 0,3 dB del deslizamiento;
+    - el espejo, 19 dB bajo la pared;
+    - la réplica, 24 dB bajo la pared.
+  - **Lo que domina, con R_t 0,3 y con R_t 0,1.** La decisión 34 halló que, con R_t 0,3, la copia directa dominaba la
+    espejo en esta banda por unos 4 dB. Con R_t 0,1 se invierte: la directa pierde 9,5 dB.
+
+- **Por qué quedan tan abajo en el modelo.** Cada rebote en la pleura conserva solo su parte coherente, R_p·χ, con χ = 0,36
+  (σz 0,05 mm a 3,5 MHz; decisiones 34 y 35).
+  - La copia espejo paga χ² = 0,13: −17,7 dB.
+  - La réplica paga χ·R_t por los dos caminos del mismo retardo: 2·0,36·0,1 = 0,072, −23 dB.
+  - Lo que el espejo pierde de más (3–4 dB) es la atenuación real del camino de vuelta frente a la compensación nominal.
+
+  Es una explicación del modelo, no una prueba de que la pleura real sea así. La propia fuente juega en contra de σz 0,05:
+  la fig. 1 de Soldati, a 9 MHz y con sonda lineal, muestra el espejo y las réplicas de la línea pleural. Con Ament y σz 0,05
+  mm, a 9 MHz χ = exp(−2(k0·σz)²) ≈ 0,001: −58 dB por rebote, y no se vería ni el espejo ni ninguna línea A.
+
+- **Lo que falta de la reverberación de la pared, acotado en energía frente a la pared.** Todo camino que el modelo no dibuja
+  lleva, además, una reflexión en una cara de la pared. Las caras de la tabla, para la pared lateral (piel–grasa, Scarpa,
+  fascia profunda, los dos planos intermusculares, transversalis y peritoneo), suman ΣR² ≈ 0,094. Son tres familias:
+  1. **Cada cara con la cara de la sonda.** Copia la pared que tiene debajo con R_cara·R_t. Sumadas sin coherencia, su
+     energía frente a la de la pared es ΣR²·R_t²: −16 dB con R_t en el tope de su rango (0,5) y −30 dB con 0,1. Es la que la
+     pasada C dibuja a −50 dB fijos.
+  2. **Dos caras entre sí:** ≤ (ΣR²)²/2, −24 dB.
+  3. **Una cara con la pleura a la ida y a la vuelta.** Es el espejo de la cara, que ya está dibujado (con
+     `WALL_COPY_FACE_GAIN`). Sus órdenes altos pagan R_cara²·χ² más: < −40 dB.
+
+  Sumada a la neblina, que ya está a 9–13 dB de la pared, la peor de las tres (−16 dB) la sube a lo sumo 1,0–1,4 dB. Hacen
+  falta 9–13.
+
+- **Subir el deslizamiento (opción b).** Unos 10 dB más de `SLIDING_DB` cerrarían la neblina sin tocar las líneas A. Pero su
+  rango (−12 a −8 dB) no tiene fuente: es una estimación heredada de VExUS. La decisión 24 no amplía un rango para alcanzar el
+  banco. Y el banco no dice que la neblina real sea deslizamiento: dice que está al nivel de la pared.
+
+- **El dilema: con una pleura lisa el espejo calza.** Con la pleura de la cota de Ostras 2023
+  ([@ostras-histopatologia-2023]; σz ≲ 9–23 µm, decisión 35), el espejo queda a 3,5–7,4 dB de la pared, como muestra el
+  banco: la neblina dentro de la banda de la pared. Pero no es compatible con el resto del preajuste. La misma descomposición,
+  repetida con σz del rango de la decisión 35 (`LUS_DESCOMPOSICION_SIGMAZ`), K 54 dB, ganancia −20 dB y R_t 0,1, da (BLUE
+  superior / BLUE inferior / PLAPS):
+
+  | σz (mm) | Neblina − pared (dB) | Espejo − pared (dB)   | Caída de la pleura a la línea A de orden 2 (dB) | Columnas con la línea pleural recortada (%) |
+  | ------- | -------------------- | --------------------- | ----------------------------------------------- | ------------------------------------------- |
+  | 0,01    | −1,9 / −3,8 / −2,2   | −3,5 / −5,3 / −4,0    | 19,8 / 22,2 / 20,5                              | 54 / 76 / 53                                |
+  | 0,02    | −3,4 / −5,4 / −3,8   | −5,6 / −7,4 / −6,1    | 20,9 / 23,2 / 21,6                              | 34 / 68 / 28                                |
+  | 0,03    | −5,3 / −7,8 / −6,0   | −9,1 / −10,9 / −9,6   | 22,7 / 25,0 / 23,3                              | 14 / 52 / 4                                 |
+  | 0,04    | −7,2 / −10,4 / −8,3  | −14,1 / −15,8 / −14,5 | 25,3 / 27,4 / 25,7                              | 0 / 8 / 0                                   |
+  | 0,05    | −8,6 / −12,6 / −10,4 | −20,4 / −22,1 / −20,8 | 28,5 / 30,4 / 28,8                              | 0 / 0 / 0                                   |
+  | 0,06    | −9,2 / −14,1 / −11,3 | −28,1 / −29,8 / −28,4 | 32,4 / 34,1 / 32,8                              | 0 / 0 / 0                                   |
+
+  La misma χ que deja pasar el espejo deja pasar la línea pleural y cada ida y vuelta de las líneas A. Con σz 0,01–0,02:
+  - el espejo calza;
+  - la línea pleural se recorta en el 28–76 % de sus columnas (Demi 2023, enunciado 15);
+  - las líneas A caen solo unos 20–23 dB por orden;
+  - M y r₂ se alejan del banco (la superficie de la decisión 35).
+
+  Hace falta una pérdida que paguen las líneas A y no el espejo. Con los r₂ del banco (0,17–0,25, frente a 0,35–0,40), esa
+  pérdida debe dar al menos 30 dB por orden con la pleura lisa. R_t ya está en el borde de abajo de su rango con fuente.
+
+- **El lóbulo de la pleura en cada ida y vuelta: probado y aplazado.** La cara de la sonda es lisa y su normal es la línea.
+  Por eso cada ida y vuelta pleura–cara solo vuelve por la línea con el lóbulo de Kirchhoff de la pleura, Λ(θ)/Λ(0), el mismo
+  que ya paga la línea pleural (decisión 57 de VExUS). Hoy la réplica k lo paga una vez, no k veces, y la meta F-T04 no se
+  cumple. Se probó en la rama `feat/lobulo-pleura` (1f49b3d: TS y GLSL, F-T04 como prueba con su mutación). Lo que dio:
+  - **No sirve para el dilema.** En los puntos de partida del simulador la pleura queda casi normal a cada línea bajo la sonda
+    comprimida: cos θ mediano 0,9997 / 0,9974–0,9984 / 0,9978, es decir, −0,05 / −0,3 a −0,45 / −0,4 dB por ida y vuelta.
+    En el banco de fidelidad M cambia ≤ 0,02. Lejos de los ≥ 10 dB por orden que pide el dilema.
+  - **Rompe una guarda de la decisión 35.** En el BLUE inferior, las líneas A de las columnas oblicuas caen al negro en
+    ≥ 5 % de las columnas, y M de la pared, M de la neblina y r₂ salen censuradas. Es una consecuencia física del lóbulo, o
+    una señal de que la pendiente de la pleura (s = 0,15) o la guarda no son las adecuadas: hay que decidirlo antes de
+    reabrirlo.
+  - **El detector no es la causa.** El detector del sector, que en el BLUE inferior da d_pl 5,5 mm larga, falla igual sin el
+    lóbulo: 2 de 4 corridas con `--repeat-each=4` en esta rama, cuya imagen es la de main 83b7544. Era la inestabilidad del detector que corrigió la decisión 36.
+  - **Su modelo no es el de la fuente.** `physics.md` §2.3 describe una desviación que se acumula, 2kθ en el orden k. La rama
+    paga un Λ(θ) constante en cada orden, y multiplica la χ coherente por un lóbulo de facetas incoherente. Hay que
+    reconciliarlo antes de reabrirlo.
+
+**Consecuencias.** No cambia la física de la imagen. Los pesos `uSeriesParts` valen 1 salvo en la medida, el factor 1,0 es
+exacto en la GPU y M coincide con main a ±0,001, el ruido del receptor entre corridas. Quedan:
+
+- la herramienta de la descomposición, que no es una prueba: `e2e/descomposicionNeblina.spec.ts` y `uSeriesParts`. Cuesta
+  una ranura de uniform más en B (120 y 122 de ≤ 130 en el programa dirigido) y cuatro productos por muestra. El coste del
+  cuadro no cambia: 5,82 ms frente a 5,89 en main y B 2,73 frente a 2,74 ms, medianas de 9 medidas de 60 cuadros con
+  `frameCostMs`;
+- en el informe del banco de fidelidad, las bandas con la geometría verdadera (`truthLevelsDb`) y la incidencia de la línea
+  en la pleura (`aLineDrop.ft02.cosI`);
+- el gemelo de la pleura con el espejo y la réplica por separado, con su prueba.
+
+La neblina del simulador es el campo del deslizamiento: un componente incoherente con su nivel estimado (`SLIDING_DB`, en el
+tope de su rango). La limitación lo dice. La próxima hipótesis tiene que explicar a la vez dos cosas: una neblina al nivel de
+la pared (un espejo casi sin pérdida) y líneas A que caen ≥ 30 dB por orden.
+
+**Verificación.**
+
+- Las dos tablas: `e2e/descomposicionNeblina.spec.ts` con la GPU real (`LUS_E2E_GPU=1`), sin y con
+  `LUS_DESCOMPOSICION_SIGMAZ=0.01,0.02,0.03,0.04,0.05,0.06`.
+- El gemelo: «descomposición de la neblina» en `pleuraTwin.test.ts` (nivel lento).
+- La cota: la tabla de caras de `anatomy/interfaces.ts`.
+- La imagen sin cambios: la calibración de C3b-A en main y en la rama, a ±0,001 en M y r₂.
+- El coste: `frameCostMs` en los tres puntos.
+- El lóbulo: la calibración y `e2e/fidelidad.spec.ts` con la GPU real en la rama `feat/lobulo-pleura` y en main (con
+  repeticiones en el BLUE inferior).
+- Soldati 2020 se leyó en texto completo (§1–3 y fig. 1).
+- Revisión adversarial de contexto limpio: resumen en la PR.

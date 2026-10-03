@@ -173,6 +173,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   2–4 con R_t 0,5. Herramienta del barrido: `e2e/barridoPleura.spec.ts` y `calibrationOverride`.
 - Rechazado (34): lo difuso de la pleura rugosa en la reverberación no acerca la neblina al banco (la cota física cierra
   un 12 %); queda en la rama `feat/reverberacion-difusa`.
+- Rechazado (38): lo que falta de la reverberación dentro de la pared no cierra la neblina subpleural. Medido con la GPU,
+  la neblina es el campo del deslizamiento; el espejo y la réplica de la pared (Soldati 2020) quedan 20–22 y 25–27 dB bajo
+  la pared, y lo que el modelo no dibuja de la reverberación entre caras y con la sonda suma ≤ 1,4 dB. Con una pleura lisa
+  el espejo calza con el banco, pero la línea pleural se recorta y las líneas A caen solo 20–23 dB por orden: falta una
+  pérdida que paguen las líneas A y no el espejo. El lóbulo de la pleura en cada ida y vuelta (F-T04) queda aplazado en la
+  rama `feat/lobulo-pleura`. Herramienta nueva: `e2e/descomposicionNeblina.spec.ts` (`calibrationOverride({ seriesParts })`)
+  y, en el informe del banco, las bandas con la geometría verdadera (`truthLevelsDb`).
 - El estado del modo M dice al instante que la línea se está colocando o se canceló, sin esperar al cuadro siguiente (29: con
   pocos cuadros por segundo, la e2e del modo M móvil esperaba 15 s el texto).
 - La e2e estable en el CI (30): el bucle ya no dibuja sobre un contexto WebGL perdido antes de su evento (quedaba «FBO

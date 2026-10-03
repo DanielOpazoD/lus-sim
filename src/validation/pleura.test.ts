@@ -360,8 +360,9 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
       expect(src).toContain('float chi = pleuraCoherence(cosI);');
       expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');
+      // con los pesos de la descomposición de la neblina (decisión 38: 1 salvo en `calibrationOverride({ seriesParts })`)
       expect(src).toContain(
-        'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+        'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
       );
     }
   });
@@ -974,14 +975,14 @@ describe('la rama de la cortina de la pasada B (mirada 0)', () => {
       'float tFree = min(t0.x, texture(uTrans2, vUv).x) * gain;',
       'float T = (curtain ? (under ? min(tFree, tD) : texture(uTrans0, vec2(vUv.x, min(r, rCap) / uDepth)).x) : t0.x) * coupling;',
       'float k = aLineOrder(r, D);',
-      'air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
+      'air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
       'vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);',
       'bool series = under && gn * tD * PLEURA_WALL_FIELD_BOUND * coupling > PLEURA_SERIES_FLOOR;',
       'int nWall = series ? 2 : 0;',
       'float d = j == 1 ? ser.y : ser.z;',
       'float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;',
-      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
-      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;',
+      'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
+      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, r - D, 0.0) * tD;',
     ])
       expect(FRAG_RAWFIELD, line).toContain(line);
     // y las funciones compartidas son las del gemelo

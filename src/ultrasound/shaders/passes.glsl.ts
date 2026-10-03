@@ -662,7 +662,7 @@ vec2 steeredField() {
     vec2 gr = lookPhaseGrad(rhoJ, alJ, a, uSteer.w);
     vec2 f = wallFieldPh(elem + dirK * d, dirK, elevSigma(rhoJ - uCurvR), lookPhase(rhoJ, alJ, a, uSteer.w), gr.x * uLateral + gr.y * uAxial, wD);
     float td = steeredT(phiK, a, min(d, sCap));
-    air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);
   }
   vec2 out2 = vec2(0.0);
   if (wTissue >= CURTAIN_MIN_AIR) {
@@ -699,8 +699,8 @@ vec2 steeredField() {
   if (curtain) {
     // el pulmón con la incidencia de esta mirada; el deslizamiento con su sal (cada mirada, otro disparo)
     float k = aLineOrder(s, sD);
-    air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * sD - s), 0.0);
-    if (under && slidingAmplitude(s - sD) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, s - sD, uLookSalt) * tD;
+    air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * sD - s), 0.0);
+    if (under && slidingAmplitude(s - sD) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, s - sD, uLookSalt) * tD;
     out2 += air * (fAir * coupling);
   }
   // la acumulación del armónico (decisión 77) es del eco del tejido, no del transitorio ni del ruido
@@ -882,7 +882,7 @@ void main() {
     float d = j == 1 ? ser.y : ser.z;
     vec2 f = wallField(pointOnLine(dir0, d), dir0, elevSigma(d), wD);
     float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;
-    air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);
+    air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);
   }
   vec2 out2 = vec2(0.0);
   if (wTissue >= CURTAIN_MIN_AIR) {
@@ -921,8 +921,8 @@ void main() {
   if (curtain) {
     // El pulmón, con peso fAir: línea pleural y réplicas (líneas A), la serie (arriba) y el deslizamiento
     float k = aLineOrder(r, D);
-    air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);
-    if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;
+    air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);
+    if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, r - D, 0.0) * tD;
     out2 += air * (fAir * coupling);
   }
   // Campo cercano: transitorio del transductor, anclado a la sonda (línea, r), no al tejido. Desde

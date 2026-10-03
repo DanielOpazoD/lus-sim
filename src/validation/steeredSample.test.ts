@@ -431,9 +431,10 @@ describe('rama dirigida de la pasada B: pleura parietal y cortina (decisión 61)
       'float rhoJ = sqrt(uCurvR * uCurvR + d * d + 2.0 * d * uSteer.z);',
       'float alJ = phiK + uSteer.x - steerBeta(rhoJ, a);',
       'float td = steeredT(phiK, a, min(d, sCap));',
-      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+      // con los pesos de la descomposición de la neblina (decisión 38: 1 salvo en la medida)
+      'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
       'float tFree = min(texture(uTrans3, vUv).x, texture(uTrans2, vUv).y) * gain;',
-      'air += slidingField(pD, s - sD, uLookSalt) * tD;',
+      'air += uSeriesParts.z * slidingField(pD, s - sD, uLookSalt) * tD;',
     ])
       expect(STEERED_FIELD_GLSL, line).toContain(line);
   });
