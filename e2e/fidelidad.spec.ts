@@ -49,7 +49,9 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
   test(`banco de fidelidad en ${startPoint}: el detector encuentra la pleura, las líneas A y las sombras del simulador (informe adjunto)`, async ({
     page,
   }, testInfo) => {
-    test.setTimeout(300_000);
+    // 7 min: en el CI cada ventana tardó 2,0–5,1 min según el corredor (los corredores difieren hasta 2,5 veces; 02-10-2026,
+    // PR #46: el BLUE superior agotó dos veces los 5 min de antes, con 4,0 en main). Las aserciones no cambian.
+    test.setTimeout(420_000);
     const errors = await openBench(page);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl2');
