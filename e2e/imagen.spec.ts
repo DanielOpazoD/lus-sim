@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PRESENT_MIN_DB } from '../src/app/mirrorBench';
 import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
+import { START_POINTS } from '../src/app/startPoints';
 
 /**
  * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: con `/?e2e=1` la
@@ -29,13 +30,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
   // y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas y la línea media con las espinosas
   // y (decisión 33) los tres puntos de partida de la espalda, en la paravertebral derecha
+  // y (decisión 41) los de la regla de las manos con el frénico, y los siete del hemitórax izquierdo
   expect(sweep.map((r) => r.id)).toEqual([
-    'blueUpper',
-    'blueLower',
-    'plaps',
-    'posteriorUpper',
-    'posteriorMiddle',
-    'posteriorBasal',
+    ...START_POINTS.map((p) => p.id),
     'supraclavicular',
     'clavicle',
     'lateralApex',
@@ -135,8 +132,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // pared), y el borde del pulmón en la axilar media izquierda
   // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular; y (decisión 33) los tres de la espalda, con el paciente
   // sentado, bajo la pared posterior
-  expect(pleura.lines, ptag).toBe(9 * 192);
-  for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'])
+  // y (decisión 41) el frénico y los siete del lado izquierdo: los puntos de partida y tres planos más
+  expect(pleura.lines, ptag).toBe((START_POINTS.length + 3) * 192);
+  for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'].flatMap((x) => [x, `${x}Left`]))
     expect(pleura.centralDepthMm[id], `${id}: ${ptag}`).toBeGreaterThan(24);
   expect(pleura.centralDepthMm.supraclavicular, ptag).toBeGreaterThan(15);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.7 * pleura.lines);
@@ -207,12 +205,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.interfaceDistanceMaxErrCupola, itag).toBeLessThan(0.05);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.sweep.map((r) => r.id)).toEqual([
-    'blueUpper',
-    'blueLower',
-    'plaps',
-    'posteriorUpper',
-    'posteriorMiddle',
-    'posteriorBasal',
+    ...START_POINTS.map((p) => p.id),
     'cardiacWindow',
     'leftBorder',
     'supraclavicular',
@@ -223,7 +216,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
-  expect(insp.pleura.lines, itag).toBe(9 * 192);
+  expect(insp.pleura.lines, itag).toBe((START_POINTS.length + 3) * 192);
   expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
   expect(insp.pleura.registrationMismatch, itag).toBe(0);
   for (const [id, q] of Object.entries(insp.pleura.depthQuantaByPose))

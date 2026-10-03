@@ -241,7 +241,10 @@ const GAIN_INVARIANT = [
 ] as const;
 // N4 necesita la línea A de orden 3: con R_t 0,1 (decisión 35) queda bajo el ruido con el preajuste y no se exige; en su
 // lugar entran A2 r₂ y la pendiente de ln r_k, que con R_t 0,1 se miden sin censura a ±3 dB del preajuste (0,388–0,398 y
-// −0,947…−0,922 en el BLUE superior con la GPU real)
+// −0,947…−0,922 en el BLUE superior de entonces con la GPU real). Desde la decisión 41 el barrido va en el BLUE inferior: en el
+// BLUE superior de la regla de las manos (el EIC1, bajo la clavícula) la línea A de orden 3 queda en el umbral y la pendiente de
+// ln r_k sale censurada en el mismo preajuste, así que la prueba perdía sus dientes; en el BLUE inferior se mide todo lo de
+// MUST_COMPARE
 /** Las que tienen que compararse (sin censura) a ±3 dB del preajuste: la prueba tiene dientes. */
 const MUST_COMPARE = [
   'dPl.px',
@@ -270,7 +273,7 @@ test('barrido de ganancia (−9…+9 dB respecto al preajuste): lo que se declar
   for (const gainDb of GAINS)
     runs.push(
       await page.evaluate(
-        (g) => window.__lusTest!.fidelity({ startPoint: 'blueUpper', respiration: 'apnea-expiratory', frames: 3, gainDb: g }),
+        (g) => window.__lusTest!.fidelity({ startPoint: 'blueLower', respiration: 'apnea-expiratory', frames: 3, gainDb: g }),
         gainDb,
       ),
     );

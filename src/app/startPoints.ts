@@ -1,7 +1,7 @@
 import { defineParameters } from '../core/evidence';
 import { TORSO } from '../anatomy/scene';
 import { THORAX_LINES } from '../anatomy/thoraxLines';
-import { BLUE_UPPER_POSE, type PatientPosition } from '../probe/probe';
+import type { PatientPosition } from '../probe/probe';
 
 /**
  * «Puntos de partida» (decisión 17 de VExUS): posiciones cutáneas con ángulos casi neutros hacia las que la sonda
@@ -9,17 +9,22 @@ import { BLUE_UPPER_POSE, type PatientPosition } from '../probe/probe';
  * consola (botones), los ganchos de prueba y el barrido de equivalencia.
  * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en la unión xifoesternal).
  *
- * lus-sim (decisión 12): los puntos del protocolo BLUE del hemitórax derecho [@lichtenstein-bluepoints-2011] en
- * lugar de las ventanas abdominales de VExUS, aproximados sobre la escena heredada; desde la decisión 16, sobre la
- * parrilla del adulto promedio y las líneas de `anatomy/thoraxLines.ts`. Ninguna fuente mapea los puntos
- * BLUE a un espacio intercostal ni a una línea (`docs/knowledge/anatomy.md` §4, NO ENCONTRADO): el superior es la
- * pose del paso A (`BLUE_UPPER_POSE`) y el inferior y el PLAPS se estiman con los reparos simplificados de Yuriditsky
- * y cols. (`docs/knowledge/clinical.md` §3.1), con su rango en `docs/APPROXIMATIONS.md`. Marcador craneal (yaw 0):
- * corte longitudinal, el del signo del murciélago.
+ * lus-sim (decisión 12): los puntos del protocolo BLUE [@lichtenstein-bluepoints-2011] en lugar de las ventanas abdominales de
+ * VExUS; desde la decisión 41, situados con la regla de las manos de Lichtenstein sobre el avatar (`app/blueHands.ts`, las manos de
+ * `anatomy/hands.ts`): el superior, el inferior, el frénico y el PLAPS, en los dos hemitórax, y las tres áreas paravertebrales de
+ * la espalda (decisión 33), también en los dos. Ninguna fuente mide en qué espacio intercostal caen (`docs/knowledge/anatomy.md`
+ * §4, NO ENCONTRADO): lo da la parrilla del modelo bajo las manos. Marcador craneal (yaw 0): corte longitudinal, el del signo del
+ * murciélago.
  */
+type RightId = 'blueUpper' | 'blueLower' | 'phrenic' | 'plaps' | 'posteriorUpper' | 'posteriorMiddle' | 'posteriorBasal';
+/** Los ids: los del hemitórax derecho (los de siempre) y sus simétricos izquierdos, con el sufijo `Left` (decisión 41). */
+export type StartPointId = RightId | `${RightId}Left`;
+
 export interface StartPoint {
-  id: 'blueUpper' | 'blueLower' | 'plaps' | 'posteriorUpper' | 'posteriorMiddle' | 'posteriorBasal';
+  id: StartPointId;
   label: string;
+  /** El hemitórax (decisión 41): las tarjetas se agrupan por lado. */
+  side: 'right' | 'left';
   /**
    * La posición del paciente en la que se explora (lus-sim, decisión 33): los de la espalda, sentado (ir a ellos sienta al
    * paciente); los demás, en cualquiera (sin el campo).
@@ -36,42 +41,80 @@ export interface StartPoint {
 }
 
 /**
- * Poses estimadas del punto BLUE inferior y del PLAPS derechos (decisión 12). Números nuevos, con su evidencia.
+ * Los puntos BLUE del hemitórax derecho con la regla de las manos sobre el avatar (lus-sim, decisión 41): los valores de
+ * `blueHandPoints` (`app/blueHands.ts`) con las manos de `anatomy.hands`, la clavícula y el tronco del avatar, redondeados;
+ * `startPoints.test.ts` los vuelve a construir. Los rangos, con las manos a ± 1 DE (el largo del dedo, el de la palma y el ancho,
+ * en todas sus combinaciones). Los del izquierdo son sus simétricos (φ → π − φ).
  */
+const HANDS_SOURCES = ['lichtenstein-bluepoints-2011', 'lichtenstein-libro-2016', 'greiner-mano-1991', 'gordon-ansur-2014'];
 export const START_POINT_POSES = defineParameters('app.startPointPoses', {
-  blueLowerPhi: {
-    value: 0.875 * Math.PI,
+  blueUpperPhi: {
+    value: 0.6706 * Math.PI,
     unit: 'rad',
-    range: [0.83 * Math.PI, 0.92 * Math.PI],
-    evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021'],
+    range: [0.6592 * Math.PI, 0.6822 * Math.PI],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
     note:
-      'Línea axilar anterior (Yuriditsky y cols.: el punto inferior en la axilar anterior, justo por encima del pezón), la de ' +
-      '`anatomy.thoraxLines.anteriorAxillaryPhi` (decisión 16). Calibrar con la regla de las manos',
+      'La inserción palmar de los dedos medio y anular de la mano de arriba (Lichtenstein 2011 y 2016): a un largo de dedo medio ' +
+      '(83,8 mm, Greiner) de la línea media por la piel, entre la paraesternal y la medioclavicular. Antes (decisión 10), la ' +
+      'medioclavicular (0,702π) [SUPUESTO]',
+  },
+  blueUpperZ: {
+    value: 122.3,
+    unit: 'mm',
+    range: [119.7, 124.9],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
+    note:
+      'A medio ancho de la mano (86,3 mm, ANSUR II con IMC 18,5–25) bajo su borde de arriba, la recta del borde inferior de la ' +
+      'clavícula (que sube 15 mm en sus 156, `anatomy.clavicle`): en el EIC1 de la parrilla del modelo (la 1.ª costilla a 147,8 mm y ' +
+      'la 2.ª a 99,3 en esa línea; centro 123,6). [DISCREPANCIA] con los reparos sin medida de Yuriditsky y cols. y otros (2.º–3.er ' +
+      'EIC en la medioclavicular). Antes, el centro del EIC2 de la medioclavicular, 83,7 [SUPUESTO]',
+  },
+  blueLowerPhi: {
+    value: 0.7955 * Math.PI,
+    unit: 'rad',
+    range: [0.7755 * Math.PI, 0.8161 * Math.PI],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
+    note:
+      'El centro de la palma de la mano de abajo: un largo de dedo más media palma (83,8 + 110,5/2 = 139,1 mm, Greiner) de la ' +
+      'línea media por la piel, entre la medioclavicular y la axilar anterior («cerca del pezón», Lichtenstein 2016; el pezón a 9–10 ' +
+      'cm de la línea media, Gray). Antes, la axilar anterior (0,875π, los reparos de Yuriditsky y cols.)',
   },
   blueLowerZ: {
-    value: 49.5,
+    value: 28.0,
     unit: 'mm',
-    range: [20.1, 78.3],
-    evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021', 'gray-anatomia-1918'],
+    range: [21.8, 34.1],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
     note:
-      'En el centro del EIC4 de la axilar anterior («justo por encima del pezón», Yuriditsky y cols.; el pezón en el 4.º EIC, ' +
-      'Gray) con la parrilla del adulto promedio (decisión 16): con el tronco de la decisión 28 y la espalda de la 29, la 4.ª ' +
-      'costilla a 63,9 mm y la 5.ª a 35,0 (`intercostalZ`: centro 49,46). Entre las decisiones 28 y 39 estuvo en 51,3, 1,8 mm ' +
-      'por encima del centro, porque en el centro la sombra de una costilla tapaba el borde derecho del sector y el detector del ' +
-      'banco de fidelidad la tomaba por él; con el detector de la decisión 36 vuelve al centro. El rango va del centro del EIC5 ' +
-      '(20,1) al del EIC3 (78,3) en esa línea: sin antropometría de la mano no se sabe en qué espacio cae la palma ' +
-      '(`docs/knowledge/anatomy.md` §4)',
+      'A uno y medio anchos de mano bajo el borde de arriba de la mano superior en la línea media (la mano de abajo, horizontal, ' +
+      'toca la de arriba en las puntas de los dedos [SUPUESTO]): en el EIC4 de la parrilla, 5 mm sobre la 5.ª costilla (la 4.ª a ' +
+      '51,4 mm y la 5.ª a 22,8 en esa línea). Antes (decisión 36), el centro del EIC4 de la axilar anterior, 49,5, por los reparos ' +
+      'de Yuriditsky y cols. («justo por encima del pezón»)',
+  },
+  phrenicZ: {
+    value: -15.2,
+    unit: 'mm',
+    range: [-23.4, -7.0],
+    evidence: 'derivado',
+    sources: HANDS_SOURCES,
+    note:
+      'La línea frénica, el borde inferior de la mano de abajo (dos anchos de mano bajo el borde de arriba de la superior), en la ' +
+      'axilar media (el punto frénico, Lichtenstein 2011 y 2016): en el EIC7 de la parrilla (la 7.ª costilla a −3,2 mm y la 8.ª a ' +
+      '−34,2), 19 mm sobre el borde del pulmón en espiración (A-T13, −34): la sonda ve el pulmón y, en su lado caudal, el borde. ' +
+      'Que la línea frénica marque el fin del pulmón no siempre se cumple (Ding y cols. 2015, solo el resumen: difería del ' +
+      'diafragma en el 47,5 % de los hemitórax)',
   },
   plapsPhi: {
     value: 1.15 * Math.PI,
     unit: 'rad',
     range: [1.125 * Math.PI, 1.2 * Math.PI],
     evidence: 'estimado',
-    sources: ['lichtenstein-bluepoints-2011', 'yuriditsky-ecocardiografistas-2021'],
+    sources: ['lichtenstein-bluepoints-2011', 'lichtenstein-breathe-2017'],
     note:
-      'Por detrás de la axilar posterior, «tan posterior como se pueda» en supino: la axilar posterior se toma simétrica ' +
+      'Por detrás de la axilar posterior, «tan posterior como se pueda» en supino (2011, 2017); su altura, la del BLUE inferior: la axilar posterior se toma simétrica ' +
       'de la anterior respecto de la media (1,125π) y el límite es el de `clampPose` (1,2π, el apoyo en la cama)',
   },
 });
@@ -123,69 +166,99 @@ export const POSTERIOR_START_POSES = defineParameters('app.posteriorStartPoses',
 /** φ de la paravertebral derecha (la de `thoraxLinePhi`, con el tronco del modelo). */
 const PARAVERTEBRAL_RIGHT_PHI = Math.PI + Math.acos(THORAX_LINES.params.paravertebralXMm.value / TORSO.params.semiWidthMm.value);
 
-/** Poses de los puntos de partida pulmonares. */
-export const START_POINTS: readonly StartPoint[] = [
+const P = START_POINT_POSES.params;
+const PP = POSTERIOR_START_POSES.params;
+
+/** Los puntos del hemitórax derecho, en el orden de las tarjetas. */
+const RIGHT: readonly Omit<StartPoint, 'side'>[] = [
   {
     id: 'blueUpper',
     label: 'BLUE superior',
-    phi: BLUE_UPPER_POSE.params.phi.value,
-    z: BLUE_UPPER_POSE.params.z.value,
+    phi: P.blueUpperPhi.value,
+    z: P.blueUpperZ.value,
     yaw: 0,
     hint:
-      'Punto BLUE superior derecho aproximado (línea medioclavicular, 2.º espacio intercostal), marcador craneal: corte ' +
-      'longitudinal que cruza las costillas y el espacio intercostal entre ellas.',
+      'Punto BLUE superior: con las dos manos del paciente sin los pulgares, la de arriba con el meñique bajo la clavícula y las ' +
+      'puntas de los dedos en la línea media, la raíz de los dedos medio y anular. Marcador craneal: corte longitudinal que cruza ' +
+      'dos costillas y el espacio intercostal entre ellas.',
   },
   {
     id: 'blueLower',
     label: 'BLUE inferior',
-    phi: START_POINT_POSES.params.blueLowerPhi.value,
-    z: START_POINT_POSES.params.blueLowerZ.value,
+    phi: P.blueLowerPhi.value,
+    z: P.blueLowerZ.value,
     yaw: 0,
     hint:
-      'Punto BLUE inferior derecho aproximado (línea axilar anterior, justo por encima del pezón), marcador craneal: corte ' +
-      'longitudinal que cruza las costillas y el espacio intercostal entre ellas.',
+      'Punto BLUE inferior: el centro de la palma de la mano de abajo, justo bajo la de arriba (cerca del pezón). Marcador ' +
+      'craneal: corte longitudinal que cruza dos costillas y el espacio intercostal entre ellas.',
+  },
+  {
+    id: 'phrenic',
+    label: 'Frénico',
+    phi: THORAX_LINES.params.midaxillaryPhi.value,
+    z: P.phrenicZ.value,
+    yaw: 0,
+    hint:
+      'Punto frénico: la línea frénica (el borde inferior de la mano de abajo, donde suele acabar el pulmón) en la línea axilar ' +
+      'media. Marcador craneal: el pulmón en el lado craneal y, en el caudal, su borde, que baja como una cortina al inspirar.',
   },
   {
     id: 'plaps',
     label: 'PLAPS',
-    phi: START_POINT_POSES.params.plapsPhi.value,
-    z: START_POINT_POSES.params.blueLowerZ.value,
+    phi: P.plapsPhi.value,
+    z: P.blueLowerZ.value,
     yaw: 0,
     hint:
-      'Punto PLAPS derecho aproximado: la continuación horizontal del punto BLUE inferior, tan posterior como se pueda por ' +
-      'detrás de la línea axilar posterior en supino; es donde se buscan las consolidaciones y los derrames posteriores.',
+      'Punto PLAPS: la horizontal del BLUE inferior, tan posterior como se pueda por detrás de la línea axilar posterior en ' +
+      'supino; es donde se buscan las consolidaciones y los derrames posteriores.',
   },
   {
     id: 'posteriorUpper',
     label: 'Paravertebral superior',
     position: 'sitting',
     phi: PARAVERTEBRAL_RIGHT_PHI,
-    z: POSTERIOR_START_POSES.params.upperZ.value,
+    z: PP.upperZ.value,
     yaw: 0,
     hint:
-      'Paciente sentado. Línea paravertebral derecha a la altura de la espina de la escápula (3.er espacio intercostal), ' +
-      'marcador craneal: entre la columna y el borde medial de la escápula.',
+      'Paciente sentado. Línea paravertebral a la altura de la espina de la escápula (3.er espacio intercostal), marcador ' +
+      'craneal: entre la columna y el borde medial de la escápula.',
   },
   {
     id: 'posteriorMiddle',
     label: 'Paravertebral media',
     position: 'sitting',
     phi: PARAVERTEBRAL_RIGHT_PHI,
-    z: POSTERIOR_START_POSES.params.middleZ.value,
+    z: PP.middleZ.value,
     yaw: 0,
     hint:
-      'Paciente sentado. Línea paravertebral derecha a la altura del ángulo inferior de la escápula (el 8.º espacio ' +
-      'intercostal, el más próximo), marcador craneal.',
+      'Paciente sentado. Línea paravertebral a la altura del ángulo inferior de la escápula (el 8.º espacio intercostal, el ' +
+      'más próximo), marcador craneal.',
   },
   {
     id: 'posteriorBasal',
     label: 'Paravertebral basal',
     position: 'sitting',
     phi: PARAVERTEBRAL_RIGHT_PHI,
-    z: POSTERIOR_START_POSES.params.basalZ.value,
+    z: PP.basalZ.value,
     yaw: 0,
     hint:
-      'Paciente sentado. Línea paravertebral derecha sobre la base del pulmón (10.º espacio intercostal), marcador craneal: al ' +
+      'Paciente sentado. Línea paravertebral sobre la base del pulmón (10.º espacio intercostal), marcador craneal: al ' +
       'inspirar, el pulmón baja como una cortina por el lado caudal de la imagen (el opuesto al marcador).',
   },
+];
+
+/**
+ * Poses de los puntos de partida pulmonares: los del hemitórax derecho y, desde la decisión 41, sus simétricos izquierdos
+ * (φ → π − φ; en la espalda, sentado, la paravertebral izquierda). La anatomía no es simétrica (el corazón, la língula, la cúpula
+ * izquierda más baja): lo que se ve en cada punto lo dice la prueba de cada lado.
+ */
+export const START_POINTS: readonly StartPoint[] = [
+  ...RIGHT.map((sp) => ({ ...sp, side: 'right' as const })),
+  ...RIGHT.map((sp) => ({
+    ...sp,
+    id: `${sp.id}Left` as StartPointId,
+    side: 'left' as const,
+    phi: Math.PI - sp.phi,
+    hint: `Hemitórax izquierdo. ${sp.hint}`,
+  })),
 ];

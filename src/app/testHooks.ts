@@ -908,7 +908,10 @@ export interface RibShadowLine {
   apertureDb: number;
   /** Pasada A: la línea cruza hueso (su primer segmento óseo) antes de la fila de la pleura. */
   bone: boolean;
-  /** Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra; el sector sigue la sombra); −1 sin hueso. */
+  /**
+   * Líneas hasta la línea sin hueso más cercana o hasta el borde del sector, lo que esté antes (0 en el borde de la sombra; desde
+   * la decisión 41, fuera del sector no se supone hueso); −1 sin hueso.
+   */
   edgeLines: number;
   /**
    * Semiancho (líneas) del cono de emisión de la pasada A en la fila de la pleura, D_tx·(1 − r₀/r)/2 con r₀ el obstáculo
@@ -1064,7 +1067,10 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const dTheta = (2 * tr.halfSector) / env.lines;
   const beam = sim.profile.beam;
   const W = Math.ceil((0.5 * beam.apertureTxMm) / (tr.curvatureRadius * dTheta));
-  const isBone = (i: number): boolean => i < 0 || i >= env.lines || out[i].bone;
+  // fuera del sector no se sabe si sigue la costilla (decisión 41: con el BLUE inferior de la regla de las manos, una costilla
+  // acaba justo fuera del borde y la línea 0, que se suponía a 25 líneas del borde de su sombra, ve la pleura de más allá por
+  // su cono de apertura, a −59,8 dB): el borde del sector cuenta como un borde de la sombra
+  const isBone = (i: number): boolean => i >= 0 && i < env.lines && out[i].bone;
   const taps = (line: number, half: number): number[] =>
     Array.from({ length: APERTURE_TAPS }, (_, j) =>
       Math.min(env.lines - 1, Math.max(0, line + Math.floor(half * ((2 * j) / (APERTURE_TAPS - 1) - 1) + 0.5))),

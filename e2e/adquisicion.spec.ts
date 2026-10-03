@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { START_POINTS } from '../src/app/startPoints';
 
 /** Los flujos usan mandos reales; __lusTest solo lee el estado que esos mandos producen. */
 async function boot(page: Page): Promise<string[]> {
@@ -75,6 +76,13 @@ test('adquisición compacta: profundidad exacta, foco limitado y foco de teclado
 test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
+  // (decisión 41) la pose por omisión ya no es el punto BLUE superior de la regla de las manos: se empieza en su tarjeta
+  await page.locator('[data-start-point="blueUpper"]').click();
+  await expect(page.locator('[data-start-point="blueUpper"]')).toHaveAttribute('aria-current', 'true');
+  const blueUpperZ = START_POINTS.find((p) => p.id === 'blueUpper')!.z;
+  await expect
+    .poll(async () => Math.abs((await page.evaluate(() => window.__lusTest!.sim().pose.z)) - blueUpperZ), { timeout: 60_000 })
+    .toBeLessThan(1);
   const start = await page.evaluate(() => {
     const sim = window.__lusTest!.sim();
     return { pose: { ...sim.pose }, gainDb: sim.bmode.gainDb };

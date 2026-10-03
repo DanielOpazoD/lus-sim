@@ -13,6 +13,7 @@ import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
 import { COVERAGE } from '../app/coverage';
 import { TORSO } from '../anatomy/scene';
+import { HANDS } from '../anatomy/hands';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
@@ -29,6 +30,7 @@ import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
  */
 export const PARAMETER_SETS: readonly ParameterSet[] = [
   TORSO,
+  HANDS,
   RIBCAGE,
   CLAVICLE,
   SCAPULA,

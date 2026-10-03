@@ -9,9 +9,10 @@ conservan su identificador (decisiones 10 y 11).
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
   sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
-  sin casos patológicos ni modo docente/examen. Los puntos de partida (los BLUE, el PLAPS y, desde la decisión 33, los tres
-  paravertebrales) son del hemitórax derecho: la izquierda se explora arrastrando, sin tarjetas. Los puntos BLUE son referencias aproximadas derechas, no posiciones
-  anatómicas universales ni una garantía de obtener la ventana correcta. Cambiar la profundidad inicia un
+  sin casos patológicos ni modo docente/examen. Los puntos de partida (desde la decisión 41, los cuatro de la regla de las manos
+  —BLUE superior, BLUE inferior, frénico y PLAPS— y los tres paravertebrales, en los dos hemitórax) se sitúan con las manos del
+  avatar promedio: no siguen a las variantes de hábito, sexo o edad, son el sitio donde empezar y no una garantía de obtener la
+  ventana correcta, y en qué espacio intercostal caen lo da la parrilla del modelo (ninguna fuente lo mide). Cambiar la profundidad inicia un
   cine nuevo para evitar mezclar persistencia entre escalas polares distintas; no hay revisión continua
   entre profundidades diferentes.
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
