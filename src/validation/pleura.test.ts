@@ -55,6 +55,7 @@ import {
   pleuraCapMm,
   pleuraCoherence,
   pleuraRoundTrip,
+  pleuraRoundTripLobe,
   pleuraSeriesDepths,
   pleuraSeriesEcho,
   pleuraTerms,
@@ -268,6 +269,55 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     }
   });
 
+  it('F-T04: al inclinar la pleura, la línea A de orden k se apaga antes que la k − 1 y la línea pleural dura más que todas', () => {
+    // Cada ida y vuelta pleura–cara solo vuelve por la línea con el lóbulo de Kirchhoff de la pleura (decisión 36): la cara de
+    // la sonda es lisa y su normal es la línea, así que la réplica k paga el lóbulo k veces y la línea pleural una
+    // (`docs/knowledge/physics.md` §2.3, «Efecto del ángulo», y §3.3, T04)
+    const s = INTERFACES[Interface.PleuraWall].slopeRms;
+    const D = 27;
+    const tD = 0.34;
+    expect(pleuraRoundTripLobe(1)).toBeCloseTo(1, 12);
+    let prev: number[] = [];
+    for (const a of [0, 2, 5, 8, 12, 16, 20]) {
+      const c = Math.cos(a * deg);
+      const lobe = pleuraRoundTripLobe(c);
+      expect(lobe).toBeCloseTo(facetLobe(c, s) / facetLobe(1, s), 12);
+      const chi = pleuraCoherence(c, K0);
+      // el nivel de la réplica k (k = 1, la línea pleural) en su cruce, con el lóbulo de la línea pleural (el eco de la cara)
+      const level = [1, 2, 3, 4].map(
+        (k) => pleuraTerms(k * D, D, tD, chi, wallT(tD, D), Infinity, lobe)[0].gain * pleuraSeriesEcho(c, 0, K0),
+      );
+      if (prev.length) {
+        // todo se apaga al inclinar, y cuanto más alto el orden, más deprisa: la caída de k frente a 0° crece con k
+        const drop = level.map((v, i) => db(v) - db(prev[i]));
+        for (let k = 1; k < 4; k++) expect(drop[k]).toBeLessThan(drop[k - 1] + 1e-9);
+      }
+      prev = level;
+      if (a === 0) continue;
+      // frente a 0°, la caída de la línea pleural es la menor (persiste más) y la réplica k cae k veces la de una ida y vuelta
+      const level0 = [1, 2, 3, 4].map(
+        (k) => pleuraTerms(k * D, D, tD, pleuraCoherence(1, K0), wallT(tD, D), Infinity, 1)[0].gain * pleuraSeriesEcho(1, 0, K0),
+      );
+      const rel = level.map((v, i) => db(v) - db(level0[i]));
+      for (let k = 2; k <= 4; k++) expect(rel[k - 1]).toBeLessThan(rel[k - 2]);
+    }
+    // sin el lóbulo en la serie (el modelo de antes) la caída con el ángulo es la misma en todos los órdenes: la meta falla
+    const c = Math.cos(12 * deg);
+    const flat = [1, 2, 3].map(
+      (k) =>
+        db(pleuraTerms(k * D, D, tD, pleuraCoherence(c, K0), wallT(tD, D), Infinity, 1)[0].gain * pleuraSeriesEcho(c, 0, K0)) -
+        db(pleuraTerms(k * D, D, tD, pleuraCoherence(c, K0), wallT(tD, D), Infinity, 1)[0].gain * pleuraSeriesEcho(1, 0, K0)),
+    );
+    expect(flat[2] - flat[0]).toBeCloseTo(0, 9);
+    // a 12° (la tabla de la pleura parietal: s = 0,15) cada ida y vuelta pierde 3–6 dB; a 20°, más de 10
+    expect(db(pleuraRoundTripLobe(Math.cos(12 * deg)))).toBeLessThan(-3);
+    expect(db(pleuraRoundTripLobe(Math.cos(12 * deg)))).toBeGreaterThan(-6);
+    expect(db(pleuraRoundTripLobe(Math.cos(20 * deg)))).toBeLessThan(-10);
+    expect(PLEURA_GLSL).toContain(
+      'float pleuraRoundTripLobe(float cosI) { float c2 = max(cosI * cosI, 1e-6); return exp(-(1.0 - c2) / c2 * uIface[IF_PLEURA_WALL].z) / c2; }',
+    );
+  });
+
   it('sin doble eco pleural: la pleura sale una sola vez en cada réplica y las copias de la pared no la llevan', () => {
     const D = 27.3;
     const tD = 0.34;
@@ -298,7 +348,8 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       const code = src.replace(/\/\/.*$/gm, '');
       // el #define, la coherencia de su reflexión especular (su fila de uIface) y el eco de la réplica, centrado en su
       // cruce (pleuraSeriesEcho: la cara y si es de un lado, decisión 15 de lus-sim)
-      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(4);
+      // y, lus-sim (decisión 36), la pendiente de su cara en el lóbulo de cada ida y vuelta (pleuraRoundTripLobe)
+      expect(code.match(/IF_PLEURA_WALL/g)?.length).toBe(5);
       expect(code.match(/interfaceProfileEcho\(IF_PLEURA_WALL,/g)?.length).toBe(1);
       expect(code.match(/pleuraSeriesEcho\(cosI, k \* (D|sD) - (r|s)\)/g)?.length).toBe(1);
     }
@@ -356,12 +407,16 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
       'float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }',
     );
     // R_t como uniform (lus-sim, decisión 35: `uPleuraRt`, el valor del registro salvo en el barrido de calibración)
-    expect(PLEURA_GLSL).toContain('float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * uPleuraRt * tD; }');
+    // y el lóbulo de la pleura en cada ida y vuelta (decisión 36)
+    expect(PLEURA_GLSL).toContain(
+      'float pleuraRoundTrip(float tD, float chi, float lobe) { return PLEURA_RP * chi * uPleuraRt * tD * lobe; }',
+    );
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
       expect(src).toContain('float chi = pleuraCoherence(cosI);');
-      expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');
+      expect(src).toContain('float G = pleuraRoundTrip(tD, chi, pleuraRoundTripLobe(cosI));');
+      // los pesos de la descomposición de la neblina (decisión 36: 1 salvo en `calibrationOverride({ seriesParts })`)
       expect(src).toContain(
-        'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
+        'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
       );
     }
   });
@@ -973,14 +1028,14 @@ describe('la rama de la cortina de la pasada B (mirada 0)', () => {
       'float tFree = min(t0.x, texture(uTrans2, vUv).x) * gain;',
       'float T = (curtain ? (under ? min(tFree, tD) : texture(uTrans0, vec2(vUv.x, min(r, rCap) / uDepth)).x) : t0.x) * coupling;',
       'float k = aLineOrder(r, D);',
-      'air += vec2(seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
+      'air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
       'vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);',
       'bool series = under && gn * tD * PLEURA_WALL_FIELD_BOUND * coupling > PLEURA_SERIES_FLOOR;',
       'int nWall = series ? 2 : 0;',
       'float d = j == 1 ? ser.y : ser.z;',
       'float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;',
-      'air += f * (j == 1 ? (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : (ser.x + 2.0) * td * G * gn);',
-      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += slidingField(pD, r - D, 0.0) * tD;',
+      'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
+      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, r - D, 0.0) * tD;',
     ])
       expect(FRAG_RAWFIELD, line).toContain(line);
     // y las funciones compartidas son las del gemelo

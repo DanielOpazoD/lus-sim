@@ -227,11 +227,12 @@ describe('Límites del shader con margen para crecer', () => {
     // (cobertura torácica: `uCupola`, `uClavicle`, `uClavicleR`), 115 y 117; con la escápula (decisión 29: `uScapula`,
     // `uScapulaB`; las apófisis espinosas van en la ranura libre de `uSpineArch`), 117 y 119; con el pulso pulmonar (decisión 32:
     // `uLungPulse`), 118 y 120; con R_t como uniform (decisión 35: `uPleuraRt`, que el barrido de calibración cambia sin
-    // recompilar), 119 y 121. Si el recuento dejara de ver los
+    // recompilar), 119 y 121; con los pesos de la descomposición de la neblina (decisión 36: `uSeriesParts`), 120 y 122. Si el
+    // recuento dejara de ver los
     // arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
-    expect(raw.slots).toBe(119);
+    expect(raw.slots).toBe(120);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);
@@ -317,14 +318,16 @@ describe('Límites del shader con margen para crecer', () => {
   // de abajo, decisión 17), la incidencia de la pleura con la normal de la cara interna de la pared (`wallInnerNormal`),
   // no la de la piel: con la pared torácica por región la pleura se inclina. lus-sim (decisión 20): el main de A2 cobra
   // las caras del hueso con la constante de TS (`BONE_ENTRY_DB`, 7,42 dB; antes 6,0 escrito a mano: f6b08093f699bc04) y el
-  // de A escribe además la transmisión con que B dibuja cada muestra (o2.z; antes 668efb9a2b5c7008).
+  // de A escribe además la transmisión con que B dibuja cada muestra (o2.z; antes 668efb9a2b5c7008). Después (8ed188a8f422812e →
+  // la de abajo, decisión 36), G lleva el lóbulo de la pleura en cada ida y vuelta (`pleuraRoundTripLobe`) y las partes del
+  // pulmón bajo la pleura, los pesos de la descomposición de la neblina (`uSeriesParts`, 1 salvo en la medida).
   it('el main de los programas de la mirada 0 es, letra a letra, el de antes de la composición', () => {
     const mainOf = (src: string): string => src.slice(src.lastIndexOf('\nvoid main() {'));
     const print = (src: string): string => createHash('sha256').update(mainOf(src)).digest('hex').slice(0, 16);
     expect(Object.fromEntries(LOOK_PAIRS.map((p) => [p.name, print(p.look0)]))).toEqual({
       FRAG_TRANS_PREFIX: '96cbff76912bf550',
       FRAG_TRANSMISSION: '6eb8ceec72e45847',
-      FRAG_RAWFIELD: '8ed188a8f422812e',
+      FRAG_RAWFIELD: 'ce3af2150ffc7837',
     });
     // y el resto de B es el mismo texto en los dos programas: solo cambian sus entradas y su main
     const inputs0 = 'uniform sampler2D uTrans0;\nuniform sampler2D uTrans1;\n';

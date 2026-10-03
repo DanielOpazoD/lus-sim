@@ -14,7 +14,7 @@ import { pointOnLine } from '../probe/probe';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { GREY_CURVE, levelOfGrey } from '../ultrasound/greyMap';
 import { roughnessCoherence } from '../ultrasound/interfaceEcho';
-import { PLEURA_RP, pleuraCapMm } from '../ultrasound/pleura';
+import { PLEURA_RP, pleuraCapMm, pleuraRoundTripLobe } from '../ultrasound/pleura';
 import { COARSE_DEPTH, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import type { Simulator } from './simulator';
 import { SPECKLE_PATCH, speckleMask, type EnvelopeFrame } from './speckle';
@@ -108,7 +108,16 @@ export interface FidelityBenchReport {
   /** Caída por orden de las líneas A (dB) medida en la pantalla y en la envolvente, frente a F-T02. */
   aLineDrop: {
     orders: { k: number; displayDb: number | null; envelopeDb: number; dropDisplayDb: number | null; dropEnvelopeDb: number }[];
-    ft02: { predictedDb: ReturnType<typeof medianIqr>; chi: number; transmissionDb: number; tgcDb: number; lines: number };
+    ft02: {
+      predictedDb: ReturnType<typeof medianIqr>;
+      chi: number;
+      /** Incidencia de la línea en la pleura (cos θ) y lo que vuelve por la línea en cada ida y vuelta (dB, decisión 36): medianas. */
+      cosI: number;
+      lobeDb: number;
+      transmissionDb: number;
+      tgcDb: number;
+      lines: number;
+    };
   };
   /** Teselas de moteado de la imagen mostrada (con `speckleTile`), con la geometría verdadera. */
   speckleTiles?: SpeckleTile[];
@@ -363,8 +372,9 @@ function measureFidelity(
       dropEnvelopeDb: next ? o.envelopeDb - next.envelopeDb : Number.NaN,
     };
   });
-  // F-T02: −20·log10|R_p·χ·R_t| − 20·log10 T(D) − compensación nominal en D, por línea intercostal del gemelo, con la
-  // calibración con que dibujó la pasada B (la del registro, o la del barrido: decisión 35)
+  // F-T02: −20·log10|R_p·χ·R_t·Λ(θ)/Λ(0)| − 20·log10 T(D) − compensación nominal en D, por línea intercostal del gemelo, con
+  // la calibración con que dibujó la pasada B (la del registro, o la del barrido: decisión 35) y el lóbulo de cada ida y vuelta
+  // (decisión 36)
   const calib = sim.renderer.calibration;
   const k0 = (2 * Math.PI) / sim.profile.beam.lambdaMm;
   const step = b.depthMm / COARSE_DEPTH;
@@ -373,6 +383,8 @@ function measureFidelity(
   const inside = (p: readonly number[]): number => scene.insideWallMm(toMaterial(p));
   const pred: number[] = [];
   const chis: number[] = [];
+  const cosIs: number[] = [];
+  const lobes: number[] = [];
   const tDs: number[] = [];
   const lines = [...new Set(st.intercostal.map(lineOf))].filter((l) => rib.lines[l].free && Number.isFinite(rib.lines[l].pleuraMm));
   for (const l of lines) {
@@ -394,9 +406,12 @@ function measureFidelity(
     const chi = roughnessCoherence(cosI, calib.pleuraSigmaZMm, k0);
     const row = Math.min(COARSE_DEPTH - 1, Math.floor(pleuraCapMm(D, step) / step));
     const tD = trans.aperture[row * trans.lines + l];
+    const lobe = pleuraRoundTripLobe(cosI);
     chis.push(chi);
+    cosIs.push(cosI);
+    lobes.push(lobe);
     tDs.push(tD);
-    pred.push(-20 * Math.log10(PLEURA_RP * chi * calib.pleuraRt * tD) - nominalTgcDbPerCm(fB) * (D / 10));
+    pred.push(-20 * Math.log10(PLEURA_RP * chi * calib.pleuraRt * tD * lobe) - nominalTgcDbPerCm(fB) * (D / 10));
   }
   const dTrue = b.depthMm * lay.scale;
   const dDet = dg.kind === 'linear' ? dg.yBottom - dg.yTop : dg.rhoMax - dg.rhoMin;
@@ -448,6 +463,8 @@ function measureFidelity(
       ft02: {
         predictedDb: medianIqr(pred),
         chi: median(chis),
+        cosI: median(cosIs),
+        lobeDb: 20 * Math.log10(median(lobes)),
         transmissionDb: 20 * Math.log10(median(tDs)),
         tgcDb: nominalTgcDbPerCm(fB) * (dCpu / 10),
         lines: lines.length,

@@ -1,6 +1,6 @@
 import { INTERFACES, Interface, interfaceReflectivity } from '../anatomy/interfaces';
 import { cross, normalize, type Vec3 } from '../core/vec3';
-import { IFACE_SHIFT_MM, interfaceEchoField, roughnessCoherence } from './interfaceEcho';
+import { IFACE_SHIFT_MM, facetLobe, interfaceEchoField, roughnessCoherence } from './interfaceEcho';
 import { NORMAL_CALIBRATION } from './normalCalibration';
 import { RECEIVER_NOISE, glslFloat } from './receiver';
 import { scattererField } from './speckleField';
@@ -222,11 +222,23 @@ export function pleuraCoherence(cosI: number, k0: number): number {
 }
 
 /**
- * G = R_p·χ·R_t·T(D): ganancia de una ida y vuelta pleura–cara de la sonda con la reflexión coherente de la
- * pleura (T sin el acoplamiento).
+ * Λ(θ)/Λ(0) de la pleura parietal (lus-sim, decisión 36): lo que vuelve por la línea en cada rebote en la pleura de una ida y
+ * vuelta pleura–cara de la sonda. La cara de la sonda es lisa y su normal es la línea (convexa: radial), así que solo
+ * reenvía por la línea lo que la pleura devuelve por ella, el lóbulo de Kirchhoff de su cara con la incidencia de la línea,
+ * el mismo que ya paga la línea pleural (`facetLobe`, decisión 57); lo especular, desviado 2θ, sale de la línea
+ * (`docs/knowledge/physics.md` §2.3, «Efecto del ángulo», y la meta F-T04). En incidencia normal vale 1: F-T02 no cambia.
  */
-export function pleuraRoundTrip(tD: number, chi: number, rt = PLEURA_RT): number {
-  return PLEURA_RP * chi * rt * tD;
+export function pleuraRoundTripLobe(cosI: number): number {
+  const s = INTERFACES[Interface.PleuraWall].slopeRms;
+  return facetLobe(cosI, s) / facetLobe(1, s);
+}
+
+/**
+ * G = R_p·χ·R_t·T(D)·Λ(θ)/Λ(0): ganancia de una ida y vuelta pleura–cara de la sonda con la reflexión coherente de la
+ * pleura (T sin el acoplamiento) y lo que de ella vuelve por la línea (`pleuraRoundTripLobe`).
+ */
+export function pleuraRoundTrip(tD: number, chi: number, rt = PLEURA_RT, lobe = 1): number {
+  return PLEURA_RP * chi * rt * tD * lobe;
 }
 
 /**
@@ -305,7 +317,7 @@ export interface PleuraTerm {
  * de D: `pleuraSeriesEcho`, centrado en el cruce) y, bajo la pleura, las dos copias de la pared con su orden, salvo si
  * la serie ya cae bajo la décima del ruido (`fieldBound`: cota de |f|·acoplamiento). `chi`: la coherencia de la pleura con la
  * incidencia de la línea (`pleuraCoherence`); `tAt(d)`: T(d) sin acoplamiento, con la fila de la pleura por
- * tope (`pleuraCapMm`).
+ * tope (`pleuraCapMm`); `lobe`: lo que vuelve por la línea en cada ida y vuelta (`pleuraRoundTripLobe`).
  */
 export function pleuraTerms(
   s: number,
@@ -314,8 +326,9 @@ export function pleuraTerms(
   chi: number,
   tAt: (d: number) => number,
   fieldBound = PLEURA_WALL_FIELD_BOUND,
+  lobe = 1,
 ): PleuraTerm[] {
-  const G = pleuraRoundTrip(tD, chi);
+  const G = pleuraRoundTrip(tD, chi, PLEURA_RT, lobe);
   const k = aLineOrder(s, D);
   const out: PleuraTerm[] = [{ family: 'pleura', order: k, depth: k * D - s, gain: aLineGain(G, k) * tD }];
   if (s <= D) return out;
@@ -405,6 +418,7 @@ export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
 uniform float uPleuraRt; // R_t (normalCalibration.ts); el barrido de calibración la cambia
+uniform vec4 uSeriesParts; // espejo, directa, deslizamiento y línea pleural con sus réplicas: 1 salvo en la descomposición de la neblina
 const float SLIDING_AMP = ${glslFloat(slidingAmplitude(0))};
 const float SLIDING_EFOLD_MM = ${glslFloat(SLIDING_EFOLD_MM)};
 const float SLIDING_LAT_MM = ${glslFloat(SLIDING_LAT_MM)};
@@ -415,7 +429,9 @@ const float PLEURA_WALL_FIELD_BOUND = ${glslFloat(PLEURA_WALL_FIELD_BOUND)};
 const float WALL_COPY_FACE_GAIN = ${glslFloat(WALL_COPY_FACE_GAIN)};
 ${PLEURA_CAP_GLSL}// χ de Ament de la pleura parietal: la parte coherente de su reflexión especular
 float pleuraCoherence(float cosI) { float x = uIface[IF_PLEURA_WALL].y * cosI; return exp(-0.5 * x * x); }
-float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * uPleuraRt * tD; }
+// Λ(θ)/Λ(0) de la pleura: lo que vuelve por la línea en cada ida y vuelta pleura–cara (decisión 36); uIface.z = 1/(4s²)
+float pleuraRoundTripLobe(float cosI) { float c2 = max(cosI * cosI, 1e-6); return exp(-(1.0 - c2) / c2 * uIface[IF_PLEURA_WALL].z) / c2; }
+float pleuraRoundTrip(float tD, float chi, float lobe) { return PLEURA_RP * chi * uPleuraRt * tD * lobe; }
 float seriesPow(float g, float n) { return n < 0.5 ? 1.0 : pow(max(g, 1e-30), n); }
 // (n, d espejo, d directa) a la distancia s > D
 vec3 pleuraSeriesDepths(float s, float D) {
