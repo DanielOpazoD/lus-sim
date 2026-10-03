@@ -1,12 +1,12 @@
 import { START_POINTS, type StartPoint } from './startPoints';
 import type { Simulator } from './simulator';
 import { Interface, isRibInterface } from '../anatomy/interfaces';
-import { ribCenterDepth, ribTableZ } from '../anatomy/organs/ribcage';
+import { ribCenterDepth, ribLineArc, ribTableZ } from '../anatomy/organs/ribcage';
 import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
 import { HEART } from '../anatomy/organs/heart';
 import { lungBorderAt } from '../anatomy/organs/lungBorder';
 import { torsoSkinPoint } from '../anatomy/primitives';
-import { thoraxLinePhi } from '../anatomy/thoraxLines';
+import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import type { AnatomyScene } from '../anatomy/scene';
 import type { Vec3 } from '../core/vec3';
 import { Tissue } from '../anatomy/tissues';
@@ -165,7 +165,7 @@ export interface VolumeEquivalenceReport {
  * muestrea de −160 a +120 (el abdomen alto); los 280 mm de altura son los mismos. El vértice, en `APEX_VOLUME_Z_MM`. Los extremos de las 24 costillas, dentro
  * y fuera de este tramo, los mira `ribEndsEquivalence`.
  */
-export const VOLUME_Z_MM = [-100, 180] as const;
+export const VOLUME_Z_MM = [-150, 180] as const;
 /**
  * El volumen del vértice (cobertura torácica, decisión 27): de z 150, bajo la 1.ª costilla de delante, a 230, sobre el techo
  * de la cúpula pleural (≈ 213 detrás), con la clavícula. Aparte del de arriba para no cambiar sus muestras.
@@ -473,8 +473,10 @@ export function extraPleuraPoses(scene: AnatomyScene): Array<{ id: string; pose:
 /**
  * Planos de la cobertura torácica que el barrido de equivalencia suma a los puntos de partida: la fosa supraclavicular (la
  * cúpula pleural, con el haz hacia los pies), la clavícula en la LMC y la axila alta sobre la 1.ª costilla (donde la pared
- * engruesa hasta cerrarse sobre el vértice); y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas
- * y la línea media posterior.
+ * engruesa hasta cerrarse sobre el vértice); (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas
+ * y la línea media posterior; y (decisión 37) las bases bajo el borde del pulmón: el hígado en el EIC9 de la axilar media derecha,
+ * con el haz hacia la cabeza (el hígado, el diafragma y su espejo sobre la cúpula), y el bazo en el EIC10 de la axilar posterior
+ * izquierda.
  */
 export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
   const t = scene.torso;
@@ -492,7 +494,17 @@ export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: Pr
     { id: 'paravertebral', pose: { ...flat, phi: thoraxLinePhi('paravertebral', t, -1), z: 60 } },
     { id: 'paraspinal', pose: { ...flat, phi: Math.PI + Math.acos(25 / t.a), z: 60 } },
     { id: 'spinous', pose: { ...flat, phi: 1.5 * Math.PI, z: 60 } },
+    { id: 'rightBase', pose: { ...flat, ...icsCenter(scene, 'midaxillary', -1, 9), rock: 0.35 } },
+    { id: 'leftBase', pose: { ...flat, ...icsCenter(scene, 'posteriorAxillary', 1, 10) } },
   ];
+}
+
+/** φ y z del centro del EIC n de la línea en el lado `side` (entre las costillas n y n + 1 bajo su piel). */
+export function icsCenter(scene: AnatomyScene, line: ThoraxLine, side: -1 | 1, n: number): { phi: number; z: number } {
+  const phi = thoraxLinePhi(line, scene.torso, side);
+  const au = ribLineArc(phi, scene.torso, scene.ribCage);
+  const k = (m: number) => scene.ribs.findIndex((r) => r.number === m && r.side === side);
+  return { phi, z: 0.5 * (ribTableZ(scene.ribCage, k(n), au) + ribTableZ(scene.ribCage, k(n + 1), au)) };
 }
 
 export function pleuraEquivalence(sim: Simulator): PleuraEquivalenceReport {
@@ -690,5 +702,92 @@ export function ribEndsEquivalence(sim: Simulator): RibEndsReport {
     normalP05: dots.length ? dots[Math.floor(0.05 * dots.length)].dot : Number.NaN,
     normalMin: dots.length ? dots[0].dot : Number.NaN,
     normalWorst: dots.length ? `${dots[0].at}: ${dots[0].dot.toFixed(5)}` : '',
+  };
+}
+
+export interface CapsuleReport {
+  /** Puntos de la cáscara de las cápsulas (según la CPU o la GPU), por cara. */
+  points: number;
+  byInterface: Record<string, number>;
+  /** Acuerdo de la cara y error máximo de su distancia (mm) entre la CPU y la GPU. */
+  agreement: number;
+  distanceMaxErr: number;
+  /** Puntos con la normal comparada y el menor coseno entre la de la GPU y el gradiente de TS (`faceGradient`). */
+  normalPoints: number;
+  normalMin: number;
+  worst: string;
+}
+
+/**
+ * Las cápsulas del hígado y del bazo (lus-sim, decisión 37), TS ↔ GLSL: en las bases (`coveragePoses`: el hígado bajo la cúpula
+ * derecha, el bazo bajo la izquierda) y en la LAA derecha con el haz hacia los pies (el borde inferior del hígado contra el
+ * «resto»), las muestras a 0,05 mm de las líneas cerca de una cara de cápsula: la cara y su distancia, y la normal de la GPU
+ * frente al gradiente de TS donde la cara dibuja su eco (la banda de la cáscara). El volumen aleatorio no las mira: deja fuera
+ * lo que está a menos de 1 mm de un borde.
+ */
+export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): CapsuleReport {
+  const tr = sim.transducer;
+  const scene = sim.scene;
+  const CAPS = new Set<number>([Interface.LiverCapsule, Interface.SpleenCapsule]);
+  const flat = { lift: 0, yaw: 0, tilt: 0 };
+  const laa = icsCenter(scene, 'anteriorAxillary', -1, 9);
+  const poses = [...coveragePoses(scene).slice(-2), { id: 'rightEdge', pose: { ...flat, ...laa, rock: -0.35 } }];
+  const tally = new FaceTally();
+  const byInterface: Record<string, number> = {};
+  let normalPoints = 0;
+  let normalMin = 1;
+  let worst = '';
+  const nCoarse = Math.floor(DEPTH_MM / COARSE_MM);
+  const perCell = Math.round(COARSE_MM / stepMm);
+  for (const sp of poses) {
+    const k = probeContact(sp.pose, tr, scene.torso);
+    withCompression(sim, k, () => {
+      const near: [number, number, number][] = [];
+      for (let u = 0; u < lines; u++) {
+        const theta = -tr.halfSector + (2 * tr.halfSector * (u + 0.5)) / lines;
+        const capAt = Array.from({ length: nCoarse }, (_, c) => {
+          const q = sim.anatomy.classifyWorld(pointOnLine(k.frame, tr, theta, (c + 0.5) * COARSE_MM), sim.sample);
+          return q.tissue === Tissue.LiverCapsule || q.tissue === Tissue.Spleen || q.tissue === Tissue.Liver;
+        });
+        for (let c = 0; c < nCoarse; c++) {
+          // las celdas en el borde del hígado o del bazo (una vecina dentro y otra fuera)
+          const edge = capAt[c] !== (capAt[c - 1] ?? capAt[c]) || capAt[c] !== (capAt[c + 1] ?? capAt[c]);
+          if (!edge) continue;
+          for (let j = 0; j < perCell; j++) near.push(pointOnLine(k.frame, tr, theta, c * COARSE_MM + (j + 0.5) * stepMm));
+        }
+      }
+      const pts = new Float32Array(near.length * 3);
+      near.forEach((p, i) => pts.set(p, i * 3));
+      const gpu = sim.gpuQuery(pts, k.frame, false, { normals: true, compression: k });
+      const instant = sim.anatomy.instantFor(sim.sample);
+      near.forEach((_, i) => {
+        const q32: [number, number, number] = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
+        const q = sim.anatomy.classifyWorld(q32, sim.sample);
+        const inBand = (face: number, d: number) => CAPS.has(face) && d >= SHELL_BAND_MM[0] && d <= SHELL_BAND_MM[1];
+        if (!inBand(q.interface, q.interfaceDistance) && !inBand(gpu.iface[i], gpu.ifd[i])) return;
+        byInterface[Interface[q.interface]] = (byInterface[Interface[q.interface]] ?? 0) + 1;
+        tally.add(q.interface, q.interfaceDistance, gpu.iface[i], gpu.ifd[i], `${sp.id} (${q32.map((x) => x.toFixed(2)).join(', ')})`);
+        if (!inBand(q.interface, q.interfaceDistance) || gpu.iface[i] !== Number(q.interface) || !gpu.normal) return;
+        const g = scene.faceGradient(q.material, instant);
+        if (!g) return;
+        // la normal del mundo de la GPU frente al gradiente material de TS: sin respiración ni compresión notable en las bases
+        const n = [gpu.normal[i * 3], gpu.normal[i * 3 + 1], gpu.normal[i * 3 + 2]];
+        const dot = Math.abs(n[0] * g.normal[0] + n[1] * g.normal[1] + n[2] * g.normal[2]);
+        normalPoints++;
+        if (dot < normalMin) {
+          normalMin = dot;
+          worst = `${sp.id} ${Interface[q.interface]} (${q32.map((x) => x.toFixed(2)).join(', ')}): ${dot.toFixed(6)}`;
+        }
+      });
+    });
+  }
+  return {
+    points: tally.points,
+    byInterface,
+    agreement: tally.points ? tally.same / tally.points : 1,
+    distanceMaxErr: tally.maxErr,
+    normalPoints,
+    normalMin,
+    worst,
   };
 }

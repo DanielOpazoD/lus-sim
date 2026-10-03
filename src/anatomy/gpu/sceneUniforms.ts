@@ -242,6 +242,38 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     doc: 'ventana cardiaca sobre la piel: arco u, altura z y radio (mm), ancho de la franja que llega a la lámina de la cortina',
     value: (s) => [s.heart.window.u, s.heart.window.z, s.heart.window.r, s.heart.skirtMm],
   },
+  {
+    name: 'uLiverS',
+    type: 'vec4',
+    doc:
+      'lus-sim (decisión 37, organs/liver.ts): escala de la cavidad frente a la de VExUS (sx, sy) para los lóbulos, la cara ' +
+      'visceral y el recorte posteromedial; y de la cara anterior del espacio del riñón y z de su borde superior izquierdo',
+    value: (s) => [s.liver.sx, s.liver.sy, s.liver.kidney.yAnt, s.liver.kidney.zLeft],
+  },
+  {
+    name: 'uLiverEdge',
+    type: 'vec4',
+    doc: 'borde inferior por delante (Gray): arco y z del 9.º cartílago derecho, arco y z del 8.º izquierdo',
+    value: (s) => [s.liver.edge.uRight, s.liver.edge.zRight, s.liver.edge.uLeft, s.liver.edge.zLeft],
+  },
+  {
+    name: 'uLiverTip',
+    type: 'vec4',
+    doc: 'límite lateral izquierdo en proyección frontal: x del 8.º cartílago, z del final del límite superior, convexidad, 0',
+    value: (s) => [s.liver.tip.x8, s.liver.tip.zEnd, s.liver.tip.convexMm, 0],
+  },
+  {
+    name: 'uSpleen',
+    type: 'vec4',
+    doc: 'lus-sim (decisión 37, organs/spleen.ts): centro del bazo (arco de la pared, z) y coseno y seno de su eje largo',
+    value: (s) => [s.spleen.u0, s.spleen.z0, s.spleen.cos, s.spleen.sin],
+  },
+  {
+    name: 'uSpleenR',
+    type: 'vec4',
+    doc: 'bazo: semiejes (largo, ancho, grueso) y mm por unidad de arco',
+    value: (s) => [...s.spleen.radii, s.spleen.arcScale],
+  },
 ];
 
 /** Declaraciones GLSL generadas del esquema (más el sampler de la textura de escena). */

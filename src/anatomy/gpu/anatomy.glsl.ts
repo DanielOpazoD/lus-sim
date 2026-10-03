@@ -8,8 +8,8 @@
  * lus-sim (decisión 12): la escena del tórax del paso A (pared, costillas, columna, cortina, pulmón y
  * cúpulas), con el mismo orden de clasificación que `AnatomyScene.classify`: pared → costillas → columna →
  * cortina pulmonar → tórax/diafragma → el «resto» bajo el diafragma. Sin los tubos (vasos y conductos) ni su
- * lista por cuadro, la aurícula, la vesícula, los riñones, el hígado, sus ligamentos ni el gas intestinal de
- * VExUS. Las costillas son la parrilla costal del adulto promedio (decisión 16, `organs/ribcage.ts`).
+ * lista por cuadro, la aurícula, la vesícula, los riñones, los ligamentos del hígado ni el gas intestinal de
+ * VExUS; desde la decisión 37, el hígado y el bazo bajo el diafragma, antes del «resto». Las costillas son la parrilla costal del adulto promedio (decisión 16, `organs/ribcage.ts`).
  *
  * Disposición de la textura (índice lineal i → texel (i % SCENE_TEX_W, i / SCENE_TEX_W)):
  *   tabla de la compresión de la sonda desde COMPRESSION_BASE (decisión 63, `anatomy/compression.ts`): un téxel
@@ -22,7 +22,9 @@
  *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, altura a la que se apaga el
  *   deslizamiento: decisión 19)
  */
-import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, TISSUE_GLSL_NAME } from '../tissues';
+import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, TISSUE_GLSL_NAME } from '../tissues';
+import { SPLEEN } from '../organs/spleen';
+import { ORGAN_SDF_LIPSCHITZ } from '../organs/liver';
 import {
   FACE_GRADIENT_EPS_MM,
   FIRST_WALL_INTERFACE,
@@ -66,6 +68,9 @@ ${INTERFACE_DEFINES}
 #define FACE_GRAD_EPS ${FACE_GRADIENT_EPS_MM.toFixed(3)}
 #define DIAPHRAGM_MM ${DIAPHRAGM_THICKNESS_MM.toFixed(3)}
 #define BOWEL_BD_CAP_MM ${BOWEL_BD_CAP_MM.toFixed(3)}
+#define CAPSULE_MM ${LIVER_CAPSULE_MM.toFixed(3)}
+#define SPLEEN_CAPSULE_MM ${SPLEEN.params.capsuleMm.value.toFixed(3)}
+#define ORGAN_SDF_LIPSCHITZ ${ORGAN_SDF_LIPSCHITZ.toFixed(3)}
 
 ${SCENE_UNIFORMS_GLSL}
 
@@ -272,6 +277,61 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   return false;
 }
 
+// lus-sim (decisión 37): el arco y la profundidad bajo la cara interna de la pared exactos de m (los de classifyWall si los
+// leyó, u ≠ 0; si no, se calculan)
+void organColumn(vec3 m, float depth, float u, float inside, out float uO, out float inO) {
+  uO = u != 0.0 ? u : wallArc(m);
+  inO = u != 0.0 ? inside : -depth - wallTotalAt(uO, m.z);
+}
+// El hígado y el bazo bajo el diafragma (dDia: la distancia a su cara abdominal), recortados fuera por la pared o la lámina de
+// la ZOA; la cápsula dibuja su cara salvo donde la manda el diafragma. dOut: la distancia a los dos (positiva fuera). Gemelo:
+// classifyOrgans de AnatomyScene
+bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, float dSpine, vec3 tn, inout Cls c, out float dOut) {
+  // lejos de los lóbulos y de donde puede estar el bazo, sin la columna de la pared del punto
+  float dLobes = liverLobesSd(m);
+  bool spleenNear = spleenCandidate(m, -depth);
+  if (dLobes > LIVER_EARLY_OUT && !spleenNear) { dOut = dLobes * ORGAN_SDF_LIPSCHITZ; return false; }
+  float uO;
+  float inO;
+  organColumn(m, depth, u, inside, uO, inO);
+  float gap = zoaGap(m, inO, uO);
+  float wallSide = min(inO, gap);
+  float dLiver = dLobes > LIVER_EARLY_OUT ? dLobes : liverSdf(m, uO, inO, wallColumnTexel(uO).z);
+  dOut = 0.0;
+  c.n = tn;
+  if (dLiver < 0.0) {
+    float inner = min(min(-dLiver, dDia), wallSide);
+    bool other = inner == dDia || (inner == gap && gap < inO);
+    c.tissue = inner < CAPSULE_MM ? T_CAPSULE : T_LIVER;
+    c.bd = min(min(-dLiver, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, dSpine));
+    if (inner < CAPSULE_MM && !other) { c.iface = IF_LIVER_CAPSULE; c.ifd = inner; }
+    return true;
+  }
+  float dSpleen = spleenNear ? spleenSdf(m, uO, min(dDia, wallSide), -depth) : 1e3;
+  if (dSpleen < 0.0) {
+    float inner = min(min(-dSpleen, dDia), wallSide);
+    bool other = inner == dDia || (inner == gap && gap < inO);
+    c.tissue = T_SPLEEN;
+    c.bd = min(min(-dSpleen, dDia) * ORGAN_SDF_LIPSCHITZ, min(wallSide, dSpine));
+    if (inner < SPLEEN_CAPSULE_MM && !other) { c.iface = IF_SPLEEN_CAPSULE; c.ifd = inner; }
+    return true;
+  }
+  dOut = min(dLiver, dSpleen) * ORGAN_SDF_LIPSCHITZ;
+  return false;
+}
+// Distancia de las caras del hígado y del bazo (sus cápsulas): −min(−dÓrgano, dDia, pared). Gemelo: faceSdf(m, 'liverSurface' |
+// 'spleenSurface')
+float organSurfaceSd(vec3 m, bool spleen) {
+  float depth = torsoDepth(m);
+  float uO = wallArc(m);
+  float inO = -depth - wallTotalAt(uO, m.z);
+  float wallSide = min(inO, zoaGap(m, inO, uO));
+  vec3 dn;
+  float dDia = sdDome(m, dn) - DIAPHRAGM_MM;
+  float d = spleen ? spleenSdf(m, uO, min(dDia, wallSide), -depth) : liverSdf(m, uO, inO, wallColumnTexel(uO).z);
+  return -min(min(-d, dDia), wallSide);
+}
+
 // withCurtain = false: sin la cortina (decisión 61), lo de detrás de la lámina; gemelo classify(m, cal, false)
 Cls classifyWith(vec3 m, bool withCurtain) {
   Cls c;
@@ -338,9 +398,13 @@ Cls classifyWith(vec3 m, bool withCurtain) {
     if (dDome > 0.5 * DIAPHRAGM_MM) { c.iface = IF_DIAPHRAGM_LIVER; c.ifd = DIAPHRAGM_MM - dDome; }
     return c;
   }
-  // Bajo el diafragma, el «resto» (abdomen-generic-tissue): sin vesícula, riñones, hígado ni gas. Su distancia a
-  // la frontera es la de las interfaces que ganan antes (misma fórmula que scene.classify)
-  float bdBowel = min(min(min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_MM), inside), min(zoaGap(m, inside, u), clear));
+  // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo (gemelo: classifyOrgans de AnatomyScene), con el arco y la
+  // profundidad bajo la pared exactos (classifyWall no los lee más hondo que su cota: u = 0)
+  float dOut;
+  if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut)) return c;
+  // Bajo el diafragma, fuera del hígado y del bazo, el «resto» (abdomen-generic-tissue): sin vesícula, riñones, estómago ni
+  // gas. Su distancia a la frontera es la de las interfaces que ganan antes (misma fórmula que scene.classify)
+  float bdBowel = min(min(min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_MM), inside), min(min(zoaGap(m, inside, u), clear), dOut));
   c.tissue = T_BOWEL; c.bd = max(bdBowel, 0.0); c.n = tn;
   return c;
 }
@@ -371,6 +435,12 @@ vec4 faceGradient(Cls c, vec3 m) {
     g = vec3(domeSd(m + h.xyy) - domeSd(m - h.xyy),
              domeSd(m + h.yxy) - domeSd(m - h.yxy),
              domeSd(m + h.yyx) - domeSd(m - h.yyx));
+  } else if (c.iface == IF_LIVER_CAPSULE || c.iface == IF_SPLEEN_CAPSULE) {
+    // lus-sim (decisión 37): las cápsulas del hígado y del bazo, la distancia que decide la clasificación en su cara
+    bool sp = c.iface == IF_SPLEEN_CAPSULE;
+    g = vec3(organSurfaceSd(m + h.xyy, sp) - organSurfaceSd(m - h.xyy, sp),
+             organSurfaceSd(m + h.yxy, sp) - organSurfaceSd(m - h.yxy, sp),
+             organSurfaceSd(m + h.yyx, sp) - organSurfaceSd(m - h.yyx, sp));
   } else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {
     // capas de la pared (decisión 62): la distancia de su capa (wallFaceSd)
     g = vec3(wallFaceSd(m + h.xyy, c.iface) - wallFaceSd(m - h.xyy, c.iface),

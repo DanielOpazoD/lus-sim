@@ -89,6 +89,24 @@ salen de la base; lo que falta en ella:
 | `anatomy.heart.stillRampMm`               | 50 mm (40–80)    | El corazón, con el tapón y la franja de la ventana, no se mueve con la respiración (se apoya en el centro tendinoso, que baja poco); el campo respiratorio vuelve a su valor en esta distancia a su cara [SUPUESTO]. Sin ello, la cizalla entre el tapón pegado a la pared y el corazón dejaba bolsas de pulmón en la ventana al respirar. Con la inspiración profunda de la base (53 mm), el pulmón de encima no pliega el campo porque la ley de altura lo baja poco (decisión 22); la cúpula a menos de 75 mm de su cara baja menos que la excursión (`respiratory-field-vertical`). | Ecografía o RM del desplazamiento del corazón con la respiración. |
 | `anatomy.heart.sideWallMm`                | 10 mm (8–15)     | Las paredes de los lados y del ápex [SUPUESTO].                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Ídem.                                                             |
 
+El hígado y el bazo (decisión 37, `src/anatomy/organs/liver.ts` y `src/anatomy/organs/spleen.ts`): el borde inferior del
+hígado contra la pared, el final de su lóbulo izquierdo, el riñón que lo recorta y el tamaño y el sitio del bazo salen de Gray
+(«Surface Markings of the Abdomen», «The Liver», «The Spleen»); la envolvente del hígado (sus dos lóbulos, la cuádrica de la cara
+visceral interior, el recorte posteromedial y la cotangente del borde) es la de VExUS [ESTIMADO allí], escalada a la cavidad; lo
+que falta en la base:
+
+| Parámetro                        | Valor y rango    | Por qué                                                                                                                                                                                                                                    | Cómo calibrar                                                          |
+| -------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `anatomy.liver.leftConvexityMm`  | 8 mm (0–15)      | Gray: del 8.º cartílago izquierdo al final del límite superior el borde va «with a slight left convexity»; cuánto, NO ENCONTRADO [SUPUESTO].                                                                                               | TAC o ecografía del lóbulo izquierdo en el adulto (su extremo).        |
+| `anatomy.liver.kidneyAnteriorMm` | 0 mm (−15–15)    | La cara anterior del espacio del riñón (el recorte del hígado y del bazo), a la altura de la cara anterior del cuerpo vertebral [SUPUESTO]: Gray pone los riñones a los lados de la columna; su profundidad en el tronco no la da la base. | TAC del riñón en supino (su cara anterior frente al cuerpo vertebral). |
+| `anatomy.spleen.capsuleMm`       | 0,8 mm (0,5–1,5) | La cápsula del bazo, la lámina de su cara que dibuja la pasada B: la de la cápsula hepática de VExUS [SUPUESTO]; su grosor, NO ENCONTRADO.                                                                                                 | Histología o ecografía de alta frecuencia de la cápsula esplénica.     |
+
+Además: la retrodispersión del bazo es la del hígado [ESTIMADO] (la base no da su BSC; la ecografía lo describe isoecoico o algo más
+ecogénico que el hígado en el adulto) y no lleva la heterogeneidad lenta del hígado (`hetGain`): homogéneo; el «presente» de F-T34
+(el virtual a ≥ 6 dB sobre el ruido del receptor medido, −82 dB mostrados, `PRESENT_MIN_DB`) es una cota de la prueba [SUPUESTO]; y la
+distancia a la frontera junto al hígado y el bazo toma la de sus formas y la de la cúpula por 0,5 (`ORGAN_SDF_LIPSCHITZ`: la cota
+que deja la medida por debajo de la real, rastreada en 200 direcciones).
+
 El pulso pulmonar (decisión 32, `src/anatomy/organs/lungPulse.ts` y `src/physiology/ventricle.ts`): la amplitud del borde del
 pulmón junto al corazón sale de Hsu 2017 (TAC); la base no tiene la amplitud ecográfica (`docs/knowledge/physics.md` D12) ni
 cómo decae con la distancia.

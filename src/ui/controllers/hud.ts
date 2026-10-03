@@ -30,9 +30,17 @@ export interface HudText {
 
 const mhz = (v: number) => v.toFixed(1).replace('.', ',');
 
+/**
+ * La esquina superior izquierda: la usan el bucle y, en el acto, el cambio de «congelar» (con SwiftShader un cuadro puede
+ * tardar más que la espera de una prueba, y el HUD no debe esperar al cuadro siguiente para decir que la imagen se congeló).
+ */
+export function hudTopLeft(patientLabel: string, frozen: boolean): string[] {
+  return [patientLabel + (frozen ? ' · congelada' : '')];
+}
+
 export function hudText(v: HudInput): HudText {
   return {
-    topLeft: [v.patientLabel + (v.frozen ? ' · congelada' : '')],
+    topLeft: hudTopLeft(v.patientLabel, v.frozen),
     topRight: [
       `FC ${Math.round(v.heartRateBpm)} lpm · ${v.atrialFibrillation ? 'FA' : 'Sinusal'}`,
       `${formatDepthMm(v.depthMm)} · ${v.harmonic ? 'THI ' : ''}${mhz(v.transducerMHz)} MHz · G ${v.gainDb} dB · RD ${v.dynamicRangeDb}` +

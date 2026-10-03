@@ -70,9 +70,15 @@ export enum Tissue {
   RetroperitonealFat = 29,
   /** Miocardio (lus-sim, decisión 18): el corazón de la ventana cardiaca (`organs/heart.ts`). */
   Myocardium = 30,
+  /** Bazo (lus-sim, decisión 37): bajo la cúpula izquierda (`organs/spleen.ts`). */
+  Spleen = 31,
 }
 
-export const TISSUE_COUNT = 31;
+/**
+ * 32 tejidos llenan exactamente las 8 vec4 de las tablas por tejido de la pasada B (`TISSUE_VEC4`, decisión 37): uno más suma
+ * una ranura de uniforms por tabla (`shaderLimits.test.ts` lo cuenta).
+ */
+export const TISSUE_COUNT = 32;
 
 /**
  * Nombre de cada tejido en GLSL (`#define T_… índice`). Se genera desde aquí
@@ -111,6 +117,7 @@ export const TISSUE_GLSL_NAME: Record<Tissue, string> = {
   [Tissue.QuadratusLumborum]: 'T_QUADRATUS',
   [Tissue.RetroperitonealFat]: 'T_RETROFAT',
   [Tissue.Myocardium]: 'T_MYOCARDIUM',
+  [Tissue.Spleen]: 'T_SPLEEN',
 };
 
 /** Lámina diafragmática bajo la cúpula (mm); la misma en TS, GLSL y el navegador 3D. */
@@ -226,6 +233,11 @@ export const TISSUES: TissueProps[] = [
   // músculo de IT'IS [ESTIMADO]; retrodispersión de gris medio, menor que la del hígado [ESTIMADO], sin la textura de la
   // pared (las estrías del músculo esquelético)
   { name: 'miocardio', c: 1588, rho: 1090, alpha1: 0.617, b: 1.083, backscatter: 0.5, gas: false, bone: false },
+  // Bazo (lus-sim, decisión 37): c, ρ y la atenuación de IT'IS (la fila «Spleen» de su hoja: ρ 1089, c 1567,6, α0 4,3726
+  // Np/m/MHz con b 1,3832: 4,3726·8,686/100 = 0,3798 dB/cm a 1 MHz); la retrodispersión, la del hígado [ESTIMADO]: la base no da
+  // su BSC (NO ENCONTRADO) y la ecografía lo describe isoecoico o algo más ecogénico que el hígado en el adulto. Homogéneo: sin
+  // la heterogeneidad lenta del hígado (`hetGain`)
+  { name: 'bazo', c: 1567.6, rho: 1089, alpha1: 0.3798, b: 1.3832, backscatter: 1.0, gas: false, bone: false },
 ];
 
 /** Impedancia acústica Z = ρc en MRayl. */

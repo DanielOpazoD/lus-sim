@@ -40,3 +40,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [34](DECISIONS.md#L2731) | La parte difusa de la pleura rugosa en la reverberación | rechazada |
 | [35](DECISIONS.md#L2785) | La reflexión de la cara de la sonda, R_t = 0,1: el ajuste conjunto de la pleura con la partición de la decisión 24 | vigente |
 | [36](DECISIONS.md#L2918) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |
+| [37](DECISIONS.md#L3060) | El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34) | vigente |

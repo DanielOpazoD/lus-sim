@@ -118,7 +118,9 @@ test('navegador 3D: botones, arrastre sobre el tórax, orientación y cámara in
 });
 
 test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre y con las tarjetas posteriores', async ({ page }) => {
-  test.setTimeout(240_000);
+  // 6 min: en el CI tardó 3,6–3,7 min en main (con 4 de plazo) y 3,8–4,0+ con el hígado y el bazo (decisión 37, cada cuadro
+  // ≈ 20 % más caro en SwiftShader). Las aserciones no cambian.
+  test.setTimeout(360_000);
   const errors = await boot(page);
   const navigator = page.locator('#thorax-navigator');
   const caption = navigator.locator('.thorax-caption');

@@ -289,8 +289,9 @@ describe('capas de la pared (decisión 62)', () => {
 
 describe('caras nuevas en la tabla de la decisión 57', () => {
   it('cada cara de la pared y de la costilla tiene su fila, su nombre GLSL, su fuente y un solo tipo de dueño', () => {
-    // tras la pleura parietal de la decisión 61 (12): nueve caras de la pared y las costillas, 13–21
-    expect(INTERFACE_COUNT).toBe(22);
+    // tras la pleura parietal de la decisión 61 (12): nueve caras de la pared y las costillas, 13–21; lus-sim (decisión 37): la
+    // cápsula del bazo, 22
+    expect(INTERFACE_COUNT).toBe(23);
     expect(Interface.SkinFat).toBe(Interface.PleuraWall + 1);
     expect(Object.keys(INTERFACES)).toHaveLength(INTERFACE_COUNT);
     for (const f of [...WALL_FACES, Interface.RibCortex, Interface.Perichondrium]) {
@@ -509,8 +510,8 @@ describe('gemelo GLSL (organs/wall.ts y wallTexture.ts)', () => {
     expect(WALL_TEXTURE_GLSL).toContain(`const float WT_FACE_VAR[${WALL_TEXTURE.faceVariation.length}]`);
     expect(WALL_TEXTURE.faceVariation.length).toBe(LAST_WALL_INTERFACE - FIRST_WALL_INTERFACE + 1);
     // los tejidos de la decisión 81 (psoas, cuadrado lumbar, grasa retroperitoneal) van al final: no mueven índices; lus-sim
-    // (decisión 18) añade el miocardio tras ellos
-    expect(TISSUE_COUNT).toBe(31);
+    // (decisión 18) añade el miocardio tras ellos y (decisión 37) el bazo
+    expect(TISSUE_COUNT).toBe(32);
   });
 });
 

@@ -7,6 +7,18 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El hígado y el bazo bajo las cúpulas (37): el hígado de VExUS (sus dos lóbulos, su cara visceral y su recorte posteromedial,
+  escalados a la cavidad) con el borde inferior de Gray contra la pared (1 cm bajo el reborde costal derecho hasta el 9.º
+  cartílago, en oblicuo hasta el 8.º izquierdo; el lóbulo izquierdo acaba bajo el 6.º cartílago a 5 cm) y el riñón de Morris
+  recortado; el bazo, propio, medio elipsoide de Gray (12 × 7 × 3,5 cm) sobre la 10.ª costilla izquierda, contra el diafragma, con
+  su punto más bajo en la axilar media (tejido nuevo con las propiedades de IT'IS). Gemelos TS ↔ GLSL y planos nuevos de la
+  equivalencia en las dos bases. Cobertura de exploración: de 106 a 127 de 138 (las 11 que faltan, el estómago del espacio de
+  Traube, el riñón y el polo posterior del bazo). El signo de la cortina tapa el hígado y el bazo; el espejo del diafragma (F-T34)
+  emerge del camino reflejado: el hígado y el bazo virtuales, presentes y sin columna, pero solo 1,7–2,0 dB más débiles que los
+  reales en el nivel mostrado (la base pide ≥ 3: pendiente). Pendientes también los volúmenes (el hígado, 1,76 L frente a 1,33–1,52
+  de Gray; el bazo, 134 mL frente a ≈ 184) y el alto del hígado junto a su cara derecha. Nueva limitación
+  `liver-spleen-simplified`. El presupuesto de la entrada sube a 280 kB y el total a 840.
+
 - La espalda en el navegador (33): sentar al paciente desde Ajustes → Paciente (Supino/Sentado); sentado, el arrastre en el 3D y
   los botones finos recorren toda la espalda y cruzan la línea media posterior; en supino, el pie del navegador dice cómo
   llegar. Tres tarjetas nuevas, las áreas paravertebrales derechas de Soldati (superior, en el EIC3, a la altura de la espina de

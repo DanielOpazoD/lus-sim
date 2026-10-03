@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { PRESENT_MIN_DB } from '../src/app/mirrorBench';
 import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
 
 /**
@@ -42,6 +43,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     'paravertebral',
     'paraspinal',
     'spinous',
+    // (decisión 37) las bases: el hígado bajo la cúpula derecha (con el haz hacia la cabeza) y el bazo bajo la izquierda
+    'rightBase',
+    'leftBase',
   ]);
   for (const r of sweep) expect(r.interiorAgreement, JSON.stringify(r)).toBeGreaterThanOrEqual(0.99);
   // Volumen: 50 000 puntos del tórax (z −100…180 mm). Lejos de interfaces (≥ 1 mm y la misma cara a ±0,02 mm) las dos
@@ -54,7 +58,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // por región del C2, decisión 17, con GPU real y con SwiftShader: pulmón 18 418, «resto» 15 036, músculo 4915, columna
   // 1968, grasa 1556, piel 864, hueso 424 (costillas y esternón) y cartílago 62 de 43 352 interiores; con la pared heredada,
   // grasa 8548 y músculo 3881; con las costillas 5.ª–10.ª derechas de VExUS, 106 de hueso)
-  for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin', 'Bone'])
+  // (decisión 37) y el hígado y el bazo bajo las cúpulas
+  for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin', 'Bone', 'Liver', 'Spleen'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(200);
   expect(vol.byTissue.Cartilage ?? 0, vtag).toBeGreaterThan(20);
   expect(vol.interfacePoints, vtag).toBeGreaterThan(3000);
@@ -110,6 +115,16 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(shell.byInterface.ObliquePlane ?? 0, stag).toBe(0);
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
   expect(shell.distanceMaxErr, stag).toBeLessThan(0.02);
+  // (decisión 37) las cápsulas del hígado y del bazo en las bases: la cara, su distancia y su normal (el volumen no las ve: deja
+  // fuera lo que está a menos de 1 mm de un borde)
+  const caps = await page.evaluate(() => window.__lusTest!.capsules());
+  const ctag = JSON.stringify(caps);
+  expect(caps.byInterface.LiverCapsule ?? 0, ctag).toBeGreaterThan(100);
+  expect(caps.byInterface.SpleenCapsule ?? 0, ctag).toBeGreaterThan(100);
+  expect(caps.agreement, ctag).toBeGreaterThanOrEqual(0.999);
+  expect(caps.distanceMaxErr, ctag).toBeLessThan(0.02);
+  expect(caps.normalPoints, ctag).toBeGreaterThan(100);
+  expect(caps.normalMin, ctag).toBeGreaterThan(0.999);
   // La pleura parietal de A0 frente a su gemelo, línea a línea: la registran las dos en las mismas líneas y en el mismo
   // sitio. GPU real: 0 mm (la bisección cae en múltiplos exactos de su paso final). SwiftShader: una decisión de la
   // bisección en una línea de 576 cambia con el redondeo y mueve D un paso final (0,0117 mm a 12 cm, 1/60 del eco de
@@ -216,6 +231,53 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.pleura.edgeMaxErrMm, itag).toBeLessThan(0.1);
   expect(errors).toEqual([]);
 });
+
+test('F-T34: con el pulmón aireado, el hígado y el bazo virtuales sobre el diafragma y sin columna', async ({ page }) => {
+  // lus-sim (decisión 37): la sonda bajo el borde del pulmón (la axilar media derecha en el EIC8, la axilar posterior en el EIC10
+  // de los dos lados), con el haz hacia la cabeza y 16 cm de profundidad, en apnea espiratoria. La pasada A refleja el rayo en el
+  // primer pulmón del tórax (el espejo, decisión 57) y la B forma lo que encuentra por el camino reflejado: el hígado o el bazo
+  // virtuales. Nada se pinta. Se mide en el nivel mostrado (la TGC nominal y la ganancia del preajuste: lo que ve el alumno), en
+  // 20 mm de tejido real antes del espejo y 20 de virtual detrás (`mirrorBench.ts`). Presente: el virtual a ≥ 6 dB sobre el ruido
+  // del receptor (`PRESENT_MIN_DB`; medido con GPU real, 03-10-2026: −69,0 / −76,1 / −70,7 / −76,0 dB; con la mutación de la GLSL
+  // «sin espejo, el rayo sigue recto», −89,5 / −88,2 / −87,9 / −88,1: la prueba la ve). La columna: en la cuarta vista 45 líneas,
+  // rectas tras el espejo, la encontrarían; ahí el nivel (−72,9) no pasa del tejido real (−66,4): no se ve. La tercera parte, el
+  // virtual ≥ 3 dB más débil que el real, no se cumple (1,7–2,0 dB en las tres primeras; sin compensar, 9–10: la atenuación del
+  // camino de más): va aparte, con `test.fail`
+  test.setTimeout(300_000);
+  const errors = await openBench(page);
+  const views = await measureMirror(page);
+  const tag = JSON.stringify(views);
+  for (const v of views) {
+    expect(v.lines, tag).toBeGreaterThanOrEqual(20);
+    expect(v.virtualDb, tag).toBeGreaterThanOrEqual(PRESENT_MIN_DB);
+    if (v.column.lines > 0) expect(v.column.columnDb, tag).toBeLessThanOrEqual(v.realDb);
+  }
+  expect(views[3].column.lines, tag).toBeGreaterThanOrEqual(20);
+  expect(errors).toEqual([]);
+});
+
+test.fail('F-T34: el virtual ≥ 3 dB más débil que el real en el nivel mostrado [aún no se cumple]', async ({ page }) => {
+  test.setTimeout(300_000);
+  await openBench(page);
+  const views = await measureMirror(page);
+  for (const v of views) expect(v.contrastDb, JSON.stringify(views)).toBeGreaterThanOrEqual(3);
+});
+
+/** Las tres vistas del espejo de F-T34 (decisión 37). */
+async function measureMirror(page: Page) {
+  const flat = { lift: 0, yaw: 0, tilt: 0, rock: 0.7 };
+  return page.evaluate(
+    (poses) => poses.map((pose) => window.__lusTest!.mirror({ pose, depthMm: 160 })),
+    [
+      { ...flat, phi: Math.PI, z: -49.6 },
+      { ...flat, phi: 1.125 * Math.PI, z: -79 },
+      { ...flat, phi: -0.125 * Math.PI, z: -79 },
+      // la LAP izquierda con el haz hacia la cabeza y la columna (yaw 0,3, tilt 0,4): 3 de cada 24 líneas, rectas tras el espejo,
+      // encontrarían la columna sobre el diafragma
+      { ...flat, phi: -0.125 * Math.PI, z: -79, yaw: 0.3, tilt: 0.4 },
+    ],
+  );
+}
 
 test('el moteado del músculo de la pared tiene estadística de Rayleigh', async ({ page }) => {
   // Guarda de fidelidad de imagen (la de VExUS en el hígado): la envolvente de un speckle plenamente desarrollado tiene

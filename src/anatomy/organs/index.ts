@@ -3,9 +3,11 @@ import * as heart from './heart';
 import * as lungApex from './lungApex';
 import * as lungBorder from './lungBorder';
 import * as lungCurtain from './lungCurtain';
+import * as liver from './liver';
 import * as lungPulse from './lungPulse';
 import * as ribcage from './ribcage';
 import * as spine from './spine';
+import * as spleen from './spleen';
 import * as wall from './wall';
 
 /**
@@ -63,4 +65,7 @@ export const ORGAN_MODULES: readonly OrganModule[] = [
   // lus-sim (decisión 32): el pulso pulmonar, el deslizamiento del pulmón junto al corazón con el latido (usa el corazón)
   { id: 'lungPulse', exports: lungPulse, glsl: lungPulse.LUNG_PULSE_GLSL },
   { id: 'lungCurtain', exports: lungCurtain, glsl: lungCurtain.LUNG_CURTAIN_GLSL },
+  // lus-sim (decisión 37): el hígado (portado de VExUS) y el bazo, que usa su recorte del riñón
+  { id: 'liver', exports: liver, glsl: liver.LIVER_GLSL },
+  { id: 'spleen', exports: spleen, glsl: spleen.SPLEEN_GLSL },
 ];

@@ -11,7 +11,7 @@ import type { PatientPosition } from './probe/probe';
 import { Banner } from './ui/controllers/banner';
 import { bindCine } from './ui/controllers/cine';
 import { bindGpuLifecycle } from './ui/controllers/gpuLifecycle';
-import { HeartRateDisplay, hudText, renderLines } from './ui/controllers/hud';
+import { HeartRateDisplay, hudText, hudTopLeft, renderLines } from './ui/controllers/hud';
 import { setPressed } from './ui/controls';
 import { bindPopover } from './ui/disclosure';
 import { drawOverlay } from './ui/displays';
@@ -44,6 +44,7 @@ const app = $<HTMLElement>('app');
 const glCanvas = $<HTMLCanvasElement>('gl');
 const overlay = $<HTMLCanvasElement>('overlay');
 const hud = { tl: $<HTMLElement>('hud-tl'), tr: $<HTMLElement>('hud-tr'), br: $<HTMLElement>('hud-br') };
+const PATIENT_LABEL = 'Paciente sintético';
 const status = $<HTMLElement>('status');
 const liveChip = $<HTMLElement>('live-chip');
 const sectorWrap = $<HTMLElement>('sector-wrap');
@@ -242,6 +243,7 @@ store.subscribe((st, prev) => {
     liveChip.className = `chip ${st.frozen ? 'freeze' : 'live'}`;
     $('freeze-label').textContent = st.frozen ? 'Reanudar' : 'Congelar';
     freezeBtn.title = st.frozen ? 'Reanudar la adquisición (Espacio)' : 'Congelar la imagen (Espacio)';
+    renderLines(hud.tl, hudTopLeft(PATIENT_LABEL, st.frozen));
     if (st.frozen) probeAnimator.cancel();
     windows.sync();
     panel.sync();
@@ -300,7 +302,7 @@ function frame(now: number, dt: number): void {
   }
   lastDisplayedAcquisition = acquired;
   const h = hudText({
-    patientLabel: 'Paciente sintético',
+    patientLabel: PATIENT_LABEL,
     frozen: s.frozen,
     heartRateBpm: s.frozen ? 60 / acquired.sample.rr : heartRate.update(acquired.sample.rr, dt),
     atrialFibrillation: s.patient.rhythm === 'atrial-fibrillation',

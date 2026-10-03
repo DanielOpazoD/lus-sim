@@ -26,6 +26,9 @@ describe('Módulos de órgano', () => {
       'heart',
       'lungPulse',
       'lungCurtain',
+      // (decisión 37) el hígado, portado de VExUS, y el bazo, que usa su recorte del riñón
+      'liver',
+      'spleen',
     ]);
   });
 

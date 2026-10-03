@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ErrorBudget } from '../app/errorBudget';
-import { HeartRateDisplay, hudText, type HudInput } from '../ui/controllers/hud';
+import { HeartRateDisplay, hudText, hudTopLeft, type HudInput } from '../ui/controllers/hud';
 
 /**
  * Controladores de la interfaz sin DOM (adaptada de VExUS, docs/PROVENANCE.md). lus-sim (decisión 13): el HUD solo
@@ -42,6 +42,9 @@ describe('HUD', () => {
     const f = hudText({ ...base, frozen: true, atrialFibrillation: true, depthMm: 100, gainDb: -4 });
     expect(f.topLeft[0]).toBe('Paciente sintético · congelada');
     expect(f.topRight).toEqual(['FC 70 lpm · FA', '10,0 cm · 3,5 MHz · G -4 dB · RD 70']);
+  });
+  it('la esquina de «congelada» que pinta el cambio de estado en el acto es la misma que pinta el bucle', () => {
+    for (const frozen of [false, true]) expect(hudTopLeft(base.patientLabel, frozen)).toEqual(hudText({ ...base, frozen }).topLeft);
   });
   it('conserva los pasos de medio centímetro al mostrar la profundidad', () => {
     expect(hudText({ ...base, depthMm: 65 }).topRight[1]).toContain('6,5 cm');

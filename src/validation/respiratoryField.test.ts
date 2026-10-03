@@ -330,6 +330,79 @@ describe('Campo respiratorio: la inversa exacta a la tolerancia declarada (decis
   });
 });
 
+describe('El hígado y el bazo en el campo respiratorio (decisión 37)', () => {
+  // Los órganos se clasifican en el marco material, como todo lo demás: el campo los lleva sin tocar su invertibilidad. Se
+  // muestrea donde están (puntos del tronco cuyo tejido es el hígado, su cápsula o el bazo, en las 18 escenas) y se exige lo
+  // que exige el resto del tronco, más que el órgano en el mundo sea el del marco material: el mundo de un punto del hígado,
+  // devuelto al marco material, sigue en el hígado (salvo a menos de la tolerancia de su borde)
+  const ORGANS = new Set([Tissue.Liver, Tissue.LiverCapsule, Tissue.Spleen]);
+  const isOrgan = (v: number, m: Vec3) => ORGANS.has(SCENES[v].classify(m, { diaphragmCaudalMm: 0 }).tissue);
+  /** Los nodos de una rejilla de 8 mm que caen en el hígado o el bazo, por escena (el muestreo por rechazo sobre el tronco, lento). */
+  const GRID = 8;
+  let cache: Vec3[][] | null = null;
+  const nodes = (): Vec3[][] =>
+    (cache ??= SCENES.map((s, v) => {
+      const out: Vec3[] = [];
+      for (let x = -s.torso.a; x <= s.torso.a; x += GRID)
+        for (let y = -s.torso.b; y <= s.torso.b; y += GRID)
+          for (let z = -170; z <= 30; z += GRID) if (isOrgan(v, [x, y, z])) out.push([x, y, z]);
+      return out;
+    }));
+  /** Un punto del hígado o el bazo: un nodo de la rejilla movido hasta medio paso en cada eje. */
+  const organArb = fc
+    .record({
+      v: fc.integer({ min: 0, max: SCENES.length - 1 }),
+      i: fc.nat(),
+      d: fc.tuple(...[0, 1, 2].map(() => fc.double({ min: -GRID / 2, max: GRID / 2, noNaN: true }))),
+    })
+    .map(({ v, i, d }) => {
+      const all = nodes()[v];
+      const n = all[i % all.length];
+      return { v, m: [n[0] + d[0], n[1] + d[1], n[2] + d[2]] as Vec3 };
+    })
+    .filter(({ v, m }) => isOrgan(v, m));
+  const tol = RESPIRATORY_INVERSE.toleranceMm;
+
+  it('los órganos están en las 18 escenas, a los dos lados (el hígado a la derecha y el bazo a la izquierda)', () => {
+    for (const [v, s] of SCENES.entries()) {
+      expect(s.classify([-60, 20, -10], { diaphragmCaudalMm: 0 }).tissue, tag(v)).toBe(Tissue.Liver);
+      const spleen = nodes()[v].filter((n) => s.classify(n, { diaphragmCaudalMm: 0 }).tissue === Tissue.Spleen);
+      // el bazo, ≈ 135 mL: ≥ 150 nodos de 8 mm (0,512 mL), todos a la izquierda
+      expect(spleen.length, tag(v)).toBeGreaterThan(150);
+      for (const n of spleen) expect(n[0], tag(v)).toBeGreaterThan(0);
+    }
+  });
+
+  it('en el hígado y el bazo el jacobiano es > 0 con 53 y 75 mm, y la ida y vuelta queda en la tolerancia', () => {
+    fc.assert(
+      fc.property(organArb, fc.double({ min: 0, max: D_RANGE, noNaN: true }), ({ v, m }, D) => {
+        const s = SCENES[v];
+        const w = (p: Vec3) => s.respiratoryWeight(p);
+        expect(jacobian(w, m, D_MAX), `${tag(v)} ${m.join(',')}`).toBeGreaterThanOrEqual(JACOBIAN_FLOOR);
+        expect(jacobian(w, m, D_RANGE), `${tag(v)} ${m.join(',')}`).toBeGreaterThanOrEqual(JACOBIAN_FLOOR_RANGE);
+        const def = new RespiratoryDeformation(s);
+        const back = def.toMaterial(def.toWorld(m, respOf(D)), respOf(D));
+        expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2]), `${tag(v)} D ${D}`).toBeLessThanOrEqual(tol);
+      }),
+      { seed: SEED, numRuns: 1_500 },
+    );
+  });
+
+  it('mutación: los dos pasos de punto fijo de VExUS yerran más que la tolerancia en el hígado y el bazo', () => {
+    expectPropertyFails(() =>
+      fc.assert(
+        fc.property(organArb, ({ v, m }) => {
+          const s = SCENES[v];
+          const def = new RespiratoryDeformation(s);
+          const back = fixedPointInverse(s, def.toWorld(m, respOf(D_MAX)), D_MAX);
+          expect(Math.hypot(back[0] - m[0], back[1] - m[1], back[2] - m[2])).toBeLessThanOrEqual(tol);
+        }),
+        { seed: SEED, numRuns: 1_500 },
+      ),
+    );
+  });
+});
+
 describe('Excursión por patrón, por el camino real (motor → consulta → escena; decisión 22)', () => {
   const scene = SCENES[0];
   const q = new AnatomyQuery(scene);

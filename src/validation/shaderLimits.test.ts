@@ -227,11 +227,12 @@ describe('Límites del shader con margen para crecer', () => {
     // (cobertura torácica: `uCupola`, `uClavicle`, `uClavicleR`), 115 y 117; con la escápula (decisión 29: `uScapula`,
     // `uScapulaB`; las apófisis espinosas van en la ranura libre de `uSpineArch`), 117 y 119; con el pulso pulmonar (decisión 32:
     // `uLungPulse`), 118 y 120; con R_t como uniform (decisión 35: `uPleuraRt`, que el barrido de calibración cambia sin
-    // recompilar), 119 y 121. Si el recuento dejara de ver los
+    // recompilar), 119 y 121; con el hígado y el bazo (decisión 37: sus uniforms y la cápsula del bazo en `uIface`), 125 y
+    // 127. Si el recuento dejara de ver los
     // arrays (62 ranuras de tejidos, caras y costillas) daría menos de 50
     const raw = uniformSlots(FRAG_RAWFIELD);
     const rawSteered = uniformSlots(FRAG_RAWFIELD_STEERED);
-    expect(raw.slots).toBe(119);
+    expect(raw.slots).toBe(125);
     expect(raw.arrays).toContain(`uTissueBack4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uTissueClump4[${TISSUE_VEC4}]`);
     expect(raw.arrays).toContain(`uIface[${INTERFACE_COUNT}]`);

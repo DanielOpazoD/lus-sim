@@ -52,6 +52,9 @@
 // llevaban la entrada (con el chunk compartido del contacto) de 269,4 a 284,1 kB y el total a 835,8. Las notas de evidencia de los
 // parámetros, ≈ 36 kB del bundle que la aplicación no lee, salen del build (`tools/build/evidenceNotes.ts`): la entrada queda en
 // 249,0 kB y el total en 800,4. Los límites no cambian.
+// 2026-10-03 (decisión 37): el hígado y el bazo (sus módulos, sus gemelos GLSL en cada programa que clasifica y la medida del
+// espejo en los ganchos) llevan la entrada de 254,7 a 269,0 kB y el total de 808,0 a 822,8, a 1 kB del techo. La entrada y el
+// inicial suben a 280 kB y el total a 840.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -59,12 +62,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 270 * KB],
+  [/index-.*\.js$/, 280 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 270 * KB;
-const TOTAL_JS_BUDGET = 830 * KB;
+const INITIAL_JS_BUDGET = 280 * KB;
+const TOTAL_JS_BUDGET = 840 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
