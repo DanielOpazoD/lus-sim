@@ -56,7 +56,7 @@ jobs:
   e2e:
     name: extremo a extremo (Chromium + SwiftShader) ${{ matrix.label }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25 # 15 hasta el 03-10-2026: con el hígado y el bazo (37) y la pared viva (39) las ventanas del banco tardan 3,6–10,1 min
     strategy:
       fail-fast: false
       matrix:

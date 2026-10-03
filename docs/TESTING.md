@@ -26,7 +26,8 @@ la salida actual no protege nada.
   (`--grep-invert "banco de fidelidad en |el detector del sector con la mano"`; la meta aún no cumplida del detector con la mano de la decisión 39, de 4,6 min, también corre sola). Para ver el reparto sin correrlo:
   `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/9`. Una ventana nueva del banco lleva
   su propia entrada en la matriz. El agregador `check` exige que toda la matriz apruebe, además de `verificar`; el plazo
-  por corredor sigue en 15 minutos.
+  por corredor es de 25 minutos (15 hasta el 03-10-2026: con el hígado y el bazo y la pared viva las ventanas del banco tardan
+  3,6–10,1 min en el CI, y su plazo de prueba pasa a 15).
   **Las pruebas lentas del banco** (02-10-2026): la del mapa de grises corría las dos vistas en 4,9–5,0 min frente a su plazo
   de 5 y pasa a una prueba por vista (1,5 min cada una en local; las aserciones no cambian). Cada ventana del banco de
   fidelidad tardó 2,0–5,1 min en el CI según el corredor (los corredores difieren hasta 2,5 veces), y su plazo pasa de 5 a 7

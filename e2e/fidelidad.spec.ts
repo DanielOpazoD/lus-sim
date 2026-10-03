@@ -55,8 +55,9 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     // hígado y el bazo (decisión 37) añaden su cuenta a la parte de la imagen bajo el diafragma: con SwiftShader en local,
     // alternando main y la rama (03-10-2026, carga 5–16), el BLUE inferior 2,4 / 2,7 min frente a 3,3 / 2,8 y el PLAPS 2,5 / 2,8
     // frente a 4,0 / 2,9 (×1,04–1,6); el costo por cuadro, +12–20 %. Con 7 min el BLUE inferior y el PLAPS agotaban el plazo en el
-    // CI (PR #52). Las aserciones no cambian.
-    test.setTimeout(600_000);
+    // CI (PR #52). Con la pared viva (decisión 39) el BLUE inferior tardó 10,1 min en un corredor del CI (PR #55): 15 min, con el
+    // trabajo del CI en 25. Las aserciones no cambian.
+    test.setTimeout(900_000);
     const errors = await openBench(page);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl2');
