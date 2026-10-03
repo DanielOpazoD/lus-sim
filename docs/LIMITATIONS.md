@@ -9,7 +9,7 @@ conservan su identificador (decisiones 10 y 11).
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
   sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
-  sin casos patológicos ni modo docente/examen. Los puntos de partida (desde la decisión 41, los cuatro de la regla de las manos
+  sin casos patológicos ni modo docente/examen. Los puntos de partida (desde la decisión 42, los cuatro de la regla de las manos
   —BLUE superior, BLUE inferior, frénico y PLAPS— y los tres paravertebrales, en los dos hemitórax) se sitúan con las manos del
   avatar promedio: no siguen a las variantes de hábito, sexo o edad, son el sitio donde empezar y no una garantía de obtener la
   ventana correcta, y en qué espacio intercostal caen lo da la parrilla del modelo (ninguna fuente lo mide). Cambiar la profundidad inicia un
@@ -336,6 +336,13 @@ conservan su identificador (decisiones 10 y 11).
   las de una cuerda del contorno y los bordes quedan a 7–9° (el de la decisión 21, a 12,6°). Una marca encendida pegada al borde
   en el soporte por intensidad (un cuadro suelto o un clip quieto) mueve el ápice ≈ 7 px. Con `edgeInliers` muy bajo en un
   lado (≤ 5 filas) la geometría propuesta es de poca confianza; en el banco la geometría se fija igual (decisión 21).
+- **Bajo una costilla casi en el centro de la cara, la línea pleural asoma sobre el negro** (`rib-core-leak-center`,
+  decisión 42): en el BLUE inferior clínico de la regla de las manos la 5.ª costilla queda 5 mm bajo el centro de la sonda y, en
+  el núcleo de su sombra, la línea pleural sale en la pantalla a −69,34 dB, 0,34 dB sobre el negro de 8 bits (−69,68; GPU real):
+  un gris de 0–1, pero F-T08 pide el negro. En las vistas de medida (las de antes de la regla), donde las costillas caen hacia
+  los lados del sector, se cumple. Probablemente el borde de la sombra cuando la costilla cubre el centro de la apertura (el
+  pedestal de lóbulos laterales que entra por la cara, decisión 20); sin medir la causa. Lo vigila una e2e que exige que la meta
+  aún falle (`imagen.spec.ts`).
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;

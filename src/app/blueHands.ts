@@ -4,7 +4,7 @@ import type { ClavicleSpec } from '../anatomy/organs/ribcage';
 import { thoraxLinePhi } from '../anatomy/thoraxLines';
 
 /**
- * La regla de las manos de Lichtenstein (lus-sim, decisión 41; `docs/knowledge/clinical.md` §3.1) sobre la piel del avatar: dos
+ * La regla de las manos de Lichtenstein (lus-sim, decisión 42; `docs/knowledge/clinical.md` §3.1) sobre la piel del avatar: dos
  * manos del tamaño de las del paciente (`anatomy/hands.ts`), sin los pulgares, una debajo de la otra, con las puntas de los dedos en
  * la línea media [@lichtenstein-bluepoints-2011]. Las manos se apoyan en la piel: lo que se mide a lo largo de la mano es longitud
  * de arco de la piel desde la línea media (`wallArc`), y su ancho, altura (z).

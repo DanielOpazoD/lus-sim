@@ -10,20 +10,21 @@ import type { PatientPosition } from '../probe/probe';
  * φ en el marco anatómico (0 = izquierda del paciente, π/2 = anterior, π = derecha), z en mm (0 en la unión xifoesternal).
  *
  * lus-sim (decisión 12): los puntos del protocolo BLUE [@lichtenstein-bluepoints-2011] en lugar de las ventanas abdominales de
- * VExUS; desde la decisión 41, situados con la regla de las manos de Lichtenstein sobre el avatar (`app/blueHands.ts`, las manos de
+ * VExUS; desde la decisión 42, situados con la regla de las manos de Lichtenstein sobre el avatar (`app/blueHands.ts`, las manos de
  * `anatomy/hands.ts`): el superior, el inferior, el frénico y el PLAPS, en los dos hemitórax, y las tres áreas paravertebrales de
  * la espalda (decisión 33), también en los dos. Ninguna fuente mide en qué espacio intercostal caen (`docs/knowledge/anatomy.md`
  * §4, NO ENCONTRADO): lo da la parrilla del modelo bajo las manos. Marcador craneal (yaw 0): corte longitudinal, el del signo del
- * murciélago.
+ * murciélago. Son los puntos clínicos (las tarjetas): el banco y las metas físicas miden en otras poses, las vistas de medida
+ * (`app/measurementViews.ts`), que conservan los puntos de antes de la regla.
  */
 type RightId = 'blueUpper' | 'blueLower' | 'phrenic' | 'plaps' | 'posteriorUpper' | 'posteriorMiddle' | 'posteriorBasal';
-/** Los ids: los del hemitórax derecho (los de siempre) y sus simétricos izquierdos, con el sufijo `Left` (decisión 41). */
+/** Los ids: los del hemitórax derecho (los de siempre) y sus simétricos izquierdos, con el sufijo `Left` (decisión 42). */
 export type StartPointId = RightId | `${RightId}Left`;
 
 export interface StartPoint {
   id: StartPointId;
   label: string;
-  /** El hemitórax (decisión 41): las tarjetas se agrupan por lado. */
+  /** El hemitórax (decisión 42): las tarjetas se agrupan por lado. */
   side: 'right' | 'left';
   /**
    * La posición del paciente en la que se explora (lus-sim, decisión 33): los de la espalda, sentado (ir a ellos sienta al
@@ -41,7 +42,7 @@ export interface StartPoint {
 }
 
 /**
- * Los puntos BLUE del hemitórax derecho con la regla de las manos sobre el avatar (lus-sim, decisión 41): los valores de
+ * Los puntos BLUE del hemitórax derecho con la regla de las manos sobre el avatar (lus-sim, decisión 42): los valores de
  * `blueHandPoints` (`app/blueHands.ts`) con las manos de `anatomy.hands`, la clavícula y el tronco del avatar, redondeados;
  * `startPoints.test.ts` los vuelve a construir. Los rangos, con las manos a ± 1 DE (el largo del dedo, el de la palma y el ancho,
  * en todas sus combinaciones). Los del izquierdo son sus simétricos (φ → π − φ).
@@ -248,7 +249,7 @@ const RIGHT: readonly Omit<StartPoint, 'side'>[] = [
 ];
 
 /**
- * Poses de los puntos de partida pulmonares: los del hemitórax derecho y, desde la decisión 41, sus simétricos izquierdos
+ * Poses de los puntos de partida pulmonares: los del hemitórax derecho y, desde la decisión 42, sus simétricos izquierdos
  * (φ → π − φ; en la espalda, sentado, la paravertebral izquierda). La anatomía no es simétrica (el corazón, la língula, la cúpula
  * izquierda más baja): lo que se ve en cada punto lo dice la prueba de cada lado.
  */

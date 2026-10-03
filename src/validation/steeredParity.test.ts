@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { TISSUES, Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { Simulator } from '../app/simulator';
-import { START_POINTS, type StartPoint } from '../app/startPoints';
+import { measurementViewPose, type MeasurementViewId } from '../app/measurementViews';
 import { STEERED_TIE_LINES, compareSteeredTransmission, steeredTransmissionTwin } from '../app/steeredParity';
 import { clonePatient, defaultPatient } from '../physiology/patientState';
 import { pointOnLine } from '../probe/probe';
@@ -80,11 +80,10 @@ function float32RoundingError(theta: number): { path: number; cone: number } {
 }
 
 /** A1 de la vista en CPU (sin espejo): el tejido del centro de cada segmento con las reglas de la pasada A. */
-function viewGrid(view: StartPoint['id']): { grid: SegmentGrid; ap: ApertureGeometry } {
+function viewGrid(view: MeasurementViewId): { grid: SegmentGrid; ap: ApertureGeometry } {
   const rec = recordingGl({ width: 320, height: 240 });
   const sim = new Simulator(clonePatient(defaultPatient()), rec.canvas);
-  const sp = START_POINTS.find((p) => p.id === view)!;
-  sim.setPose({ phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 });
+  sim.setPose(measurementViewPose(view));
   sim.advance(0.05);
   const tr = sim.transducer;
   const grid = emptyGrid({
@@ -134,7 +133,7 @@ function gpuLike(grid: SegmentGrid, ap: ApertureGeometry, theta: number, bias: n
 }
 
 /** lus-sim (decisión 12): los tres puntos de partida del tórax, en lugar de las cuatro ventanas abdominales de VExUS. */
-const VIEWS: Array<StartPoint['id']> = ['blueUpper', 'blueLower', 'plaps'];
+const VIEWS: Array<MeasurementViewId> = ['blueUpper', 'blueLower', 'plaps'];
 
 describe('paridad de la mirada dirigida: empates de redondeo (G8, decisión 58)', () => {
   it('el margen cubre dos veces el error de float32 de los redondeos de A2 y A en todo el rango de θ', () => {
@@ -147,8 +146,8 @@ describe('paridad de la mirada dirigida: empates de redondeo (G8, decisión 58)'
       }
   });
 
-  const grids = new Map<StartPoint['id'], ReturnType<typeof viewGrid>>();
-  const gridOf = (v: StartPoint['id']) => {
+  const grids = new Map<MeasurementViewId, ReturnType<typeof viewGrid>>();
+  const gridOf = (v: MeasurementViewId) => {
     let g = grids.get(v);
     if (!g) {
       g = viewGrid(v);

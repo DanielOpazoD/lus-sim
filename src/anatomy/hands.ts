@@ -1,7 +1,7 @@
 import { defineParameters } from '../core/evidence';
 
 /**
- * Las manos del avatar (lus-sim, decisión 41): las del paciente, que la regla de las manos de Lichtenstein pone sobre su tórax para
+ * Las manos del avatar (lus-sim, decisión 42): las del paciente, que la regla de las manos de Lichtenstein pone sobre su tórax para
  * situar los puntos BLUE (`app/blueHands.ts`; `docs/knowledge/clinical.md` §3.1). El adulto promedio de la base es un varón de
  * IMC ≈ 23 (`docs/knowledge/anatomy.md` §2.1).
  */

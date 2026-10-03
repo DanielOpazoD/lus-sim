@@ -29,6 +29,7 @@ import { CONVEX_C35, defaultPose, pointOnLine, type ProbePose } from '../probe/p
 import { AXIAL_SIGMA_MM } from '../ultrasound/beamModel';
 import { pleuraCoherence, pleuraSeriesEcho, pleuraTerms } from '../ultrasound/pleura';
 import { START_POINTS } from '../app/startPoints';
+import { MEASUREMENT_VIEWS, measurementViewPose } from '../app/measurementViews';
 import {
   arcMm,
   chestView,
@@ -368,10 +369,14 @@ describe('F-T08: la línea pleural 5 ± 1 mm bajo la superficie costal (signo de
     return new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } });
   };
   const views = (sc: AnatomyScene, all: boolean): Array<[string, ProbePose]> => {
-    const out: Array<[string, ProbePose]> = START_POINTS.map((sp) => [
-      sp.id,
-      { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 },
-    ]);
+    // los puntos clínicos de los dos hemitórax y (decisión 42) las vistas de medida, las de antes de la regla de las manos
+    const out: Array<[string, ProbePose]> = [
+      ...START_POINTS.map((sp): [string, ProbePose] => [
+        sp.id,
+        { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 },
+      ]),
+      ...MEASUREMENT_VIEWS.map((v): [string, ProbePose] => [`vista ${v.id}`, measurementViewPose(v.id)]),
+    ];
     const lam = thoraxLinePhi('midaxillary', sc.torso);
     const cuts: Array<[string, number, number]> = all
       ? [

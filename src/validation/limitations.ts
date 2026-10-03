@@ -36,6 +36,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'pleura-series-same-line',
   'interface-echo-coherent-only',
   'rib-acoustics-simplified',
+  'rib-core-leak-center',
   'speckle-statistics-uncalibrated',
   'display-uncalibrated',
   'gpu-timer-unverified',

@@ -33,7 +33,7 @@ function view(id: StartPoint['id']) {
 }
 
 describe('Puntos de partida del tórax (decisión 12)', () => {
-  it('los cuatro de la regla de las manos y los tres paravertebrales en cada hemitórax, el izquierdo simétrico del derecho (decisión 41)', () => {
+  it('los cuatro de la regla de las manos y los tres paravertebrales en cada hemitórax, el izquierdo simétrico del derecho (decisión 42)', () => {
     expect(START_POINTS.map((s) => s.id)).toEqual([...RIGHT, ...RIGHT.map((id) => `${id}Left`)]);
     const P = START_POINT_POSES.params;
     expect([byId('blueUpper').phi, byId('blueUpper').z]).toEqual([P.blueUpperPhi.value, P.blueUpperZ.value]);
@@ -61,7 +61,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     }
   });
 
-  it('la regla de las manos (decisión 41): cada punto donde lo ponen las manos del avatar, y en qué espacio intercostal cae', () => {
+  it('la regla de las manos (decisión 42): cada punto donde lo ponen las manos del avatar, y en qué espacio intercostal cae', () => {
     const H = HANDS.params;
     const P = START_POINT_POSES.params;
     const hand = (f: number, p: number, b: number) => ({ fingerLengthMm: f, palmLengthMm: p, handBreadthMm: b });
@@ -172,7 +172,7 @@ describe('Puntos de partida del tórax (decisión 12)', () => {
     }
   });
 
-  it('el punto frénico (decisión 41): el pulmón en el lado craneal y su borde, sobre el diafragma, en el caudal', () => {
+  it('el punto frénico (decisión 42): el pulmón en el lado craneal y su borde, sobre el diafragma, en el caudal', () => {
     for (const id of ['phrenic', 'phrenicLeft'] as const) {
       const sp = byId(id);
       const { scans, coupled } = view(id);

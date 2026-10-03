@@ -30,7 +30,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
   // y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas y la línea media con las espinosas
   // y (decisión 33) los tres puntos de partida de la espalda, en la paravertebral derecha
-  // y (decisión 41) los de la regla de las manos con el frénico, y los siete del hemitórax izquierdo
+  // y (decisión 42) los de la regla de las manos con el frénico, y los siete del hemitórax izquierdo
   expect(sweep.map((r) => r.id)).toEqual([
     ...START_POINTS.map((p) => p.id),
     'supraclavicular',
@@ -132,7 +132,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // pared), y el borde del pulmón en la axilar media izquierda
   // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular; y (decisión 33) los tres de la espalda, con el paciente
   // sentado, bajo la pared posterior
-  // y (decisión 41) el frénico y los siete del lado izquierdo: los puntos de partida y tres planos más
+  // y (decisión 42) el frénico y los siete del lado izquierdo: los puntos de partida y tres planos más
   expect(pleura.lines, ptag).toBe((START_POINTS.length + 3) * 192);
   for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'].flatMap((x) => [x, `${x}Left`]))
     expect(pleura.centralDepthMm[id], `${id}: ${ptag}`).toBeGreaterThan(24);
@@ -382,6 +382,33 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
         ).toBeGreaterThanOrEqual(needed(o, o.shownErrMm.length));
       }
     }
+  expect(errors).toEqual([]);
+});
+
+/**
+ * F-T08 en el BLUE inferior clínico de la regla de las manos (decisión 42; limitación `rib-core-leak-center`) [aún no se cumple].
+ * Ahí la 5.ª costilla queda casi bajo el centro de la cara (el punto, 5 mm sobre ella) y, en el núcleo de su sombra, la línea
+ * pleural sale en la pantalla 0,34 dB sobre el negro (−69,34 frente a −69,68 dB, GPU real, 03-10-2026): un gris de 0–1, pero no
+ * el negro que pide la meta. La prueba exige que la meta aún falle por eso (que se vea en el núcleo); cuando se cumpla, falla y hay
+ * que pasar la pose a la prueba de F-T08 de arriba.
+ */
+test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asoma sobre el negro en el núcleo de la sombra central [aún no se cumple]', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const errors = await openBench(page);
+  const sp = START_POINTS.find((p) => p.id === 'blueLower')!;
+  const pose = { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: 0, tilt: 0 };
+  const s = await page.evaluate(
+    (p) => window.__lusTest!.ribShadow({ startPoint: 'blueLower', respiration: 'apnea-expiratory', pose: p }),
+    pose,
+  );
+  const core = s.lines.filter((x) => x.bone && x.fullyShadowed && x.edgeLines > x.coneHalfLines + x.mainLobeLines);
+  const worst = Math.max(...core.map((x) => x.pleuraDisplayDb - s.blackLevelDb));
+  const tag = `núcleo ${core.length} líneas; la peor, ${worst.toFixed(2)} dB sobre el negro`;
+  expect(core.length, tag).toBeGreaterThan(10);
+  // hoy: la línea pleural asoma sobre el negro en el núcleo (F-T08 pide que no)
+  expect(worst, tag).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 

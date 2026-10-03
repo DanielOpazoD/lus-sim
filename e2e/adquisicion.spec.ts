@@ -76,7 +76,7 @@ test('adquisición compacta: profundidad exacta, foco limitado y foco de teclado
 test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
-  // (decisión 41) la pose por omisión ya no es el punto BLUE superior de la regla de las manos: se empieza en su tarjeta
+  // (decisión 42) la pose por omisión ya no es el punto BLUE superior de la regla de las manos: se empieza en su tarjeta
   await page.locator('[data-start-point="blueUpper"]').click();
   await expect(page.locator('[data-start-point="blueUpper"]')).toHaveAttribute('aria-current', 'true');
   const blueUpperZ = START_POINTS.find((p) => p.id === 'blueUpper')!.z;

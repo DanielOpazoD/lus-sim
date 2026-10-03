@@ -12,7 +12,7 @@ import type { ProbePose } from '../probe/probe';
 const CARD_SUB: Record<string, string> = {
   blueUpper: 'Anterior',
   blueLower: 'Anterolateral',
-  // lus-sim (decisión 41): el punto frénico de la regla de las manos
+  // lus-sim (decisión 42): el punto frénico de la regla de las manos
   phrenic: 'Lateral',
   plaps: 'Posterolateral',
   // lus-sim (decisión 33): la espalda, sentado
@@ -21,7 +21,7 @@ const CARD_SUB: Record<string, string> = {
   posteriorBasal: 'Posterior · sentado',
 };
 
-/** La línea de la tarjeta: la región del punto, la misma en los dos lados (decisión 41). */
+/** La línea de la tarjeta: la región del punto, la misma en los dos lados (decisión 42). */
 export function cardSub(id: StartPointId): string {
   return CARD_SUB[id.replace(/Left$/, '')];
 }
@@ -80,7 +80,7 @@ export class StartPointCards {
     host: HTMLElement,
     private readonly deps: StartPointCardsDeps,
   ) {
-    // lus-sim (decisión 41): un grupo por hemitórax, con su título
+    // lus-sim (decisión 42): un grupo por hemitórax, con su título
     const groups = new Map<StartPoint['side'], HTMLElement>();
     for (const side of ['right', 'left'] as const) {
       const group = document.createElement('div');

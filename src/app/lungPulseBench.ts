@@ -8,7 +8,7 @@ import { bandCorrelation, bandRows, bandSpectrum } from '../measure/lungPulse';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { pointOnLine, type ProbePose } from '../probe/probe';
 import type { Simulator } from './simulator';
-import { START_POINTS, type StartPoint } from './startPoints';
+import { measurementViewPose, type MeasurementViewId } from './measurementViews';
 
 /**
  * El pulso pulmonar en la imagen (lus-sim, decisión 32; metas A-T16, S3 y F-T11): el modo M de la línea central, como lo
@@ -16,7 +16,8 @@ import { START_POINTS, type StartPoint } from './startPoints';
  * reloj único, medido en la banda bajo la línea pleural con `src/measure/lungPulse.ts`. Y el gemelo: el pulso de la GLSL
  * (`queryPoints`) frente al de TS en el pulmón junto al corazón.
  */
-export type LungPulseSite = 'apex' | StartPoint['id'];
+/** El vértice o una vista de medida (decisión 42). */
+export type LungPulseSite = 'apex' | MeasurementViewId;
 
 export interface LungPulseOptions {
   site: LungPulseSite;
@@ -56,8 +57,7 @@ export function apexPose(sim: Simulator): ProbePose {
 
 function poseOf(sim: Simulator, site: LungPulseSite): ProbePose {
   if (site === 'apex') return apexPose(sim);
-  const sp = START_POINTS.find((p) => p.id === site)!;
-  return { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 };
+  return measurementViewPose(site);
 }
 
 export function lungPulseMMode(sim: Simulator, opts: LungPulseOptions): LungPulseReport {

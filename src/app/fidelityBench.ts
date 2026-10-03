@@ -18,7 +18,7 @@ import { PLEURA_RP, pleuraCapMm } from '../ultrasound/pleura';
 import { COARSE_DEPTH, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import type { Simulator } from './simulator';
 import { SPECKLE_PATCH, speckleMask, type EnvelopeFrame } from './speckle';
-import type { StartPoint } from './startPoints';
+import type { MeasurementViewId } from './measurementViews';
 import type { RibShadowStats } from './testHooks';
 import { EQUIPMENT_LIMITS } from './equipment';
 
@@ -32,7 +32,8 @@ import { EQUIPMENT_LIMITS } from './equipment';
  * por orden de las líneas A frente a la fórmula de F-T02. No retoca nada: mide (guía §20).
  */
 export interface FidelityBenchOptions {
-  startPoint: StartPoint['id'];
+  /** La vista de medida (decisión 42), no el punto clínico. */
+  startPoint: MeasurementViewId;
   respiration: RespiratoryPattern;
   /** Cuadros de la pila (≥ 1; 1 por omisión) y su intervalo (s; 1/30 por omisión, un vídeo a 30 cps). */
   frames?: number;
@@ -60,7 +61,8 @@ export interface DbLevel {
 }
 
 export interface FidelityBenchReport {
-  startPoint: StartPoint['id'];
+  /** La vista de medida (decisión 42), no el punto clínico. */
+  startPoint: MeasurementViewId;
   respiration: RespiratoryPattern;
   frames: number;
   frameIntervalS: number;
@@ -180,7 +182,7 @@ function greyToDisplayDb(grey: number, dynamicRangeDb: number): number | null {
 export function fidelityBench(
   sim: Simulator,
   opts: FidelityBenchOptions,
-  deps: { goTo: (id: StartPoint['id']) => void; ribShadow: () => RibShadowStats },
+  deps: { goTo: (id: MeasurementViewId) => void; ribShadow: () => RibShadowStats },
 ): FidelityBenchReport {
   if (sim.frozen) throw new Error('fidelityBench: la imagen está congelada; no se adquieren cuadros');
   const range = opts.dynamicRangeDb;
@@ -200,7 +202,7 @@ export function fidelityBench(
 function measureFidelity(
   sim: Simulator,
   opts: FidelityBenchOptions,
-  deps: { goTo: (id: StartPoint['id']) => void; ribShadow: () => RibShadowStats },
+  deps: { goTo: (id: MeasurementViewId) => void; ribShadow: () => RibShadowStats },
 ): FidelityBenchReport {
   const n = Math.max(1, Math.round(opts.frames ?? 1));
   const dt = opts.frameIntervalS ?? 1 / 30;

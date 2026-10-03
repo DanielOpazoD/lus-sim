@@ -643,7 +643,7 @@ Colocación con las manos [CONSENSO] [@lichtenstein-bluepoints-2011] (TC-e); [@l
 - **Línea frénica**: borde inferior de la mano inferior, que marca el final del pulmón; las dos manos juntas, desde la clavícula oblicua, la dejan horizontal (2011). El diafragma suele estar ahí (2014), pero con las manos difirió del diafragma en el 47,5 % de los hemitórax en un estudio de 61 pacientes (Ding y cols. 2015, solo el resumen).
 - **Punto frénico**: intersección de la línea frénica con la línea axilar media (2011, 2016; no aparece en 2014 ni en 2017).
 - **Punto PLAPS**: continuación horizontal del punto BLUE inferior, tan posterior como se pueda por detrás de la línea axilar posterior con el paciente en supino; queda algo por encima del diafragma (2011). Allí se localizan el 90 % de las consolidaciones y todos los derrames libres. El PLAPS extendido baja uno o dos espacios intercostales (2016: la única mención a espacios intercostales, relativa al punto).
-- **En el simulador** (decisión 41): con las manos del avatar (ANSUR II y Greiner 1991), sobre su clavícula y su parrilla (`app/blueHands.ts`).
+- **En el simulador** (decisión 42): con las manos del avatar (ANSUR II y Greiner 1991), sobre su clavícula y su parrilla (`app/blueHands.ts`).
 - **Reparos simplificados de Yuriditsky y cols.** [DISCREPANCIA] [@yuriditsky-ecocardiografistas-2021]:
   - Punto superior en la línea medioclavicular, en el 2.º–3.er espacio intercostal.
   - Punto inferior en la línea axilar anterior, justo por encima del pezón.

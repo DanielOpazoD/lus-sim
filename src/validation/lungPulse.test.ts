@@ -180,7 +180,7 @@ describe('pulso pulmonar: amplitud por distancia al corazón', () => {
     for (const r of rows) if (r.d >= REACH) expect(r.mm).toBe(0);
     for (const sp of START_POINTS.filter((x) => x.side === 'right'))
       expect(lungPulseShift(scene.heart, t, pleuraAt(sp.phi, sp.z), 1, AMP_MAX), sp.id).toEqual([0, 0, 0]);
-    // (decisión 41) en el izquierdo, el BLUE inferior queda al alcance del corazón (el pulso pulmonar, junto al borde
+    // (decisión 42) en el izquierdo, el BLUE inferior queda al alcance del corazón (el pulso pulmonar, junto al borde
     // cardiaco: la regla de las manos lo pone «cerca del pezón»); los demás, no
     const pulse = (sp: (typeof START_POINTS)[number]) => Math.hypot(...lungPulseShift(scene.heart, t, pleuraAt(sp.phi, sp.z), 1, AMP_MAX));
     const left = START_POINTS.filter((x) => x.side === 'left' && pulse(x) > 0).map((x) => x.id);
