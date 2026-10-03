@@ -3611,3 +3611,152 @@ ni aviso de WebGL (dos cuadros con el campo crudo dos veces más; GPU real: enco
 la lectura ligada (una unitaria), sin lanzar (una unitaria) y `finishForTiming` vacía (la e2e: esperar = encolar, 0,35 ms). La
 revisión adversarial de contexto limpio halló, entre otras cosas, que la primera versión de esta decisión afirmaba que la lectura
 inválida esperaba a la GPU; la medida de arriba (la lectura inválida al cerrar) lo desmiente y el razonamiento se rehízo.
+
+## 41. La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco [Estado: rechazada]
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Ciclo 3b-4 (objetivos O3 y O1). La decisión 38 midió que la neblina del simulador es el campo del deslizamiento
+(`SLIDING_DB`, estimado y en el tope de su rango), 9–13 dB bajo la pared. El espejo de la pared queda 20–27 dB por debajo,
+porque cada rebote en la pleura conserva solo su parte coherente (χ). Con la pared viva (decisión 39), la arena del simulador
+se decorrela en 0,31–0,43 s, frente a 0,46–0,72 s en la exploración. Lo que dicen las fuentes:
+
+- **Lo que hay bajo la pleura.** En la simulación de onda completa con histología porcina, la amplitud de la onda que
+  penetra cae 67,9 dB en el primer milímetro bajo la pleura ([@ostras-histopatologia-2023]: hidrófonos virtuales, no la
+  imagen). De ahí se infiere que el parénquima no da nada visible. Lo que se ve entre las líneas A son réplicas y el espejo de
+  las estructuras de la pared ([@demi-verticales-2022]; [@soldati-trampas-2020]).
+- **La pérdida del espejo.** Con el tejido a 1,5 MRayl y el pulmón inflado a 0,1–0,2 MRayl (`docs/knowledge/physics.md`), dos
+  reflexiones especulares pierden 2,3–4,7 dB. Con 0,4 MRayl, 9,5 dB; el rango ex vivo de pulmones pequeños llega a 0,7 MRayl,
+  17,6 dB ([@oelze-impedancia-2008]). Es cálculo propio, solo de la parte especular.
+- **La arena.** El campo de dispersores que se traslada a v pierde la correlación como g1(τ) = exp(−(vτ)²/4σ²), con σ la
+  anchura de la PSF ([@tang-decorrelacion-2020], ec. 6). La arena del banco se mide en grises, en intensidad: |g1|² cae a
+  1/e en τ = √2·σ/v.
+
+La hipótesis: la neblina de los clips es el espejo de la pared, casi sin pérdida. Por eso queda al nivel de la pared y se
+decorrela despacio: se mueve con la pared, no con el deslizamiento.
+
+**Opciones.**
+
+- (a) Una pleura más lisa (σz con la cota de Ostras, decisión 35), con la ganancia que no recorta la línea pleural (Demi 2023,
+  enunciado 15).
+- (b) Lo mismo en armónica tisular.
+- (c) Subir el grano del deslizamiento (`SLIDING_LAT_MM`) para frenar la arena.
+- (d) Subir `SLIDING_DB` hasta la pared.
+- (e) K 53 / ganancia −19, el candidato que la decisión 35 descartó por la guarda del detector del sector (ya arreglada en la
+  decisión 36).
+- (f) La reverberación entre dos espejos curvos: la cara convexa de la sonda y la pleura, con otra curvatura, no forman un
+  resonador que se reproduzca a sí mismo, y en cada ida y vuelta se pierde lo que sale del modo. La serie de hoy se calcula en
+  la misma línea (`pleura-series-same-line`) y no lo ve.
+
+**Decisión.** Se midieron (a)–(c) y (e) con la GPU real (Apple M4), sobre main 92aeade y la pared viva (#55), y se estimó (f).
+Ninguna combinación con fuente cierra el banco: se rechazan como calibración y quedan registradas con su superficie. Lo
+medido es compatible con la hipótesis del espejo en la relación entre la neblina y la pared y en la arena. Falla en la caída
+de las líneas A, y con ella en el nivel de la neblina medido en caídas de línea A (M).
+
+- **(e) K 53 / ganancia −19.** No cambia nada: frente a K 54 / −20, M de la pared, M de la neblina y r₂ cambian ≤ 0,015 en los
+  tres puntos (la ganancia es afín) y ninguna guarda se pierde. No hay motivo para moverlo.
+- **(c) El grano.** La arena escala casi en lineal con el grano: 0,23–0,32 s con 1,5 mm, 0,31–0,43 con 3 y 0,39–0,51 con 6. En el
+  simulador la arena la fija el grano del deslizamiento, no la PSF: el grano de 3 mm es más grueso que la PSF lateral de dos
+  vías (1,40–1,43 mm de FWHM a 20–45 mm, σ 0,6 mm). Con la PSF sola, τ = √2·σ/v da 0,22 s con la velocidad de pico de una
+  senoide de 5,4 mm por ciclo a 14 rpm (≈ 3,9 mm/s; D5, medido con sonda lineal) y 0,34 s con la media (≈ 2,5 mm/s). Es más
+  rápida que el banco, no más lenta: subir el grano no tiene fuente, y lo que frena la arena en los clips tiene que ser otra
+  cosa (abajo: el espejo).
+- **(d) `SLIDING_DB`.** No hay fuente para subirlo. La decisión 24 no amplía un rango para alcanzar el banco, y las fuentes
+  dicen que bajo la pleura no hay parénquima visible.
+- **(a) La pleura lisa.** `e2e/pleuraLisa.spec.ts` (`LUS_LISA=1`), con R_t 0,1 y K 54. En cada σz se toma la ganancia más alta que
+  no recorta la línea pleural en ningún cuadro y deja M y r₂ sin censura. Esas ganancias, −24 a −26 dB, salen del dominio del
+  preajuste (−24 a −18). Se dice así: el preajuste habría que volver a derivarlo. En el BLUE inferior, con σz ≤ 0,03, M y r₂
+  salen censurados en todas las ganancias de −20 a −34 dB (la línea pleural recorta arriba o la línea A cae al negro abajo):
+  queda fuera de la tabla. La arena se mide con la pila de los clips y la misma ganancia.
+
+  BLUE superior / PLAPS:
+
+  | σz (mm) | Ganancia (dB) | M pared     | M neblina   | r₂          | P1          | Neblina − pared (dB) | Caída pl→A2 (dB) | Arena (s)   |
+  | ------- | ------------- | ----------- | ----------- | ----------- | ----------- | -------------------- | ---------------- | ----------- |
+  | 0,005   | −26 / −26     | 2,02 / 1,95 | 2,06 / 1,97 | 0,55 / 0,53 | 1,46 / 1,58 | −1,8 / −2,0          | 19,2 / 20,6      | 0,59 / 0,43 |
+  | 0,01    | −26 / −26     | 1,99 / 1,92 | 2,04 / 1,96 | 0,54 / 0,53 | 1,45 / 1,57 | −2,3 / −2,5          | 19,5 / 20,9      | 0,61 / 0,44 |
+  | 0,02    | −24 / −24     | 1,90 / 1,84 | 1,97 / 1,90 | 0,53 / 0,51 | 1,41 / 1,51 | −3,7 / −4,1          | 20,6 / 21,9      | 0,56 / 0,40 |
+  | 0,03    | −24 / −24     | 1,75 / 1,70 | 1,84 / 1,80 | 0,50 / 0,48 | 1,34 / 1,45 | −5,8 / −6,1          | 22,4 / 23,5      | 0,50 / 0,36 |
+  | 0,05    | −20 / −20     | 1,40 / 1,37 | 1,54 / 1,52 | 0,39 / 0,37 | 1,12 / 1,20 | −9,0 / −10,1         | 28,1 / 29,1      | 0,40 / 0,29 |
+  | Banco   |               | 0,85–1,40   | 0,87–1,00   | 0,17–0,25   | 4,0         | (dentro de la pared) |                  | 0,46–0,72   |
+
+  Con σz ≤ 0,01:
+  - **La neblina sigue a la pared.** Queda a 2–2,5 dB de ella, y en M, a 0,02–0,05. En el banco, la neblina cae dentro de la
+    banda de la pared.
+  - **La arena se frena.** 0,59–0,61 s en el BLUE superior, dentro del banco; 0,43–0,44 s en el PLAPS, en su borde inferior.
+    No es por la ganancia: con σz 0,05 y la misma ganancia de −26 dB (el control, `LUS_LISA_PILA_GAIN`) la arena da 0,44 y 0,32
+    s, solo +0,03–0,04 s sobre −20 dB.
+  - **P1 sube** de 1,12–1,20 a 1,45–1,58, todavía lejos del 4,0 del banco (un sujeto).
+  - **Las líneas A caen solo 19–21 dB por orden** (R_t 0,1 y χ ≈ 1), y M y r₂ se alejan del banco. M de la neblina dobla el del
+    banco: la pleura queda a unas dos caídas de línea A de la pared.
+  - Con σz 0,02, dentro todavía de la cota de Ostras (9–23 µm), la neblina ya queda a 3,7–4,1 dB de la pared.
+
+- **Diagnóstico, no calibración: R_t bajo su suelo.** Con σz 0,01 y R_t 0,05 / 0,03 / 0,02 (el suelo con fuente es 0,1), en el
+  BLUE superior y el PLAPS:
+  - caída: 25,6–26,9 / 30,1–31,4 / 33,6–34,9 dB;
+  - M de la pared: 1,59–1,63 / 1,43–1,46 / 1,33–1,36;
+  - M de la neblina: 1,62–1,67 / 1,46–1,50 / 1,36–1,39;
+  - r₂: 0,42–0,44 / 0,35–0,37 / 0,30–0,31.
+
+  Ni con R_t 0,02 llegan M de la neblina ni r₂. Hace falta una pérdida de ≥ 15 dB por orden que paguen las líneas A y no el
+  espejo, y aun así la pleura queda más brillante frente a la pared que en el banco.
+
+- **(b) La armónica.** En el simulador no cambia nada. Con σz 0,005, 0,01 y 0,05, M, r₂ y P1 quedan a ≤ 0,02 de la fundamental y
+  la caída, a ≤ 2 dB. El modelo de la decisión 77 de VExUS (`harmonic-simplified`) solo oscurece los primeros 4 mm y baja los
+  ecos parásitos de la pasada C; la serie de la pleura no distingue el armónico.
+
+  Físicamente no se estima aquí. El armónico se genera donde el fundamental es fuerte. La pleura refleja casi todo, así que
+  la línea A sigue generándolo en la vuelta de la primera ida y vuelta; con el R negativo del pulmón (impedancia menor que la
+  del tejido), lo generado tras la reflexión puede restar de lo que ya llevaba. El balance depende del signo y de la magnitud
+  de R_p y de R_t a f y a 2f, y sin medirlos no hay número.
+
+  Tampoco se sabe con qué modo se adquirieron los clips:
+  - el dataset de Born (fuente 14, 24 de los 26 clips) no declara el equipo ni la armónica;
+  - Vieira 2020 (LUS-01) recomienda desactivar la armónica tisular y el «Multi Beam» para la ecografía pulmonar
+    ([@vieira-dialisis-2020]).
+
+- **(f) Dos espejos curvos: tampoco alcanza.** No se encontró una fuente que mida la caída de las líneas A según la curvatura
+  de la sonda (ni lineal frente a convexa). Estimación propia con haces gaussianos (óptica ABCD, paraxial, un plano cada vez;
+  script en la PR, sin código en el repo).
+  - **El cálculo.** La línea A de orden k (k idas y vueltas a la pleura, con la cara de la sonda entre ellas) se compara con un
+    solo reflector de la misma curvatura a k·D. Los modos de emisión y de recepción son los mismos: el foco, la apertura y la
+    difracción de cualquier eco a esa profundidad se cancelan y queda lo que pierde la cavidad. Sin R_t ni R_p, con D 16–25
+    mm, a 3,5 y 2,5 MHz.
+  - **Lateral.** La cara convexa de la C35 tiene R 60 mm; subapertura de 26 mm, foco de emisión del preajuste a 16 mm
+    (F# 0,6, en el borde de lo paraxial) y recepción dinámica con F# 2,5. El orden 2 pierde 2,8–3,2 dB con la pleura
+    concéntrica (la que deja la compresión del simulador, cos θ ≈ 1); 0,3–0,5 dB con la pleura plana; y gana 0,3–2,3 dB con la
+    convexa de R 150. El orden 3 pierde 4,0–4,6, −2,2 a +0,7 y 3,0–7,6 dB.
+  - **Elevación.** Huella de 13 mm, lente con foco a 80 mm. Depende de qué superficie refleja la sonda, que R_t no dice:
+    - cara plana: 0 a +1 dB;
+    - pila de detrás de la lente, que pasa dos veces por ella (f +40 mm): −0,8 a −1,7 dB;
+    - superficie convexa de la lente (R ≈ 28 mm para un foco de 80 mm con silicona, f −14 mm): −0,0 a −1,5 dB con la pleura
+      plana y −4,9 a −5,4 con la convexa en el orden 2, y −7,7 a −13,5 dB en el orden 3.
+  - **En suma.** El orden 2 va de +3 dB (ganancia) a −8,6 dB. En el caso del simulador (concéntrica en lateral, plana en
+    elevación), −3 a −5 dB. No llega a los ≥ 15 dB en el orden 2, aunque en el 3 se acerque. No se modela.
+
+**Consecuencias.** No cambia la física ni el preajuste. Quedan:
+
+- la herramienta `e2e/pleuraLisa.spec.ts`, que no es una prueba;
+- lo medido sobre la hipótesis del espejo: la neblina sigue a la pared y la arena se frena con una pleura lisa. La
+  parametrización de la neblina como un campo propio contra el hígado (`SLIDING_DB`) es la candidata a desaparecer cuando se
+  resuelva la caída de las líneas A;
+- lo que tiene que explicar la próxima hipótesis: con una pleura lisa, una pérdida de ≥ 15 dB por orden que paguen las líneas
+  A y no el espejo.
+
+Las tres cosas que la decidirían:
+
+- qué superficie de la sonda da R_t, y su signo y magnitud a f y a 2f;
+- la curvatura de la pleura bajo la sonda apretada;
+- el modo de adquisición de los clips.
+
+Mecanismos por medir cuando se sepan: la armónica a lo largo de la serie, la desviación del frente en cada ida y vuelta (la
+rama `feat/lobulo-pleura`, ≤ 0,5 dB en los puntos de partida) y el desenfoque entre los dos espejos curvos.
+
+**Verificación.**
+
+- Las tablas: `e2e/pleuraLisa.spec.ts` con la GPU real (`LUS_LISA_SIGMAZ`, `LUS_LISA_RT`, `LUS_LISA_HARMONIC`,
+  `LUS_LISA_PILA_GAIN`); `e2e/barridoPleura.spec.ts` para K y la ganancia; el grano, reconstruyendo con `SLIDING_LAT_MM` 1,5, 3 y
+  6 y la pila de `e2e/pilaClips.spec.ts`. La PSF, con `lateralFwhmMm` y el foco del preajuste.
+- Las fuentes: Ostras 2023 (en PMC), Demi, Buda y Soldati 2022, Tang 2020 y Vieira 2020 se leyeron en texto completo; Oelze
+  2008, con su ficha de las referencias.
+- Revisión adversarial de contexto limpio (resumen en la PR).

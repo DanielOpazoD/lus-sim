@@ -161,6 +161,12 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Cambiado
 
+- Rechazado (41): la neblina de los clips es compatible con el espejo de la pared. Con una pleura lisa (σz ≤ 0,01) y la
+  ganancia que no recorta la línea pleural, la neblina queda a 2–2,5 dB de la pared y la arena se frena (0,43–0,61 s), pero
+  las líneas A caen solo 19–21 dB por orden y M y r₂ se alejan del banco: falta una pérdida de ≥ 15 dB por orden que paguen
+  las líneas A y no el espejo. No la dan ni el grano del deslizamiento, ni K 53, ni la armónica del simulador, ni el
+  desenfoque entre la cara convexa y la pleura (≤ 8,6 dB en el orden 2, estimado con haces gaussianos). Herramienta:
+  `e2e/pleuraLisa.spec.ts`.
 - La pared viva (39). La mano del ecografista mueve la sonda respecto del tórax con el reloj único y la semilla del operador
   (`probe/operator.ts`). Por un lado, la pared que respira bajo la sonda (AP 1,29, craneocaudal 1,00 y mediolateral 0,94 mm
   en respiración libre, TC 4D), de la que la mano sigue el 75 %; por otro, el temblor fisiológico de 7–11 Hz, 12 µm rms
