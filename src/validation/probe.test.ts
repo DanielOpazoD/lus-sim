@@ -20,7 +20,7 @@ import { measurementViewPose } from '../app/measurementViews';
 
 /**
  * Lo que lus-sim cambia de la sonda de VExUS (decisión 10): la pose por omisión en el punto BLUE superior
- * derecho aproximado y el recorrido de la sonda por los dos hemitórax. El resto de `probe.ts` y `contact.ts`,
+ * derecho (desde la decisión 42, el de la regla de las manos; el EIC2 de la medioclavicular es la vista de medida) y el recorrido de la sonda por los dos hemitórax. El resto de `probe.ts` y `contact.ts`,
  * idénticos, lo prueban `anatomy.test.ts` (marco y acoplamiento) y `compression.test.ts` (contacto).
  */
 const scene = new AnatomyScene(defaultPatient());

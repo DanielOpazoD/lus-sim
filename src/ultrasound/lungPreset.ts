@@ -33,8 +33,10 @@ export const LUNG_PRESET = defineParameters('ultrasound.lungPreset', {
     sources: ['volpicelli-actualizacion-2026'],
     note:
       'Un solo foco a la altura de la línea pleural (D1_1.2): la profundidad de la pleura parietal en el centro del sector ' +
-      'con la sonda apoyada en el punto BLUE superior de la escena (`defaultPose`), en fin de espiración, medida con la ' +
-      'marcha de A0 (`pleuraCrossingLine`): 16,0 mm con la pared torácica por región (decisión 17; 25 con la heredada). ' +
+      'con la sonda apoyada en la vista de medida del BLUE superior (el EIC2 de la medioclavicular, `app.measurementViews`; ' +
+      'decisión 42), en fin de espiración, medida con la marcha de A0 (`pleuraCrossingLine`): 16,05 mm con la pared torácica por ' +
+      'región (decisión 17; 25 con la heredada). En el BLUE superior clínico de la regla de las manos, donde arranca la app (EIC1), ' +
+      '16,02 mm: el mismo foco sirve. ' +
       '`lungPreset.test.ts` la vuelve a medir: si la anatomía cambia, la prueba falla y el foco se recalcula',
   },
   gainDb: {

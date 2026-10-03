@@ -313,8 +313,9 @@ function topPairs(pairs: ReadonlyMap<string, number>): string {
 
 /**
  * Tolerancia de la distancia de una cara, TS ↔ GLSL, en la cáscara (lus-sim, decisión 42). Un error de posición δx de la
- * coma flotante de la GPU da un error de distancia ≈ |∇d|·δx, con |∇d| la norma del gradiente de la distancia de la cara
- * (`FaceGradient.norm`). Donde |∇d| ≈ 1 manda la tolerancia de siempre, `SHELL_DISTANCE_TOL_MM`; solo donde el gradiente es
+ * coma flotante de la GPU da un error de distancia ≈ |∇d|·δx, con |∇d| la norma del gradiente de la distancia de la cara en la
+ * CPU (`shellGradNorm`: diferencias de un solo lado, la menor de las dos en cada eje, para que un salto de la pared junto al punto
+ * no dé un gradiente enorme; no `FaceGradient.norm`, que es central y lo cruzaría). Donde |∇d| ≈ 1 manda la tolerancia de siempre, `SHELL_DISTANCE_TOL_MM`; solo donde el gradiente es
  * empinado (la pared sobre la cúpula pleural, ≈ 16 mm por mm en z y hasta ≈ 100 en la inspiración profunda: limitación
  * `wall-cupola-transition`) crece con él, con el δx de SwiftShader medido (`SHELL_POSITION_ERR_MM`). Hasta |∇d| = 0,02/δx la
  * prueba es tan exigente como antes.
@@ -331,8 +332,8 @@ export function shellDistanceTolerance(gradNorm: number): number {
   return Math.max(SHELL_DISTANCE_TOL_MM, SHELL_POSITION_ERR_MM * gradNorm);
 }
 
-/** Recuento del acuerdo de la cara de interfaz (TS frente a GLSL) en un conjunto de puntos. */
-class FaceTally {
+/** Recuento del acuerdo de la cara de interfaz (TS frente a GLSL) en un conjunto de puntos (exportado para sus pruebas). */
+export class FaceTally {
   points = 0;
   withFace = 0;
   same = 0;

@@ -178,6 +178,8 @@ export interface TestHooks {
   lateralParity: (opts: { startPoint: MeasurementViewId; every?: number; rowEvery?: number }) => LateralParity;
   /** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
   goToStartPoint: (id: StartPoint['id']) => void;
+  /** Lleva la sonda a una vista de medida (decisión 42), sin animación. */
+  goToMeasurementView: (id: MeasurementViewId) => void;
   /** Lleva la sonda a una pose cualquiera (capturas y búsqueda de ventanas). */
   setPose: (pose: ProbePose) => void;
   /** Separa la sonda de la piel `mm` (0 = contacto) sin tocar el resto de la pose. */
@@ -514,6 +516,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         }
       }),
     goToStartPoint: (id) => goTo(getSim(), id),
+    goToMeasurementView: (id) => goToView(getSim(), id),
     setPose: (pose) => {
       const sim = getSim();
       sim.setPose(pose);
@@ -972,6 +975,8 @@ export interface RibShadowStats {
   beyond: { before: boolean[]; after: boolean[] };
   /** La misma clasificación de la CPU en las líneas del sector con pleura: la fracción que coincide con la pasada A (`bone`). */
   cpuBoneAgreement: number;
+  /** Lo mismo en las líneas de cada borde del sector (tantas como las virtuales de `beyond`). */
+  cpuBoneAgreementEdges: { before: number; after: number };
 }
 
 /** Semiventana (mm) del pico de la línea pleural y de la línea A de orden 2, y margen de la ventana de la sombra. */
@@ -1136,7 +1141,11 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const afterBone = Array.from({ length: beyond }, (_, k) => cpuBone(env.lines + k));
   // la misma clasificación dentro del sector, frente a la de la pasada A (que la de fuera mida lo mismo)
   const inside = out.filter((x) => !Number.isNaN(x.pleuraMm));
-  const agree = inside.filter((x) => cpuBone(x.line) === x.bone).length;
+  const cpuInside = new Map(inside.map((x) => [x.line, cpuBone(x.line)]));
+  const agree = inside.filter((x) => cpuInside.get(x.line) === x.bone).length;
+  // y en las `beyond` líneas de cada borde, las que deciden el núcleo de una sombra que lo toca
+  const edgeAgreement = (lines: RibShadowLine[]): number =>
+    lines.length ? lines.filter((x) => cpuInside.get(x.line) === x.bone).length / lines.length : Number.NaN;
   const edges = shadowEdgeLines(
     out.map((x) => x.bone),
     beforeBone,
@@ -1177,6 +1186,10 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
     blackLevelDb: -sim.bmode.dynamicRangeDb * (1 - levelOfGrey(0.5 / 255)),
     beyond: { before: beforeBone, after: afterBone },
     cpuBoneAgreement: inside.length ? agree / inside.length : Number.NaN,
+    cpuBoneAgreementEdges: {
+      before: edgeAgreement(inside.filter((x) => x.line < beyond)),
+      after: edgeAgreement(inside.filter((x) => x.line >= env.lines - beyond)),
+    },
   };
 }
 
