@@ -22,16 +22,7 @@ import type { Vec3 } from '../core/vec3';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
 import { CONTACT, contactCoupling, probeContact, type ProbeContact } from '../probe/contact';
-import {
-  CONVEX_C35,
-  clampPose,
-  lineAngle,
-  lineDirection,
-  pointOnLine,
-  probeFrame,
-  type ProbeFrame,
-  type ProbePose,
-} from '../probe/probe';
+import { CONVEX_C35, clampPose, lineAngle, lineDirection, pointOnLine, probeFrame, type ProbeFrame, type ProbePose } from '../probe/probe';
 import { measurementViewPose } from '../app/measurementViews';
 
 /**
