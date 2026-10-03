@@ -21,9 +21,10 @@ la salida actual no protege nada.
   Playwright reparte `--shard` por cuenta y en orden, sin mirar cuánto dura cada prueba: cada prueba nueva movía las tres
   ventanas del banco de fidelidad (4–6 min cada una en el CI) hasta juntarlas en un fragmento de 15 min (CI87, CI99, #45,
   #49), y la solución de añadir un fragmento duraba hasta la prueba siguiente. Ahora cada ventana corre sola, elegida por
-  nombre (`--grep "banco de fidelidad en blueUpper"`, …), y las demás se reparten en siete fragmentos que las excluyen
+  nombre (`--grep "banco de fidelidad en blueUpper"`, …), y las demás se reparten en nueve fragmentos que las excluyen (siete hasta la decisión 37, cuyo hígado y bazo hicieron cada
+  prueba ≈ 20 % más lenta en SwiftShader)
   (`--grep-invert "banco de fidelidad en "`). Para ver el reparto sin correrlo:
-  `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/7`. Una ventana nueva del banco lleva
+  `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/9`. Una ventana nueva del banco lleva
   su propia entrada en la matriz. El agregador `check` exige que toda la matriz apruebe, además de `verificar`; el plazo
   por corredor sigue en 15 minutos.
   **Las pruebas lentas del banco** (02-10-2026): la del mapa de grises corría las dos vistas en 4,9–5,0 min frente a su plazo
