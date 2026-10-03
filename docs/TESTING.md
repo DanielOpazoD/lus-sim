@@ -262,6 +262,10 @@ la salida actual no protege nada.
   la mediana de la duración de los clips de la exploración, a su mediana de cuadros por segundo (8,3 s a 25 cps), y mide T2 y
   S1 como el banco, que los calcula sobre el clip entero. La pila de 1 s de `e2e/fidelidad.spec.ts` no se compara con el banco
   en la decorrelación. Con `LUS_PILA_FOLLOW` y `LUS_PILA_TREMOR` barre la mano del operador (gancho `operator`).
+- **La pleura lisa** (`e2e/pleuraLisa.spec.ts`, decisión 41): solo con `LUS_LISA=1`. Para cada σz (`LUS_LISA_SIGMAZ`), con R_t
+  (`LUS_LISA_RT`) y en fundamental o en armónica (`LUS_LISA_HARMONIC`), mide las métricas del banco en cada ganancia y elige la
+  más alta que deja la línea pleural sin recortar y M y r₂ sin censura; con ella (o con `LUS_LISA_PILA_GAIN`), la pila con el
+  protocolo de los clips. No es una prueba.
 - **El simulador** (`e2e/fidelidad.spec.ts`, gancho `fidelity`): en los tres puntos de partida, en apnea espiratoria y en
   respiración tranquila, 30 cuadros de la imagen mostrada; exige que el detector encuentre la pleura del gemelo de A0 a ±1 mm
   en todas las columnas, las líneas A de orden 2 (con el preajuste) y 3 (con R_t 0,5, decisión 35) a k veces la línea pleural mostrada (F-T01) y las sombras donde las

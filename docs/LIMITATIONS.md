@@ -388,3 +388,6 @@ conservan su identificador (decisiones 10 y 11).
   conserva la banda del fundamental; la pérdida de conversión es +3 dB de ruido del receptor, y no hay penumbra
   armónica. En el pulmón pesa más que en el abdomen: la base pide que la armónica baje el contraste de las líneas B
   (meta F-T24 de `docs/knowledge/physics.md`) y el preajuste pulmonar la apaga [@volpicelli-actualizacion-2026].
+  En la serie de la pleura no distingue el armónico (decisión 41): ni el que acumula el espejo de la pared ni el que pierde o
+  gana cada línea A tras rebotar en la pleura y en la cara de la sonda, que depende del signo y de la magnitud de R_p y de R_t
+  a f y a 2f.
