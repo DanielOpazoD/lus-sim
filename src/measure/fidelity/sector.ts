@@ -213,6 +213,18 @@ function supportingOffset(c: Float64Array, allowed: number): { offset: number; c
 const ARC_TOL_PX = 2;
 const ARC_MIN_COVERAGE = 0.8;
 const ARC_MAX_MEDIAN_RESIDUAL_PX = 1;
+/**
+ * El borde de una máscara binaria queda entre el último píxel fuera y el primero dentro: medio píxel por encima del centro de
+ * lo primero encendido de cada columna (decisión 45). Sin esa media fila el arco se ajusta medio píxel más hondo.
+ */
+const SKIN_EDGE_OFFSET_PX = 0.5;
+/**
+ * Error típico (px) por debajo del cual manda el arco aunque el de los bordes sea menor (decisión 45): la piel está fija a la
+ * cara de la sonda y su arco no cambia de una pila a otra, mientras los bordes, que se ven en el campo lejano, se mueven con el
+ * contenido de la imagen (con la mano del operador, el ápice de los bordes variaba ±0,35 px entre seis pilas del PLAPS; el del
+ * arco, nada). El error típico del arco es sobre todo el escalón del píxel, que no cambia entre pilas.
+ */
+const ARC_PREFERRED_SIGMA_PX = 1;
 
 /**
  * La altura del ápice desde el arco de la piel (lus-sim, decisión 36): en una convexa, lo primero encendido de cada columna
@@ -223,8 +235,9 @@ const ARC_MAX_MEDIAN_RESIDUAL_PX = 1;
  * encendido está por debajo del borde superior del cuadro (en los clips de Born la piel es el borde del recorte), cubre al
  * menos `ARC_MIN_COVERAGE` de los ángulos del sector (sin el 6 % de cada lado), lo ajusta al menos la mitad de sus puntos y
  * su residuo mediano no pasa de `ARC_MAX_MEDIAN_RESIDUAL_PX`. Si no, null y manda la intersección de los bordes. Devuelve la
- * altura del centro y su error típico (el del ajuste lineal): un arco corto y llano sitúa mal el centro (en un sintético de 300
- * px con 10 px de flecha, a 20 px con σ 4) y `detectSector` lo compara con el de los bordes.
+ * altura del centro, su error típico (el del ajuste lineal) y el radio del arco: un arco corto y llano sitúa mal el centro (en un
+ * sintético de 300 px con 10 px de flecha, a 20 px con σ 4) y `detectSector` lo compara con el de los bordes. Cada punto es el
+ * borde de la máscara, medio píxel por encima de lo primero encendido (`SKIN_EDGE_OFFSET_PX`, decisión 45).
  */
 export function skinArcCenterY(
   support: Uint8Array,
@@ -234,7 +247,7 @@ export function skinArcCenterY(
   y0: number,
   thetaL: number,
   thetaR: number,
-): { y: number; sigma: number } | null {
+): { y: number; sigma: number; radius: number } | null {
   const BINS = 48;
   const span = thetaR - thetaL;
   const lo = thetaL + 0.06 * span;
@@ -251,7 +264,7 @@ export function skinArcCenterY(
     if (y <= ROW_GAP_PX) continue;
     const th = Math.atan2(x - x0, y - y0);
     if (th < lo || th > hi) continue;
-    pts.push({ x, y, bin: Math.min(BINS - 1, Math.floor(((th - lo) / (hi - lo)) * BINS)) });
+    pts.push({ x, y: y - SKIN_EDGE_OFFSET_PX, bin: Math.min(BINS - 1, Math.floor(((th - lo) / (hi - lo)) * BINS)) });
   }
   if (pts.length < BINS) return null;
   // las columnas que entran al abanico por un borde y no por el arco (bajo una sombra costal, lo primero encendido es hondo)
@@ -300,7 +313,7 @@ export function skinArcCenterY(
   const n = use.length;
   const sg2 = res.reduce((u, r) => u + r * r, 0) / Math.max(1, n - 2);
   const sigma = Math.sqrt((4 * R * R * sg2 * n) / (s11 * n - s12 * s12));
-  return { y: cy, sigma };
+  return { y: cy, sigma, radius: R };
 }
 
 /**
@@ -480,6 +493,11 @@ export function detectSectorFromStats(stats: StackStats, scale: GreyScale = GREY
   for (let i = 0; i < W * H; i++) if (lit[i] && (!temporal || std[i] > tauAt(i))) raw[i] = 1;
   // las componentes conexas grandes: la imagen; el texto, las escalas y los botones separados por negro, fuera
   const support = mainComponents(raw, W, H);
+  // (decisión 45) la piel no se busca en la máscara temporal: con la sonda que sigue a la piel, la piel y el campo cercano casi
+  // no cambian (σ temporal 0,3–1,4 grises, junto al umbral) y la máscara temporal los agujerea. El arco y el radio mínimo se
+  // miden sobre lo encendido (sus componentes grandes); una marca quieta sobre la piel deja puntos fuera del círculo y el arco
+  // no se acepta (`skinArcCenterY`)
+  const skinSupport = temporal ? mainComponents(lit, W, H) : support;
   let supportCount = 0;
   for (let i = 0; i < W * H; i++) supportCount += support[i];
   // los extremos de cada fila: el primer y el último tramo de ≥ MIN_RUN_PX píxeles del soporte (saltando huecos cortos).
@@ -564,14 +582,19 @@ export function detectSectorFromStats(stats: StackStats, scale: GreyScale = GREY
   // ápice: x = a_L + b_L·y = a_R + b_R·y
   let apexY = (right.a - left.a) / (left.b - right.b);
   const apexX = left.a + left.b * apexY;
+  // el radio de la piel desde el arco, si manda el arco (decisión 45)
+  let skinRadius: number | null = null;
   // con los bordes simétricos, el arco de la piel entero da otra altura del ápice (su centro): manda la de menor error típico,
   // y los bordes dan su ángulo por ese ápice. El arco gana cuando los bordes se ven en pocas filas (el BLUE inferior: σ 1,4 px
-  // los bordes, 0,45 el arco) y pierde cuando es corto y llano frente a unos bordes largos (σ 0,2–0,3 frente a 4–5)
+  // los bordes, 0,45 el arco) o cuando su error típico es menor de `ARC_PREFERRED_SIGMA_PX` (decisión 45: el PLAPS, 0,44 frente
+  // a 0,3), y pierde cuando es corto y llano frente a unos bordes largos (σ 0,2–0,3 frente a 4–5). Con el arco, la piel es su
+  // radio: el ápice y la piel salen del mismo ajuste
   if (both) {
-    const arc = skinArcCenterY(support, W, H, apexX, apexY, thetaL, thetaR);
+    const arc = skinArcCenterY(skinSupport, W, H, apexX, apexY, thetaL, thetaR);
     const edgeSigma = edgeApexSigma(apexY, { ys: ysL, xs: xl, line: left }, { ys: ysR, xs: xr, line: right });
-    if (arc !== null && arc.sigma < edgeSigma) {
+    if (arc !== null && (arc.sigma < edgeSigma || arc.sigma < ARC_PREFERRED_SIGMA_PX)) {
       apexY = arc.y;
+      skinRadius = arc.radius;
       const s = slopeThroughApex(apexX, apexY, { ys: ysL, xs: xl, line: left }, { ys: ysR, xs: xr, line: right });
       thetaR = Math.atan(s);
       thetaL = -thetaR;
@@ -590,21 +613,25 @@ export function detectSectorFromStats(stats: StackStats, scale: GreyScale = GREY
   const maxR = new Array<number>(BINS).fill(Number.NEGATIVE_INFINITY);
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
-      if (!support[y * W + x]) continue;
+      const inSkin = skinSupport[y * W + x] === 1;
+      const inSupport = support[y * W + x] === 1;
+      if (!inSkin && !inSupport) continue;
       const th = Math.atan2(x - apexX, y - apexY);
       if (th < lo || th > hi) continue;
       const bin = Math.min(BINS - 1, Math.floor(((th - lo) / (hi - lo)) * BINS));
       const rho = Math.hypot(x - apexX, y - apexY);
-      if (rho < minR[bin]) minR[bin] = rho;
-      if (rho > maxR[bin]) maxR[bin] = rho;
+      if (inSkin && rho < minR[bin]) minR[bin] = rho;
+      if (inSupport && rho > maxR[bin]) maxR[bin] = rho;
     }
-  // la piel: el p10 de los radios mínimos por ángulo (no la mediana: donde el campo cercano está a oscuras, como en los
-  // lados de una sonda de fase, lo primero encendido queda hondo); el fondo, el p90 de los máximos (no la mediana: bajo una
-  // sombra costal negra lo encendido acaba en la costilla)
-  const rhoMin = quantile(
-    minR.filter((r) => Number.isFinite(r)),
-    0.1,
-  );
+  // la piel: el radio del arco si manda el arco (decisión 45); si no, el p10 de los radios mínimos por ángulo (no la mediana:
+  // donde el campo cercano está a oscuras, como en los lados de una sonda de fase, lo primero encendido queda hondo); el fondo,
+  // el p90 de los máximos (no la mediana: bajo una sombra costal negra lo encendido acaba en la costilla)
+  const rhoMin =
+    skinRadius ??
+    quantile(
+      minR.filter((r) => Number.isFinite(r)),
+      0.1,
+    );
   const rhoMax = quantile(
     maxR.filter((r) => Number.isFinite(r)),
     0.9,

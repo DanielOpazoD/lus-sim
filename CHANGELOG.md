@@ -288,6 +288,7 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   `rib-acoustics-simplified`, lo que el modelo de la costilla aún simplifica.
 - La limitación `respiratory-inverse-fixed-point`: la inversa del campo respiratorio es exacta (22); la sustituye
   `respiratory-field-vertical`, lo que el campo aún simplifica.
+- La limitación `sector-detector-moving-skin`: el detector del sector ya no se corre con la piel que se mueve (45).
 
 ## [0.1.0] — 2026-09-26 — fase 0: cimientos
 

@@ -34,7 +34,6 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'probe-compression-kinematic',
   'probe-compression-in-plane',
   'operator-hand-rigid',
-  'sector-detector-moving-skin',
   // imagen
   'no-lung-comet-tails',
   'pleura-series-same-line',

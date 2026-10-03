@@ -23,7 +23,7 @@ la salida actual no protege nada.
   #49), y la solución de añadir un fragmento duraba hasta la prueba siguiente. Ahora cada ventana corre sola, elegida por
   nombre (`--grep "banco de fidelidad en blueUpper"`, …), y las demás se reparten en nueve fragmentos que las excluyen (siete hasta la decisión 37, cuyo hígado y bazo hicieron cada
   prueba ≈ 20 % más lenta en SwiftShader)
-  (`--grep-invert "banco de fidelidad en |el detector del sector con la mano"`; la meta aún no cumplida del detector con la mano de la decisión 39, de 4,6 min, también corre sola). Para ver el reparto sin correrlo:
+  (`--grep-invert "banco de fidelidad en |el detector del sector con la mano"`; la guarda del detector con la mano, de 4,6 min, también corre sola: era la meta aún no cumplida de la decisión 39 y se cumple desde la 45). Para ver el reparto sin correrlo:
   `CI=1 npx playwright test --list --grep-invert "banco de fidelidad en " --shard=2/9`. Una ventana nueva del banco lleva
   su propia entrada en la matriz. El agregador `check` exige que toda la matriz apruebe, además de `verificar`; el plazo
   por corredor es de 25 minutos (15 hasta el 03-10-2026: con el hígado y el bazo y la pared viva las ventanas del banco tardan

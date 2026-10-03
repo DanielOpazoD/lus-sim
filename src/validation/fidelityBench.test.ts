@@ -187,6 +187,44 @@ describe('sector: detección automática desde la imagen (§3.1, pasos 2–3)', 
     expect(still.supportFraction).toBeGreaterThan(d.supportFraction);
   });
 
+  it('la piel que sigue a la sonda: un campo cercano quieto en un clip vivo no mueve la piel ni el ápice (decisión 45)', () => {
+    // un clip vivo (todo varía cuadro a cuadro) salvo los primeros 6 px bajo la piel, quietos, como bajo una sonda que sigue a
+    // la piel con la mano del operador: la máscara temporal no los ve
+    const R0 = O.radiusMm * O.scale;
+    const live = syntheticLus(O, 8, 1, 0.01);
+    const W = live[0].width;
+    const quiet = (x: number, y: number): boolean => {
+      const r = Math.hypot(x - O.apexX, y - O.apexY);
+      return r >= R0 - 1 && r < R0 + 6;
+    };
+    const stack = live.map((f) => {
+      const data = Float64Array.from(f.data as Float64Array);
+      for (let i = 0; i < data.length; i++) if (quiet(i % W, Math.floor(i / W))) data[i] = (live[0].data as Float64Array)[i];
+      return { ...f, data };
+    });
+    const d = detectSector(stack, CONT);
+    expect(d.maskSource).toBe('temporal');
+    const g = d.geometry;
+    if (g.kind !== 'convex') throw new Error('no es convexa');
+    // la piel y el ápice, los del mismo clip sin la banda quieta (con la máscara temporal de siempre, los primeros 6 px fuera)
+    const ref = detectSector(live, CONT);
+    expect(ref.maskSource).toBe('temporal');
+    const gr = ref.geometry;
+    if (gr.kind !== 'convex') throw new Error('no es convexa');
+    expect(Math.abs(g.rhoMin - R0)).toBeLessThan(1.5);
+    expect(Math.abs(g.rhoMin - gr.rhoMin)).toBeLessThan(0.1);
+    expect(Math.abs(g.apexY - gr.apexY)).toBeLessThan(0.1);
+    // sobre la máscara temporal (sin la banda) el arco quedaría 6 px más hondo: lo primero que varía
+    const { mean, std } = temporalStats(stack);
+    let firstVarying = -1;
+    const x0 = Math.round(O.apexX);
+    for (let y = 0; y < stack[0].height && firstVarying < 0; y++) {
+      const i = y * W + x0;
+      if (mean[i] > 0.02 && std[i] > 0.02 * mean[i]) firstVarying = y;
+    }
+    expect(firstVarying - (O.apexY + R0)).toBeGreaterThan(5);
+  });
+
   it('el cuadro entero es imagen si las esquinas están encendidas; sin soporte, lanza', () => {
     const full: GreyFrame = { width: 40, height: 30, data: new Float64Array(1200).fill(0.5) };
     expect(detectSector([full], CONT)).toMatchObject({ maskSource: 'full-frame', geometry: { kind: 'linear', xRight: 39, yBottom: 29 } });
