@@ -405,6 +405,7 @@ export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
 uniform float uPleuraRt; // R_t (normalCalibration.ts); el barrido de calibración la cambia
+uniform vec4 uSeriesParts; // espejo, directa, deslizamiento y línea pleural con sus réplicas: 1 salvo en la descomposición de la neblina
 const float SLIDING_AMP = ${glslFloat(slidingAmplitude(0))};
 const float SLIDING_EFOLD_MM = ${glslFloat(SLIDING_EFOLD_MM)};
 const float SLIDING_LAT_MM = ${glslFloat(SLIDING_LAT_MM)};

@@ -33,7 +33,7 @@ import { compareLook0Aperture, type Look0ApertureParity } from './apertureParity
 import { compareLateral, type LateralParity } from './lateralParity';
 import { compareSteeredTransmission } from './steeredParity';
 import { compoundActive } from '../ultrasound/compound';
-import { COARSE_DEPTH, displayLevelDb, type CompoundState } from '../ultrasound/renderer';
+import { COARSE_DEPTH, displayLevelDb, type CalibrationOverride, type CompoundState } from '../ultrasound/renderer';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { speckleStats, type SpeckleOptions, type SpeckleStats } from './speckle';
 import { columnLevel, mirrorContrast, mirrorDepths, type ColumnStats, type MirrorStats } from './mirrorBench';
@@ -101,7 +101,7 @@ export interface TestHooks {
    */
   fidelity: (opts: FidelityBenchOptions) => FidelityBenchReport;
   /** Barrido de calibración (lus-sim, ciclo 3b-2): K, σz de la pleura y R_t en la pasada B; `null` vuelve al registro. */
-  calibrationOverride: (o: { kDb?: number; pleuraSigmaZMm?: number; pleuraRt?: number } | null) => void;
+  calibrationOverride: (o: CalibrationOverride | null) => void;
   /**
    * Pulso pulmonar (lus-sim, decisión 32): el modo M de la línea central en `site` con la respiración `respiration`, a
    * intervalos fijos del reloj, medido en la banda bajo la pleura (S3 y F-T11). Ver `LungPulseReport`.

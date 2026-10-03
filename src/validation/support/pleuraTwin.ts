@@ -108,8 +108,11 @@ export interface PleuraTwinOpts {
   caudalMm?: number;
   /** Semilla del ruido del receptor (cada cuadro, otra). */
   noiseSeed?: number;
-  /** Qué partes del pulmón se suman (todas por omisión): para separar su contribución en la neblina. */
-  parts?: { pleura?: boolean; series?: boolean; sliding?: boolean; tissue?: boolean };
+  /**
+   * Qué partes del pulmón se suman (todas por omisión): para separar su contribución en la neblina; la serie, además, con la
+   * copia espejo y la directa por separado (decisión 38).
+   */
+  parts?: { pleura?: boolean; series?: boolean; mirror?: boolean; forward?: boolean; sliding?: boolean; tissue?: boolean };
   /** Ganancia del eco de las caras en las copias de la pared (`WALL_COPY_FACE_GAIN` por omisión): su rango. */
   wallCopyFaceGain?: number;
 }
@@ -189,7 +192,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
   const salt = ((seed * 131) % 1000) / 7;
   const embed = (x: number, y: number): Vec3 => [O[0] + x * a[0] + y * b[0], O[1] + x * a[1] + y * b[1], O[2] + x * a[2] + y * b[2]];
   const noise = rng(o.noiseSeed ?? 7);
-  const parts = { pleura: true, series: true, sliding: true, tissue: true, ...o.parts };
+  const parts = { pleura: true, series: true, mirror: true, forward: true, sliding: true, tissue: true, ...o.parts };
   const copyFaceGain = o.wallCopyFaceGain ?? WALL_COPY_FACE_GAIN;
   /** Campo de la pasada B de un tejido en (x, y): el plano central o los tres planos de elevación. */
   const fieldAt = (x: number, y: number, r: number, planes: boolean): [number, number] => {
@@ -259,7 +262,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
             if (parts.pleura) ar += term.gain * pleuraSeriesEcho(c, term.depth, K0);
             continue;
           }
-          if (!parts.series) continue;
+          if (!parts.series || !parts[term.family]) continue;
           const d = term.depth;
           const yd = (RC + d) * c - RC;
           const f = fieldAt((RC + d) * sn, yd, d, false);

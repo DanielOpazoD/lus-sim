@@ -108,7 +108,15 @@ export interface FidelityBenchReport {
   /** Caída por orden de las líneas A (dB) medida en la pantalla y en la envolvente, frente a F-T02. */
   aLineDrop: {
     orders: { k: number; displayDb: number | null; envelopeDb: number; dropDisplayDb: number | null; dropEnvelopeDb: number }[];
-    ft02: { predictedDb: ReturnType<typeof medianIqr>; chi: number; transmissionDb: number; tgcDb: number; lines: number };
+    ft02: {
+      predictedDb: ReturnType<typeof medianIqr>;
+      chi: number;
+      /** Incidencia de la línea en la pleura (cos θ): mediana de las líneas intercostales (decisión 38). */
+      cosI: number;
+      transmissionDb: number;
+      tgcDb: number;
+      lines: number;
+    };
   };
   /** Teselas de moteado de la imagen mostrada (con `speckleTile`), con la geometría verdadera. */
   speckleTiles?: SpeckleTile[];
@@ -121,6 +129,13 @@ export interface FidelityBenchReport {
    * (Rayleigh: 1,57, poco sensible al grano y al tamaño del parche); medianas sobre los parches.
    */
   wallSpeckle: { region: EnvelopeSpread; muscle?: EnvelopeSpread };
+  /**
+   * Niveles de la envolvente en la pantalla (dB) con la geometría verdadera (lus-sim, decisión 38): las mismas bandas que el banco
+   * (la pared, u 0,2–0,85, y la neblina, u 1,25–1,75, medianas) y los picos de la línea pleural y de la línea A de orden 2 (±1 mm
+   * de D y de 2D), en las líneas intercostales libres con la pleura del gemelo de A0. No dependen de la detección: comparan
+   * configuraciones de la serie que el detector ve distintas (la descomposición de la neblina).
+   */
+  truthLevelsDb: { wall: number; haze: number; pleura: number; aLine2: number; lines: number };
 }
 
 /** La forma del moteado de la envolvente en parches (ver `wallSpeckle`). */
@@ -309,6 +324,33 @@ function measureFidelity(
     return displayLevelDb(20 * Math.log10(Math.max(e, 1e-12)), r, b, fB);
   };
   const m0 = analysis.perFrame[0];
+  const truthLevelsDb = ((): FidelityBenchReport['truthLevelsDb'] => {
+    const dz = b.depthMm / env.samples;
+    const dbAt = (l: number, v: number): number =>
+      displayLevelDb(20 * Math.log10(Math.max(env.data[v * env.lines + l], 1e-12)), (v + 0.5) * dz, b, fB);
+    const wall: number[] = [];
+    const haze: number[] = [];
+    const pl: number[] = [];
+    const a2: number[] = [];
+    let lines = 0;
+    for (const x of rib.lines) {
+      const D = x.pleuraMm;
+      if (!x.free || !Number.isFinite(D)) continue;
+      lines++;
+      let p1 = Number.NEGATIVE_INFINITY;
+      let p2 = Number.NEGATIVE_INFINITY;
+      for (let v = 0; v < env.samples; v++) {
+        const r = (v + 0.5) * dz;
+        if (r >= 0.2 * D && r <= 0.85 * D) wall.push(dbAt(x.line, v));
+        if (r >= 1.25 * D && r <= 1.75 * D) haze.push(dbAt(x.line, v));
+        if (Math.abs(r - D) <= 1) p1 = Math.max(p1, dbAt(x.line, v));
+        if (Math.abs(r - 2 * D) <= 1) p2 = Math.max(p2, dbAt(x.line, v));
+      }
+      if (Number.isFinite(p1)) pl.push(p1);
+      if (Number.isFinite(p2)) a2.push(p2);
+    }
+    return { wall: median(wall), haze: median(haze), pleura: median(pl), aLine2: median(a2), lines };
+  })();
   // la forma del moteado de la pared en la envolvente sin recortar (la verdad de la autoprueba del mapa, decisión 31)
   const wallSpeckle = ((): FidelityBenchReport['wallSpeckle'] => {
     const dz = b.depthMm / env.samples;
@@ -373,6 +415,7 @@ function measureFidelity(
   const inside = (p: readonly number[]): number => scene.insideWallMm(toMaterial(p));
   const pred: number[] = [];
   const chis: number[] = [];
+  const cosIs: number[] = [];
   const tDs: number[] = [];
   const lines = [...new Set(st.intercostal.map(lineOf))].filter((l) => rib.lines[l].free && Number.isFinite(rib.lines[l].pleuraMm));
   for (const l of lines) {
@@ -395,6 +438,7 @@ function measureFidelity(
     const row = Math.min(COARSE_DEPTH - 1, Math.floor(pleuraCapMm(D, step) / step));
     const tD = trans.aperture[row * trans.lines + l];
     chis.push(chi);
+    cosIs.push(cosI);
     tDs.push(tD);
     pred.push(-20 * Math.log10(PLEURA_RP * chi * calib.pleuraRt * tD) - nominalTgcDbPerCm(fB) * (D / 10));
   }
@@ -442,12 +486,14 @@ function measureFidelity(
     },
     levelsDb,
     wallSpeckle,
+    truthLevelsDb,
     ...(opts.speckleTile ? { speckleTiles: speckleTiles(frames, truth, { tile: opts.speckleTile, maxFrames: 8 }) } : {}),
     aLineDrop: {
       orders: withDrop,
       ft02: {
         predictedDb: medianIqr(pred),
         chi: median(chis),
+        cosI: median(cosIs),
         transmissionDb: 20 * Math.log10(median(tDs)),
         tgcDb: nominalTgcDbPerCm(fB) * (dCpu / 10),
         lines: lines.length,
