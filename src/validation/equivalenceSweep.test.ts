@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FaceTally,
+  SHELL_DISTANCE_TOL_MM,
+  SHELL_POSITION_ERR_MM,
   equivalenceSweep,
   inspirationSweepPoses,
   interfaceShellEquivalence,
   pleuraEquivalence,
+  shellDistanceTolerance,
+  shellGradNorm,
   volumeEquivalence,
 } from '../app/equivalenceSweep';
 import type { Simulator } from '../app/simulator';
@@ -189,6 +194,72 @@ describe('Gates de equivalencia TS ↔ GLSL (lógica)', () => {
       24,
     );
     expect(wavy.distanceMaxErr).toBeGreaterThan(0.02);
+    expect(wavy.distanceMaxErrOverTol).toBeGreaterThan(1);
+  });
+
+  it('la tolerancia de la distancia crece con el gradiente de la cara y no en las zonas planas (decisión 42)', () => {
+    expect(shellDistanceTolerance(1)).toBe(SHELL_DISTANCE_TOL_MM);
+    expect(shellDistanceTolerance(SHELL_DISTANCE_TOL_MM / SHELL_POSITION_ERR_MM)).toBeCloseTo(SHELL_DISTANCE_TOL_MM, 12);
+    expect(shellDistanceTolerance(30)).toBeCloseTo(30 * SHELL_POSITION_ERR_MM, 12);
+    // la mutación: 0,05 mm en una cara plana (la fascia profunda, |∇d| ≈ 1) sigue sin pasar
+    const flat = interfaceShellEquivalence(
+      fakeSim((_p, q) => (q.interface === Interface.DeepFascia ? { ifd: q.interfaceDistance + 0.05 } : {})),
+      24,
+    );
+    expect(flat.distanceMaxErrOverTol, flat.distanceWorstOverTol).toBeGreaterThan(2);
+    // el δx de SwiftShader medido (0,00101 y 0,00114 mm, decisión 42), con su margen y no más: con δx × 10 todo pasaría
+    expect(SHELL_POSITION_ERR_MM).toBeGreaterThanOrEqual(0.00114);
+    expect(SHELL_POSITION_ERR_MM).toBeLessThanOrEqual(0.002);
+  });
+
+  /** Una «escena» sintética: una sola cara con la distancia `d(p)` (para `shellGradNorm`, que solo clasifica puntos). */
+  const synthetic = (d: (p: readonly number[]) => number): Simulator =>
+    ({
+      sample: {},
+      anatomy: { classifyWorld: (p: readonly number[]) => ({ interface: Interface.Scarpa, interfaceDistance: d(p) }) },
+    }) as unknown as Simulator;
+
+  it('|∇d| de una cara lineal, d = 30·z: 30; con él pasa un error de 0,9·δx·30 y no uno de 1,1·δx·30 (decisión 42)', () => {
+    // el oráculo es analítico: |∇(30·z + 0,3)| = 30
+    const sim = synthetic((p) => 30 * p[2] + 0.3);
+    const p = [1, 2, 0];
+    const d = 0.3;
+    const g = shellGradNorm(sim, p, Interface.Scarpa, d);
+    expect(g).toBeCloseTo(30, 6);
+    const run = (k: number) => {
+      const t = new FaceTally();
+      t.add(Interface.Scarpa, d, Interface.Scarpa, d + k * SHELL_POSITION_ERR_MM * 30, 'sintético', () =>
+        shellGradNorm(sim, p, Interface.Scarpa, d),
+      );
+      return t;
+    };
+    // el error pasa de la tolerancia fija: la escalada entra en juego
+    expect(0.9 * SHELL_POSITION_ERR_MM * 30).toBeGreaterThan(SHELL_DISTANCE_TOL_MM);
+    expect(run(0.9).maxErrOverTol).toBeCloseTo(0.9, 6);
+    expect(run(1.1).maxErrOverTol).toBeCloseTo(1.1, 6);
+    expect(run(0.9).maxImpliedDxMm).toBeCloseTo(0.9 * SHELL_POSITION_ERR_MM, 9);
+  });
+
+  it('|∇d| junto a un salto de la cara: la pendiente del lado continuo (≈ 1), no la del salto; 0,05 mm no pasan (decisión 42)', () => {
+    // d = z + 0,3 hasta z = 0,002 y 50 mm más allá: la diferencia hacia +z cruza el salto, la de −z no
+    const sim = synthetic((p) => (p[2] < 0.002 ? p[2] + 0.3 : p[2] + 50.3));
+    const p = [0, 0, 0];
+    const g = shellGradNorm(sim, p, Interface.Scarpa, 0.3);
+    expect(g).toBeCloseTo(1, 6);
+    const t = new FaceTally();
+    t.add(Interface.Scarpa, 0.3, Interface.Scarpa, 0.35, 'sintético', () => shellGradNorm(sim, p, Interface.Scarpa, 0.3));
+    expect(t.maxErrOverTol).toBeCloseTo(0.05 / SHELL_DISTANCE_TOL_MM, 6);
+    // y si la cara cambia a los dos lados de un eje, la tolerancia fija
+    const other = {
+      sample: {},
+      anatomy: {
+        classifyWorld: (q: readonly number[]) => ({
+          interface: q[2] === 0 ? Interface.Scarpa : Interface.DeepFascia,
+          interfaceDistance: 0.3 + 40 * Math.abs(q[2]),
+        }),
+      },
+    } as unknown as Simulator;
+    expect(shellGradNorm(other, p, Interface.Scarpa, 0.3)).toBe(1);
   });
 
   it('la cáscara ve la cara de la pleura parietal (la cara interna de la pared) cambiada de dueño', () => {

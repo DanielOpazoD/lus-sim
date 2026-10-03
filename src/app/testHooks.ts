@@ -48,6 +48,7 @@ import {
 } from './lungPulseBench';
 import type { RenderMeasureOptions, Simulator } from './simulator';
 import { START_POINTS, type StartPoint } from './startPoints';
+import { measurementViewPose, type MeasurementViewId } from './measurementViews';
 
 /**
  * Ganchos de prueba estables (e2e). Se cargan con `import()` dinámico solo en desarrollo o
@@ -82,18 +83,23 @@ export interface TestHooks {
    * el marco la siga. `compound` (obligatorio, decisión 58): con `false`, la imagen de una mirada de siempre; con
    * `true`, llena el anillo de miradas y mide la envolvente compuesta. El conmutador vuelve a como estaba al terminar.
    */
-  speckle: (opts: SpeckleOptions & { startPoint?: StartPoint['id']; pose?: ProbePose; compound: boolean }) => SpeckleStats;
+  speckle: (opts: SpeckleOptions & { startPoint?: MeasurementViewId; pose?: ProbePose; compound: boolean }) => SpeckleStats;
   /**
    * Líneas A en la envolvente de la GPU (meta F-T01, `docs/knowledge/physics.md` §3.3): en `startPoint` con la
    * respiración `respiration`; con `compound` (lus-sim, decisión 15), en la envolvente compuesta de la pasada K con el
    * anillo de miradas lleno, y si no, en la mirada 0. Ver `ALineStats`.
    */
-  aLines: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern; compound?: boolean }) => ALineStats;
+  aLines: (opts: { startPoint: MeasurementViewId; respiration: RespiratoryPattern; compound?: boolean }) => ALineStats;
   /**
    * Sombra costal en la envolvente de la GPU (propia de lus-sim: meta F-T08, `docs/knowledge/physics.md` §3.3): en
    * `startPoint` con la respiración `respiration`, una mirada; ver `RibShadowStats`.
    */
-  ribShadow: (opts: { startPoint: StartPoint['id']; respiration: RespiratoryPattern }) => RibShadowStats;
+  ribShadow: (opts: {
+    startPoint: MeasurementViewId;
+    respiration: RespiratoryPattern;
+    /** Otra pose en lugar de la vista de medida (decisión 42: el BLUE inferior clínico, donde F-T08 aún no se cumple). */
+    pose?: ProbePose;
+  }) => RibShadowStats;
   /**
    * Banco de fidelidad (lus-sim, decisión 21): la imagen mostrada en `startPoint` con la respiración `respiration`, una pila
    * de `frames` cuadros cada `frameIntervalS` s, medida con las funciones del banco de referencia
@@ -120,7 +126,7 @@ export interface TestHooks {
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
    * plano a 0,02–0,4 mm de la cara que dibujan según la CPU. Ver `WallNormalStats`.
    */
-  wallNormals: (opts: { startPoint: StartPoint['id'] }) => WallNormalStats;
+  wallNormals: (opts: { startPoint: MeasurementViewId }) => WallNormalStats;
   /**
    * Coste medio de `n` cuadros de imagen en tiempo de pared (ms), sincronizado con la GPU al
    * principio y al final: compara versiones del renderizador en la misma máquina. Lanza (en vez de devolver
@@ -140,7 +146,13 @@ export interface TestHooks {
    * transmisión con apertura de A) con sus gemelos de TS (`steeredPrefixDb`, `steeredApertureTransmission`)
    * sobre los mismos segmentos de A0/A1 de la GPU; las muestras en un empate de redondeo se cuentan aparte.
    */
-  transmissionParity: (opts: { compound: boolean; look?: number; startPoint?: StartPoint['id']; every?: number; ambiguityMm?: number }) => {
+  transmissionParity: (opts: {
+    compound: boolean;
+    look?: number;
+    startPoint?: MeasurementViewId;
+    every?: number;
+    ambiguityMm?: number;
+  }) => {
     lines: number;
     samples: number;
     maxDiffDb: number;
@@ -163,9 +175,11 @@ export interface TestHooks {
    * Paridad de la pasada D (lus-sim, decisión 20) en `startPoint`, en apnea espiratoria y en la mirada 0: la envolvente de la
    * GPU frente al gemelo (`compareLateral`) sobre el campo que C le dio, cada `every` líneas y `rowEvery` filas.
    */
-  lateralParity: (opts: { startPoint: StartPoint['id']; every?: number; rowEvery?: number }) => LateralParity;
+  lateralParity: (opts: { startPoint: MeasurementViewId; every?: number; rowEvery?: number }) => LateralParity;
   /** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
   goToStartPoint: (id: StartPoint['id']) => void;
+  /** Lleva la sonda a una vista de medida (decisión 42), sin animación. */
+  goToMeasurementView: (id: MeasurementViewId) => void;
   /** Lleva la sonda a una pose cualquiera (capturas y búsqueda de ventanas). */
   setPose: (pose: ProbePose) => void;
   /** Separa la sonda de la piel `mm` (0 = contacto) sin tocar el resto de la pose. */
@@ -182,7 +196,7 @@ export interface TestHooks {
    * La guarda de `readEnvelope` (decisión 58): con el compuesto, tras un cuadro de mirada dirigida, leer la
    * mirada 0 lanza; devuelve si lanzó, el mensaje y la mirada del último cuadro.
    */
-  envelopeGuard: (opts: { startPoint: StartPoint['id'] }) => { threw: boolean; message: string; look: number };
+  envelopeGuard: (opts: { startPoint: MeasurementViewId }) => { threw: boolean; message: string; look: number };
   /** El simulador vivo. */
   sim: () => Simulator;
 }
@@ -197,7 +211,7 @@ export interface FrameCostOptions {
   repeatPass?: PassId;
   repeatCount?: number;
   /** Coloca antes la sonda en ese punto de partida, para comparar medidas en la misma pose. */
-  startPoint?: StartPoint['id'];
+  startPoint?: MeasurementViewId;
 }
 
 /** Valida las opciones de `frameCostMs` (nada de ignorarlas en silencio) y las traduce a las de `render`. */
@@ -323,7 +337,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     speckle: (opts) => {
       const sim = getSim();
       return withCompound(sim, dispatch, opts.compound, () => {
-        if (opts.startPoint) goTo(sim, opts.startPoint);
+        if (opts.startPoint) goToView(sim, opts.startPoint);
         if (opts.pose) {
           sim.setPose(opts.pose);
           sim.advance(0.05);
@@ -343,7 +357,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         sim.patient.respiratoryPattern = opts.respiration;
         const compound = opts.compound ?? false;
         return withCompound(sim, dispatch, compound, () => {
-          goTo(sim, opts.startPoint);
+          goToView(sim, opts.startPoint);
           if (compound) {
             fillRing(sim);
             return aLineStats(sim, 'compound');
@@ -361,7 +375,11 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       try {
         sim.patient.respiratoryPattern = opts.respiration;
         return withCompound(sim, dispatch, false, () => {
-          goTo(sim, opts.startPoint);
+          goToView(sim, opts.startPoint);
+          if (opts.pose) {
+            sim.setPose(opts.pose);
+            sim.advance(0.05);
+          }
           sim.render();
           return ribShadowStats(sim);
         });
@@ -384,7 +402,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         // la ganancia del barrido (decisión 21), con el comando del equipo; al terminar, la de antes
         if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: opts.gainDb } });
         return withCompound(sim, dispatch, false, () =>
-          fidelityBench(sim, opts, { goTo: (id) => goTo(sim, id), ribShadow: () => ribShadowStats(sim) }),
+          fidelityBench(sim, opts, { goTo: (id) => goToView(sim, id), ribShadow: () => ribShadowStats(sim) }),
         );
       } finally {
         sim.patient.respiratoryPattern = pattern;
@@ -395,7 +413,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     lungPulseEquivalence: () => lungPulseEquivalence(getSim()),
     wallNormals: (opts) => {
       const sim = getSim();
-      goTo(sim, opts.startPoint);
+      goToView(sim, opts.startPoint);
       return wallNormalStats(sim);
     },
     frameCostMs: (n, opts) => {
@@ -404,7 +422,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       const sim = getSim();
       // sin cuadros dibujados la media sería ≈ 0 ms: un número sin sentido, no una medida
       if (sim.frozen) throw new RangeError('frameCostMs: con la imagen congelada no se dibuja ningún cuadro');
-      if (opts?.startPoint) goTo(sim, opts.startPoint);
+      if (opts?.startPoint) goToView(sim, opts.startPoint);
       sim.render(measure);
       sim.renderer.finishForTiming();
       const t0 = performance.now();
@@ -415,7 +433,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     transmissionParity: (opts) =>
       withCompound(getSim(), dispatch, opts.compound, () => {
         const sim = getSim();
-        if (opts.startPoint) goTo(sim, opts.startPoint);
+        if (opts.startPoint) goToView(sim, opts.startPoint);
         const look = opts.look ?? 0;
         if (look !== 0) return steeredParity(sim, look, Math.max(1, opts.every ?? 8));
         sim.render();
@@ -468,7 +486,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         const patient = sim.patient.respiratoryPattern;
         sim.patient.respiratoryPattern = 'apnea-expiratory';
         try {
-          goTo(sim, opts.startPoint);
+          goToView(sim, opts.startPoint);
           sim.advance(1);
           sim.render();
           const inp = sim.renderer.readLateralInputs();
@@ -498,6 +516,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         }
       }),
     goToStartPoint: (id) => goTo(getSim(), id),
+    goToMeasurementView: (id) => goToView(getSim(), id),
     setPose: (pose) => {
       const sim = getSim();
       sim.setPose(pose);
@@ -518,7 +537,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
     envelopeGuard: (opts) => {
       const sim = getSim();
       return withCompound(sim, dispatch, true, () => {
-        goTo(sim, opts.startPoint);
+        goToView(sim, opts.startPoint);
         fillRing(sim);
         // un cuadro de mirada dirigida al final: leer la mirada 0 debe lanzar
         for (let i = 0; i < sim.profile.compound.order.length && sim.renderer.compoundState().look === 0; i++) sim.render();
@@ -908,7 +927,10 @@ export interface RibShadowLine {
   apertureDb: number;
   /** Pasada A: la línea cruza hueso (su primer segmento óseo) antes de la fila de la pleura. */
   bone: boolean;
-  /** Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra; el sector sigue la sombra); −1 sin hueso. */
+  /**
+   * Líneas hasta la línea sin hueso más cercana (0 en el borde de la sombra); desde la decisión 42, más allá del sector con las
+   * líneas virtuales de la CPU (`shadowEdgeLines`, `beyond`); −1 sin hueso.
+   */
   edgeLines: number;
   /**
    * Semiancho (líneas) del cono de emisión de la pasada A en la fila de la pleura, D_tx·(1 − r₀/r)/2 con r₀ el obstáculo
@@ -946,10 +968,38 @@ export interface RibShadowStats {
    * de la curva de grises con la mitad del primer escalón, −RD·(1 − y₀) con y₀ = `levelOfGrey(0,5/255)`.
    */
   blackLevelDb: number;
+  /**
+   * lus-sim (decisión 42): las líneas virtuales más allá de cada borde del sector (la k-ésima, a k + 1 líneas del borde) que
+   * cruzan hueso antes de la pleura, según la escena de la CPU (`shadowEdgeLines`).
+   */
+  beyond: { before: boolean[]; after: boolean[] };
+  /** La misma clasificación de la CPU en las líneas del sector con pleura: la fracción que coincide con la pasada A (`bone`). */
+  cpuBoneAgreement: number;
+  /** Lo mismo en las líneas de cada borde del sector (tantas como las virtuales de `beyond`). */
+  cpuBoneAgreementEdges: { before: number; after: number };
 }
 
 /** Semiventana (mm) del pico de la línea pleural y de la línea A de orden 2, y margen de la ventana de la sombra. */
 export const RIB_SHADOW_PEAK_MM = 1;
+
+/**
+ * Para cada línea con hueso, cuántas líneas hay hasta el borde de su sombra (la línea sin hueso más cercana); −1 en las líneas sin
+ * hueso. Lus-sim (decisión 42): más allá del sector no se supone nada, ni hueso ni su falta. `before[k]` y `after[k]` dicen si la
+ * línea virtual k + 1 antes de la primera o después de la última cruza hueso antes de la pleura, clasificada con la escena de la
+ * CPU (`ribShadowStats`); más allá de las líneas virtuales la distancia se corta (no hace falta conocerla: basta con que
+ * supere el cono y el lóbulo de la línea).
+ */
+export function shadowEdgeLines(bone: readonly boolean[], before: readonly boolean[], after: readonly boolean[]): number[] {
+  const n = bone.length;
+  const isBone = (i: number): boolean => (i < 0 ? before[-i - 1] === true : i >= n ? after[i - n] === true : bone[i]);
+  const limit = n + Math.max(before.length, after.length);
+  return bone.map((b, line) => {
+    if (!b) return -1;
+    let d = 0;
+    while (d < limit && isBone(line - d - 1) && isBone(line + d + 1)) d++;
+    return d;
+  });
+}
 
 export function ribShadowStats(sim: Simulator): RibShadowStats {
   const tr = sim.transducer;
@@ -1064,18 +1114,50 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
   const dTheta = (2 * tr.halfSector) / env.lines;
   const beam = sim.profile.beam;
   const W = Math.ceil((0.5 * beam.apertureTxMm) / (tr.curvatureRadius * dTheta));
-  const isBone = (i: number): boolean => i < 0 || i >= env.lines || out[i].bone;
+  // lus-sim (decisión 42): más allá del sector, unas líneas virtuales clasificadas con la escena de la CPU, tantas como el cono
+  // de apertura más ancho (W) y el lóbulo principal más el margen: lo que decide si una línea del borde es núcleo de su sombra
+  const beyond = W + Math.ceil(Math.max(0, ...out.map((x) => (Number.isNaN(x.mainLobeLines) ? 0 : x.mainLobeLines)))) + 2;
+  const cpuBone = (l: number): boolean => {
+    const theta = -tr.halfSector + (2 * tr.halfSector * (l + 0.5)) / env.lines;
+    const origin = pointOnLine(sim.frame, tr, theta, 0);
+    const end = pointOnLine(sim.frame, tr, theta, 1);
+    const dir: [number, number, number] = [end[0] - origin[0], end[1] - origin[1], end[2] - origin[2]];
+    const cpu = pleuraCrossingLine(
+      (p) => scene.insideWallMm(toMaterial(p)),
+      (p) => scene.lungEdgeMm(toMaterial(p), instant),
+      origin,
+      dir,
+      depth,
+      COARSE_DEPTH,
+    );
+    if (!cpu) return false;
+    // como la pasada A: hueso en una fila por encima de la de la pleura (`pleuraCapMm`)
+    const top = Math.floor(pleuraCapMm(cpu.D, step) / step) * step;
+    for (let r = 0.05; r < top; r += 0.05)
+      if (sim.anatomy.classifyWorld(pointOnLine(sim.frame, tr, theta, r), sim.sample).tissue === Tissue.Bone) return true;
+    return false;
+  };
+  const beforeBone = Array.from({ length: beyond }, (_, k) => cpuBone(-1 - k));
+  const afterBone = Array.from({ length: beyond }, (_, k) => cpuBone(env.lines + k));
+  // la misma clasificación dentro del sector, frente a la de la pasada A (que la de fuera mida lo mismo)
+  const inside = out.filter((x) => !Number.isNaN(x.pleuraMm));
+  const cpuInside = new Map(inside.map((x) => [x.line, cpuBone(x.line)]));
+  const agree = inside.filter((x) => cpuInside.get(x.line) === x.bone).length;
+  // y en las `beyond` líneas de cada borde, las que deciden el núcleo de una sombra que lo toca
+  const edgeAgreement = (lines: RibShadowLine[]): number =>
+    lines.length ? lines.filter((x) => cpuInside.get(x.line) === x.bone).length / lines.length : Number.NaN;
+  const edges = shadowEdgeLines(
+    out.map((x) => x.bone),
+    beforeBone,
+    afterBone,
+  );
   const taps = (line: number, half: number): number[] =>
     Array.from({ length: APERTURE_TAPS }, (_, j) =>
       Math.min(env.lines - 1, Math.max(0, line + Math.floor(half * ((2 * j) / (APERTURE_TAPS - 1) - 1) + 0.5))),
     );
   for (const x of out) {
     if (Number.isNaN(x.pleuraMm)) continue;
-    if (x.bone) {
-      let d = 0;
-      while (d < env.lines && isBone(x.line - d - 1) && isBone(x.line + d + 1)) d++;
-      x.edgeLines = d;
-    }
+    if (x.bone) x.edgeLines = edges[x.line];
     const r = (Math.floor(pleuraCapMm(x.pleuraMm, step) / step) + 0.5) * step;
     let ro = Number.POSITIVE_INFINITY;
     for (let k = -W; k <= W; k++) {
@@ -1102,10 +1184,26 @@ export function ribShadowStats(sim: Simulator): RibShadowStats {
     intercostalWindowDb: median(ic.map((x) => x.belowDb)),
     dynamicRangeDb: sim.bmode.dynamicRangeDb,
     blackLevelDb: -sim.bmode.dynamicRangeDb * (1 - levelOfGrey(0.5 / 255)),
+    beyond: { before: beforeBone, after: afterBone },
+    cpuBoneAgreement: inside.length ? agree / inside.length : Number.NaN,
+    cpuBoneAgreementEdges: {
+      before: edgeAgreement(inside.filter((x) => x.line < beyond)),
+      after: edgeAgreement(inside.filter((x) => x.line >= env.lines - beyond)),
+    },
   };
 }
 
-/** Coloca la sonda en un punto de partida (sin animación) y avanza lo justo para que el marco la siga. */
+/**
+ * Lleva la sonda a una vista de medida (decisión 42; `app/measurementViews.ts`), en supino: las poses de antes de la regla de las
+ * manos, donde miden el banco, la calibración y las metas físicas. Los puntos clínicos son `goTo`.
+ */
+function goToView(sim: Simulator, id: MeasurementViewId): void {
+  sim.patient.position = 'supine';
+  sim.setPose(measurementViewPose(id));
+  sim.advance(0.05);
+}
+
+/** Coloca la sonda en un punto de partida clínico (sin animación) y avanza lo justo para que el marco la siga. */
 function goTo(sim: Simulator, id: StartPoint['id']): void {
   const sp = START_POINTS.find((p) => p.id === id)!;
   // lus-sim (decisión 33): cada punto con su posición (los de la espalda, sentado; los demás, supino), para que el resultado de

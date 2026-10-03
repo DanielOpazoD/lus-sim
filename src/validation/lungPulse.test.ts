@@ -161,7 +161,7 @@ describe('pulso pulmonar: amplitud por distancia al corazón', () => {
   /** Pleura parietal (1,5 mm bajo ella) en φ y z. */
   const pleuraAt = (phi: number, z: number): Vec3 => probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
 
-  it('decae con la distancia al corazón y es 0 desde su alcance; en los puntos de partida (hemitórax derecho), nada', () => {
+  it('decae con la distancia al corazón y es 0 desde su alcance; en los puntos de partida del hemitórax derecho, nada; en el izquierdo, el BLUE inferior', () => {
     const w = scene.heart.window;
     const phi = Math.acos(47.5 / t.a);
     const at = (dz: number) => {
@@ -178,7 +178,13 @@ describe('pulso pulmonar: amplitud por distancia al corazón', () => {
     expect(rows[0].mm).toBeGreaterThan(0.5);
     expect(rows[0].mm).toBeLessThan(1);
     for (const r of rows) if (r.d >= REACH) expect(r.mm).toBe(0);
-    for (const sp of START_POINTS) expect(lungPulseShift(scene.heart, t, pleuraAt(sp.phi, sp.z), 1, AMP_MAX)).toEqual([0, 0, 0]);
+    for (const sp of START_POINTS.filter((x) => x.side === 'right'))
+      expect(lungPulseShift(scene.heart, t, pleuraAt(sp.phi, sp.z), 1, AMP_MAX), sp.id).toEqual([0, 0, 0]);
+    // (decisión 42) en el izquierdo, el BLUE inferior queda al alcance del corazón (el pulso pulmonar, junto al borde
+    // cardiaco: la regla de las manos lo pone «cerca del pezón»); los demás, no
+    const pulse = (sp: (typeof START_POINTS)[number]) => Math.hypot(...lungPulseShift(scene.heart, t, pleuraAt(sp.phi, sp.z), 1, AMP_MAX));
+    const left = START_POINTS.filter((x) => x.side === 'left' && pulse(x) > 0).map((x) => x.id);
+    expect(left).toEqual(['blueLowerLeft']);
   });
 
   it('se ve en el borde del corazón, donde su cara está oblicua a la pared: el borde izquierdo (≈ 11 cm) más que el ápex y la ventana', () => {

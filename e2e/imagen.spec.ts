@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { PRESENT_MIN_DB } from '../src/app/mirrorBench';
 import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
+import { START_POINTS } from '../src/app/startPoints';
 
 /**
  * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: con `/?e2e=1` la
@@ -29,13 +30,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla
   // y (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas y la línea media con las espinosas
   // y (decisión 33) los tres puntos de partida de la espalda, en la paravertebral derecha
+  // y (decisión 42) los de la regla de las manos con el frénico, y los siete del hemitórax izquierdo
   expect(sweep.map((r) => r.id)).toEqual([
-    'blueUpper',
-    'blueLower',
-    'plaps',
-    'posteriorUpper',
-    'posteriorMiddle',
-    'posteriorBasal',
+    ...START_POINTS.map((p) => p.id),
     'supraclavicular',
     'clavicle',
     'lateralApex',
@@ -114,7 +111,11 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     expect(shell.byInterface[face] ?? 0, `${face}: ${stag}`).toBeGreaterThan(50);
   expect(shell.byInterface.ObliquePlane ?? 0, stag).toBe(0);
   expect(shell.agreement, stag).toBeGreaterThanOrEqual(0.999);
-  expect(shell.distanceMaxErr, stag).toBeLessThan(0.02);
+  // (decisión 42) la distancia, con la tolerancia que crece con el gradiente de la cara (`shellDistanceTolerance`): 0,02 mm donde
+  // |∇d| ≈ 1; sobre la cúpula pleural (la pared engruesa ≈ 16 mm por mm en z, limitación `wall-cupola-transition`), a donde llega
+  // el borde craneal del sector del BLUE superior nuevo, SwiftShader se aparta |∇d|·δx: 0,025 mm, y 0,11 en la inspiración
+  // profunda, con δx ≈ 0,001 mm; con la GPU real, ≤ 0,0067 mm en todos los puntos)
+  expect(shell.distanceMaxErrOverTol, stag).toBeLessThan(1);
   // (decisión 37) las cápsulas del hígado y del bazo en las bases: la cara, su distancia y su normal (el volumen no las ve: deja
   // fuera lo que está a menos de 1 mm de un borde)
   const caps = await page.evaluate(() => window.__lusTest!.capsules());
@@ -135,8 +136,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // pared), y el borde del pulmón en la axilar media izquierda
   // y (cobertura torácica) la cúpula pleural por la fosa supraclavicular; y (decisión 33) los tres de la espalda, con el paciente
   // sentado, bajo la pared posterior
-  expect(pleura.lines, ptag).toBe(9 * 192);
-  for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'])
+  // y (decisión 42) el frénico y los siete del lado izquierdo: los puntos de partida y tres planos más
+  expect(pleura.lines, ptag).toBe((START_POINTS.length + 3) * 192);
+  for (const id of ['posteriorUpper', 'posteriorMiddle', 'posteriorBasal'].flatMap((x) => [x, `${x}Left`]))
     expect(pleura.centralDepthMm[id], `${id}: ${ptag}`).toBeGreaterThan(24);
   expect(pleura.centralDepthMm.supraclavicular, ptag).toBeGreaterThan(15);
   expect(pleura.cpuPleura, ptag).toBeGreaterThan(0.7 * pleura.lines);
@@ -207,12 +209,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.interfaceDistanceMaxErrCupola, itag).toBeLessThan(0.05);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.sweep.map((r) => r.id)).toEqual([
-    'blueUpper',
-    'blueLower',
-    'plaps',
-    'posteriorUpper',
-    'posteriorMiddle',
-    'posteriorBasal',
+    ...START_POINTS.map((p) => p.id),
     'cardiacWindow',
     'leftBorder',
     'supraclavicular',
@@ -222,8 +219,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // GLSL en dos pasos de punto fijo la GPU real da 0,992 en el peor: ≥ 0,999 la ve (con 0,99 no la veía)
   for (const r of insp.sweep) expect(r.interiorAgreement, itag).toBeGreaterThanOrEqual(0.999);
   expect(insp.shell.agreement, itag).toBeGreaterThanOrEqual(0.999);
-  expect(insp.shell.distanceMaxErr, itag).toBeLessThan(0.02);
-  expect(insp.pleura.lines, itag).toBe(9 * 192);
+  expect(insp.shell.distanceMaxErrOverTol, itag).toBeLessThan(1);
+  expect(insp.pleura.lines, itag).toBe((START_POINTS.length + 3) * 192);
   expect(insp.pleura.centralDepthMm.cardiacWindow, itag).toBe(-1);
   expect(insp.pleura.registrationMismatch, itag).toBe(0);
   for (const [id, q] of Object.entries(insp.pleura.depthQuantaByPose))
@@ -392,6 +389,40 @@ test('líneas A en la envolvente de la GPU: a k veces la línea pleural mostrada
   expect(errors).toEqual([]);
 });
 
+/**
+ * F-T08 en el BLUE inferior clínico de la regla de las manos (decisión 42; limitación `rib-core-leak-center`) [aún no se cumple].
+ * Ahí la 5.ª costilla queda casi bajo el centro de la cara (el punto, sobre su borde craneal) y, en el núcleo de su sombra, la
+ * línea pleural sale en la pantalla sobre el negro: hasta 1,03 dB con la GPU real y 1,01 con SwiftShader (la línea 84;
+ * 03-10-2026, sobre main 4f2473e). Un gris de 0–1, pero no el negro que pide la meta. La prueba exige que la meta aún falle por
+ * eso (que se vea en el núcleo de la sombra central); cuando se cumpla, falla y hay que pasar la pose a la prueba de F-T08 de
+ * abajo. El núcleo, con el borde de la sombra medido más allá del sector (`shadowEdgeLines`): la costilla de la izquierda sigue
+ * tres líneas fuera, así que la línea del borde no es núcleo (con la suposición de antes, que la costilla seguía, lo era y salía
+ * 8,1 dB sobre el negro).
+ */
+test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asoma sobre el negro en el núcleo de la sombra central [aún no se cumple]', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const errors = await openBench(page);
+  const sp = START_POINTS.find((p) => p.id === 'blueLower')!;
+  const pose = { phi: sp.phi, z: sp.z, lift: 0, yaw: sp.yaw, rock: 0, tilt: 0 };
+  const s = await page.evaluate(
+    (p) => window.__lusTest!.ribShadow({ startPoint: 'blueLower', respiration: 'apnea-expiratory', pose: p }),
+    pose,
+  );
+  const core = s.lines.filter((x) => x.bone && x.fullyShadowed && x.edgeLines > x.coneHalfLines + x.mainLobeLines);
+  const central = core.filter((x) => x.line > 48 && x.line < 144);
+  const worst = Math.max(...central.map((x) => x.pleuraDisplayDb - s.blackLevelDb));
+  const tag = `núcleo ${core.length} líneas (${central.length} en el tercio central); la peor del central, ${worst.toFixed(2)} dB sobre el negro; acuerdo CPU/pasada A ${s.cpuBoneAgreement.toFixed(3)}`;
+  expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
+  // en las líneas de cada borde, las que deciden si la del borde es núcleo (medido: 1 y 1)
+  expect(Math.min(s.cpuBoneAgreementEdges.before, s.cpuBoneAgreementEdges.after), tag).toBeGreaterThanOrEqual(0.95);
+  expect(central.length, tag).toBeGreaterThan(5);
+  // hoy: la línea pleural asoma sobre el negro en el núcleo de la sombra central (F-T08 pide que no)
+  expect(worst, tag).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
+
 test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo la costilla, ni línea pleural ni líneas A en la pantalla', async ({
   page,
 }) => {
@@ -441,6 +472,11 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
         x.a2DisplayDb.toFixed(1),
       ]),
     )}`;
+    // (decisión 42) el borde de la sombra más allá del sector lo deciden líneas virtuales clasificadas con la escena de la CPU:
+    // dentro del sector, esa clasificación es la de la pasada A (medido: 0,990–1 en las tres vistas, GPU real y SwiftShader; en
+    // las 41–42 líneas de cada borde, 0,976–1: una línea a lo sumo)
+    expect(s.cpuBoneAgreement, tag).toBeGreaterThanOrEqual(0.98);
+    expect(Math.min(s.cpuBoneAgreementEdges.before, s.cpuBoneAgreementEdges.after), tag).toBeGreaterThanOrEqual(0.95);
     // cada punto de partida corta costillas enteras (el signo del murciélago; desde el paso C1, también el BLUE superior)
     expect(bone.length, tag).toBeGreaterThan(50);
     expect(core.length, tag).toBeGreaterThan(20);

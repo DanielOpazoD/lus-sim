@@ -311,26 +311,66 @@ function topPairs(pairs: ReadonlyMap<string, number>): string {
     .join(', ');
 }
 
-/** Recuento del acuerdo de la cara de interfaz (TS frente a GLSL) en un conjunto de puntos. */
-class FaceTally {
+/**
+ * Tolerancia de la distancia de una cara, TS ↔ GLSL, en la cáscara (lus-sim, decisión 42). Un error de posición δx de la
+ * coma flotante de la GPU da un error de distancia ≈ |∇d|·δx, con |∇d| la norma del gradiente de la distancia de la cara en la
+ * CPU (`shellGradNorm`: diferencias de un solo lado, la menor de las dos en cada eje, para que un salto de la pared junto al punto
+ * no dé un gradiente enorme; no `FaceGradient.norm`, que es central y lo cruzaría). Donde |∇d| ≈ 1 manda la tolerancia de siempre, `SHELL_DISTANCE_TOL_MM`; solo donde el gradiente es
+ * empinado (la pared sobre la cúpula pleural, ≈ 16 mm por mm en z y hasta ≈ 100 en la inspiración profunda: limitación
+ * `wall-cupola-transition`) crece con él, con el δx de SwiftShader medido (`SHELL_POSITION_ERR_MM`). Hasta |∇d| = 0,02/δx la
+ * prueba es tan exigente como antes.
+ */
+export const SHELL_DISTANCE_TOL_MM = 0.02;
+/**
+ * Error de posición (mm) de la GLSL con SwiftShader: el mayor |Δd|/|∇d| de los puntos de la cáscara fuera de la tolerancia
+ * fija (`impliedPositionErrMm`), medido el 03-10-2026 en los planos de los puntos de partida: 0,00101 mm en espiración y 0,00114
+ * en la inspiración profunda (los puntos sobre la cúpula, |∇d| ≈ 25–100: Δd hasta 0,025 y 0,11 mm). 0,0015 con margen: la
+ * tolerancia fija manda hasta |∇d| ≈ 13. Con la GPU real (Metal) el error máximo es 0,0001 y 0,0067 mm: la fija basta.
+ */
+export const SHELL_POSITION_ERR_MM = 0.0015;
+export function shellDistanceTolerance(gradNorm: number): number {
+  return Math.max(SHELL_DISTANCE_TOL_MM, SHELL_POSITION_ERR_MM * gradNorm);
+}
+
+/** Recuento del acuerdo de la cara de interfaz (TS frente a GLSL) en un conjunto de puntos (exportado para sus pruebas). */
+export class FaceTally {
   points = 0;
   withFace = 0;
   same = 0;
   maxErr = 0;
   /** Cara y distancia del peor desacuerdo de distancia (diagnóstico). */
   maxErrAt = '';
+  /** El peor |Δd| / `shellDistanceTolerance(|∇d|)` (< 1 pasa) y dónde; solo si `add` recibe el gradiente. */
+  maxErrOverTol = 0;
+  maxErrOverTolAt = '';
+  /** El mayor |Δd|/|∇d| de los puntos fuera de la tolerancia fija: el δx que la GPU necesitó (la medida de `SHELL_POSITION_ERR_MM`). */
+  maxImpliedDxMm = 0;
   readonly pairs = new Map<string, number>();
-  /** Registra un punto; devuelve si la GPU dibuja la misma cara que la CPU. */
-  add(cpu: Interface, cpuDist: number, gpu: number, gpuDist: number, where = ''): boolean {
+  /**
+   * Registra un punto; devuelve si la GPU dibuja la misma cara que la CPU. `gradNorm` (perezoso: solo se calcula si el error pasa
+   * de la tolerancia fija) es la norma del gradiente de la distancia de la cara en la CPU.
+   */
+  add(cpu: Interface, cpuDist: number, gpu: number, gpuDist: number, where = '', gradNorm?: () => number): boolean {
     this.points++;
     if (cpu !== Interface.None) this.withFace++;
     const cpuFace: number = cpu;
     if (gpu === cpuFace) {
       this.same++;
       const err = Math.abs(gpuDist - cpuDist);
+      const at = (): string => `${Interface[cpu]} a ${cpuDist.toFixed(3)} mm${where ? ` en ${where}` : ''}`;
       if (cpu !== Interface.None && err > this.maxErr) {
         this.maxErr = err;
-        this.maxErrAt = `${Interface[cpu]} a ${cpuDist.toFixed(3)} mm${where ? ` en ${where}` : ''}`;
+        this.maxErrAt = at();
+      }
+      if (cpu !== Interface.None && gradNorm) {
+        let ratio = err / SHELL_DISTANCE_TOL_MM;
+        if (err > SHELL_DISTANCE_TOL_MM) {
+          const g = gradNorm();
+          ratio = err / shellDistanceTolerance(g);
+          this.maxImpliedDxMm = Math.max(this.maxImpliedDxMm, err / Math.max(g, 1));
+          if (ratio > this.maxErrOverTol) this.maxErrOverTolAt = `${at()}, |∇d| ${g.toFixed(1)}`;
+        } else if (ratio > this.maxErrOverTol) this.maxErrOverTolAt = `${at()}, |∇d| sin calcular`;
+        this.maxErrOverTol = Math.max(this.maxErrOverTol, ratio);
       }
       return true;
     }
@@ -357,6 +397,13 @@ export interface InterfaceShellReport {
   distanceMaxErr: number;
   /** Dónde (lus-sim, decisión 33): la cara, su distancia en la CPU, el plano y el punto. */
   distanceWorst: string;
+  /**
+   * lus-sim (decisión 42): el peor |Δd| sobre su tolerancia, `shellDistanceTolerance(|∇d|)` (< 1 pasa), y dónde; y el mayor
+   * |Δd|/|∇d| de los puntos fuera de la tolerancia fija (el δx de esta GPU).
+   */
+  distanceMaxErrOverTol: number;
+  distanceWorstOverTol: string;
+  impliedPositionErrMm: number;
   /** Puntos por cara (en la CPU), para ver que la prueba tiene dientes. */
   byInterface: Record<string, number>;
   /** Los primeros desacuerdos: vista, cara CPU → GPU, tejido, punto del mundo y distancia de la CPU. */
@@ -367,6 +414,30 @@ export interface InterfaceShellReport {
 export const SHELL_BAND_MM = [0.01, 0.6] as const;
 const COARSE_MM = 0.5;
 const MAX_LISTED = 12;
+
+/**
+ * |∇d| de la cara `iface` en el punto del mundo `p` según la CPU (decisión 42), por diferencias de un solo lado de
+ * `SHELL_GRADIENT_STEP_MM`: en cada eje, la menor pendiente de las dos (junto a un salto de la pared, la del lado continuo; una
+ * diferencia central que lo cruzara daría un gradiente enorme y dejaría pasar cualquier error). Si la cara cambia a los dos
+ * lados de un eje, 1: la tolerancia fija.
+ */
+export const SHELL_GRADIENT_STEP_MM = 0.004;
+export function shellGradNorm(sim: Simulator, p: readonly number[], iface: Interface, dist: number): number {
+  const h = SHELL_GRADIENT_STEP_MM;
+  let sum = 0;
+  for (let a = 0; a < 3; a++) {
+    let best = Number.POSITIVE_INFINITY;
+    for (const sign of [1, -1]) {
+      const q: [number, number, number] = [p[0], p[1], p[2]];
+      q[a] += sign * h;
+      const r = sim.anatomy.classifyWorld(q, sim.sample);
+      if (r.interface === iface) best = Math.min(best, Math.abs(r.interfaceDistance - dist) / h);
+    }
+    if (!Number.isFinite(best)) return 1;
+    sum += best * best;
+  }
+  return Math.sqrt(sum);
+}
 
 export function interfaceShellEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): InterfaceShellReport {
   const tr = sim.transducer;
@@ -405,7 +476,8 @@ export function interfaceShellEquivalence(sim: Simulator, lines = 48, stepMm = 0
         if (!inBand(s.iface, s.dist) && !inBand(gpu.iface[i], gpu.ifd[i])) return;
         byInterface[Interface[s.iface]] = (byInterface[Interface[s.iface]] ?? 0) + 1;
         const where = `${sp.id} (${s.p.map((x) => x.toFixed(2)).join(', ')})`;
-        if (tally.add(s.iface, s.dist, gpu.iface[i], gpu.ifd[i], where) || disagreements.length >= MAX_LISTED) return;
+        const gradNorm = (): number => shellGradNorm(sim, s.p, s.iface, s.dist);
+        if (tally.add(s.iface, s.dist, gpu.iface[i], gpu.ifd[i], where, gradNorm) || disagreements.length >= MAX_LISTED) return;
         disagreements.push(
           `${sp.id}: ${Interface[s.iface]}→${Interface[gpu.iface[i]] ?? gpu.iface[i]} (${Tissue[s.tissue]}) en ` +
             `(${s.p.map((x) => x.toFixed(2)).join(', ')}), a ${s.dist.toFixed(3)} mm`,
@@ -418,6 +490,9 @@ export function interfaceShellEquivalence(sim: Simulator, lines = 48, stepMm = 0
     agreement: tally.points ? tally.same / tally.points : 1,
     distanceMaxErr: tally.maxErr,
     distanceWorst: tally.maxErrAt,
+    distanceMaxErrOverTol: tally.maxErrOverTol,
+    distanceWorstOverTol: tally.maxErrOverTolAt,
+    impliedPositionErrMm: tally.maxImpliedDxMm,
     byInterface,
     disagreements,
   };

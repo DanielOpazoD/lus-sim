@@ -9,9 +9,10 @@ conservan su identificador (decisiones 10 y 11).
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
   sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
-  sin casos patológicos ni modo docente/examen. Los puntos de partida (los BLUE, el PLAPS y, desde la decisión 33, los tres
-  paravertebrales) son del hemitórax derecho: la izquierda se explora arrastrando, sin tarjetas. Los puntos BLUE son referencias aproximadas derechas, no posiciones
-  anatómicas universales ni una garantía de obtener la ventana correcta. Cambiar la profundidad inicia un
+  sin casos patológicos ni modo docente/examen. Los puntos de partida (desde la decisión 42, los cuatro de la regla de las manos
+  —BLUE superior, BLUE inferior, frénico y PLAPS— y los tres paravertebrales, en los dos hemitórax) se sitúan con las manos del
+  avatar promedio: no siguen a las variantes de hábito, sexo o edad, son el sitio donde empezar y no una garantía de obtener la
+  ventana correcta, y en qué espacio intercostal caen lo da la parrilla del modelo (ninguna fuente lo mide). Cambiar la profundidad inicia un
   cine nuevo para evitar mezclar persistencia entre escalas polares distintas; no hay revisión continua
   entre profundidades diferentes.
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
@@ -132,6 +133,15 @@ conservan su identificador (decisiones 10 y 11).
   deslizar el pulmón alto de detrás (el segmento posterior del lóbulo superior, que en Wang 2013 está entre los tumores más
   móviles). Lo que el modelo no tiene es el «habitualmente»: en el paciente a veces desliza algo y aquí nunca. Que el vértice no
   deslice es lo normal, no un neumotórax: un alumno no debería leerlo como tal.
+- **Sobre la cúpula, la pared engruesa a saltos** (`wall-cupola-transition`, decisión 42): la construcción de la decisión 27
+  rellena la pared hasta el medio del tronco por encima del techo de la cúpula, y junto al techo la curva es tan empinada que la
+  pared engruesa ≈ 16 mm por mm en z y ≈ 14 mm por mm a lo largo de la piel (a 102 mm de la línea media, z ≈ 177). No es
+  anatomía: es el paso de la pleura cervical al músculo genérico del cuello. Con el BLUE superior de la regla de las manos el
+  borde craneal del sector llega ahí y el alumno lo ve en la imagen. También es donde la equivalencia TS ↔ GLSL de la distancia
+  de las caras se aparta con SwiftShader (|∇d|·δx con δx ≈ 0,001 mm: hasta 0,025 mm en espiración y 0,11 en la inspiración
+  profunda, donde |∇d| llega a ≈ 100; con la GPU real, ≤ 0,0067): la prueba escala su tolerancia con el gradiente
+  (`shellDistanceTolerance`). Pendiente de anatomía: la transición de la pared sobre la 1.ª costilla y la fosa
+  supraclavicular (escalenos, esternocleidomastoideo, vasos subclavios) con sus fuentes, en lugar del engrosamiento.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,
@@ -335,6 +345,14 @@ conservan su identificador (decisiones 10 y 11).
   las de una cuerda del contorno y los bordes quedan a 7–9° (el de la decisión 21, a 12,6°). Una marca encendida pegada al borde
   en el soporte por intensidad (un cuadro suelto o un clip quieto) mueve el ápice ≈ 7 px. Con `edgeInliers` muy bajo en un
   lado (≤ 5 filas) la geometría propuesta es de poca confianza; en el banco la geometría se fija igual (decisión 21).
+- **Bajo una costilla casi en el centro de la cara, la línea pleural asoma sobre el negro** (`rib-core-leak-center`,
+  decisión 42): en el BLUE inferior clínico de la regla de las manos el punto queda sobre el borde craneal de la 5.ª costilla y,
+  en el núcleo de la sombra central, la línea pleural sale en la pantalla hasta 1,03 dB sobre el negro de 8 bits con la GPU real
+  y 1,01 con SwiftShader (la línea 84; en 6 líneas del núcleo, sobre 0,3 dB): un gris de 0–1, pero F-T08 pide el negro. En las
+  vistas de medida (las de antes de la regla), donde las costillas caen hacia los lados del sector, se cumple (la peor, 0,8 dB
+  bajo el negro). Probablemente el borde de la sombra cuando la costilla cubre el centro de la apertura (el pedestal de lóbulos
+  laterales que entra por la cara, decisión 20); sin medir la causa. Lo vigila una e2e que exige que la meta aún falle
+  (`imagen.spec.ts`).
 - **La presentación sigue en calibración preliminar** (`display-uncalibrated`, decisiones 21 y 24): el ajuste C3b-A
   K = 54 dB, R_t = 0,3 y ganancia −20 dB mejora modestamente el gris de pared y neblina del normal convexo. Con rango
   dinámico 70 dB y apnea a t = 60 s, la pared aumenta 1,64–2,02 niveles y la neblina 1,53–1,71 en los tres puntos de partida;

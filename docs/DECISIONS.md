@@ -3760,3 +3760,133 @@ rama `feat/lobulo-pleura`, ≤ 0,5 dB en los puntos de partida) y el desenfoque 
 - Las fuentes: Ostras 2023 (en PMC), Demi, Buda y Soldati 2022, Tang 2020 y Vieira 2020 se leyeron en texto completo; Oelze
   2008, con su ficha de las referencias.
 - Revisión adversarial de contexto limpio (resumen en la PR).
+
+## 42. Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Los puntos de partida se ponían en espacios intercostales y líneas supuestas: el superior en el EIC2 de la
+medioclavicular (decisión 10), el inferior en el centro del EIC4 de la axilar anterior (los reparos de Yuriditsky y cols., decisión 36) y el PLAPS a su altura; solo del hemitórax derecho, sin el punto frénico. La clínica los enseña con la regla de las manos de
+Lichtenstein, y el alumno tiene que encontrarlos en los dos lados. Objetivos O5 (docencia) y O2 (la posición sale de la anatomía
+del avatar con fuente).
+
+**Fuentes** (búsqueda del 03-10-2026; texto completo salvo donde se dice):
+
+- **La regla** [@lichtenstein-bluepoints-2011] (TC), [@lichtenstein-luci-2014] (TC), [@lichtenstein-libro-2016] (una
+  reproducción del capítulo, sin cotejar con Springer), [@lichtenstein-breathe-2017] (TC): dos manos del tamaño de las del
+  paciente, sin los pulgares, la de arriba con el meñique en el borde inferior de la clavícula, a lo largo de su eje (2016: «la mano
+  queda oblicua»), y las puntas de los dedos en la línea media; la de abajo, justo debajo. BLUE superior: la inserción palmar de
+  los dedos medio y anular (2011, 2016; «el centro de la mano» en 2014 y 2017, ≈ 1–1,5 cm de diferencia). BLUE inferior: el centro
+  de la palma de la mano de abajo, cerca del pezón en el adulto (2016). Línea frénica: el borde inferior de la mano de abajo,
+  «el fin del pulmón»; las dos manos juntas, desde la clavícula oblicua, la dejan horizontal (2011). Punto frénico: su cruce con la
+  axilar media (2011, 2016). PLAPS: la horizontal del BLUE inferior, tan posterior como se pueda por detrás de la axilar posterior.
+- **La mano del avatar**: el dedo medio, 83,8 ± 5,4 mm, y la palma, 110,5 ± 6,0, en 1003 varones [@greiner-mano-1991]; el ancho
+  sin el pulgar, 86,3 ± 4,1 mm en los varones de ANSUR II con IMC 18,5–25 (n 1061, IMC 22,9) [@gordon-ansur-2014] [DERIVADO: de
+  los datos públicos, `tools/anatomy/ansurSubgroup.ts`, que también rehace la profundidad del tórax de la decisión 28].
+- **Dónde caen**: NO ENCONTRADO (ningún estudio mide en qué espacio intercostal caen los puntos BLUE); las fuentes secundarias, sin
+  medida, se contradicen (el superior en el 2.º–3.er EIC de la medioclavicular; el inferior en el 4.º o el 5.º).
+- **Una limitación de la regla** [@ding-frenico-2015] (solo el resumen): en 61 pacientes, el punto frénico de las manos difirió del
+  localizado por ecografía (el protocolo M-BLUE) en el 47,5 % de los casos, y el de la ecografía concordó mejor con la TC: la línea
+  frénica no siempre marca el fin del pulmón. Por eso vale la tarjeta del frénico en un simulador: el alumno ve dónde está el
+  borde del pulmón bajo la línea, en lugar de suponerlo.
+
+**Opciones.** Para los puntos: (a) seguir con los espacios supuestos; (b) la regla de las manos sobre el avatar; (c) los reparos
+simplificados (Yuriditsky). Para el banco y las metas físicas, que medían en esos mismos puntos: (i) moverlos con los puntos
+clínicos y recalibrar; (ii) separarlos en vistas de medida fijas, las de antes. Con (i), en el BLUE inferior nuevo F-T08 en la
+pantalla falla (0,34 dB entonces; 1,0 hoy, abajo) y el mapa de grises del PLAPS nuevo se queda con 9 parches de pared de los 10 que pide.
+
+**Decisión.** (b) y (ii), la elegida por el coordinador.
+
+- **La regla** (`app/blueHands.ts`, `blueHandPoints`): la mano de arriba con su borde de arriba en la recta del borde inferior de
+  la clavícula (que sube 15 mm en sus 156, `anatomy.clavicle`), alargada hasta la línea media; la de abajo, horizontal y en contacto
+  con la de arriba en las puntas de los dedos [SUPUESTO: dónde se tocan]; las manos son rectángulos [SUPUESTO] y lo que se mide a lo
+  largo de ellas, arco de la piel desde la línea media. Las manos, `anatomy.hands`.
+- **Los puntos clínicos** (`START_POINTS`, `app.startPointPoses`): BLUE superior φ 0,6706π, z 122,3 mm; BLUE inferior φ 0,7955π,
+  z 28,0; frénico en la axilar media, z −15,2; PLAPS 1,15π a la altura del inferior. Y sus simétricos izquierdos (φ → π − φ),
+  también de los tres paravertebrales (decisión 33). Las tarjetas, agrupadas por hemitórax. Los rangos, con las manos a ± 1 DE en
+  todas sus combinaciones: las esquinas se combinan como si el largo y el ancho fueran independientes, y no lo son (r = 0,58 entre
+  el ancho y el largo de la mano en el subgrupo de ANSUR II), así que son más anchos que los de manos reales a ± 1 DE.
+- **Las vistas de medida** (`app/measurementViews.ts`, `MEASUREMENT_VIEWS`, `app.measurementViews`): las poses de antes de la regla
+  (el BLUE superior en el EIC2 de la medioclavicular, el inferior en el centro del EIC4 de la axilar anterior, el PLAPS a su
+  altura), donde miden el banco de fidelidad, la calibración del contraste, F-T01, F-T08, el mapa de grises, el pulso pulmonar y
+  las paridades de la GPU (`goToView` en los ganchos). Se conservan porque sobre ellas están medidas las decisiones 21, 24, 35 y 36.
+- **La pose inicial** (`probe.blueUpperPose`, `defaultPose`): la app arranca sobre la tarjeta del BLUE superior derecho; la pose
+  sale de la regla de las manos y la tarjeta la lee de ahí (una sola fuente). Lo que medía en la pose de antes pasa a la vista de
+  medida del BLUE superior (`app.measurementViews.blueUpperPhi/Z`, el centro del EIC2 de la medioclavicular, decisión 16), no al
+  punto clínico: A-T1–A-T3 y las comparaciones con la pared anterior, el foco del preajuste (decisión 12), la medioclavicular de
+  los invariantes físicos y las vistas superiores de la compresión (decisión 63; en el BLUE superior clínico, junto a la cúpula,
+  la cara interna de la pared varía 3,05 mm bajo la cara, sobre los 3 que pide esa prueba). El foco del preajuste (16 mm) se
+  midió en la vista de medida (la pleura a 16,05 mm); en el BLUE superior clínico, donde arranca la app, la pleura está a 16,02:
+  el mismo foco sirve. La prueba del costo por cuadro (`costo.spec.ts`) mide todo en la vista de medida (`goToMeasurementView`).
+- **El borde de la sombra costal en el borde del sector** (`shadowEdgeLines`, `ribShadowStats`): el núcleo de una sombra son las
+  líneas con hueso más lejos del borde de la sombra que su cono de apertura y su lóbulo. Una sombra que toca el borde del sector
+  necesita saber si la costilla sigue más allá; antes se suponía que sí. Ahora no se supone nada: unas líneas virtuales más allá de
+  cada borde (tantas como el cono más ancho y el lóbulo más el margen) se clasifican con la escena de la CPU, con el criterio de la
+  pasada A (hueso en una fila por encima de la de la pleura), y el gancho devuelve cuáles cruzan hueso (`beyond`) y cuánto coincide
+  esa clasificación con la de la pasada A dentro del sector (`cpuBoneAgreement`). Una primera versión de esta PR suponía lo contrario (fuera, sin
+  hueso), lo que arreglaba una línea por 0,2 dB; el revisor lo marcó y se cambió por la medida. Medido (03-10-2026, apnea
+  espiratoria, GPU real y SwiftShader, mismas cifras): la clasificación de la CPU coincide con la de la pasada A en 99,0–100 % de
+  las líneas del sector (la e2e exige ≥ 98 %), y en las 41–42 líneas de cada borde en 97,6–100 % (una línea a lo sumo; en el BLUE inferior clínico, 100 %; la e2e exige ≥ 95 %); en el BLUE inferior clínico la costilla de la izquierda sigue tres líneas fuera del
+  sector, así que la línea del borde no es núcleo (con la suposición de antes lo era y salía 8,1 dB sobre el negro). Unitarias con
+  las dos mutaciones (suponer hueso fuera, suponer que no) atrapadas (`shadowEdge.test.ts`).
+
+**Consecuencias.**
+
+- **Dónde caen en la parrilla del modelo** (las pruebas lo fijan, con los bordes de las costillas, de 14 mm de alto): el superior a
+  82 mm de la línea media, en el **EIC1** (la 1.ª costilla a 147,8 mm y la 2.ª a 99,3 en esa vertical; el punto, 23 mm sobre la
+  2.ª), [DISCREPANCIA] con las fuentes secundarias (2.º–3.er EIC). La causa: en el modelo la 2.ª costilla baja 19 mm desde junto al
+  esternón hasta la medioclavicular (118,5 mm a 30 mm de la línea media, 110,6 en la paraesternal, 99,7 en la medioclavicular),
+  mientras el borde de la clavícula sube y la mano sigue su recta. Esa caída no tiene fuente propia: sale de anclar la 5.ª
+  costilla de la medioclavicular en la línea de Treves (Gray) y apilar hacia arriba los espacios de esa línea (EIC4 y 3 de 14 mm,
+  EIC2 de 18; el EIC1 de 36, un supuesto), mientras la paraesternal sube con su Hermite al esternón y anchos de espacio en parte
+  supuestos (decisión 16). **Tarea pendiente**: buscar una fuente del recorrido de la 2.ª costilla de la paraesternal a la
+  medioclavicular (o del ancho del EIC1 en la medioclavicular) y, si la hay, recalibrar la parrilla; no se toca aquí.
+- El **inferior** queda **sobre el borde craneal de la 5.ª costilla**, no en el EIC4: la línea media de la costilla a 22,8 mm y su
+  borde de arriba a 29,8, el punto en 28,0 (con +1 DE de mano, bajo la línea media). La regla lo pone ahí y ahí se queda; la sonda
+  convexa abarca dos espacios, así que bajo ella quedan la costilla y los espacios de cada lado, y la tarjeta sirve igual (la
+  prueba del signo del murciélago lo comprueba). La línea frénica, en el EIC7 de la axilar media, 19 mm sobre el borde del pulmón
+  en espiración.
+- **Bajo la sonda** (unitarias, en los dos lados): la pleura bajo todas las líneas apoyadas y el signo del murciélago en los BLUE,
+  el PLAPS y los paravertebrales; en el frénico, el pulmón en el lado craneal y su borde, sobre el diafragma, en el caudal; el pulso
+  pulmonar solo en el BLUE inferior izquierdo (junto al corazón: lo que la regla dice que hay que esquivar). F-T08 (geometría) en
+  todos los puntos y en las vistas de medida. La equivalencia TS ↔ GLSL de la pleura en la e2e, en los 14 puntos clínicos y los
+  tres planos de siempre.
+- **Pendiente físico: F-T08 en el BLUE inferior clínico** (`rib-core-leak-center`). Allí, en el núcleo
+  de la sombra central, la línea pleural sale en la pantalla hasta 1,03 dB sobre el negro de 8 bits con la GPU real y 1,01 con
+  SwiftShader (la línea 84; seis líneas sobre 0,3 dB): un gris de 0–1, no el negro que pide F-T08. Antes del rebase sobre main
+  `4f2473e` la medida daba 0,34 dB (la línea 78). En las vistas de medida se cumple (la peor, 0,8 dB bajo el negro). Lo vigila una
+  e2e que exige que la meta aún falle en el núcleo de la sombra central; cuando se cumpla, falla y la pose pasa a la prueba de
+  F-T08.
+- **El banco y la calibración**: miden en las vistas de medida, las mismas poses de las decisiones 21–36, pero el cambio del borde
+  de la sombra también vale ahí. Medido: con las líneas virtuales, el núcleo de F-T08 en las tres vistas es el
+  mismo que con la suposición de antes (27, 23 y 37 líneas en el BLUE superior, el inferior y el PLAPS, GPU real y SwiftShader);
+  con la primera versión (sin hueso fuera) el BLUE inferior bajaba a 22 (el revisor contó 33 → 32 en el BLUE superior y 38 → 36
+  en el inferior con otro recuento; con la medida, ninguna vista cambia). El registro del ajuste C3b-A (`normal-calibration-c3b-a.json`, decisión 24)
+  guarda los `coreLines` de su corrida y no se reescribe: es el registro de esa decisión.
+- **La pared sobre la cúpula** (`wall-cupola-transition`): con el BLUE superior nuevo el borde craneal del sector llega a z ≈ 177,
+  donde la construcción de la decisión 27 rellena la pared hasta el medio del tronco y, junto al techo de la cúpula, la pared
+  engruesa ≈ 16 mm por mm en z (≈ 14 a lo largo de la piel; hasta ≈ 100 en la inspiración profunda). No es anatomía y el alumno
+  lo ve en la imagen. **Tarea pendiente de anatomía** (hoja de ruta, fase 3): la transición de la pared sobre la 1.ª costilla y la
+  fosa supraclavicular. No se arregla aquí.
+- **La equivalencia TS ↔ GLSL de la distancia de las caras** (`shellDistanceTolerance`, `shellGradNorm`): ahí SwiftShader se
+  aparta de la CPU |∇d|·δx (Δd hasta 0,025 mm en espiración y 0,11 en la inspiración profunda; la GPU real, ≤ 0,0067), con
+  δx = 0,00101 y 0,00114 mm medidos (el mayor |Δd|/|∇d| de los puntos fuera de la tolerancia fija). La tolerancia pasa a
+  max(0,02 mm, δx·|∇d|) con δx = 0,0015 mm: la fija manda hasta |∇d| ≈ 13, así que fuera de la cúpula la prueba es tan exigente
+  como antes. |∇d| sale de la CPU por diferencias de un solo lado (la menor de las dos en cada eje): una diferencia central que
+  cruzara un salto de la pared daría un gradiente enorme y dejaría pasar cualquier error (la primera versión dejaba pasar 0,11
+  mm con |∇d| ≈ 10⁴). Pruebas con campos sintéticos de oráculo analítico: una cara lineal d = 30·z da |∇d| = 30, y con él pasa
+  un error de 0,9·δx·30 y no uno de 1,1·δx·30 (los dos por encima de la tolerancia fija); junto a un salto de la cara, |∇d| ≈ 1
+  y 0,05 mm no pasan; si la cara cambia a los dos lados, la fija. Atrapan cuatro mutaciones: sin el escalado, el lado más
+  empinado (o la diferencia central), sin la raíz y 0,02·|∇d|. Una cota unitaria tiene δx entre lo medido y 0,002 mm. En la
+  cáscara real, 0,05 mm en una cara plana siguen fallando (más del doble de la tolerancia). Antes de medirlo se descartó el redondeo de la curva de la cúpula (1 − h sin restar: nada
+  cambia) y las texturas de 16 bits (la escena es de 32 y se lee con `texelFetch`).
+- La cobertura no cambia (no depende de los puntos de partida).
+
+**Verificación.** `startPoints.test.ts`: los catorce puntos, su simetría (los cuatro de la regla), la reconstrucción de la regla
+con las manos a ± 1 DE, dónde caen con los bordes de las costillas, la regla contra la clavícula de la escena (`clavicleSd`, sin la
+fórmula de `blueHands.ts`), la pose por omisión igual a la tarjeta, la pleura, el murciélago y el frénico en los dos lados.
+`shadowEdge.test.ts` con dos mutaciones; `equivalenceSweep.test.ts` con la de la tolerancia; `frameCost.test.ts` en la vista de
+medida; `probe.test.ts`, `anatomyTargets.test.ts`, `lungPreset.test.ts`, `compression.test.ts` y `physicsInvariants.test.ts`
+en la vista de medida. `tools/anatomy/ansurSubgroup.ts` rehace las cifras de ANSUR II. Medidas de la e2e con la GPU real y con
+SwiftShader (el borde de la sombra, F-T08 en el BLUE inferior clínico, la cáscara). `npm run check`, la e2e con SwiftShader y el
+CI de la PR. Revisión adversarial de contexto limpio (I1–I4 y M1–M5, resueltos; resumen en la PR).

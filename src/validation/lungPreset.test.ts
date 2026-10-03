@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AnatomyScene } from '../anatomy/scene';
 import { Tissue, attenuationDbPerCm } from '../anatomy/tissues';
 import { defaultPatient } from '../physiology/patientState';
-import { defaultPose } from '../probe/probe';
+import { measurementViewPose } from '../app/measurementViews';
 import { DEFAULT_BMODE, DISPLAY_REF_DB, displayLevelDb, nominalTgcDbPerCm } from '../ultrasound/renderer';
 import { FRAG_SCANCONVERT } from '../ultrasound/shaders/passes.glsl';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
@@ -17,8 +17,8 @@ import { chestView, scanLine } from './support/chestView';
  * derivado de la escena: esta prueba lo vuelve a medir y falla si la anatomía cambia (paso C) sin recalcularlo.
  */
 describe('Preajuste pulmonar del equipo', () => {
-  it('un solo foco en la línea pleural del punto de partida por omisión (±1 mm)', () => {
-    const v = chestView(new AnatomyScene(defaultPatient()), defaultPose());
+  it('un solo foco en la línea pleural de la vista de medida del BLUE superior (±1 mm; decisión 42)', () => {
+    const v = chestView(new AnatomyScene(defaultPatient()), measurementViewPose('blueUpper'));
     const central = scanLine(v, 0);
     expect(central.pleuraMm).not.toBeNull();
     expect(DEFAULT_BMODE.focusMm).toBe(LUNG_PRESET.params.focusMm.value);
@@ -34,7 +34,7 @@ describe('Preajuste pulmonar del equipo', () => {
     expect(DEFAULT_BMODE.depthMm).toBeLessThanOrEqual(hi);
     // la razón de tomar el extremo alto: con la pleura del punto de partida por omisión, la línea A de orden 4 (4·D)
     // cabe con el fondo sobre el que se mide (A_LINE_BACKGROUND_MM + 1 mm, la regla del gancho de las líneas A)
-    const D = scanLine(chestView(new AnatomyScene(defaultPatient()), defaultPose()), 0).pleuraMm!;
+    const D = scanLine(chestView(new AnatomyScene(defaultPatient()), measurementViewPose('blueUpper')), 0).pleuraMm!;
     expect(4 * D + A_LINE_BACKGROUND_MM + 1, `pleura a ${D.toFixed(2)} mm`).toBeLessThanOrEqual(DEFAULT_BMODE.depthMm);
     expect(DEFAULT_BMODE.tgcDb.every((db) => db === 0)).toBe(true);
     expect(LUNG_PRESET.params.depthMm.sources).toContain('volpicelli-actualizacion-2026');

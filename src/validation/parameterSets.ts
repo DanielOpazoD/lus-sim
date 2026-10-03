@@ -1,6 +1,7 @@
 import type { ParameterSet } from '../core/evidence';
 import { OPERATOR_HAND } from '../probe/operator';
 import { POSTERIOR_START_POSES, START_POINT_POSES } from '../app/startPoints';
+import { MEASUREMENT_VIEW_POSES } from '../app/measurementViews';
 import { CHEST_WALL, RESPIRATORY_WALL } from '../anatomy/organs/chestWall';
 import { HEART } from '../anatomy/organs/heart';
 import { LIVER } from '../anatomy/organs/liver';
@@ -13,6 +14,7 @@ import { LUNG_APEX } from '../anatomy/organs/lungApex';
 import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
 import { COVERAGE } from '../app/coverage';
 import { TORSO } from '../anatomy/scene';
+import { HANDS } from '../anatomy/hands';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
 import { BLUE_UPPER_POSE } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
@@ -29,6 +31,7 @@ import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
  */
 export const PARAMETER_SETS: readonly ParameterSet[] = [
   TORSO,
+  HANDS,
   RIBCAGE,
   CLAVICLE,
   SCAPULA,
@@ -46,6 +49,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,
+  MEASUREMENT_VIEW_POSES,
   POSTERIOR_START_POSES,
   LUNG_PRESET,
   TGC_REFERENCE,

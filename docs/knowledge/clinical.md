@@ -635,14 +635,15 @@ Las «12 regiones» de este documento son las «12 zonas» de 2026.
 
 ### 3.1 Puntos BLUE (3 por hemitórax, BLUE y FALLS)
 
-Colocación con las manos [CONSENSO] [@lichtenstein-bluepoints-2011] (TC-e); [@lichtenstein-luci-2014]:
+Colocación con las manos [CONSENSO] [@lichtenstein-bluepoints-2011] (TC-e); [@lichtenstein-luci-2014]; [@lichtenstein-libro-2016]; [@lichtenstein-breathe-2017]:
 
-- **Manos**: dos manos del tamaño de las del paciente, sin pulgares. La superior con el meñique en el borde inferior de la clavícula y la punta de los dedos en la línea media; la inferior justo debajo.
-- **Punto BLUE superior**: centro de la mano superior (raíz de los dedos medio y anular).
-- **Punto BLUE inferior**: centro de la palma de la mano inferior.
-- **Línea frénica**: borde inferior de la mano inferior, que marca el final del pulmón.
-- **Punto frénico**: intersección de la línea frénica con la línea axilar media.
-- **Punto PLAPS**: continuación horizontal del punto BLUE inferior, tan posterior como se pueda por detrás de la línea axilar posterior con el paciente en supino. Allí se localizan el 90 % de las consolidaciones y todos los derrames libres.
+- **Manos**: dos manos del tamaño de las del paciente (el médico compara las suyas; entre 1,65 y 1,85 m de estatura la diferencia no importa, 2016), sin pulgares. La superior con el meñique en el borde inferior de la clavícula y la punta de los dedos en la línea media; en 2016, siguiendo el eje de la clavícula, así que la mano queda oblicua; en 2014 «toca la clavícula» y en 2017 «justo debajo y paralela». La inferior justo debajo.
+- **Punto BLUE superior**: la raíz (inserción palmar) de los dedos medio y anular de la mano superior (2011, 2016); «el centro de la mano superior» en 2014 y 2017 (≈ 1–1,5 cm de diferencia a lo largo de la mano).
+- **Punto BLUE inferior**: centro de la palma de la mano inferior; en el adulto, cerca del pezón (2016). Si el corazón ocupa el punto, la sonda va hacia fuera.
+- **Línea frénica**: borde inferior de la mano inferior, que marca el final del pulmón; las dos manos juntas, desde la clavícula oblicua, la dejan horizontal (2011). El diafragma suele estar ahí (2014), pero en 61 pacientes el punto frénico de las manos difirió del localizado por ecografía (el protocolo M-BLUE) en el 47,5 % de los casos, y el de la ecografía concordó mejor con la TC [@ding-frenico-2015] (solo el resumen).
+- **Punto frénico**: intersección de la línea frénica con la línea axilar media (2011, 2016; no aparece en 2014 ni en 2017).
+- **Punto PLAPS**: continuación horizontal del punto BLUE inferior, tan posterior como se pueda por detrás de la línea axilar posterior con el paciente en supino; queda algo por encima del diafragma (2011). Allí se localizan el 90 % de las consolidaciones y todos los derrames libres. El PLAPS extendido baja uno o dos espacios intercostales (2016: la única mención a espacios intercostales, relativa al punto).
+- **En el simulador** (decisión 42): con las manos del avatar (ANSUR II y Greiner 1991), sobre su clavícula y su parrilla (`app/blueHands.ts`).
 - **Reparos simplificados de Yuriditsky y cols.** [DISCREPANCIA] [@yuriditsky-ecocardiografistas-2021]:
   - Punto superior en la línea medioclavicular, en el 2.º–3.er espacio intercostal.
   - Punto inferior en la línea axilar anterior, justo por encima del pezón.

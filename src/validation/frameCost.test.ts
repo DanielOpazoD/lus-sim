@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EquipmentController, type EquipmentCommand } from '../app/equipment';
 import { Simulator, defaultEquipment } from '../app/simulator';
+import { measurementViewPose } from '../app/measurementViews';
 import { createTestHooks, frameMeasureOptions } from '../app/testHooks';
 import { C_RECONSTRUCTION_MM_S } from '../core/units';
 import { clonePatient, defaultPatient } from '../physiology/patientState';
@@ -85,7 +86,10 @@ describe('frameCostMs: el coste del cuadro y por pasada', () => {
 
   it('startPoint mide en la pose de partida aunque la sonda se haya movido (el barrido del banco)', () => {
     const { fake, sim, hooks } = rig();
-    hooks.goToStartPoint('blueLower');
+    // la vista de medida (decisión 42), no el punto clínico: `startPoint` de `frameCostMs` es una vista de medida
+    sim.patient.position = 'supine';
+    sim.setPose(measurementViewPose('blueLower'));
+    sim.advance(0.05);
     const at = { ...sim.pose };
     sim.setPose({ ...at, tilt: at.tilt + (6 * Math.PI) / 180 });
     hooks.frameCostMs(3);

@@ -24,7 +24,8 @@ test('el costo por cuadro espera a la GPU y no deja errores de WebGL (decisión 
     const hooks = window.__lusTest!;
     const sim = hooks.sim();
     const gl = sim.renderer.gl;
-    hooks.goToStartPoint('blueUpper');
+    // (decisión 42) todo en la vista de medida del BLUE superior, la misma pose que mide `frameCostMs` con `startPoint`
+    hooks.goToMeasurementView('blueUpper');
     const heavy = { repeat: { pass: 'rawField' as const, times: 2 } };
     const n = 2;
     sim.render(heavy);

@@ -1,8 +1,6 @@
 import type { Torso } from '../anatomy/primitives';
-import { START_POINTS, type StartPoint } from '../app/startPoints';
+import { START_POINTS, type StartPoint, type StartPointId } from '../app/startPoints';
 import type { ProbePose } from '../probe/probe';
-
-type StartPointId = StartPoint['id'];
 
 /**
  * La línea de cada tarjeta con lo que muestra su ventana. El nombre es el `label` del punto de partida; la
@@ -11,15 +9,22 @@ type StartPointId = StartPoint['id'];
  * lus-sim (decisión 13): los puntos del protocolo BLUE derecho, con su lugar y no con un hallazgo (el hallazgo sale
  * del paciente, guía §5); sin el color del anillo del navegador 3D de VExUS.
  */
-const CARD_SUB: Record<StartPointId, string> = {
+const CARD_SUB: Record<string, string> = {
   blueUpper: 'Anterior',
   blueLower: 'Anterolateral',
+  // lus-sim (decisión 42): el punto frénico de la regla de las manos
+  phrenic: 'Lateral',
   plaps: 'Posterolateral',
   // lus-sim (decisión 33): la espalda, sentado
   posteriorUpper: 'Posterior · sentado',
   posteriorMiddle: 'Posterior · sentado',
   posteriorBasal: 'Posterior · sentado',
 };
+
+/** La línea de la tarjeta: la región del punto, la misma en los dos lados (decisión 42). */
+export function cardSub(id: StartPointId): string {
+  return CARD_SUB[id.replace(/Left$/, '')];
+}
 
 /**
  * Radio (mm, sobre la piel) dentro del cual la sonda «está» en una ventana: el de VExUS, donde las dos más próximas
@@ -75,6 +80,22 @@ export class StartPointCards {
     host: HTMLElement,
     private readonly deps: StartPointCardsDeps,
   ) {
+    // lus-sim (decisión 42): un grupo por hemitórax, con su título
+    const groups = new Map<StartPoint['side'], HTMLElement>();
+    for (const side of ['right', 'left'] as const) {
+      const group = document.createElement('div');
+      group.className = 'windows-side';
+      const title = document.createElement('h4');
+      title.className = 'windows-side-title';
+      title.textContent = side === 'right' ? 'Hemitórax derecho' : 'Hemitórax izquierdo';
+      const grid = document.createElement('div');
+      grid.className = 'windows';
+      grid.setAttribute('role', 'group');
+      grid.setAttribute('aria-label', title.textContent);
+      group.append(title, grid);
+      host.appendChild(group);
+      groups.set(side, grid);
+    }
     for (const sp of START_POINTS) {
       const card = document.createElement('button');
       card.type = 'button';
@@ -86,14 +107,14 @@ export class StartPointCards {
       name.textContent = sp.label;
       const sub = document.createElement('span');
       sub.className = 'win-sub';
-      sub.textContent = CARD_SUB[sp.id];
+      sub.textContent = cardSub(sp.id);
       card.append(name, sub);
       card.addEventListener('click', () => {
         this.target = sp.id;
         deps.onPick(sp);
         this.sync();
       });
-      host.appendChild(card);
+      groups.get(sp.side)!.appendChild(card);
       this.cards.set(sp.id, card);
     }
   }
