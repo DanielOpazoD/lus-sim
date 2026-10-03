@@ -258,7 +258,10 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
     // (gemelo: classifyWall de AnatomyScene)
     float cup = wallCupolaMm(u, m.z);
     if (cup >= CUPOLA_CAP && d >= wall - cup) {
-      c.tissue = T_MUSCLE; c.bd = min(min(min(d - (wall - cup), ribAny / 1.1), spn), wallCupolaBd(u, m.z)); c.n = tn;
+      // (decisión 44) y el techo de la cúpula, horizontal en zTop desde la profundidad D de su ladera
+      c.tissue = T_MUSCLE;
+      c.bd = min(min(min(min(d - (wall - cup), ribAny / 1.1), spn), wallCupolaBd(u, m.z)), wallCupolaRoofBd(u, m.z, d - (wall - cup)));
+      c.n = tn;
       return true;
     }
     // debajo de la fascia, músculo hasta la transversalis y la grasa preperitoneal hasta el peritoneo

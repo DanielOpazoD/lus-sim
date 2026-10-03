@@ -14,6 +14,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'apex-cupola-wall',
   'wall-cupola-transition',
   'clavicle-section-uniform',
+  'anterior-rib-shape',
   'scapula-plate',
   'spine-arch-slab',
   'patient-position-anatomy',

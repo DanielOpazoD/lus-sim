@@ -4,7 +4,7 @@ import { DIAPHRAGM_EXCURSION } from '../../physiology/respiratory';
 import { torsoDepthGradient, torsoSkinPoint, type ChestWallLookup, type Torso, type WallLayersAt } from '../primitives';
 import { thoraxLinePhi } from '../thoraxLines';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
-import { cupolaMm } from './lungApex';
+import { cupolaMm, cupolaRoofDepthMm } from './lungApex';
 import { wallArc, wallPerimeter } from './wall';
 
 /**
@@ -755,6 +755,18 @@ export function wallCupolaBd(cw: ChestWall, u: number, z: number): number {
 }
 
 /**
+ * Cota de la distancia al techo de la cúpula de una muestra sobre él (lus-sim, decisión 44; gemelo GLSL con el mismo nombre), a
+ * `rho` mm por dentro de la pared del tórax: el techo es horizontal en zTop desde la profundidad D de la ladera hacia dentro, así
+ * que la frontera con el pulmón está a lo sumo a la distancia a ese tramo; 1e3 sin cúpula.
+ */
+export function wallCupolaRoofBd(cw: ChestWall, u: number, z: number, rho: number): number {
+  if (z <= cw.apexMinZ) return 1e3;
+  const [j, f] = column(u);
+  const a = texelAt(cw, j, f, 3);
+  return Math.hypot(Math.max(0, z - a[1]), Math.max(0, cupolaRoofDepthMm(a[0], a[1]) - rho));
+}
+
+/**
  * Lo que la cúpula pleural engruesa la pared (mm, radial) en (u, z) (lus-sim, cobertura torácica; gemelo GLSL con el mismo
  * nombre): las partes blandas del cuello y del hombro entre la piel y la pleura cervical.
  */
@@ -893,6 +905,13 @@ float wallCupolaBd(float u, float z) {
   float f = cwColumn(u, j);
   float za = cwTexel(j, f, 3).x;
   return z > za ? z - za : 1e3;
+}
+float wallCupolaRoofBd(float u, float z, float rho) {
+  if (z <= uCupola.x) return 1e3;
+  int j;
+  float f = cwColumn(u, j);
+  vec2 a = cwTexel(j, f, 3).xy;
+  return length(vec2(max(0.0, z - a.y), max(0.0, cupolaRoofDepthMm(a) - rho)));
 }
 // la pared que mira el campo respiratorio (decisión 22): el paso al abdomen alargado hasta la pendiente CW_RESP_SLOPE
 float respiratoryWallBlendMm(vec4 a) {
