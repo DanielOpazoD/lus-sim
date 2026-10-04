@@ -3503,7 +3503,7 @@ frente a 0,46–0,72 s en el banco.
   tiembla y la mano mueve también la pared: el cociente de σ bajo la pleura, respirando frente a la apnea, dependía de la
   realización (3,6–10,7). Sin la mano, la guarda conserva sus 10 veces y su mutación (sin el deslizamiento falla). La
   detección y F-T01 se siguen comprobando con la mano.
-- **La coherencia del sector detectado se mide con la mano apagada.** En el PLAPS respirando, con la mano, la guarda d_pl de
+- **La coherencia del sector detectado se mide con la mano apagada** (hasta la decisión 45, que lo resuelve y la devuelve a la mano encendida). En el PLAPS respirando, con la mano, la guarda d_pl de
   `e2e/fidelidad.spec.ts` (detectada frente a la verdadera, < 2 mm) falló 2 de 4 veces con SwiftShader (2,80 y 2,97 mm; con
   main, 3 de 3 bien). En el fallo el borde de la piel detectado queda 4,8 px más hondo: la máscara temporal del detector se
   corre con la piel que se mueve. Esa guarda es de coherencia del detector, no del banco: el banco mide el simulador con la
@@ -4254,3 +4254,88 @@ fallan con la curva de la decisión 27), `compression.test.ts` (el BLUE superior
 `anatomyTargets.test.ts` (A-T23 y A-T24 en los cinco hábitos), `coverage.test.ts`. La cáscara TS ↔ GLSL medida con SwiftShader y
 con la GPU real (espiración e inspiración profunda). Las imágenes de arranque y de la sonda subiendo hacia la clavícula (z 140, 155 y 170) con la GPU real, antes y después. `npm run check`, la e2e con SwiftShader y el CI de la PR. Revisión adversarial de contexto
 limpio (resumen en la PR).
+
+## 45. La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** Con la mano del operador (decisión 39), el detector del sector se corría con la piel: en el PLAPS respirando,
+el borde detectado se movía hasta 1,2–1,6 px a lo largo del ciclo y a veces saltaba a 4,8 px, con d_pl 2,8–3,0 mm más larga
+que la verdadera. Por eso las guardas de coherencia del detector (ápice, bordes, piel y d_pl) se medían con la mano apagada y
+el defecto quedó como limitación (`sector-detector-moving-skin`) y prueba «aún no se cumple». Medido sobre 20 pilas volcadas de
+la GPU real (seis del PLAPS con la mano y seis sin ella; cuatro del BLUE superior y cuatro del inferior con la mano):
+
+- **Sin la mano, la imagen está quieta.** Menos de la mitad de lo encendido varía y el detector usa la máscara de intensidad.
+  Con la mano usa la temporal (63–75 % de lo encendido varía).
+- **La piel y el campo cercano casi no varían, porque la sonda sigue a la piel.** σ temporal de 0,3–1,4 grises, junto al
+  umbral de la máscara, max(0,75 escalones; 2 % del brillo). La máscara temporal los agujerea, en la línea central del PLAPS
+  hasta 8,6 px por debajo de la piel. El arco de la piel deja de aceptarse o se ajusta sobre lo primero que varía.
+- **Entonces el ápice lo dan los bordes.** Se ven en el campo lejano y se mueven con el contenido de la imagen: entre las seis
+  pilas del PLAPS el ápice de los bordes varía ±0,35 px. El radio de la piel, el p10 de los radios mínimos por ángulo medido
+  desde ese ápice, hereda esa variación.
+- **El arco ajustado sobre lo encendido es idéntico en las doce pilas del PLAPS**, con y sin la mano: está fijo a la cara de
+  la sonda. Pero queda medio píxel hondo (los puntos son el centro de lo primero encendido, no el borde de la máscara) y su
+  error típico (0,44 px) pierde frente al de los bordes (0,25–0,33).
+
+**Opciones.** Se midieron sobre las 20 pilas y sobre los 34 clips del banco (`bankdet`, la geometría propuesta frente a la
+fijada en el manifiesto):
+
+- **Registro rígido de los cuadros antes de la máscara temporal** (traslación entera, ±6 px): la piel queda igual o peor,
+  −1,4 a +1,0 px en el PLAPS y hasta 2,6 px en el BLUE inferior. En el banco, la suma de los errores del ápice sube de 58 a
+  472 px, LUS-03 (lineal) sale convexa y LUS-35l sale lineal. El sector no se mueve en la pantalla y lo que se mueve no es
+  rígido: alinear el tejido desalinea el abanico.
+- **σ robusta (1,4826·MAD) en vez de la desviación típica:** −1,3 a −0,1 px en el PLAPS. La piel sigue casi quieta y por
+  debajo del umbral. En el banco, LUS-04c (lineal) sale convexa.
+- **El arco por cuadro, con la geometría promediada:** en el simulador da −0,78 a 0,46 px, pero en el banco la suma de los
+  errores del ápice sube de 61,6 a 75,1 px y 13 clips empeoran (LUS-35j de 0,6 a 3,6 px). La máscara de intensidad de un
+  cuadro suelto se lleva las marcas quemadas.
+- **Rellenar la máscara temporal desde lo que varía** (reconstrucción geodésica sobre lo encendido, por histéresis, solo
+  hacia arriba o por componentes): arregla el simulador, pero en el banco convierte LUS-02 (sectorial) en convexa (ápice a
+  300–2600 px) o LUS-03 (lineal) en convexa. La histéresis con un umbral débil no basta en el simulador: parte de la piel
+  tiene σ ≈ 0.
+- **Elegida: la piel sobre lo encendido, sin tocar la máscara temporal de los bordes.**
+
+**Decisión.** En `detectSectorFromStats` (`src/measure/fidelity/sector.ts`):
+
+1. **El arco y el radio mínimo de la piel se miden sobre lo encendido** cuando el clip usa la máscara temporal (sus
+   componentes grandes, `skinSupport`). Los bordes, el fondo y las marcas siguen saliendo de la máscara temporal. Una marca
+   quieta sobre la piel deja puntos fuera del círculo y el arco no se acepta: mandan los bordes, como antes.
+2. **Cada punto del arco es el borde de la máscara,** medio píxel por encima del centro de lo primero encendido
+   (`SKIN_EDGE_OFFSET_PX`).
+3. **El arco manda también cuando su error típico es menor de 1 px** (`ARC_PREFERRED_SIGMA_PX`), no solo cuando gana a los
+   bordes. Su error es sobre todo el escalón del píxel, que no cambia entre pilas, y los bordes sí cambian.
+4. **Con el arco, la piel es su radio:** el ápice y la piel salen del mismo ajuste.
+
+**Consecuencias.**
+
+| Piel detectada − verdadera (px), GPU real | Main          | Esta decisión |
+| ----------------------------------------- | ------------- | ------------- |
+| PLAPS con la mano (6 pilas)               | −1,43 a −0,33 | −0,30 a −0,24 |
+| PLAPS sin la mano (6 pilas)               | −0,10 a 0,16  | −0,30         |
+| BLUE superior con la mano (4)             | −0,19 a 0,46  | −0,31 a −0,27 |
+| BLUE inferior con la mano (4)             | −1,84 a 2,64  | −0,30 a −0,24 |
+
+- **La piel ya no depende de la mano ni del punto.** −0,24 a −0,31 px en las 20 pilas. El resto es fijo: el radio del arco,
+  medio píxel de la discretización. El ápice queda a −0,24 a −0,16 px en la vertical (antes, −3,4 a 1,4).
+- **El banco real no cambia.** En los 34 clips el arco no se acepta en ninguno (la piel es el borde del recorte, o el arco no
+  cubre el sector), así que la geometría propuesta es la misma, número a número. `npm run fidelity:bank` pasa sin regenerar
+  `reference-stats.json`. El costo: una búsqueda de componentes conexas más por clip con máscara temporal.
+- **Las guardas de coherencia del detector de `e2e/fidelidad.spec.ts`** (ápice < 25 px, bordes < 4°, piel < 10 px y
+  d_pl < 2 mm) **vuelven a medirse con la mano encendida**, en las dos pilas de cada punto, como los clips. Se quita la
+  excepción de la decisión 39. La guarda del modo M sigue con la mano apagada: allí la mano mueve la pared, que no es un
+  defecto del detector.
+- **La prueba «aún no se cumple» pasa a guarda.** Seis pilas del PLAPS respirando con la mano: |piel| ≤ 0,5 px y d_pl a
+  < 2 mm. E2E_NUMS
+- **Se quita la limitación `sector-detector-moving-skin`.**
+- **Lo que queda:** la piel del simulador sigue 0,3 px corta por la discretización del arco, y los bordes con la mano siguen
+  moviéndose ±0,35 px entre pilas. No se exige más a la geometría del detector, que solo propone: el banco mide con la geometría
+  fijada.
+
+**Verificación.**
+
+- `fidelityBench.test.ts`: un clip sintético vivo con los primeros 6 px bajo la piel quietos. La piel y el ápice son los del
+  mismo clip sin la banda quieta (±0,1 px) y la piel queda a < 1,5 px de la verdadera. Con el detector de main, 5,0 px: la
+  prueba falla sin el cambio.
+- Las pruebas del detector de siempre, la invariancia afín y `npm run fidelity:bank` (el banco dorado, sin cambios).
+- `e2e/fidelidad.spec.ts` con la GPU real y con SwiftShader: las tres ventanas del banco y la guarda del detector con la mano.
+- Revisión adversarial de contexto limpio: resumen en la PR.
