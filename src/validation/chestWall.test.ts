@@ -8,11 +8,23 @@ import {
   CHEST_WALL_DU_MM,
   CHEST_WALL_GLSL,
   CHEST_WALL_TEXELS,
+  CHEST_WALL_TEXELS_PER_COL,
   wallLayersAt,
   wallTotalAt,
 } from '../anatomy/organs/chestWall';
+import { LUNG_APEX, LUNG_APEX_GLSL } from '../anatomy/organs/lungApex';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from '../anatomy/organs/ribcage';
-import { WALL, wallArc, wallBand, wallDepths, wallInnerNormal, wallLayers, wallPlaneDepth, wallPlaneGap } from '../anatomy/organs/wall';
+import {
+  WALL,
+  wallArc,
+  wallPerimeter,
+  wallBand,
+  wallDepths,
+  wallInnerNormal,
+  wallLayers,
+  wallPlaneDepth,
+  wallPlaneGap,
+} from '../anatomy/organs/wall';
 import { torsoDepthGradient, torsoNormal, torsoSkinPoint, type WallLayersAt } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { Tissue } from '../anatomy/tissues';
@@ -281,6 +293,53 @@ describe('pared torácica por región (decisión 17)', () => {
       expect(rest, `${f}π`).toBeLessThan(-10);
       expect(rest - deep, `${f}π`).toBeGreaterThanOrEqual(29);
     }
+  });
+
+  it('la ladera de la cúpula pleural tiene la pendiente acotada en todo el perímetro (decisión 44)', () => {
+    // la pared por encima de la 1.ª costilla y por debajo del techo (la radial ya no cruza pulmón), del esternón a la línea media
+    // posterior: |∇W| (mm de pared por mm de z y de piel). Delante (u < 384) ≤ 2 (medido: 1,88); junto a la línea media posterior,
+    // donde la cúpula pasa al cuello delante de la columna, ≤ 4,5 (medido: 4,25 en u 403). Con la curva de la decisión 27,
+    // Rc·(1 − √(1 − h)), 37 delante y 45 detrás
+    const S = LUNG_APEX.params.cupolaMaxSlope.value;
+    const h = 0.05;
+    const worst = { front: { g: 0, at: '' }, back: { g: 0, at: '' } };
+    for (let u = 0; u <= wallPerimeter(t) / 2; u += 1)
+      for (let z = 140; z <= 200; z += 0.25) {
+        const v = [cw.total(u, z), cw.total(u, z + h), cw.total(u, z - h), cw.total(u + h, z), cw.total(Math.max(0, u - h), z)];
+        if (v.some((x) => x > 150)) continue;
+        const g = Math.hypot((v[1] - v[2]) / (2 * h), (v[3] - v[4]) / (2 * h));
+        const w = u < 384 ? worst.front : worst.back;
+        if (g > w.g) {
+          w.g = g;
+          w.at = `u ${u}, z ${z}`;
+        }
+      }
+    expect(worst.front.g, worst.front.at).toBeLessThanOrEqual(2);
+    expect(worst.front.g, worst.front.at).toBeGreaterThan(S * 0.9);
+    expect(worst.back.g, worst.back.at).toBeLessThanOrEqual(4.5);
+  });
+
+  it('la ladera de la cúpula pleural sale de la pared sin esquina (decisión 44)', () => {
+    // en su arranque sobre la 1.ª costilla la ladera crece como h² (a 1 mm, < 0,25 mm; medido ≤ 0,15), no como h (la de la
+    // decisión 27: 0,39 mm en la LMC, 3,17 fuera del tercio medio)
+    for (const u of [40, 86, 140]) {
+      const j = Math.floor(u / CHEST_WALL_DU_MM);
+      const zApex = cw.table[(j * CHEST_WALL_TEXELS_PER_COL + 3) * 4];
+      const base = cw.total(j * CHEST_WALL_DU_MM, zApex - 0.5);
+      expect(cw.total(j * CHEST_WALL_DU_MM, zApex + 1) - base, `u ${u}`).toBeLessThan(0.25);
+    }
+  });
+
+  it('gemelo GLSL de la ladera de la cúpula: la misma curva y la misma pendiente que en TS (decisión 44)', () => {
+    const A = LUNG_APEX.params;
+    expect(LUNG_APEX_GLSL).toContain(`#define CUPOLA_RC ${A.cupolaCurveMm.value.toFixed(4)}`);
+    expect(LUNG_APEX_GLSL).toContain(`#define CUPOLA_SLOPE ${A.cupolaMaxSlope.value.toFixed(4)}`);
+    expect(LUNG_APEX_GLSL).toContain(
+      'float cupolaRoofDepthMm(vec2 a) { return min(CUPOLA_RC, 0.5 * CUPOLA_SLOPE * max(a.y - a.x, 1e-3)); }',
+    );
+    expect(LUNG_APEX_GLSL).toContain('if (z >= a.x + span) return CUPOLA_CAP;');
+    expect(LUNG_APEX_GLSL).toContain('return cupolaRoofDepthMm(a) * h * h;');
+    expect(ANATOMY_GLSL).toContain(LUNG_APEX_GLSL);
   });
 
   it('gemelo GLSL: la tabla y las constantes salen del módulo, y el shader y la escena leen la misma pared', () => {

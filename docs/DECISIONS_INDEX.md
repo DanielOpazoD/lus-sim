@@ -47,3 +47,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [41](DECISIONS.md#L3651) | La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco | rechazada |
 | [42](DECISIONS.md#L3800) | Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos | vigente |
 | [43](DECISIONS.md#L3930) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
+| [44](DECISIONS.md#L4165) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
