@@ -80,7 +80,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
       for (const v of s.vessels)
         for (const { p, r } of axisSamples(v, 2)) {
           const c = s.classify(p, BASELINE_INSTANT);
-          expect(c.tissue, `${tag} ${v.id} (${p.map((x) => x.toFixed(1))})`).toBe(Tissue.Blood);
+          expect(c.tissue, `${tag} ${v.id} (${p.map((x) => x.toFixed(1)).join(', ')})`).toBe(Tissue.Blood);
           expect(c.interface).toBe(v.lumenInterface);
           // a medio grosor de la pared, fuera de la luz, en la dirección de y o de x (la que no sigue al eje)
           const t = tubeQuery(p, v.tube);
@@ -151,7 +151,8 @@ describe('Los vasos del hilio (decisión 46)', () => {
             const inOrgan = s.inStomach(q, BASELINE_INSTANT) || FORBIDDEN.has(tissue);
             // los dos primeros tramos entran en su órgano (el bazo o el seno renal)
             const ownOrgan = seg <= 1 && SPLEEN_OR_KIDNEY.has(tissue);
-            if (inOrgan || (SPLEEN_OR_KIDNEY.has(tissue) && !ownOrgan)) hits.push(`${Tissue[tissue]}@${q.map((x) => x.toFixed(1))}`);
+            if (inOrgan || (SPLEEN_OR_KIDNEY.has(tissue) && !ownOrgan))
+              hits.push(`${Tissue[tissue]}@${q.map((x) => x.toFixed(1)).join(',')}`);
           }
         }
         expect(hits, `${tag} ${v.id}: ${hits.slice(0, 4).join(' ')}`).toEqual([]);

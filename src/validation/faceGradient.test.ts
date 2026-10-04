@@ -191,7 +191,8 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
     it('la salida barata de la pasada B no descarta ninguna muestra al alcance de su cara', () => {
       // GLSL: sin calcular el gradiente, descarta ifd > alcance·cota, con cota = |∇| exacta en los tubos
       // (va en c.n) e IFACE_GRADIENT_MAX en el resto. Es exacto si toda muestra descartada tiene
-      // ifd/|∇| > alcance: se comprueba en puntos del tronco a ≤ 3 mm de una cara (en el tórax no hay tubos)
+      // ifd/|∇| > alcance: se comprueba en puntos del tronco a ≤ 3 mm de una cara (lus-sim, decisión 46: con la luz de los vasos
+      // del hilio, cuya cota es su |∇|)
       let state = 20260924;
       const rnd = () => {
         state = (state + 0x6d2b79f5) >>> 0;
@@ -207,12 +208,12 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
         const m: V = [scene.torso.a * r * Math.cos(a), scene.torso.b * r * Math.sin(a), -160 + 280 * rnd()];
         const c = scene.classify(m, instant);
         if (c.interface === Interface.None || c.interfaceDistance > 3) continue;
-        expect(c.interface, 'el tórax no tiene caras de tubo').toBeGreaterThan(LAST_TUBE_INTERFACE);
         const reach = INTERFACES[c.interface].twoSided ? IFACE_REACH_MM : IFACE_SHIFT_MM + IFACE_REACH_MM;
         const g = scene.faceGradient(m, instant)!;
+        const tube = c.interface <= LAST_TUBE_INTERFACE;
         const s = seen.get(c.interface) ?? { near: 0, dropped: 0, maxNorm: 0 };
         s.near++;
-        if (c.interfaceDistance > reach * IFACE_GRADIENT_MAX) {
+        if (c.interfaceDistance > reach * (tube ? g.norm : IFACE_GRADIENT_MAX)) {
           s.dropped++;
           s.maxNorm = Math.max(s.maxNorm, g.norm);
           expect(c.interfaceDistance / g.norm, `${Interface[c.interface]} en ${m.map((x) => x.toFixed(1)).join(', ')}`).toBeGreaterThan(
