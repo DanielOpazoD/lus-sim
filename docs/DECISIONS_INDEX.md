@@ -42,9 +42,10 @@ Generado por `npm run docs:index` — no editar a mano.
 | [36](DECISIONS.md#L2922) | El detector del sector que no confunde una sombra costal con el borde, y el punto BLUE inferior en el centro del EIC4 | vigente |
 | [37](DECISIONS.md#L3064) | El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34) | vigente |
 | [38](DECISIONS.md#L3238) | Lo que falta de la reverberación de la pared no cierra la neblina; el espejo la cerraría con una pleura lisa, pero choca con la caída de las líneas A | rechazada |
-| [39](DECISIONS.md#L3399) | La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips | vigente |
-| [40](DECISIONS.md#L3570) | El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico | vigente |
-| [41](DECISIONS.md#L3651) | La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco | rechazada |
-| [42](DECISIONS.md#L3800) | Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos | vigente |
-| [43](DECISIONS.md#L3930) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
-| [44](DECISIONS.md#L4165) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
+| [39](DECISIONS.md#L3400) | La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips | vigente |
+| [40](DECISIONS.md#L3572) | El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico | vigente |
+| [41](DECISIONS.md#L3653) | La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco | rechazada |
+| [42](DECISIONS.md#L3802) | Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos | vigente |
+| [43](DECISIONS.md#L3932) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
+| [44](DECISIONS.md#L4167) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
+| [45](DECISIONS.md#L4260) | La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador | vigente |
