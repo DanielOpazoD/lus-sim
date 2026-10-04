@@ -401,12 +401,6 @@ export const RENAL_IMPRESSION_OVERLAP_MM = 1;
  */
 export const KIDNEY_REACH_MM = KIDNEY_RADII[0] + PERIRENAL.maxMm;
 export const KIDNEY_NEAR_MARGIN_MM = 2;
-/**
- * lus-sim (decisión 43): más allá de la esfera y el margen, la distancia a la grasa sale del elipsoide de la grasa más gruesa
- * (`KIDNEY_FAT_RADII`, `sdEllipsoidLocal`), y en esta banda (mm) se funde con la de su forma: la distancia es continua. VExUS
- * daba la de la esfera, que salta (de 29 a 3 mm junto al bazo): la impresión renal partía el bazo.
- */
-export const KIDNEY_FAR_BLEND_MM = 4;
 /** Semiejes del elipsoide del riñón con la grasa más gruesa (mm): contiene la grasa. */
 export const KIDNEY_FAT_RADII: Vec3 = [
   KIDNEY_RADII[0] + PERIRENAL.maxMm,
@@ -415,17 +409,23 @@ export const KIDNEY_FAT_RADII: Vec3 = [
 ];
 
 /**
- * La distancia a la cara externa de la grasa perirrenal del riñón `k` fuera de su esfera (`dc`, la distancia a su centro, pasa
- * de `KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM`): la del elipsoide de su grasa más gruesa, fundida en `KIDNEY_FAR_BLEND_MM` con
- * la de su forma (gemelo GLSL con el mismo nombre). Continua con `perirenalOuterSdf` en la esfera.
+ * lus-sim (decisión 43): la distancia a la grasa perirrenal del riñón `k` fuera de su esfera y del margen
+ * (`KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM`): la del elipsoide de su grasa más gruesa (`KIDNEY_FAT_RADII`), sin evaluar su
+ * forma. VExUS daba la de la esfera, que salta (de 29 a 3 mm junto al bazo): la impresión renal partía el bazo. Gemelo GLSL con
+ * el mismo nombre.
  */
-export function perirenalFar(m: Vec3, k: Kidney, dc: number): number {
-  const q = kidneyLocal(m, k);
-  const far = sdEllipsoidLocal(q, KIDNEY_FAT_RADII);
-  const t = (dc - KIDNEY_REACH_MM - KIDNEY_NEAR_MARGIN_MM) / KIDNEY_FAR_BLEND_MM;
-  if (t >= 1) return far;
-  const near = perirenalOuterSdf(q, k);
-  return near + (far - near) * t;
+export function perirenalFar(m: Vec3, k: Kidney): number {
+  return sdEllipsoidLocal(kidneyLocal(m, k), KIDNEY_FAT_RADII);
+}
+
+/**
+ * La distancia de la forma (`near`, la de `perirenalOuterSdf` en el marco local `q`) fundida en el margen de la esfera (de
+ * `KIDNEY_REACH_MM` a `KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM`; la grasa queda dentro de la esfera) con la del elipsoide de
+ * `perirenalFar`: continua al salir de la esfera, y sin evaluar la forma fuera. Gemelo GLSL con el mismo nombre.
+ */
+export function perirenalBlend(near: number, q: Vec3, dc: number): number {
+  const t = (dc - KIDNEY_REACH_MM) / KIDNEY_NEAR_MARGIN_MM;
+  return t > 0 ? near + (sdEllipsoidLocal(q, KIDNEY_FAT_RADII) - near) * Math.min(t, 1) : near;
 }
 
 /**
@@ -438,7 +438,12 @@ export function perirenalDistance(m: Vec3, kidneys: readonly Kidney[]): number {
   let d = 1e3;
   for (const k of kidneys) {
     const dc = Math.hypot(m[0] - k.center[0], m[1] - k.center[1], m[2] - k.center[2]);
-    d = Math.min(d, dc > KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM ? perirenalFar(m, k, dc) : perirenalOuterSdf(kidneyLocal(m, k), k));
+    if (dc > KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM) {
+      d = Math.min(d, perirenalFar(m, k));
+      continue;
+    }
+    const q = kidneyLocal(m, k);
+    d = Math.min(d, perirenalBlend(perirenalOuterSdf(q, k), q, dc));
   }
   return d;
 }
@@ -476,14 +481,29 @@ export function kidneyShadow(m: Vec3, kidneys: readonly Kidney[]): number {
     const x = m[0] - k.center[0];
     const z = m[2] - k.center[2];
     const rim = ax * x + az * z;
-    const side = perirenalOuterSdf(kidneyLocal([m[0], k.center[1] + rim, m[2]], k), k);
     const y = m[1] - k.center[1];
-    d = Math.min(d, Math.max(side, y - rim, -KIDNEY_SHADOW_BACK_MM - y));
+    // lejos por delante del plano o por detrás del fondo, la cota que da y, sin la forma (la grasa)
+    const slab = Math.max(y - rim, -KIDNEY_SHADOW_BACK_MM - y);
+    if (slab >= KIDNEY_SHADOW_SKIP_MM) {
+      d = Math.min(d, slab);
+      continue;
+    }
+    const side = perirenalOuterSdf(kidneyLocal([m[0], k.center[1] + rim, m[2]], k), k);
+    d = Math.min(d, Math.max(side, slab));
   }
   return d;
 }
 /** Hasta dónde llega la sombra del riñón detrás de su centro (mm): pasa de la pared posterior [SUPUESTO]. */
 export const KIDNEY_SHADOW_BACK_MM = 60;
+/**
+ * A más de esto (mm) por delante del plano del borde o por detrás del fondo, la sombra da la cota de y sin evaluar la grasa: una
+ * cota inferior que no cambia lo que se clasifica (la impresión renal solo actúa por debajo de su redondeo, 8 mm, y en la cara del
+ * órgano; por encima de 10 mm el máximo suave con ella es exacto) y ahorra la forma del riñón en ≈ 60 % de los puntos.
+ */
+export const KIDNEY_SHADOW_SKIP_MM = 10;
+/** El redondeo de la unión de la grasa y la sombra en la impresión renal (mm) [SUPUESTO]: sin él, `min` no es monótona junto a la
+ * pared lateral de la sombra y, con el máximo suave del órgano, dejaba islas de < 2 mm en el borde con la grasa. */
+export const RENAL_UNION_ROUND_MM = 4;
 
 /**
  * La impresión renal del hígado y del bazo (lus-sim, decisión 43; gemelo GLSL con el mismo nombre): la cara externa de la grasa
@@ -491,7 +511,7 @@ export const KIDNEY_SHADOW_BACK_MM = 60;
  * (`kidneyShadow`): el órgano no pasa por detrás de él.
  */
 export function renalImpression(m: Vec3, kidneys: readonly Kidney[], perirenal: number): number {
-  return Math.min(perirenal + RENAL_IMPRESSION_OVERLAP_MM, kidneyShadow(m, kidneys));
+  return smoothMin(perirenal + RENAL_IMPRESSION_OVERLAP_MM, kidneyShadow(m, kidneys), RENAL_UNION_ROUND_MM);
 }
 
 /** Distancia con signo a un cono redondeado (radio interpolado a lo largo del eje), marco local. */
@@ -627,7 +647,8 @@ const float KID_HILUM_R = ${g(HILUM_RADIUS_MM)};
 #define KIDNEY_NEAR_MARGIN ${g(KIDNEY_NEAR_MARGIN_MM)}
 #define RENAL_IMPRESSION_OVERLAP ${g(RENAL_IMPRESSION_OVERLAP_MM)}
 #define KIDNEY_SHADOW_BACK ${g(KIDNEY_SHADOW_BACK_MM)}
-#define KIDNEY_FAR_BLEND ${g(KIDNEY_FAR_BLEND_MM)}`;
+#define KIDNEY_SHADOW_SKIP ${g(KIDNEY_SHADOW_SKIP_MM)}
+#define RENAL_UNION_ROUND ${g(RENAL_UNION_ROUND_MM)}`;
 const PELVIS = `const vec4 PELVIS = vec4(${RENAL_PELVIS.radii[0].toFixed(1)}, ${RENAL_PELVIS.radii[1].toFixed(1)}, ${RENAL_PELVIS.radii[2].toFixed(1)}, ${RENAL_PELVIS.offsetV.toFixed(1)}); const float RENAL_CAPSULE_MM = ${RENAL_CAPSULE_MM.toFixed(2)};`;
 const NOTCH = `const vec4 NOTCH = vec4(${HILUM_NOTCH.radii[0].toFixed(1)}, ${HILUM_NOTCH.radii[1].toFixed(1)}, ${HILUM_NOTCH.radii[2].toFixed(1)}, ${HILUM_NOTCH.offsetV.toFixed(1)}); const float NOTCH_ROUND = ${HILUM_NOTCH.roundMm.toFixed(1)};`;
 
@@ -715,22 +736,23 @@ float kidneySinusSdf(vec3 q, int k) {
   return d;
 }
 
-// Fuera de la esfera del riñón k, la distancia a su grasa: la del elipsoide de la grasa más gruesa, fundida con la de su forma en
-// KIDNEY_FAR_BLEND (gemelo: perirenalFar)
-float perirenalFar(vec3 m, int k, float dc) {
-  vec3 q = kidneyLocal(m, k);
-  float far = sdEllipsoidLocal(q, KID_R + PERI.y);
-  float t = (dc - KIDNEY_REACH - KIDNEY_NEAR_MARGIN) / KIDNEY_FAR_BLEND;
-  if (t >= 1.0) return far;
-  float near = perirenalOuterSdf(q, k);
-  return near + (far - near) * t;
+// Fuera de la esfera del riñón k, la distancia a su grasa: la del elipsoide de la grasa más gruesa (gemelo: perirenalFar)
+float perirenalFar(vec3 m, int k) {
+  return sdEllipsoidLocal(kidneyLocal(m, k), KID_R + PERI.y);
+}
+// La distancia de la forma fundida con la del elipsoide en el margen de la esfera (gemelo: perirenalBlend)
+float perirenalBlend(float near, vec3 q, float dc) {
+  float t = (dc - KIDNEY_REACH) / KIDNEY_NEAR_MARGIN;
+  return t > 0.0 ? near + (sdEllipsoidLocal(q, KID_R + PERI.y) - near) * min(t, 1.0) : near;
 }
 // La distancia a la cara externa de la grasa perirrenal más cercana; lejos de un riñón, perirenalFar (gemelo: perirenalDistance)
 float perirenalDistance(vec3 m) {
   float d = 1e3;
   for (int k = 0; k < 2; k++) {
     float dc = distance(m, kidneyCenter(k));
-    d = min(d, dc > KIDNEY_REACH + KIDNEY_NEAR_MARGIN ? perirenalFar(m, k, dc) : perirenalOuterSdf(kidneyLocal(m, k), k));
+    if (dc > KIDNEY_REACH + KIDNEY_NEAR_MARGIN) { d = min(d, perirenalFar(m, k)); continue; }
+    vec3 q = kidneyLocal(m, k);
+    d = min(d, perirenalBlend(perirenalOuterSdf(q, k), q, dc));
   }
   return d;
 }
@@ -753,14 +775,16 @@ float kidneyShadow(vec3 m) {
     vec2 a = kidneyShadowPlane(k);
     vec3 p = m - c;
     float rim = a.x * p.x + a.y * p.z;
+    float slab = max(p.y - rim, -KIDNEY_SHADOW_BACK - p.y);
+    if (slab >= KIDNEY_SHADOW_SKIP) { d = min(d, slab); continue; }
     float side = perirenalOuterSdf(kidneyLocal(vec3(m.x, c.y + rim, m.z), k), k);
-    d = min(d, max(max(side, p.y - rim), -KIDNEY_SHADOW_BACK - p.y));
+    d = min(d, max(side, slab));
   }
   return d;
 }
 // La impresión renal del hígado y del bazo: la grasa perirrenal más el solape, y la sombra (gemelo: renalImpression)
 float renalImpression(vec3 m, float perirenal) {
-  return min(perirenal + RENAL_IMPRESSION_OVERLAP, kidneyShadow(m));
+  return smoothMin(perirenal + RENAL_IMPRESSION_OVERLAP, kidneyShadow(m), RENAL_UNION_ROUND);
 }
 
 // Región interna: 0 corteza, 1 médula, 2 seno, 3 pelvis; devuelve la distancia interna mínima

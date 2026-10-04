@@ -73,6 +73,7 @@ import {
   kidneyOuterSdf,
   kidneyQuery,
   perirenalDistance,
+  perirenalBlend,
   perirenalFar,
   perirenalThicknessMm,
   renalImpression,
@@ -611,7 +612,8 @@ export class AnatomyScene {
     const stomachNear = stomachCandidate(m, skin, this.stomach);
     if (lobes > LIVER_EARLY_OUT_MM && !spleenNear && !stomachNear)
       return { cls: null, dOut: Math.min(lobes, perirenal) * ORGAN_SDF_LIPSCHITZ, perirenal, spine };
-    const renal = renalImpression(m, this.kidneys, perirenal);
+    // la impresión renal, solo si la usan el hígado (cerca de sus lóbulos) o el bazo; el estómago no la usa
+    const renal = lobes <= LIVER_EARLY_OUT_MM || spleenNear ? renalImpression(m, this.kidneys, perirenal) : 1e3;
     const dLiver = liverSdf(m, u, inside, wallColumnTexel(this.chestWall, u)[2], this.liver, renal);
     // la grasa perirrenal, que se clasifica antes, ocupa el solape de la impresión renal
     const fat = perirenal * ORGAN_SDF_LIPSCHITZ;
@@ -676,12 +678,13 @@ export class AnatomyScene {
     for (const k of this.kidneys) {
       const dc = Math.hypot(m[0] - k.center[0], m[1] - k.center[1], m[2] - k.center[2]);
       if (dc > KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM) {
-        perirenal = Math.min(perirenal, perirenalFar(m, k, dc));
+        perirenal = Math.min(perirenal, perirenalFar(m, k));
         continue;
       }
       const kh = kidneyQuery(m, k);
-      const fat = perirenalThicknessMm(kidneyLocal(m, k), k);
-      perirenal = Math.min(perirenal, kh.dOuter - fat);
+      const q = kidneyLocal(m, k);
+      const fat = perirenalThicknessMm(q, k);
+      perirenal = Math.min(perirenal, perirenalBlend(kh.dOuter - fat, q, dc));
       if (kh.dOuter < 0) {
         if (-kh.dOuter < RENAL_CAPSULE_MM) {
           const cls: Classification = {

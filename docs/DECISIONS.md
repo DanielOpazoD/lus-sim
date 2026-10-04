@@ -4032,8 +4032,8 @@ sitio de la TC, y dejar pendientes las celdas que no alcance.
   línea entre las puntas de la 11.ª y la 12.ª y luego la 12.ª), porque el bazo normal queda dentro de la parrilla (Gray: tras las
   costillas 9.ª–11.ª, con su borde posterior en la 11.ª). El primer intento ponía su extremo anterior en los 26,6 mm de Shen por
   delante de la LAM: con la punta libre de la 11.ª a 20 mm por delante de la LAM en el avatar, 41 mL pasaban hasta 46 mm bajo el
-  reborde (un bazo que se palpa). Con el reborde, su extremo anterior queda 12–15 mm por delante de la línea axilar media de Shen
-  en los seis hábitos (su definición, a medio camino del ángulo xifoesternal a la cara posterior de la columna, cae en el avatar
+  reborde (un bazo que se palpa). Con el reborde, su extremo anterior queda 12–17 mm por delante de la línea axilar media de Shen
+  en los seis hábitos (11,9–16,6; los obesos, 15,6 y 16,6) (su definición, a medio camino del ángulo xifoesternal a la cara posterior de la columna, cae en el avatar
   a ≈ 1 mm de la línea de la piel), dentro de ± 1 DE de Shen, y su borde posterior llega a la 12.ª, la banda más frecuente de la TC. No pasa de 45 mm bajo
   la pared (`SPLEEN_MAX_INSIDE_MM`, el grueso más 5): su profundidad bajo el diafragma es la altura bajo la cúpula, que lejos de la
   pared crece sin el grueso del órgano.
@@ -4043,22 +4043,28 @@ sitio de la TC, y dejar pendientes las celdas que no alcance.
   más bajo en la axilar media a la altura de L1 (z ≈ −76 en el avatar, sobre la 10.ª costilla) queda en la 11.ª–12.ª (z −140); el
   eje, que Gray pone en la 10.ª costilla, va en la 11.ª (la TC, en la mayoría). Entre las dos primeras marcas hay ≈ 16 cm en el
   avatar: no caben en un bazo de 11 cm.
-- **El bazo sin grietas** (segunda revisión): la impresión renal partía el bazo en el 2 % de sus columnas radiales y en el 5–7 %
-  en el obeso (rendijas del «resto» de 0,25–1,25 mm y grasa retroperitoneal de 4–8 mm entre dos tramos), y lo mismo al hígado
-  (5–13 columnas por hábito). Dos causas: lejos del riñón, la distancia a su grasa era la de su esfera (la de VExUS), que salta
+- **El bazo sin grietas** (segunda revisión): la impresión renal partía el bazo en 15 de sus 177 columnas radiales en el paciente
+  por omisión (8,5 %; rendijas del «resto» de 0,25–1,25 mm y, en el obeso, grasa retroperitoneal de 4–8 mm entre dos tramos), y
+  lo mismo al hígado (9 columnas en el paciente por omisión con la rejilla de la prueba). Dos causas: lejos del riñón, la distancia a su grasa era la de su esfera (la de VExUS), que salta
   (de 29 a 3 mm junto al bazo); y la sombra lo cortaba con el plano coronal de su centro, limitada por la silueta del elipsoide de
-  la grasa más gruesa, que pasa de la grasa real del borde lateral. Ahora la distancia lejana sale del elipsoide de la grasa y se
-  funde con la de su forma en 4 mm (`perirenalFar`, continua), y la sombra es la de arriba (la grasa real delante): ninguna
+  la grasa más gruesa, que pasa de la grasa real del borde lateral. Ahora la distancia lejana sale del elipsoide de la grasa (`perirenalFar`) y la
+  de su forma se funde con ella en el margen de 2 mm de la esfera (`perirenalBlend`, continua), la sombra es la de arriba (la grasa real delante) y la grasa y la
+  sombra se unen con un mínimo suave de 4 mm (`RENAL_UNION_ROUND_MM` [SUPUESTO]: con `min`, que no es monótona junto a la pared
+  lateral de la sombra, quedaban islas de < 2 mm en el borde con la grasa; en un barrido de 13 direcciones en el paciente por
+  omisión, de 11 a 0 en el bazo y de 107 a 18 en el hígado): ninguna
   columna partida en los seis hábitos (`liverSpleen.test.ts`, cada 0,25 mm, que falla con el código anterior), y en el hígado
   ninguna grieta donde actúa la impresión (quedan, y no lo son, la grasa del polo superior, la vértebra y el recorte posteromedial
   de VExUS, lejos del riñón). En la escapular derecha en el EIC11 la cobertura ve ahora el lóbulo derecho, que rodea por fuera el
   polo superior del riñón (antes la sombra ancha lo quitaba y veía el riñón): sigue cumplida.
 - **La cara diafragmática sin diafragma** [DISCREPANCIA]: Gray pone el diafragma entre el bazo y las costillas 9.ª–11.ª, pero la
   lámina de la ZOA acaba `zoaBelowReflectionMm` (20 mm [SUPUESTO], decisión 22) bajo la reflexión pleural, por encima del reborde
-  al que baja el bazo normal: en el 27–34 % de sus columnas (59 de 177 en el paciente por omisión) el bazo apoya en la grasa de la
+  al que baja el bazo normal: en el 27–34 % de sus columnas (58 de 177 en el paciente por omisión) el bazo apoya en la grasa de la
   cara interna de la pared y no en el diafragma (`notYetMet`). Llevar la inserción costal del diafragma al reborde (Gray: su parte
   costal nace de la cara interna de los seis últimos cartílagos y costillas) cambia la ZOA de los dos lados y su meta A-T15: queda
   para una decisión propia.
+- **El costo de la impresión renal**: la sombra evalúa la grasa del riñón solo cerca del plano de su borde (a menos de
+  `KIDNEY_SHADOW_SKIP_MM`, 10 mm, por delante de él o por detrás del fondo; más lejos, la cota de y, que no cambia lo que se
+  clasifica), y la impresión no se calcula cuando el único órgano cercano es el estómago. Medido abajo.
 - **Uniforms**: con `uSeriesParts` de la decisión 38 la pasada B estaba en 126 (128 en su programa dirigido); el estómago suma
   `uStomach`, y lo demás va en las ranuras libres (`uLiverS.zw`: sus mm por unidad de arco y el nivel del gas; `uLiverTip.w`: su
   grueso); el bazo normal usa los mismos `uSpleen` y `uSpleenR` que el de la decisión 37 (la primera versión sumaba `uSpleenPole`
@@ -4079,13 +4085,13 @@ sitio de la TC, y dejar pendientes las celdas que no alcance.
 | Riñones: largo / giro sagital / profundidad          | —                                                                 | 10,7 cm / 25,8° y 24,3° / 70,4 y 68,1 mm                                                                                                          | Glodny 10,9–11,1; Glodny; Xue 70,3 y 68,2         |
 | Riñones: punto más alto / \|x\|                      | —                                                                 | punta de T11 (el derecho, 1 cm más abajo) / 32–88 mm                                                                                              | Gray, Morris (25–95)                              |
 | Riñones: ancho / grueso                              | —                                                                 | 5,4 / 4,6 cm (los de VExUS)                                                                                                                       | Glodny 5,1–5,3, Kang 6,25; Bhardwaj 4,3, Kang 4,7 |
-| Bazo: volumen                                        | 134 mL                                                            | **162 mL** (153–164 en los seis hábitos)                                                                                                          | Lucius 160, Gray ≈ 184; Chow 86–318 (P5–P95)      |
+| Bazo: volumen                                        | 134 mL                                                            | **161 mL** (152–164 en los seis hábitos)                                                                                                          | Lucius 160, Gray ≈ 184; Chow 86–318 (P5–P95)      |
 | Bazo: largo × ancho × grueso (ejes principales)      | 11,6 cm de largo                                                  | 10,7 × 6,9 × 4,6 cm                                                                                                                               | Chow 11,0 × 6,5 × 4,5 (medianas)                  |
-| Bazo: sitio                                          | sobre la 10.ª; el punto más alto a 11 cm de la línea media, z −28 | el eje en la 11.ª, dentro del reborde, 12–15 mm por delante de la LAM de Shen; de z −56 a −140                                                    | Mirjalili, Shen (26,6 ± 23,3 mm)                  |
+| Bazo: sitio                                          | sobre la 10.ª; el punto más alto a 11 cm de la línea media, z −28 | el eje en la 11.ª, dentro del reborde, 12–17 mm por delante de la LAM de Shen; de z −56 a −140                                                    | Mirjalili, Shen (26,6 ± 23,3 mm)                  |
 | Ranuras de uniforms de la pasada B (y su dirigido)   | 126 (128)                                                         | 127 (129)                                                                                                                                         | ≤ 130                                             |
-| Bazo: columnas radiales partidas (seis hábitos)      | —                                                                 | 0 (la primera versión del bazo normal: 14–16 de 177)                                                                                              | un órgano entero                                  |
+| Bazo: columnas radiales partidas (seis hábitos)      | —                                                                 | 0 (la primera versión del bazo normal: 15 de 177 en el paciente por omisión)                                                                      | un órgano entero                                  |
 | Bazo: cara diafragmática contra el diafragma         | —                                                                 | 66–73 % (el resto, contra la grasa de la pared)                                                                                                   | Gray: toda                                        |
-| Chunk de entrada / total de JS                       | 269,8 / 823,6 kB                                                  | 298,3 / 853,2 kB                                                                                                                                  | presupuestos: 300 / 860                           |
+| Chunk de entrada / total de JS                       | 269,8 / 823,6 kB                                                  | 299,6 / 854,4 kB (con la 42)                                                                                                                      | presupuestos: 300 / 860                           |
 
 - **Costo con SwiftShader** (el CI; `boot2.mjs`, la primera página de un navegador nuevo: el arranque es la compilación de los
   programas, y el costo por cuadro, 4 cuadros con `frameCostMs`; tres vueltas alternando los árboles, carga 28 / 7 / 5). Antes de la
@@ -4100,7 +4106,13 @@ sitio de la TC, y dejar pendientes las celdas que no alcance.
 
   Medido con la primera versión del bazo (con el cono del polo: algo más de código que el bazo normal). El bucle de `faceGradient` devuelve el arranque y el cuadro a lo de antes de la decisión 37 o por debajo, con el estómago, los
   riñones y el retroperitoneo dentro: en la medición sin órganos nuevos (03-10-2026, carga 4–17) el bucle solo daba 31–35 s y
-  408–488 ms frente a 39–65 s y 388–681 de main. Con la GPU real no se midió. |
+  408–488 ms frente a 39–65 s y 388–681 de main. Con la GPU real no se midió.
+
+  Remedido con la versión final (el bazo normal, la impresión renal con su atajo y la sombra acotada), frente a main `532d3bc`,
+  tres vueltas de dos arranques alternando los árboles (03-10-2026, carga 4–10): arranque 78–110 s (mediana 78,5) frente a
+  65–112 (mediana ≈ 80); cuadro en el BLUE superior 386–669 ms frente a 603–2516, en el espacio de Traube 445–927 frente a
+  575–1196 y en la base izquierda 453–599 frente a 543–964. La rama no cuesta más que main en ninguna medida; los absolutos
+  de esta tanda son más altos que los de la tabla por la carga del equipo, no por el código.
 
 - **Las celdas pendientes** [DISCREPANCIA], con su motivo, sin deformar el bazo para cubrirlas: la escapular izquierda en el EIC10
   (Gray pone ahí el polo posterior del bazo; lo que hay es la grasa retroperitoneal bajo el diafragma) y la axilar posterior

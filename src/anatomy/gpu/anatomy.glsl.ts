@@ -290,12 +290,13 @@ bool classifyKidneys(vec3 m, inout Cls c, out float perirenal) {
   perirenal = 1e3;
   for (int k = 0; k < 2; k++) {
     float dc = distance(m, kidneyCenter(k));
-    if (dc > KIDNEY_REACH + KIDNEY_NEAR_MARGIN) { perirenal = min(perirenal, perirenalFar(m, k, dc)); continue; }
+    if (dc > KIDNEY_REACH + KIDNEY_NEAR_MARGIN) { perirenal = min(perirenal, perirenalFar(m, k)); continue; }
     float inner;
     float dOuter;
     int region = kidneyQuery(m, k, inner, dOuter);
-    float fat = perirenalThicknessMm(kidneyLocal(m, k), k);
-    perirenal = min(perirenal, dOuter - fat);
+    vec3 q = kidneyLocal(m, k);
+    float fat = perirenalThicknessMm(q, k);
+    perirenal = min(perirenal, perirenalBlend(dOuter - fat, q, dc));
     if (dOuter < 0.0) {
       if (-dOuter < RENAL_CAPSULE_MM) {
         c.tissue = T_RENAL_CAPSULE; c.bd = min(-dOuter, RENAL_CAPSULE_MM + dOuter);
@@ -335,7 +336,8 @@ bool classifyOrgans(vec3 m, float dDia, float depth, float u, float inside, floa
   organColumn(m, depth, u, inside, uO, inO);
   float gap = zoaGap(m, inO, uO);
   float wallSide = min(inO, gap);
-  float renal = renalImpression(m, perirenal);
+  // la impresión renal, solo si la usan el hígado (cerca de sus lóbulos) o el bazo; el estómago no la usa
+  float renal = dLobes <= LIVER_EARLY_OUT || spleenNear ? renalImpression(m, perirenal) : 1e3;
   float dLiver = dLobes > LIVER_EARLY_OUT ? dLobes : liverSdf(m, uO, inO, wallColumnTexel(uO).z, renal);
   // la grasa perirrenal, que se clasifica antes, ocupa el solape de la impresión renal
   float fatSide = min(dSpine, perirenal * ORGAN_SDF_LIPSCHITZ);

@@ -4,7 +4,7 @@ import { LIVER, RENAL_IMPRESSION_ROUND_MM, liverEdgeZ } from '../anatomy/organs/
 import { perirenalDistance, renalImpression } from '../anatomy/organs/kidney';
 import { lungBorderAt } from '../anatomy/organs/lungBorder';
 import { probeHitPoint, ribLineArc, ribTableZ, spinousTipZ } from '../anatomy/organs/ribcage';
-import { SPLEEN, SPLEEN_GASTRIC_ACROSS, costalMarginZ, pointAtArc, spleenBelowMarginMm } from '../anatomy/organs/spleen';
+import { SPLEEN, SPLEEN_GASTRIC_ACROSS, buildSpleen, costalMarginZ, pointAtArc, spleenBelowMarginMm } from '../anatomy/organs/spleen';
 import { wallArc } from '../anatomy/organs/wall';
 import { torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
@@ -170,7 +170,7 @@ describe('El hígado bajo la cúpula derecha (decisión 37; Gray, «Surface Mark
   // La impresión renal (la grasa perirrenal y la sombra del riñón) no parte el hígado: entre dos tramos de hígado de una columna
   // radial del lado derecho no hay «resto» ni grasa retroperitoneal donde actúa (la impresión bajo su redondeo). Quedan, y no son
   // grietas, la grasa del propio riñón (columnas que rozan su polo superior), la vértebra y el recorte posteromedial de VExUS
-  // (lejos del riñón). Antes del arreglo de la decisión 43, 5–8 columnas por hábito
+  // (lejos del riñón). Con la impresión de la primera versión de la decisión 43, 9 columnas en el paciente por omisión
   it('la impresión renal no parte el hígado (tres hábitos, columnas radiales cada 0,25 mm)', () => {
     for (const h of HABITUS_SCENES.filter((x) => ['average-male', 'thin-male', 'obese-female'].includes(x.id))) {
       const s = h.scene;
@@ -340,8 +340,8 @@ describe('El bazo normal bajo la cúpula izquierda (decisiones 37 y 43; Chow y c
   });
 
   // La línea axilar media de Shen y cols. (en el corte sagital, a medio camino del ángulo xifoesternal a la cara posterior de la
-  // columna) cae en el avatar a ≈ 1 mm de la de la piel; el extremo anterior del bazo queda 12–15 mm por delante en los seis
-  // hábitos, dentro de 26,6 ± 23,3 mm (± 1 DE)
+  // columna) cae en el avatar a ≈ 1 mm de la de la piel; el extremo anterior del bazo queda 12–17 mm por delante en los seis
+  // hábitos (los obesos, 15,6 y 16,6), dentro de 26,6 ± 23,3 mm (± 1 DE)
   it('su extremo anterior pasa por delante de la axilar media de Shen y cols. en su rango (± 1 DE), en los seis hábitos', () => {
     const [lo, hi] = SPLEEN.params.anteriorToMidaxillaryMm.range!;
     for (const { id, scene: s, cols } of spleenColumnsByHabitus()) {
@@ -437,6 +437,17 @@ describe('El bazo normal bajo la cúpula izquierda (decisiones 37 y 43; Chow y c
     const top = pts.reduce((a, p) => (p[2] > a[2] ? p : a));
     expect(Math.abs(top[2] - spinousTipZ(9))).toBeLessThan(10);
     expect(Math.min(...pts.map((p) => p[0]))).toBeLessThan(50);
+  });
+
+  // la búsqueda del centro no falla en silencio: si el punto de partida ya deja el bazo en la parrilla (podría ir más adelante) o
+  // si ningún centro lo deja, lanza
+  it('buildSpleen lanza si la búsqueda de su centro no puede acotarlo', () => {
+    const build = (lam: number) =>
+      buildSpleen(scene.torso, scene.ribCage, lam, (u, z) => scene.chestWall.total(u, z), scene.lungBorder.rimFarMm);
+    const lam = wallArc(torsoSkinPoint(thoraxLinePhi('midaxillary', scene.torso, 1), 0, scene.torso), scene.torso);
+    expect(() => build(lam)).not.toThrow();
+    expect(() => build(lam + 150)).toThrow(/ya cabe en la parrilla/);
+    expect(() => build(lam - 400)).toThrow(/ningún centro/);
   });
 
   it('no pasa por delante de la axilar anterior (Gray: el estómago, en el espacio de Traube) ni a la derecha', () => {

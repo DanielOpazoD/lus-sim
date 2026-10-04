@@ -199,10 +199,10 @@ conservan su identificador (decisiones 10 y 11).
   (1,4–1,6 kg en el varón: 1,33–1,52 L) y de la fórmula de Vauthey para el avatar (≈ 1,5 L) [@vauthey-volumen-2002]: llena la
   cavidad del tronco de 226 mm (decisión 28) de delante atrás hasta el diafragma posterior, 13–17 cm, más que los 10–12,5 de Gray;
   su alto junto a su cara derecha es de 13,4 cm (Gray: 15–17,5); su ancho (21,3 cm) y su alto en la LMC (12,9 cm, −1 DE de Kratzer
-  [@kratzer-higado-2003]) sí caen en la base. El bazo mide 10,7 × 6,9 × 4,6 cm por sus ejes principales y 162 mL (Chow:
+  [@kratzer-higado-2003]) sí caen en la base. El bazo mide 10,7 × 6,9 × 4,6 cm por sus ejes principales y 161 mL (Chow:
   86–318; Gray, ≈ 184), pero no llega a las marcas de Gray: su punto más alto queda a 10 cm de la línea media y bajo T9 (Gray: a 4
   cm, en T9; `notYetMet`), porque entre esa marca y la de su punto más bajo (la axilar media en L1) hay ≈ 16 cm en el avatar. En
-  el tercio inferior de su cara diafragmática (59 de 177 columnas) no tiene el diafragma por fuera sino la grasa de la pared: la
+  el tercio inferior de su cara diafragmática (58 de 177 columnas) no tiene el diafragma por fuera sino la grasa de la pared: la
   lámina de la ZOA acaba 20 mm [SUPUESTO] bajo la reflexión pleural, por encima del reborde (Gray: el diafragma lo separa de las
   costillas 9.ª–11.ª; `notYetMet`). El
   lóbulo izquierdo acaba a 5 cm de la línea media, el extremo medial de lo que da Gray (no pocas veces llega a la línea mamilar).
@@ -228,8 +228,10 @@ conservan su identificador (decisiones 10 y 11).
   en su grasa); su tamaño es el de VExUS (10,8 × 5,4 × 4,6 cm; medido, 10,7 de largo), el de un adulto
   normal de hoy (Glodny y cols., Kang y cols., Bhardwaj y cols.); el grueso pasa del «algo más de 2,5 cm» de Gray, que queda bajo
   todas las medidas de hoy. Su profundidad, la de Xue, no cambia con el hábito: en el obeso queda a ≈ 5 mm de
-  la pared y su grasa de detrás se pierde contra ella. Detrás de él (su sombra, `kidneyShadow`: lo que tiene su grasa real delante) no va el hígado ni el bazo; al lado de su borde
-  lateral sí. El
+  la pared y su grasa de detrás se pierde contra ella. Detrás de él (su sombra, `kidneyShadow`: lo que tiene su grasa real delante por la y del mundo, no por la normal de su cara
+  posterior) no va el hígado ni el bazo; al lado de su borde lateral sí, y el hígado queda posterolateral al polo superior del
+  riñón derecho, a 9–18 mm y tras 6–13 mm de grasa, en el borde de la sombra (los segmentos VI y VII lo rodean; la escapular
+  derecha en el EIC11 ve hígado y no riñón). El
   retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la grasa) con su marco anclado a lus-sim (la unión T12–L1 y el paso lumbar
   de VExUS: la parrilla no tiene vértebras lumbares); por encima de los riñones su grasa queda en la gotera paravertebral
   [ESTIMADO]. Entre el diafragma y la grasa del riñón, la grasa pararrenal posterior: en el EIC11, 11 mm en la escapular izquierda,

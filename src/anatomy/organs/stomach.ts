@@ -11,7 +11,7 @@ import { wallArc } from './wall';
  * 10.º izquierdo al 9.º derecho; el espacio de Traube, que lo cubre, lo limitan el borde inferior del pulmón izquierdo, el borde
  * anterior del bazo, el reborde costal y el lóbulo izquierdo del hígado.
  *
- * Modelo, como el bazo: medio elipsoide en las coordenadas de la pared (el arco `wallArc`, la altura z y la profundidad bajo el
+ * Modelo: un medio elipsoide en las coordenadas de la pared (las del bazo) (el arco `wallArc`, la altura z y la profundidad bajo el
  * diafragma), centrado en la cara abdominal del diafragma; su cara anterosuperior la sigue. Su contorno en la pared, el del espacio
  * de Traube: de la altura del 5.º espacio en la LMC (el fondo) al reborde costal en su centro (entre las puntas de los cartílagos
  * 10.º y 11.º), y del extremo del 8.º cartílago (el vértice del triángulo, junto al lóbulo izquierdo) al centro del bazo (que se

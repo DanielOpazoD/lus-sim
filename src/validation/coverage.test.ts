@@ -221,7 +221,7 @@ describe('cobertura de exploración: el medidor mira lo que hay', () => {
     // solo quita lo que tiene su grasa delante; decisión 43)
     expect([Tissue.Liver, Tissue.LiverCapsule]).toContain(at('D LE EIC11').organ);
     expect(at('D LE EIC11').met).toBe(true);
-    // el «resto» bajo el bazo: no cuenta
+
     // sobre el bazo normal, en la axilar posterior, y su polo posterior en la escapular: no los hay
     for (const id of ['I LAP EIC9', 'I LE EIC10']) {
       expect(at(id).content, id).toBe('below');

@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  KIDNEY,
-  KIDNEY_FAR_BLEND_MM,
-  KIDNEY_NEAR_MARGIN_MM,
-  KIDNEY_RADII,
-  KIDNEY_REACH_MM,
-  perirenalDistance,
-} from '../anatomy/organs/kidney';
+import { KIDNEY, KIDNEY_NEAR_MARGIN_MM, KIDNEY_RADII, KIDNEY_REACH_MM, perirenalDistance } from '../anatomy/organs/kidney';
 import { spinousTipZ } from '../anatomy/organs/ribcage';
 import { STOMACH } from '../anatomy/organs/stomach';
 import { torsoDepth } from '../anatomy/primitives';
@@ -193,7 +186,8 @@ describe('El retroperitoneo (decisión 43)', () => {
   // Cada columna por y (de delante atrás) que cruza el riñón, en una rejilla de 5 mm sobre su silueta y en los seis hábitos: detrás
   // de él no aparece hígado ni bazo. Al lado de su borde lateral sí pueden ir (Gray: el borde posterior del bazo, entre el
   // diafragma y el riñón izquierdo). Sin la sombra del riñón (`kidneyShadow`), el lóbulo derecho de VExUS quedaba detrás del
-  // riñón derecho
+  // riñón derecho. Esta prueba vigila que haya sombra, no que sea demasiado ancha: una sombra que pasa de la grasa real parte el
+  // bazo y el hígado que rodean el borde lateral, y eso lo ven las pruebas de grietas de `liverSpleen.test.ts`
   it('detrás del riñón no hay hígado ni bazo (Gray: su cara posterior apoya en el diafragma y los músculos), en los seis hábitos', () => {
     const RENAL = new Set([Tissue.RenalCapsule, Tissue.RenalCortex, Tissue.RenalMedulla, Tissue.RenalSinus, Tissue.RenalPelvis]);
     const ORGAN = new Set([Tissue.Liver, Tissue.LiverCapsule, Tissue.Spleen]);
@@ -224,7 +218,7 @@ describe('El retroperitoneo (decisión 43)', () => {
   });
 
   // lus-sim (decisión 43): fuera de la esfera del riñón, la distancia a su grasa sale del elipsoide de la grasa y se funde con la de
-  // su forma; antes era la de la esfera, que saltaba (de 29 a 3 mm junto al bazo) y la impresión renal partía el bazo
+  // su forma en el margen; antes era la de la esfera, que saltaba (de 29 a 3 mm junto al bazo) y la impresión renal partía el bazo
   it('la distancia a la grasa perirrenal es continua al salir de la esfera del riñón', () => {
     const edge = KIDNEY_REACH_MM + KIDNEY_NEAR_MARGIN_MM;
     for (const k of scene.kidneys)
@@ -234,7 +228,7 @@ describe('El retroperitoneo (decisión 43)', () => {
         const dir: Vec3 = [Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)];
         const at = (r: number) =>
           perirenalDistance([k.center[0] + dir[0] * r, k.center[1] + dir[1] * r, k.center[2] + dir[2] * r], scene.kidneys);
-        for (const r of [edge, edge + KIDNEY_FAR_BLEND_MM]) expect(Math.abs(at(r + 0.01) - at(r - 0.01)), `${i} ${r}`).toBeLessThan(0.1);
+        for (const r of [KIDNEY_REACH_MM, edge]) expect(Math.abs(at(r + 0.01) - at(r - 0.01)), `${i} ${r}`).toBeLessThan(0.1);
       }
   });
 });
