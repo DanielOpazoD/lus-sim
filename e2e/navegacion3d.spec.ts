@@ -117,7 +117,7 @@ test('navegador 3D: botones, arrastre sobre el tórax, orientación y cámara in
   expect(errors).toEqual([]);
 });
 
-test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre y con las tarjetas posteriores', async ({ page }) => {
+test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre', async ({ page }) => {
   // 6 min: en el CI tardó 3,6–3,7 min en main (con 4 de plazo) y 3,8–4,0+ con el hígado y el bazo (decisión 37, cada cuadro
   // ≈ 20 % más caro en SwiftShader). Las aserciones no cambian.
   test.setTimeout(360_000);
@@ -161,21 +161,6 @@ test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre y
   // de un lado de la línea media posterior al otro
   expect(Math.sign(Math.cos(last.phi)), JSON.stringify({ first, last })).toBe(-Math.sign(Math.cos(first.phi)));
   await expect(caption).toContainText('posterior · sentado');
-
-  // Cada tarjeta posterior lleva la sonda a su punto (animada) y queda como ventana actual
-  // (la paravertebral derecha, π + acos(60/160), y las alturas de `app.posteriorStartPoses`)
-  const PV = Math.PI + Math.acos(60 / 160);
-  for (const [id, z] of [
-    ['posteriorUpper', 138.5],
-    ['posteriorMiddle', 18.4],
-    ['posteriorBasal', -30.8],
-  ] as const) {
-    const card = page.locator(`[data-start-point="${id}"]`);
-    await card.click();
-    await expect.poll(async () => Math.abs((await pose(page)).phi - PV), { timeout: 60_000 }).toBeLessThan(0.003);
-    await expect.poll(async () => Math.abs((await pose(page)).z - z), { timeout: 60_000 }).toBeLessThan(0.5);
-    await expect(card).toHaveAttribute('aria-current', 'true');
-  }
 
   // «Restablecer paciente» conserva la posición y la sonda en la espalda
   const atBasal = await pose(page);

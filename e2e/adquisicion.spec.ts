@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { START_POINTS } from '../src/app/startPoints';
+
+const PLAPS = START_POINTS.find((sp) => sp.id === 'plaps')!;
 
 /** Los flujos usan mandos reales; __lusTest solo lee el estado que esos mandos producen. */
 async function boot(page: Page): Promise<string[]> {
@@ -72,7 +75,7 @@ test('adquisición compacta: profundidad exacta, foco limitado y foco de teclado
   expect(errors).toEqual([]);
 });
 
-test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado', async ({ page }) => {
+test('cine conserva ubicación, equipo y maniobra del cuadro mostrado', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
   const start = await page.evaluate(() => {
@@ -89,7 +92,11 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await page.locator('#quick-gain').click();
   await page.getByLabel('Ganancia', { exact: true }).press('ArrowRight');
   await page.keyboard.press('Escape');
-  await page.locator('[data-start-point="plaps"]').click();
+  // (decisión 47) sin las tarjetas de los puntos BLUE: la sonda va al PLAPS derecho por el gancho de pruebas
+  await page.evaluate(
+    (sp) => window.__lusTest!.setPose({ lift: 0, phi: sp.phi, z: sp.z, yaw: sp.yaw, rock: sp.rock ?? 0, tilt: sp.tilt ?? 0 }),
+    PLAPS,
+  );
   await expect.poll(() => page.evaluate(() => window.__lusTest!.sim().pose.phi), { timeout: 60_000 }).toBeGreaterThan(1.14 * Math.PI);
   await expect
     .poll(
@@ -109,7 +116,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await page.locator('#freeze').click();
   await expect(page.locator('#live-chip')).toHaveText('Congelada');
   const currentPose = await page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
-  await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
+  expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.pose.phi)).toBeGreaterThan(1.14 * Math.PI);
   await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
 
   // Escoge con el cine nativo un cuadro adquirido al inicio; el índice se encuentra por sus metadatos,
@@ -139,8 +146,6 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await expect(page.locator('#quick-gain')).toBeDisabled();
   await expect(page.locator('#hud-tr')).toContainText('12,0 cm');
   await expect(page.locator('#hud-tr')).toContainText(`G ${start.gainDb} dB`);
-  await expect(page.locator('[data-start-point="blueUpper"]')).toHaveAttribute('aria-current', 'true');
-  await expect(page.locator('[data-start-point="plaps"]')).not.toHaveAttribute('aria-current', 'true');
   expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.pose)).toEqual(old!.pose);
   expect(await page.evaluate(() => window.__lusTest!.sim().pose)).toEqual(currentPose);
   await page.locator('#settings-toggle').click();
@@ -151,7 +156,7 @@ test('cine conserva ubicación, equipo, maniobra y tarjeta del cuadro mostrado',
   await cine.press('End');
   await frame(page);
   await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);
-  await expect(page.locator('[data-start-point="plaps"]')).toHaveAttribute('aria-current', 'true');
+  expect(await page.evaluate(() => window.__lusTest!.sim().displayedAcquisition.pose.phi)).toBeGreaterThan(1.14 * Math.PI);
   await page.locator('#freeze').click();
   expect(await page.evaluate(() => window.__lusTest!.sim().pose)).toEqual(currentPose);
   await expect(page.locator('#quick-gain')).toContainText(`${changedGainDb} dB`);

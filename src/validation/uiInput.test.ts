@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ProbeAnimator } from '../app/probeAnimation';
-import { START_POINTS } from '../app/startPoints';
 import { Store } from '../app/store';
 import type { EquipmentCommand } from '../app/equipment';
-import { clampPose, defaultPose, type ProbePose } from '../probe/probe';
+import { defaultPose } from '../probe/probe';
 import { bindKeyboardShortcuts } from '../ui/keyboardShortcuts';
 import { ProbeInput } from '../ui/probeInput';
 
@@ -59,40 +57,6 @@ describe('Estado de la UI', () => {
     s.set({ frozen: false });
     expect(seen).toEqual([true]);
     expect(s.get().frozen).toBe(false);
-  });
-});
-
-describe('Animación hacia un punto de partida (animar, nunca teletransportar)', () => {
-  it('se desliza hasta el punto en ~1 s sin saltos, suelta la presión y termina; un gesto la cancela', () => {
-    let pose: ProbePose = { ...defaultPose(), lift: -4 };
-    const a = new ProbeAnimator(
-      () => pose,
-      (p) => (pose = clampPose(p)),
-    );
-    const target = START_POINTS.find((s) => s.id === 'plaps')!;
-    a.goTo(target);
-    expect(a.active).toBe(true);
-    let maxStepMm = 0;
-    let t = 0;
-    for (; t < 3 && a.active; t += 1 / 60) {
-      const before = pose;
-      a.tick(1 / 60);
-      maxStepMm = Math.max(maxStepMm, Math.abs(pose.z - before.z), 160 * Math.abs(pose.phi - before.phi));
-    }
-    expect(a.active).toBe(false);
-    expect(t).toBeGreaterThan(0.5);
-    expect(t).toBeLessThan(3);
-    expect(Math.abs(pose.phi - target.phi)).toBeLessThan(0.003);
-    expect(Math.abs(pose.z - target.z)).toBeLessThan(0.5);
-    // ningún cuadro salta más de ~2 cm sobre la piel, y la presión se suelta
-    expect(maxStepMm).toBeLessThan(20);
-    expect(Math.abs(pose.lift)).toBeLessThan(0.5);
-    a.goTo(START_POINTS[0]);
-    a.tick(1 / 60);
-    a.cancel();
-    const frozenAt = pose;
-    a.tick(1 / 60);
-    expect(pose).toBe(frozenAt);
   });
 });
 

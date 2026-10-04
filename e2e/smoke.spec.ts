@@ -133,7 +133,7 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await twoFrames(page);
   const resized = await screen(page);
   expect(resized.max, 'lienzo negro tras cambiar el tamaño con la imagen congelada').toBeGreaterThanOrEqual(PLEURA_GREY);
-  // la sonda no se mueve con la imagen congelada: ni arrastrando, ni con sus mandos, ni con una tarjeta
+  // la sonda no se mueve con la imagen congelada: ni arrastrando ni con sus mandos
   const pose = () => page.evaluate(() => window.__lusTest!.sim().pose);
   const p0 = await pose();
   const box = (await page.locator('#sector-wrap').boundingBox())!;
@@ -141,7 +141,6 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 - 40, { steps: 4 });
   await page.mouse.up();
-  await expect(page.locator('[data-start-point="plaps"]')).toBeDisabled();
   expect(await pose()).toEqual(p0);
   // el diálogo permite consultar valores, con maniobras y ajustes deshabilitados
   await page.locator('#settings-toggle').click();
@@ -159,7 +158,7 @@ test('los mandos del equipo y congelar: el HUD dice lo que se ve, el cine recorr
   expect(errors).toEqual([]);
 });
 
-test('la sonda: arrastrar sobre la imagen la desliza y una tarjeta la lleva, deslizándose, a su punto de partida', async ({ page }) => {
+test('la sonda: arrastrar sobre la imagen la desliza', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = await boot(page);
   const pose = () => page.evaluate(() => window.__lusTest!.sim().pose);
@@ -172,11 +171,6 @@ test('la sonda: arrastrar sobre la imagen la desliza y una tarjeta la lleva, des
   const p1 = await pose();
   expect(p1.phi).toBeLessThan(p0.phi); // a la derecha de la pantalla
   expect(p1.z).toBeGreaterThan(p0.z); // hacia arriba
-  const card = page.locator('[data-start-point="plaps"]');
-  await card.click();
-  await expect(card).toHaveAttribute('aria-current', 'true');
-  // llega deslizándose (≈ 1 s con la constante de tiempo de 0,3 s del animador): el punto PLAPS está a más de 12 cm
-  await expect.poll(async () => (await pose()).phi, { timeout: 60_000 }).toBeGreaterThan(1.14 * Math.PI);
   expect(errors).toEqual([]);
 });
 

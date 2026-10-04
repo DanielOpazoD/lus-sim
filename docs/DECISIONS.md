@@ -4435,3 +4435,29 @@ calibres de adultos sanos y la ausencia de un umbral validado para la vena espl�
   ciego no alcanzaba, pruebas que mataran sus mutaciones (de 11, solo 1 caía), el margen de la esfera envolvente y dos cifras de
   las fuentes: aplicado.
 - `npm run check`, la e2e con SwiftShader y el CI de la PR.
+
+## 47. Sin las tarjetas de los puntos BLUE: la sonda se explora libre sobre el tórax
+
+**Fecha.** 2026-10-04.
+
+**Contexto.** Daniel, el 04-10-2026: los puntos de Lichtenstein «no aportan mucho». La interfaz tenía, bajo el navegador 3D, la
+sección «Puntos de referencia» con catorce tarjetas (los puntos BLUE superior, inferior, frénico y PLAPS de cada hemitórax por la
+regla de las manos, decisión 42, y las tres áreas paravertebrales sentado, decisión 33) que deslizaban la sonda hasta su punto
+(`ProbeAnimator`). Con la cobertura completa como requisito (`docs/MISSION.md`) la exploración es la del tórax entero, no la de
+siete puntos.
+
+**Opciones.** (a) Dejarlas plegadas; (b) dejarlas solo en un modo docente; (c) quitarlas de la interfaz y conservar los puntos
+como datos donde los usan las pruebas y el banco.
+
+**Decisión.** (c). Fuera de la interfaz: la sección de `index.html`, `src/ui/startPointCards.ts` (con su prueba), la animación hacia
+un punto (`src/app/probeAnimation.ts`, con su prueba en `uiInput.test.ts`), su cableado en `src/main.ts` y sus reglas de estilo. Se
+conservan `START_POINTS` y sus poses (`app/startPoints.ts`, `app.startPointPoses`): los usan el barrido de equivalencia, los
+ganchos de prueba, las e2e del banco y la pose de arranque (el BLUE superior clínico); las vistas de medida (decisión 42) no
+cambian. Para sentar al paciente queda Ajustes → Paciente.
+
+**Consecuencias.** El alumno llega a cada zona arrastrando la sonda en el navegador 3D o sobre la imagen. Las e2e que pulsaban una
+tarjeta (`adquisicion.spec.ts`, `smoke.spec.ts`, `navegacion3d.spec.ts`) llevan la sonda por el gancho de pruebas o por el
+arrastre, y comprueban la pose del cuadro mostrado en lugar de la tarjeta resaltada.
+
+**Verificación.** `npm run check`; la e2e de la adquisición, el humo y el navegador 3D con SwiftShader; ninguna referencia a las
+tarjetas queda en `src/` ni en `index.html`.

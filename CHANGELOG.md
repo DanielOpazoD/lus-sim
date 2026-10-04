@@ -287,6 +287,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Quitado
 
+- Las tarjetas de los puntos BLUE de Lichtenstein y de las áreas paravertebrales, y la animación hacia ellas (47): la sonda se
+  explora libre sobre el tórax; los puntos quedan como datos de las pruebas y del banco.
 - La limitación `no-image-yet`: la imagen está a la vista (13); la sustituye `ui-minimal`.
 - La limitación `pleura-echo-offset`: las líneas A cumplen F-T01 (15).
 - Las limitaciones `ribs-5-10-only` y `no-spleen-no-left-ribs` (el bazo sigue en `abdomen-generic-tissue`): la parrilla

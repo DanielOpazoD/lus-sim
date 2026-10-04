@@ -121,7 +121,7 @@ la salida actual no protege nada.
 - **Humo de la aplicación** (`e2e/smoke.spec.ts`): la imagen se mira en la pantalla (una captura del lienzo, no un búfer
   de la GPU, que puede estar bien con la pantalla negra). El arranque con la línea pleural y el aviso, los mandos del
   equipo con el HUD, congelar con el cine (el HUD dice los ajustes del cuadro que se ve, comprobado dos cuadros después
-  del cambio: antes pasaba sin repintar), la sonda por arrastre y por una tarjeta, «Reiniciar paciente», el informe
+  del cambio: antes pasaba sin repintar), la sonda por arrastre, «Reiniciar paciente», el informe
   técnico y la pérdida del contexto WebGL. El registro de errores va a la consola y la prueba la vigila. Cada prueba se
   comprobó con una mutación (decisión 13).
 - **La interfaz sin DOM** (`src/validation/uiInput.test.ts`): el entorno de vitest es `node`; los oyentes se registran en
@@ -368,7 +368,7 @@ los botones cruzan la línea media posterior (en supino, no), y que las clavícu
 clasificación (|d| < 0,02 mm de la clavícula; la escápula, a media lámina); la equivalencia de la pleura de A0 sienta al paciente
 en los puntos de la espalda (la «GPU» falsa acota como el simulador, así que olvidarlo deja la sonda en 1,2π y la prueba lo ve), y
 la e2e del navegador 3D recorre la interfaz real: en supino la espalda no se alcanza, Ajustes → Paciente → Sentado, el arrastre
-por la espalda y las tres tarjetas posteriores. `evidenceNotes.test.ts` comprueba que el build vacía las notas de evidencia de todos los módulos
+por la espalda. `evidenceNotes.test.ts` comprueba que el build vacía las notas de evidencia de todos los módulos
 sin cambiar su número de líneas y que la aplicación no lee `.note` fuera de `core/evidence.ts`.
 
 ## Invariantes previstas
