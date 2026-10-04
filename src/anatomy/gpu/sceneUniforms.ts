@@ -247,8 +247,9 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     type: 'vec4',
     doc:
       'lus-sim (decisión 37, organs/liver.ts): escala de la cavidad frente a la de VExUS (sx, sy) para los lóbulos, la cara ' +
-      'visceral y el recorte posteromedial; y de la cara anterior del espacio del riñón y z de su borde superior izquierdo',
-    value: (s) => [s.liver.sx, s.liver.sy, s.liver.kidney.yAnt, s.liver.kidney.zLeft],
+      'visceral y el recorte posteromedial; decisión 43, en sus ranuras libres: los mm por unidad de arco y la y del nivel del gas ' +
+      'del estómago (organs/stomach.ts)',
+    value: (s) => [s.liver.sx, s.liver.sy, s.stomach.arcScale, s.stomach.gasY],
   },
   {
     name: 'uLiverEdge',
@@ -259,8 +260,10 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uLiverTip',
     type: 'vec4',
-    doc: 'límite lateral izquierdo en proyección frontal: x del 8.º cartílago, z del final del límite superior, convexidad, 0',
-    value: (s) => [s.liver.tip.x8, s.liver.tip.zEnd, s.liver.tip.convexMm, 0],
+    doc:
+      'límite lateral izquierdo en proyección frontal: x del 8.º cartílago, z del final del límite superior, convexidad; en la ' +
+      'ranura libre, el grueso del estómago (decisión 43)',
+    value: (s) => [s.liver.tip.x8, s.liver.tip.zEnd, s.liver.tip.convexMm, s.stomach.radii[2]],
   },
   {
     name: 'uSpleen',
@@ -271,8 +274,16 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uSpleenR',
     type: 'vec4',
-    doc: 'bazo: semiejes (largo, ancho, grueso) y mm por unidad de arco',
+    doc: 'bazo: semiejes del largo y el ancho, el grueso y mm por unidad de arco',
     value: (s) => [...s.spleen.radii, s.spleen.arcScale],
+  },
+  {
+    name: 'uStomach',
+    type: 'vec4',
+    doc:
+      'lus-sim (decisión 43, organs/stomach.ts): centro del estómago (arco de la pared, z) y sus semiejes a lo largo de la pared y ' +
+      'en z (el grueso, en uLiverTip.w; los mm por unidad de arco, en uLiverS.z; el nivel del gas, en uLiverS.w)',
+    value: (s) => [s.stomach.u0, s.stomach.z0, s.stomach.radii[0], s.stomach.radii[1]],
   },
 ];
 

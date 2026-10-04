@@ -551,7 +551,9 @@ export function extraPleuraPoses(scene: AnatomyScene): Array<{ id: string; pose:
  * engruesa hasta cerrarse sobre el vértice); (decisión 29) la espalda: la escápula, la paravertebral, junto a las transversas
  * y la línea media posterior; y (decisión 37) las bases bajo el borde del pulmón: el hígado en el EIC9 de la axilar media derecha,
  * con el haz hacia la cabeza (el hígado, el diafragma y su espejo sobre la cúpula), y el bazo en el EIC10 de la axilar posterior
- * izquierda.
+ * izquierda; (decisión 43) el estómago con su gas en el espacio de Traube (la LMC izquierda en el EIC7), y en la escapular
+ * izquierda la grasa retroperitoneal bajo el diafragma (EIC10, donde Gray pone el polo posterior del bazo, que el bazo normal no
+ * alcanza) y el riñón con el retroperitoneo (EIC11).
  */
 export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
   const t = scene.torso;
@@ -571,6 +573,9 @@ export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: Pr
     { id: 'spinous', pose: { ...flat, phi: 1.5 * Math.PI, z: 60 } },
     { id: 'rightBase', pose: { ...flat, ...icsCenter(scene, 'midaxillary', -1, 9), rock: 0.35 } },
     { id: 'leftBase', pose: { ...flat, ...icsCenter(scene, 'posteriorAxillary', 1, 10) } },
+    { id: 'traube', pose: { ...flat, ...icsCenter(scene, 'midclavicular', 1, 7) } },
+    { id: 'leftScapularBase', pose: { ...flat, ...icsCenter(scene, 'scapular', 1, 10) } },
+    { id: 'leftKidney', pose: { ...flat, ...icsCenter(scene, 'scapular', 1, 11) } },
   ];
 }
 
@@ -794,19 +799,35 @@ export interface CapsuleReport {
 }
 
 /**
- * Las cápsulas del hígado y del bazo (lus-sim, decisión 37), TS ↔ GLSL: en las bases (`coveragePoses`: el hígado bajo la cúpula
- * derecha, el bazo bajo la izquierda) y en la LAA derecha con el haz hacia los pies (el borde inferior del hígado contra el
- * «resto»), las muestras a 0,05 mm de las líneas cerca de una cara de cápsula: la cara y su distancia, y la normal de la GPU
- * frente al gradiente de TS donde la cara dibuja su eco (la banda de la cáscara). El volumen aleatorio no las mira: deja fuera
- * lo que está a menos de 1 mm de un borde.
+ * Las cápsulas del hígado y del bazo (lus-sim, decisión 37) y la renal (decisión 43), TS ↔ GLSL: en las bases (`coveragePoses`:
+ * el hígado bajo la cúpula derecha, el bazo bajo la izquierda), en la LAA derecha con el haz hacia los pies (el borde inferior del
+ * hígado contra el «resto») y en la escapular izquierda en el EIC11 (el riñón), las muestras a 0,05 mm de las líneas cerca de una
+ * cara de cápsula: la cara y su distancia, y la normal de la GPU frente al gradiente de TS donde la cara dibuja su eco (la banda de
+ * la cáscara). El volumen aleatorio no las mira: deja fuera lo que está a menos de 1 mm de un borde.
  */
+/**
+ * Los tejidos de cuyo borde se toman las muestras de `capsuleEquivalence`: el hígado, el bazo y el riñón (sin su grasa: la cara de
+ * la cápsula renal está entre el riñón y ella).
+ */
+const ORGAN_EDGE_TISSUES: ReadonlySet<Tissue> = new Set([
+  Tissue.LiverCapsule,
+  Tissue.Liver,
+  Tissue.Spleen,
+  Tissue.RenalCapsule,
+  Tissue.RenalCortex,
+  Tissue.RenalMedulla,
+  Tissue.RenalSinus,
+  Tissue.RenalPelvis,
+]);
+
 export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): CapsuleReport {
   const tr = sim.transducer;
   const scene = sim.scene;
-  const CAPS = new Set<number>([Interface.LiverCapsule, Interface.SpleenCapsule]);
+  const CAPS = new Set<number>([Interface.LiverCapsule, Interface.SpleenCapsule, Interface.RenalCapsule]);
   const flat = { lift: 0, yaw: 0, tilt: 0 };
   const laa = icsCenter(scene, 'anteriorAxillary', -1, 9);
-  const poses = [...coveragePoses(scene).slice(-2), { id: 'rightEdge', pose: { ...flat, ...laa, rock: -0.35 } }];
+  const bases = coveragePoses(scene).filter((p) => ['rightBase', 'leftBase', 'leftKidney'].includes(p.id));
+  const poses = [...bases, { id: 'rightEdge', pose: { ...flat, ...laa, rock: -0.35 } }];
   const tally = new FaceTally();
   const byInterface: Record<string, number> = {};
   let normalPoints = 0;
@@ -822,7 +843,7 @@ export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): C
         const theta = -tr.halfSector + (2 * tr.halfSector * (u + 0.5)) / lines;
         const capAt = Array.from({ length: nCoarse }, (_, c) => {
           const q = sim.anatomy.classifyWorld(pointOnLine(k.frame, tr, theta, (c + 0.5) * COARSE_MM), sim.sample);
-          return q.tissue === Tissue.LiverCapsule || q.tissue === Tissue.Spleen || q.tissue === Tissue.Liver;
+          return ORGAN_EDGE_TISSUES.has(q.tissue);
         });
         for (let c = 0; c < nCoarse; c++) {
           // las celdas en el borde del hígado o del bazo (una vecina dentro y otra fuera)

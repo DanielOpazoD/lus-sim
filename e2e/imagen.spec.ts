@@ -43,6 +43,11 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     // (decisión 37) las bases: el hígado bajo la cúpula derecha (con el haz hacia la cabeza) y el bazo bajo la izquierda
     'rightBase',
     'leftBase',
+    // (decisión 43) el estómago con su gas en el espacio de Traube, la grasa retroperitoneal bajo el diafragma en la escapular
+    // izquierda (el EIC10) y el riñón con el retroperitoneo
+    'traube',
+    'leftScapularBase',
+    'leftKidney',
   ]);
   for (const r of sweep) expect(r.interiorAgreement, JSON.stringify(r)).toBeGreaterThanOrEqual(0.99);
   // Volumen: 50 000 puntos del tórax (z −100…180 mm). Lejos de interfaces (≥ 1 mm y la misma cara a ±0,02 mm) las dos
@@ -55,9 +60,12 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // por región del C2, decisión 17, con GPU real y con SwiftShader: pulmón 18 418, «resto» 15 036, músculo 4915, columna
   // 1968, grasa 1556, piel 864, hueso 424 (costillas y esternón) y cartílago 62 de 43 352 interiores; con la pared heredada,
   // grasa 8548 y músculo 3881; con las costillas 5.ª–10.ª derechas de VExUS, 106 de hueso)
-  // (decisión 37) y el hígado y el bazo bajo las cúpulas
-  for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin', 'Bone', 'Liver', 'Spleen'])
+  // (decisión 37) y el hígado y el bazo bajo las cúpulas; (decisión 43) y los riñones con su grasa, el retroperitoneo y la luz
+  // del estómago
+  for (const t of ['Lung', 'Fat', 'Muscle', 'Bowel', 'Vertebra', 'Skin', 'Bone', 'Liver', 'Spleen', 'RetroperitonealFat'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(200);
+  for (const t of ['RenalCortex', 'PerirenalFat', 'Fluid', 'Psoas', 'QuadratusLumborum'])
+    expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(20);
   expect(vol.byTissue.Cartilage ?? 0, vtag).toBeGreaterThan(20);
   expect(vol.interfacePoints, vtag).toBeGreaterThan(3000);
   expect(vol.interfaceAgreement, vtag).toBe(1);
@@ -122,6 +130,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   const ctag = JSON.stringify(caps);
   expect(caps.byInterface.LiverCapsule ?? 0, ctag).toBeGreaterThan(100);
   expect(caps.byInterface.SpleenCapsule ?? 0, ctag).toBeGreaterThan(100);
+  // (decisión 43) la cápsula renal, en la escapular izquierda
+  expect(caps.byInterface.RenalCapsule ?? 0, ctag).toBeGreaterThan(100);
   expect(caps.agreement, ctag).toBeGreaterThanOrEqual(0.999);
   expect(caps.distanceMaxErr, ctag).toBeLessThan(0.02);
   expect(caps.normalPoints, ctag).toBeGreaterThan(100);
@@ -265,6 +275,46 @@ test.fail('F-T34: el virtual ≥ 3 dB más débil que el real en el nivel mostra
   const views = await measureMirror(page);
   for (const v of views) expect(v.contrastDb, JSON.stringify(views)).toBeGreaterThanOrEqual(3);
 });
+
+test('el gas del estómago bajo la cúpula izquierda: su sombra y sus reverberaciones emergen de la física (decisión 43)', async ({
+  page,
+}) => {
+  // lus-sim (decisión 43): la LMC izquierda en el EIC7 (el espacio de Traube), 10 cm, apnea espiratoria. La pasada A encuentra el
+  // gas del estómago y la B forma detrás las reverberaciones (a 2, 3 y 4 veces su profundidad) y la cola sucia del gas que no es
+  // pulmón; nada se pinta. Se mide en el nivel mostrado (`gasBench.ts`) y frente a la mutación del estómago lleno de líquido
+  // (`noGas`, las mismas ventanas): con SwiftShader (03-10-2026), la sombra a 10–40 mm del gas, −59,2 dB frente a −53,8 sin gas, y
+  // la primera reverberación 1,9 dB sobre el valle (sin gas, 2,6 bajo él). Los umbrales, cerca de la mitad de lo medido
+  // [SUPUESTO]: la base no da cuánto (Sommer y Taylor; Rubin y cols.)
+  test.setTimeout(600_000);
+  const errors = await openBench(page);
+  const gas = await page.evaluate(() => window.__lusTest!.stomachGas({ depthMm: 100 }));
+  const fluid = await page.evaluate(() => window.__lusTest!.stomachGas({ depthMm: 100, noGas: true }));
+  const tag = JSON.stringify({ gas, fluid });
+  console.log('GAS', tag);
+  expect(gas.lines, tag).toBeGreaterThanOrEqual(100);
+  expect(gas.gasMm, tag).toBeGreaterThan(15);
+  expect(gas.gasMm, tag).toBeLessThan(30);
+  // la sombra: más oscura que el tejido que se vería sin el gas
+  expect(fluid.shadowDb - gas.shadowDb, tag).toBeGreaterThanOrEqual(2.5);
+  // la reverberación: sobre el valle con gas, y no sin él
+  expect(gas.reverbDb - gas.troughDb, tag).toBeGreaterThanOrEqual(1);
+  expect(gas.reverbDb - gas.troughDb - (fluid.reverbDb - fluid.troughDb), tag).toBeGreaterThanOrEqual(2);
+  expect(errors).toEqual([]);
+});
+
+test.fail(
+  'el gas del estómago: su cara brilla (la reflexión del gas, ≥ 6 dB sobre la pared de delante) [aún no se cumple]',
+  async ({ page }) => {
+    // la pasada B del gas que no es pulmón (de VExUS) dibuja las reverberaciones k ≥ 2 y la cola sucia, pero no el eco de la propia
+    // cara del gas (k = 1): la pleura lo tiene (`pleuraEcho`), el gas del estómago no. El umbral, [SUPUESTO]: un reflector casi
+    // total frente a la pared gástrica. Medido con SwiftShader (03-10-2026): la cara, −53,5 dB, 10,6 bajo la pared de delante
+    test.setTimeout(600_000);
+    await openBench(page);
+    const gas = await page.evaluate(() => window.__lusTest!.stomachGas({ depthMm: 100 }));
+    console.log('GASFACE', JSON.stringify(gas));
+    expect(gas.faceDb - gas.beforeDb, JSON.stringify(gas)).toBeGreaterThanOrEqual(6);
+  },
+);
 
 /** Las tres vistas del espejo de F-T34 (decisión 37). */
 async function measureMirror(page: Page) {

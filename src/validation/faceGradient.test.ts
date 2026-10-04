@@ -326,7 +326,9 @@ describe('Eco de interfaz en la distancia por la normal (|∇| de la cara)', () 
     // diferencias centrales; sin las ramas de los tubos, la cápsula, el riñón ni la vesícula de VExUS
     const glsl = ANATOMY_GLSL.replace(/\s+/g, ' ');
     expect(glsl).toContain('vec4 faceGradient(Cls c, vec3 m)');
-    expect(glsl).toContain('if (c.tissue == T_DIAPHRAGM) { g = vec3(domeSd(m + h.xyy) - domeSd(m - h.xyy),');
+    // lus-sim (decisión 43): la distancia de cada cara en un bucle de seis evaluaciones (faceSdAt), compilada una vez
+    expect(glsl).toContain('} else if (c.tissue == T_DIAPHRAGM) { sel = 1;');
+    expect(glsl).toContain('v[i] = faceSdAt(sel, m + o, c.iface, k, sp);');
     expect(glsl).toContain('} else if (c.iface >= IF_FIRST_WALL && c.iface <= IF_LAST_WALL) {');
     expect(glsl).toContain('} else if (c.iface == IF_RIB || c.iface == IF_PERICHONDRIUM) {');
     expect(glsl).toContain('if (lg > 0.0) return vec4(g / lg, lg / (2.0 * FACE_GRAD_EPS));');

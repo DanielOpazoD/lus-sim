@@ -10,6 +10,7 @@ import { wallArc } from '../anatomy/organs/wall';
 import { AnatomyScene, BASELINE_INSTANT, FACE_GEOMETRIES, faceGeometryOf, type FaceGeometry } from '../anatomy/scene';
 import { Interface } from '../anatomy/interfaces';
 import { Tissue } from '../anatomy/tissues';
+import type { Vec3 } from '../core/vec3';
 import { thoraxLinePhi } from '../anatomy/thoraxLines';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient } from '../physiology/patientState';
@@ -119,6 +120,13 @@ describe('Anatomía implícita (base B)', () => {
     }
   });
 
+  /** El «resto» (decisión 10) y, detrás del peritoneo, el retroperitoneo (decisión 43): fuera del estómago, cuya pared es su tejido. */
+  const isRest = (m: Vec3, t: Tissue): boolean =>
+    (t === Tissue.Bowel && !scene.inStomach(m, BASELINE_INSTANT)) ||
+    t === Tissue.RetroperitonealFat ||
+    t === Tissue.QuadratusLumborum ||
+    t === Tissue.Psoas;
+
   it('el «resto» bajo el diafragma mide su distancia a la frontera: tiende a 0 junto al diafragma', () => {
     // Antes (VExUS) valía 5 mm fijos: el gate volumétrico daba por interior un punto pegado al diafragma
     // y float32 lo clasificaba al otro lado (Bowel→Diaphragm en CI). Subiendo por cinco columnas (las tres de
@@ -131,14 +139,19 @@ describe('Anatomía implícita (base B)', () => {
       [-60, 20],
       [-100, 0],
     ] as const) {
-      const samples: Array<{ z: number; bd: number }> = [];
+      const samples: Array<{ z: number; bd: number; t: Tissue }> = [];
       let zT = Number.NaN;
       for (let z = -120; z < 60; z += 0.25) {
         const c = cls([x, y, z]);
-        if (c.tissue === Tissue.Bowel) samples.push({ z, bd: c.boundaryDistance });
+        if (isRest([x, y, z], c.tissue)) samples.push({ z, bd: c.boundaryDistance, t: c.tissue });
         else if (samples.length && samples[samples.length - 1].z === z - 0.25) {
-          // lus-sim (decisión 37): bajo la cúpula derecha, el hígado se interpone (su cápsula); bajo la izquierda, el bazo
-          expect([Tissue.Diaphragm, Tissue.LiverCapsule, Tissue.Spleen], `${x},${y}: ${Tissue[c.tissue]}`).toContain(c.tissue);
+          // lus-sim (decisión 37): bajo la cúpula derecha, el hígado se interpone (su cápsula); bajo la izquierda, el bazo;
+          // (decisión 43) o el estómago
+          const stomach = scene.inStomach([x, y, z], BASELINE_INSTANT);
+          expect(
+            stomach || [Tissue.Diaphragm, Tissue.LiverCapsule, Tissue.Spleen].includes(c.tissue),
+            `${x},${y}: ${Tissue[c.tissue]}`,
+          ).toBe(true);
           zT = z;
           break;
         }
@@ -147,8 +160,9 @@ describe('Anatomía implícita (base B)', () => {
       // el último punto del resto está a < 0,3 mm de la transición (el paso de la columna es 0,25 mm)
       expect(samples[samples.length - 1].bd).toBeLessThan(0.3);
       for (const p of samples.filter((q) => zT - q.z < 10)) expect(p.bd).toBeLessThanOrEqual(zT - p.z + 1e-9);
-      // lejos de toda interfaz, el tope de VExUS (BOWEL_BD_CAP_MM, 5 mm)
-      expect(samples[0].bd).toBe(5);
+      // lejos de toda interfaz, el tope de VExUS (BOWEL_BD_CAP_MM, 5 mm); la columna de (70, −5) va a 2,5 mm del borde anterior del
+      // retroperitoneo (decisión 43), y su distancia no llega al tope
+      if (Math.abs(y - scene.retro.front) > 10) expect(Math.max(...samples.map((p) => p.bd)), `${x},${y}`).toBe(5);
     }
   });
 
@@ -168,13 +182,16 @@ describe('Anatomía implícita (base B)', () => {
       const samples: Array<{ r: number; bd: number }> = [];
       let rT = Number.NaN;
       for (let r = 0; r < 200; r += 0.25) {
-        const c = cls([dx * r, dy * r, -120]);
-        if (c.tissue === Tissue.Bowel) samples.push({ r, bd: c.boundaryDistance });
+        const m: Vec3 = [dx * r, dy * r, -120];
+        const c = cls(m);
+        if (isRest(m, c.tissue)) samples.push({ r, bd: c.boundaryDistance });
         else {
-          // lus-sim (decisión 37): o el hígado, que baja hasta 1 cm bajo el reborde costal derecho (Gray), o el bazo
-          expect([Tissue.Fat, Tissue.Muscle, Tissue.LiverCapsule, Tissue.Spleen], `${dx},${dy}: ${Tissue[c.tissue]} a ${r} mm`).toContain(
-            c.tissue,
-          );
+          // lus-sim (decisión 37): o el hígado, que baja hasta 1 cm bajo el reborde costal derecho (Gray), o el bazo; (decisión
+          // 42) o el estómago, o el riñón
+          const ok =
+            scene.inStomach(m, BASELINE_INSTANT) ||
+            [Tissue.Fat, Tissue.Muscle, Tissue.LiverCapsule, Tissue.Spleen, Tissue.PerirenalFat, Tissue.RenalCapsule].includes(c.tissue);
+          expect(ok, `${dx},${dy}: ${Tissue[c.tissue]} a ${r} mm`).toBe(true);
           rT = r;
           break;
         }
@@ -183,7 +200,8 @@ describe('Anatomía implícita (base B)', () => {
       // el último punto del resto está a < 0,3 mm de la pared (el paso de la columna es 0,25 mm)
       expect(samples[samples.length - 1].bd, `${dx},${dy}`).toBeLessThan(0.3);
       for (const p of samples.filter((q) => rT - q.r < 10)) expect(p.bd, `${dx},${dy} a ${p.r}`).toBeLessThanOrEqual(rT - p.r + 1e-9);
-      expect(samples[0].bd).toBe(5);
+      // lejos de toda interfaz (decisión 43: el eje toca el borde del retroperitoneo), el tope
+      expect(Math.max(...samples.map((p) => p.bd))).toBe(5);
     }
   });
 
@@ -426,13 +444,14 @@ describe('Caras geométricas del banco de interfaces (faceSdf)', () => {
   };
 
   it('el tórax tiene la cara de la cúpula y la de la ZOA (lus-sim, decisión 18)', () => {
-    // lus-sim (decisión 37): y las del hígado y el bazo
-    expect(FACE_GEOMETRIES).toEqual(['dome', 'zoa', 'liverSurface', 'spleenSurface']);
+    // lus-sim (decisión 37): y las del hígado y el bazo; (decisión 43) y el contorno del riñón
+    expect(FACE_GEOMETRIES).toEqual(['dome', 'zoa', 'liverSurface', 'spleenSurface', 'kidneyOuter']);
     // la geometría por interfaz es la de la cúpula; en la ZOA, `faceGradient` la cambia por la de su lámina
     expect(faceGeometryOf(Interface.DiaphragmLiver)).toBe('dome');
     expect(faceGeometryOf(Interface.LiverCapsule)).toBe('liverSurface');
     expect(faceGeometryOf(Interface.SpleenCapsule)).toBe('spleenSurface');
-    for (const i of [Interface.None, Interface.PleuraWall, Interface.IvcLumen, Interface.RenalCapsule])
+    expect(faceGeometryOf(Interface.RenalCapsule)).toBe('kidneyOuter');
+    for (const i of [Interface.None, Interface.PleuraWall, Interface.IvcLumen, Interface.PerirenalFat])
       expect(faceGeometryOf(i)).toBeNull();
   });
 

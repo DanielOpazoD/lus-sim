@@ -1,7 +1,7 @@
 import { defineParameters } from '../../core/evidence';
 import type { Vec3 } from '../../core/vec3';
 import { sdEllipsoid, smoothMax, smoothMin, torsoSkinPoint, type Ellipsoid, type Spine, type Torso } from '../primitives';
-import { ribTableZ, spinousTipZ, type RibCage } from './ribcage';
+import { ribTableZ, type RibCage } from './ribcage';
 import { wallArc } from './wall';
 
 export { smoothMax, smoothMin } from '../primitives';
@@ -91,50 +91,6 @@ export const LIVER = defineParameters('anatomy.liver', {
       'Gray: del 8.º cartílago izquierdo al final del límite superior el borde va «with a slight left convexity»; cuánto, NO ' +
       'ENCONTRADO [SUPUESTO]: el arco sale de la recta hasta 8 mm hacia la izquierda',
   },
-  kidneyTopSpinous: {
-    value: 11,
-    unit: 'vértebra',
-    range: [11, 11],
-    evidence: 'consenso',
-    sources: ['gray-anatomia-1918'],
-    note:
-      'Gray («Surface Markings of the Abdomen», riñones): el paralelogramo de Morris, cuyo lado superior va a la altura de la punta ' +
-      'de la apófisis espinosa de T11',
-  },
-  rightKidneyLowerMm: {
-    value: 10,
-    unit: 'mm',
-    range: [0, 20],
-    evidence: 'consenso',
-    sources: ['gray-anatomia-1918'],
-    note: 'Gray: «The right kidney usually lies about 1 cm. lower than the left»',
-  },
-  kidneyMedialXMm: {
-    value: 25,
-    unit: 'mm',
-    range: [25, 25],
-    evidence: 'consenso',
-    sources: ['gray-anatomia-1918'],
-    note: 'Gray: el paralelogramo de Morris, entre dos verticales a 2,5 y 9,5 cm de la línea media',
-  },
-  kidneyLateralXMm: {
-    value: 95,
-    unit: 'mm',
-    range: [95, 95],
-    evidence: 'consenso',
-    sources: ['gray-anatomia-1918'],
-    note: 'Gray: el paralelogramo de Morris, entre dos verticales a 2,5 y 9,5 cm de la línea media',
-  },
-  kidneyAnteriorMm: {
-    value: 0,
-    unit: 'mm',
-    range: [-15, 15],
-    evidence: 'estimado',
-    sources: ['gray-anatomia-1918'],
-    note:
-      'La cara anterior del espacio del riñón, a la altura de la cara anterior del cuerpo vertebral más esto [SUPUESTO]: Gray pone ' +
-      'los riñones «on either side of the vertebral column»; su profundidad en el tronco no la da la base (NO ENCONTRADO)',
-  },
 });
 
 /**
@@ -156,8 +112,8 @@ export const EDGE_ROUND_MM = 3;
 export const LIVER_BLEND_MM = 15;
 /** Más lejos que esto (mm) de los lóbulos, `liverSdf` devuelve la distancia a ellos sin los recortes (el tope del «resto»). */
 export const LIVER_EARLY_OUT_MM = 5;
-/** Redondeo del recorte del riñón (mm: el de la impresión renal de VExUS) y del límite lateral izquierdo. */
-export const KIDNEY_CUT_ROUND_MM = 8;
+/** Redondeo de la impresión renal (mm, el de VExUS) y del límite lateral izquierdo. */
+export const RENAL_IMPRESSION_ROUND_MM = 8;
 export const LEFT_TIP_ROUND_MM = 4;
 /**
  * La cara visceral interior de VExUS, z = c₀ + c₁x + c₂y + c₃x² + c₄xy + c₅y² en su marco (≈ −62 sobre el riñón derecho, −45 en
@@ -187,8 +143,6 @@ export interface LiverShape {
   readonly edge: { readonly uRight: number; readonly zRight: number; readonly uLeft: number; readonly zLeft: number };
   /** Límite lateral izquierdo en proyección frontal: x del 8.º cartílago izquierdo, x y z del final del límite superior. */
   readonly tip: { readonly x8: number; readonly xEnd: number; readonly zEnd: number; readonly convexMm: number };
-  /** Espacio del riñón (Morris): |x| medial y lateral, y de su cara anterior, z de su borde superior izquierdo y derecho. */
-  readonly kidney: { readonly xMed: number; readonly xLat: number; readonly yAnt: number; readonly zLeft: number; readonly zRight: number };
 }
 
 /**
@@ -220,13 +174,6 @@ export function buildLiver(t: Torso, cage: RibCage, spine: Spine, sx: number, sy
     sy,
     edge: { uRight, zRight, uLeft, zLeft },
     tip: { x8: xAt(uLeft), xEnd: P.leftEndXMm.value, zEnd, convexMm: P.leftConvexityMm.value },
-    kidney: {
-      xMed: P.kidneyMedialXMm.value,
-      xLat: P.kidneyLateralXMm.value,
-      yAnt: spine.y0 + spine.r + P.kidneyAnteriorMm.value,
-      zLeft: spinousTipZ(P.kidneyTopSpinous.value),
-      zRight: spinousTipZ(P.kidneyTopSpinous.value) - P.rightKidneyLowerMm.value,
-    },
   };
 }
 
@@ -319,14 +266,6 @@ export function medialCutDistance(m: Vec3, s: LiverShape): number {
   return Math.min(x - C.xPost, plane, C.yMax - y) * Math.min(s.sx, s.sy);
 }
 
-/** Distancia (aprox.) al espacio del riñón de Morris del lado de m, positiva fuera (gemelo GLSL con el mismo nombre). */
-export function kidneyCutDistance(m: Vec3, s: LiverShape): number {
-  const K = s.kidney;
-  const ax = Math.abs(m[0]);
-  const zTop = m[0] < 0 ? K.zRight : K.zLeft;
-  return Math.max(K.xMed - ax, ax - K.xLat, m[1] - K.yAnt, m[2] - zTop);
-}
-
 /**
  * Distancia al límite lateral izquierdo del hígado en proyección frontal, positiva fuera (a su izquierda; gemelo GLSL con el
  * mismo nombre): de la x del 8.º cartílago a la altura del borde a la del final del límite superior (`leftEndXMm`), con la
@@ -355,17 +294,18 @@ export function liverLobeSd(m: Vec3, e: Ellipsoid): number {
 
 /**
  * Distancia con signo al hígado, negativa dentro, sin la cúpula ni la pared (las pone la clasificación; gemelo GLSL con el
- * mismo nombre): los lóbulos, la cara visceral, el recorte posteromedial, el riñón y el límite lateral izquierdo. `u`, `inside`
- * y `marginZ` son los de su columna de la pared.
+ * mismo nombre): los lóbulos, la cara visceral, el recorte posteromedial, la impresión renal y el límite lateral izquierdo. `u`,
+ * `inside` y `marginZ` son los de su columna de la pared; `renal`, la impresión renal (`renalImpression`, decisión 43: la grasa
+ * perirrenal con el solape de VExUS y la sombra del riñón; la grasa se clasifica antes y gana).
  */
-export function liverSdf(m: Vec3, u: number, inside: number, marginZ: number, s: LiverShape): number {
+export function liverSdf(m: Vec3, u: number, inside: number, marginZ: number, s: LiverShape, renal: number): number {
   let d = liverLobesSd(m, s);
   // los recortes son intersecciones suaves (smoothMax ≥ max): lejos de los lóbulos la distancia ya es una cota, y basta para el
   // «resto» (cuya distancia a la frontera no pasa de `BOWEL_BD_CAP_MM`)
   if (d > LIVER_EARLY_OUT_MM) return d;
   d = smoothMax(d, -visceralFaceDistance(m, u, inside, marginZ, s), EDGE_ROUND_MM);
   d = smoothMax(d, medialCutDistance(m, s), MEDIAL_CUT.roundMm);
-  d = smoothMax(d, -kidneyCutDistance(m, s), KIDNEY_CUT_ROUND_MM);
+  d = smoothMax(d, -renal, RENAL_IMPRESSION_ROUND_MM);
   return smoothMax(d, leftTipDistance(m, s), LEFT_TIP_ROUND_MM);
 }
 
@@ -379,31 +319,19 @@ const lobeGlsl = (l: typeof RIGHT_LOBE | typeof LEFT_LOBE): string =>
   `vec3(${g(l.radii[0])} * uLiverS.x, ${g(l.radii[1])} * uLiverS.y, ${g(l.radii[2])})`;
 
 /**
- * Gemelo GLSL. Uniforms: `uLiverS` (sx, sy, y de la cara anterior del riñón, z de su borde superior izquierdo; el derecho,
- * `rightKidneyLowerMm` más abajo), `uLiverEdge` (uRight, zRight, uLeft, zLeft) y `uLiverTip` (x8, zEnd, convexidad, 0); los
- * lóbulos, las |x| del riñón y `leftEndXMm`, constantes.
+ * Gemelo GLSL. Uniforms: `uLiverS` (sx, sy; w, el nivel del gas del estómago), `uLiverEdge` (uRight, zRight, uLeft, zLeft) y `uLiverTip`
+ * (x8, zEnd, convexidad; w, el grueso del estómago); los lóbulos y `leftEndXMm`, constantes. `smoothMin` y `smoothMax` son las del módulo del riñón, que va antes.
  */
 export const LIVER_GLSL = /* glsl */ `
 #define LIVER_BLEND ${f4(LIVER_BLEND_MM)}
 #define LIVER_EARLY_OUT ${g(LIVER_EARLY_OUT_MM)}
 #define LIVER_EDGE_ROUND ${f4(EDGE_ROUND_MM)}
 #define LIVER_VIS_BLEND ${f4(VISCERAL_BLEND_MM)}
-#define LIVER_KIDNEY_ROUND ${f4(KIDNEY_CUT_ROUND_MM)}
+#define LIVER_RENAL_ROUND ${f4(RENAL_IMPRESSION_ROUND_MM)}
 #define LIVER_TIP_ROUND ${f4(LEFT_TIP_ROUND_MM)}
 #define LIVER_MEDIAL_ROUND ${f4(MEDIAL_CUT.roundMm)}
 #define LIVER_BELOW_MARGIN ${g(LIVER.params.belowMarginMm.value)}
-#define KIDNEY_RIGHT_LOWER ${g(LIVER.params.rightKidneyLowerMm.value)}
-#define KIDNEY_X_MED ${g(LIVER.params.kidneyMedialXMm.value)}
-#define KIDNEY_X_LAT ${g(LIVER.params.kidneyLateralXMm.value)}
 #define LIVER_X_END ${g(LIVER.params.leftEndXMm.value)}
-float smoothMin(float a, float b, float k) {
-  float h = max(k - abs(a - b), 0.0) / k;
-  return min(a, b) - h * h * k * 0.25;
-}
-float smoothMax(float a, float b, float k) {
-  float h = max(k - abs(a - b), 0.0) / k;
-  return max(a, b) + h * h * k * 0.25;
-}
 float liverLobeSd(vec3 p, vec4 c, vec3 r) {
   float dx = p.x - c.x;
   float taper = max(0.15, 1.0 - c.w * (dx / r.x));
@@ -440,11 +368,6 @@ float medialCutDistance(vec3 m) {
   float plane = (x - ${g(MEDIAL_CUT.x0)} - ${g(MEDIAL_CUT.k)} * (y - ${g(MEDIAL_CUT.y0)})) / ${g(Math.hypot(1, MEDIAL_CUT.k))};
   return min(min(x - ${g(MEDIAL_CUT.xPost)}, plane), ${g(MEDIAL_CUT.yMax)} - y) * min(uLiverS.x, uLiverS.y);
 }
-float kidneyCutDistance(vec3 m) {
-  float ax = abs(m.x);
-  float zTop = m.x < 0.0 ? uLiverS.w - KIDNEY_RIGHT_LOWER : uLiverS.w;
-  return max(max(KIDNEY_X_MED - ax, ax - KIDNEY_X_LAT), max(m.y - uLiverS.z, m.z - zTop));
-}
 float leftTipDistance(vec3 m) {
   float t = clamp((m.z - uLiverEdge.w) / (uLiverTip.y - uLiverEdge.w), 0.0, 1.0);
   return m.x - (uLiverTip.x + (LIVER_X_END - uLiverTip.x) * t + uLiverTip.z * sin(${g(Math.PI)} * t));
@@ -452,12 +375,12 @@ float leftTipDistance(vec3 m) {
 float liverLobesSd(vec3 m) {
   return smoothMin(liverLobeSd(m, ${lobeGlsl(RIGHT_LOBE)}), liverLobeSd(m, ${lobeGlsl(LEFT_LOBE)}), LIVER_BLEND);
 }
-float liverSdf(vec3 m, float u, float inside, float marginZ) {
+float liverSdf(vec3 m, float u, float inside, float marginZ, float renal) {
   float d = liverLobesSd(m);
   if (d > LIVER_EARLY_OUT) return d;
   d = smoothMax(d, -visceralFaceDistance(m, u, inside, marginZ), LIVER_EDGE_ROUND);
   d = smoothMax(d, medialCutDistance(m), LIVER_MEDIAL_ROUND);
-  d = smoothMax(d, -kidneyCutDistance(m), LIVER_KIDNEY_ROUND);
+  d = smoothMax(d, -renal, LIVER_RENAL_ROUND);
   return smoothMax(d, leftTipDistance(m), LIVER_TIP_ROUND);
 }
 `;

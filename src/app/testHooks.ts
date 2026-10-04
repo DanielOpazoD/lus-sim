@@ -23,6 +23,7 @@ import { pointOnLine, type ProbePose } from '../probe/probe';
 import { Interface, isRibInterface, isWallLayerInterface } from '../anatomy/interfaces';
 import { TISSUES, Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
+import type { AnatomyScene } from '../anatomy/scene';
 import { FRAME_PASSES, type PassId } from '../ultrasound/passGraph';
 import { MIRROR_BISECTION_STEPS, boneRunAlongLine, lineHits, pleuraCrossingLine, rayAttenuationDb } from '../ultrasound/transmission';
 import { pleuraCapMm } from '../ultrasound/pleura';
@@ -38,6 +39,7 @@ import { COARSE_DEPTH, displayLevelDb, type CalibrationOverride, type CompoundSt
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { speckleStats, type SpeckleOptions, type SpeckleStats } from './speckle';
 import { columnLevel, mirrorContrast, mirrorDepths, type ColumnStats, type MirrorStats } from './mirrorBench';
+import { gasWindows, type GasStats } from './gasBench';
 import { fidelityBench, type FidelityBenchOptions, type FidelityBenchReport } from './fidelityBench';
 import {
   lungPulseEquivalence,
@@ -138,6 +140,14 @@ export interface TestHooks {
    * el contraste entre el tejido real antes del espejo y el virtual detrás, en la envolvente de la mirada 0 (`mirrorBench.ts`).
    */
   mirror: (opts: { pose: ProbePose; depthMm: number }) => MirrorStats & { column: ColumnStats };
+  /**
+   * La firma del gas del estómago (lus-sim, decisión 43): en la pose, en apnea espiratoria y con la profundidad `depthMm`, el nivel
+   * mostrado delante del gas, en su sombra, en su primera reverberación y en el valle (`gasBench.ts`), con el gas de cada línea
+   * de la anatomía de TS (el primero que encuentra, antes de cualquier pulmón). `noGas`: la mutación, con la luz del estómago
+   * llena de líquido (el nivel del gas por encima de todo) y las mismas ventanas. Sin `pose`, la del espacio de Traube de la
+   * equivalencia (`coveragePoses`, la LMC izquierda en el EIC7).
+   */
+  stomachGas: (opts: { pose?: ProbePose; depthMm: number; noGas?: boolean }) => GasStats;
   /**
    * Paridad de la pasada A (un solo rayo) con el modelo de CPU `rayAttenuationDb` en los mismos
    * puntos de muestra, cada `every` líneas y en todas las profundidades gruesas; se saltan las líneas
@@ -330,6 +340,47 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
           return { ...mirrorContrast(env, mirror, depthMm, level), column: columnLevel(env, vertebra, depthMm, level) };
         });
       } finally {
+        sim.patient.respiratoryPattern = pattern;
+        dispatch({ type: 'bmode', patch: { depthMm: depth } });
+      }
+    },
+    stomachGas: (opts) => {
+      const sim = getSim();
+      const pattern = sim.patient.respiratoryPattern;
+      const depth = sim.bmode.depthMm;
+      const scene = sim.scene as { stomach: AnatomyScene['stomach'] };
+      const stomach = scene.stomach;
+      try {
+        sim.patient.respiratoryPattern = 'apnea-expiratory';
+        dispatch({ type: 'bmode', patch: { depthMm: opts.depthMm } });
+        return withCompound(sim, dispatch, false, () => {
+          sim.setPose(opts.pose ?? coveragePoses(sim.scene).find((p) => p.id === 'traube')!.pose);
+          sim.advance(1);
+          sim.render();
+          // el gas de cada línea de la envolvente en la anatomía de TS, con el estómago de la escena
+          const t = sim.transducer;
+          const lines = sim.renderer.readEnvelope().lines;
+          const gas = Array.from({ length: lines }, (_, u) => {
+            const theta = -t.halfSector + (2 * t.halfSector * (u + 0.5)) / lines;
+            for (let r = 0.25; r < opts.depthMm; r += 0.25) {
+              const c = sim.anatomy.classifyWorld(pointOnLine(sim.frame, t, theta, r), sim.sample).tissue;
+              if (c === Tissue.Lung) return -1;
+              if (c === Tissue.BowelGas) return r;
+            }
+            return -1;
+          });
+          if (opts.noGas) {
+            // los uniforms de la escena se evalúan una vez por muestra: otra muestra para que suba el estómago sin gas
+            scene.stomach = { ...stomach, gasY: 1e4 };
+            sim.advance(1);
+          }
+          sim.render();
+          const env = sim.renderer.readEnvelope();
+          const fB = sim.profile.bEffectiveMHz;
+          return gasWindows(env, gas, sim.bmode.depthMm, (envDb, r) => displayLevelDb(envDb, r, sim.bmode, fB));
+        });
+      } finally {
+        scene.stomach = stomach;
         sim.patient.respiratoryPattern = pattern;
         dispatch({ type: 'bmode', patch: { depthMm: depth } });
       }
