@@ -58,6 +58,10 @@
 // 2026-10-03 (decisión 43): el estómago, los riñones (portados de VExUS, con sus pirámides y su grasa) y el retroperitoneo, con
 // sus gemelos GLSL y la medida del gas en los ganchos, llevan la entrada de 269,8 a 292,0 kB y el total de 823,6 a 846,2. La
 // entrada y el inicial suben a 300 kB y el total a 860.
+// 2026-10-04 (decisión 44): la ladera de la cúpula pleural sin esquina (`anatomy/organs/lungApex.ts`, con su gemelo GLSL en
+// cada programa que clasifica, y el techo de la distancia a la frontera) lleva la entrada de 299,9 a 300,6 kB y el total de
+// 854,8 a 855,5. La entrada y el inicial suben a 310 kB y el total a 870: lo siguiente en la cola (los vasos del hilio
+// esplénico y renal) también va en cada programa.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -65,12 +69,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 300 * KB],
+  [/index-.*\.js$/, 310 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 300 * KB;
-const TOTAL_JS_BUDGET = 860 * KB;
+const INITIAL_JS_BUDGET = 310 * KB;
+const TOTAL_JS_BUDGET = 870 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

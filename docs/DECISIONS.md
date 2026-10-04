@@ -4161,3 +4161,96 @@ pasaba 31 veces junto al bazo; ahora los cuenta y la pared sigue ahí); importan
 arriba), la grasa retroperitoneal sin tope, filas de procedencia que no decían lo que el código hace y la distancia de la corteza que
 no contaba la cápsula (corregidos); menores: el grueso del estómago de otro hábito, umbrales flojos, una prueba citada que no existía,
 la profundidad del riñón en el obeso y el lóbulo izquierdo detrás del estómago (documentados o corregidos). Aplicado.
+
+## 44. La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte
+
+**Fecha.** 2026-10-03.
+
+**Contexto.** La app arranca en el BLUE superior clínico (decisión 42) y el borde craneal de su sector llega a la base de la
+cúpula pleural. Con la curva de la decisión 27, Rc·(1 − √(1 − h)), la pared tenía una esquina sobre la 1.ª costilla (engruesa de
+golpe Rc/2H por mm: la pleura del borde del sector bajaba 3,5 mm en un paso de 8 líneas) y una pendiente sin cota junto al techo
+(≈ 16 mm de pared por mm de z en la ladera; 37 en el peor punto por delante y 45 junto a la línea media posterior). Por eso la cara interna de la pared variaba 3,05 mm
+bajo la cara en el punto clínico (la prueba de la compresión pide ≤ 3) y la equivalencia TS ↔ GLSL de la distancia de las caras
+necesitó una tolerancia escalada con el gradiente (decisión 42, `wall-cupola-transition`). Además, la caída de 19 mm de la 2.ª
+costilla del esternón a la medioclavicular, que pone el BLUE superior en el EIC1, no tenía fuente. Objetivo O2.
+
+**Fuentes** (búsqueda del 03-10-2026; texto completo salvo donde se dice):
+
+- **La cúpula**: Gray la pone 2,5–5 cm sobre el extremo esternal de la 1.ª costilla y ≈ 2,5 cm sobre el tercio medial de la
+  clavícula, más cerca del borde anterior del esternocleidomastoideo; la membrana suprapleural (fascia de Sibson) va del borde
+  interno de la 1.ª costilla a la transversa de C7; la abertura superior mide ≈ 5 × 10 cm [@gray-anatomia-1918]. NO ENCONTRADO:
+  el radio o la pendiente de la ladera.
+- **La fosa supraclavicular**: la piel a la «corner pocket» (la 1.ª costilla y la subclavia, no la pleura), 1,7 ± 0,8 cm por
+  ecografía [@yadav-supraclavicular-2016] (ya en A-T24); [DERIVADO] ≈ 1,8 cm de la piel a la pleura con el plexo a 1,34 ± 0,39 cm
+  [@mistry-plexo-2016] y 0,42 cm del plexo a la pleura en supino [@chen-plexo-pleura-2021] (solo el resumen). **Detrás de la
+  clavícula**, [DERIVADO] ≈ 29 mm de la piel a la pleura por la vena subclavia (piel–vena 10,6 mm, vena 9,5, vena–pleura 9,2 en
+  el tercio medial; 20 adultos [@berk-subclavia-2026]; no dicen a qué pared de la vena miden).
+- **Las capas**: el esternocleidomastoideo, 8,1 ± 2,0 mm a media altura del cuello [@pirri-ecm-2021] y 9,8 ± 1,8 en C3–C4
+  [@sidiropoulos-ecm-2025]; el escaleno anterior, 11–13 mm a la altura del cricoides [@magdy-escaleno-2026]; el platisma, ≈ 1 mm
+  (cadáveres, ilustrativo) [@kildal-platisma-2025]. NO ENCONTRADO: la grasa supraclavicular y estas capas en la propia fosa.
+- **La 2.ª costilla**: el 2.º cartílago es horizontal; el 1.º baja un poco y el 3.º sube un poco ([@gray-anatomia-1918], «The
+  Costal Cartilages», ya en anatomy.md). El ángulo de «asa de cubo» de la 2.ª costilla, 5,4 ± 6,9° con la cara lateral hacia
+  arriba [@holcombe-geometria-2017] (TC de 1042 adultos; el giro de la costilla entera alrededor de su cuerda, sin el cartílago).
+  NO ENCONTRADO: una medida de la pendiente frontal de su tramo anterior.
+
+**Opciones.** Para la ladera: (a) dejarla; (b) un cuarto de elipse, e = Rc·(1 − √(1 − h²)), que sale de la pared sin esquina
+pero sigue con pendiente infinita junto al techo (medido: peor, 52 mm por mm); (c) e = D·h², sin esquina y con la pendiente
+acotada, con D = min(Rc, pendiente·H/2). Para la 2.ª costilla: (i) corregirla aquí; (ii) dejarla para una decisión aparte.
+
+**Decisión.** (c) y (ii).
+
+- **La ladera** (`cupolaMm`, TS y GLSL): e = D·h², con h la fracción de la altura entre zApex (la 1.ª costilla más 2 mm) y zTop
+  (el techo), y D = min(Rc, `cupolaMaxSlope`·H/2). La pleura cervical deja la pared tangente a ella, como una membrana, y llega
+  al techo con la pendiente 2D/H. `anatomy.lungApex.cupolaMaxSlope`, 1,5 mm por mm [estimado]: la del vértice medial con Rc 30 y su
+  altura sobre la 1.ª costilla (≈ 39 mm en el avatar, la de Gray), con Rc 30 [SUPUESTO]. Como ninguna columna sube más de 40
+  mm, el min casi nunca actúa: D ≈ 0,75·H en todas. Fuera del tercio medial, donde la cúpula sube solo 5 mm sobre la 1.ª
+  costilla, su techo queda menos hondo (≈ 4 mm) en vez de más empinado. Sobre zTop, el techo, como antes.
+- **La distancia al borde sobre el techo** (`wallCupolaRoofBd`, TS y GLSL): el músculo sobre el techo suma la distancia al
+  tramo horizontal del techo (zTop, desde la profundidad D hacia dentro). Antes solo tenía la cota vertical hasta zApex, que
+  con la ladera nueva daba hasta 9,9 veces la distancia real (20,8 mm frente a 2,1 en φ 0,65π, z 190; con la de la decisión
+  27, 4,4); ahora, 1,78 veces en lo peor de la misma rejilla.
+- **La 2.ª costilla queda como está** en esta decisión. Baja 10,5 mm del esternón a su unión condrocostal y 19,8 hasta la
+  medioclavicular. Y es más que esos milímetros: en el modelo el punto más bajo de las costillas 2.ª–5.ª está en la medioclavicular
+  (u ≈ 96), por fuera de su unión condrocostal (u 64–84), cuando en la anatomía el tramo óseo sube hacia fuera desde ella y lo más
+  bajo de la costilla ósea es su extremo anterior: un defecto de forma de la parrilla anterior (`anterior-rib-shape`, nueva).
+  Hacerla horizontal (Gray) con la 5.ª en la línea de Treves en la
+  medioclavicular obliga a ensanchar los espacios 2.º–4.º en la medioclavicular de 46 a ≈ 65 mm en total (hoy, [DERIVADO] de
+  Seong y Kim), o a que la costilla baje desde la unión condrocostal, contra el ángulo de Holcombe (la cara lateral de la costilla, arriba). Cualquiera de
+  las dos sube las costillas 2.ª–4.ª en la medioclavicular hasta ≈ 19 mm. Eso mueve lo que ve la vista de medida del BLUE superior
+  (la pose fija de 83,7 mm quedaría sobre la 3.ª costilla) y con ella el banco y la calibración de las decisiones 21, 24 y 35.
+  Necesita una decisión propia con la recalibración (hoja de ruta).
+
+**Consecuencias.**
+
+- **La compresión en el BLUE superior clínico** (`compression.test.ts`, vista nueva `blueUpperClinical`): la cara interna varía
+  2,25 mm bajo la cara (−0,88 a 1,37), bajo los 3 de siempre. Con la curva de antes, 3,05: la prueba falla con ella, por poco.
+  La elipse, quitar el min o la pendiente 3 la pasan; a esas las atrapa la prueba de la ladera. En la vista de medida del BLUE
+  superior no cambia (2,05).
+- **El gradiente de la pared** sobre la cúpula, en todo el perímetro por debajo del techo (rejilla de 1 mm × 0,25 mm): |∇W| ≤ 1,9
+  mm por mm por delante y ≤ 4,3 junto a la línea media posterior, donde la cúpula pasa al cuello (antes, 37 y 45). Sin esquina:
+  a 1 mm de su arranque la pared engruesó ≤ 0,15 mm (antes 0,39 en la LMC y 3,17 fuera del tercio medio). Lo fijan tres pruebas
+  de `chestWall.test.ts` (la pendiente, el arranque y el gemelo GLSL de la curva, que se comprueba en el texto del shader); la
+  curva de antes falla las dos primeras.
+- **En la imagen de arranque** la pleura del borde craneal del sector queda a 18,7 mm (antes 21,9: se hundía al final).
+- **La tolerancia escalada de la cáscara** (decisión 42) ya no se activa: con SwiftShader el mayor |Δd| de la cáscara baja a
+  0,0088 mm en espiración y 0,0129 en la inspiración profunda (antes 0,025 y 0,11), todos bajo la tolerancia fija de 0,02; la GPU
+  real, ≤ 0,0067. El mecanismo se queda (no cuesta nada donde |∇d| ≈ 1) para el próximo gradiente empinado.
+- **Lo que no cambia**: A-T23 (el vértice ≈ 2,5 cm sobre la clavícula; el techo no se movió), A-T24 (por la fosa, la pleura a
+  24,5 mm, antes 25,6; Yadav ± 2 DE en los cinco hábitos), la cobertura, las vistas de medida.
+- **Comparación con las fuentes nuevas**: por la fosa, el músculo sobre la cúpula suma 23 mm, lo que dan los escalenos y el
+  esternocleidomastoideo medidos a media altura del cuello (11–14 y 8–10 mm). Detrás de la clavícula, la pleura a 18–27 mm en los
+  tercios medial y medio, menos que los ≈ 29 derivados de Berk (antes, 20–35): una ladera que arranca sin esquina engruesa la pared
+  despacio al principio. Queda en `apex-cupola-wall`.
+- **Lo que queda** (`wall-cupola-transition`, reescrita): el techo horizontal de cada columna. Con la sonda sobre la clavícula o por
+  encima, las líneas que pasan sobre él entran en el pulmón casi rasantes y A0 les dibuja una pleura brillante, una franja casi
+  vertical en la imagen. Lo arreglaría una cúpula con su propia superficie (un casquete con su distancia y su normal) en lugar del
+  grosor radial por columna: hoja de ruta, con la 2.ª costilla.
+
+- **El bundle:** la entrada pasa de 299,9 a 300,6 kB, sobre el techo de 300 que dejó la decisión 43; sube a 310 kB y el total
+  a 870 (`tools/ci/bundle-budget.ts`).
+
+**Verificación.** `chestWall.test.ts` (la pendiente de la ladera ≤ 2 en todo el tronco y el arranque sin esquina; las dos
+fallan con la curva de la decisión 27), `compression.test.ts` (el BLUE superior clínico ≤ 3 mm; falla con la curva de antes),
+`anatomyTargets.test.ts` (A-T23 y A-T24 en los cinco hábitos), `coverage.test.ts`. La cáscara TS ↔ GLSL medida con SwiftShader y
+con la GPU real (espiración e inspiración profunda). Las imágenes de arranque y de la sonda subiendo hacia la clavícula (z 140, 155 y 170) con la GPU real, antes y después. `npm run check`, la e2e con SwiftShader y el CI de la PR. Revisión adversarial de contexto
+limpio (resumen en la PR).
