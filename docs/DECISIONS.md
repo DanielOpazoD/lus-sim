@@ -590,7 +590,7 @@ mutación que la hace fallar: la GPU que no se reconstruye tras la pérdida, la 
 (máximo 183 de gris: el HUD), la presentación 57 dB más oscura, el atajo ] sin efecto, la congelación que no llega al
 simulador, el cine que no dibuja, el HUD con los ajustes del equipo, la sonda sin sus dos guardas de la congelación,
 las tarjetas sin bloquear, la tarjeta que no anima la sonda, un error en el bucle y la recuperación que deja la imagen
-congelada. Las unitarias (`src/validation/controllers.test.ts`, `src/validation/startPointCards.test.ts`,
+congelada. Las unitarias (`src/validation/controllers.test.ts`, `startPointCards.test.ts` (quitado en la decisión 47),
 `src/validation/uiInput.test.ts`) prueban el HUD, el informe, las tarjetas, el estado de la UI, la animación, los
 atajos (con modificadores, Espacio sobre un botón y un campo de texto) y la entrada de la sonda sin DOM (también un
 arrastre empezado antes de congelar). Revisión adversarial de contexto limpio: halló que el humo miraba un búfer de la
@@ -4449,8 +4449,8 @@ siete puntos.
 **Opciones.** (a) Dejarlas plegadas; (b) dejarlas solo en un modo docente; (c) quitarlas de la interfaz y conservar los puntos
 como datos donde los usan las pruebas y el banco.
 
-**Decisión.** (c). Fuera de la interfaz: la sección de `index.html`, `src/ui/startPointCards.ts` (con su prueba), la animación hacia
-un punto (`src/app/probeAnimation.ts`, con su prueba en `uiInput.test.ts`), su cableado en `src/main.ts` y sus reglas de estilo. Se
+**Decisión.** (c). Fuera de la interfaz: la sección de `index.html`, `startPointCards.ts` (con su prueba), la animación hacia
+un punto (`probeAnimation.ts`, con su prueba en `uiInput.test.ts`), su cableado en `src/main.ts` y sus reglas de estilo. Se
 conservan `START_POINTS` y sus poses (`app/startPoints.ts`, `app.startPointPoses`): los usan el barrido de equivalencia, los
 ganchos de prueba, las e2e del banco y la pose de arranque (el BLUE superior clínico); las vistas de medida (decisión 42) no
 cambian. Para sentar al paciente queda Ajustes → Paciente.
