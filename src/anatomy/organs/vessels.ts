@@ -2,12 +2,13 @@ import { defineParameters } from '../../core/evidence';
 import { add, normalize, scale, sub, type Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
 import type { Spine, Tube } from '../primitives';
-import { Tissue } from '../tissues';
+import { BOWEL_BD_CAP_MM, Tissue } from '../tissues';
 import { kidneyWorld, type Kidney } from './kidney';
 import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from './lungBorder';
 
 /**
- * Los vasos del hilio del bazo y de los riñones (lus-sim, decisión 46; VExUS tiene los renales, no los esplénicos): la arteria y
+ * Los vasos del hilio del bazo y de los riñones (lus-sim, decisión 46; VExUS tiene los renales y una arteria esplénica desde el
+ * tronco celíaco, `vesselTree.ts`, que no se porta: aquí van desde el hilio del bazo): la arteria y
  * la vena esplénicas desde el hilio del bazo hacia la línea media, y la arteria y la vena renales de cada lado desde el seno del
  * riñón. Tubos de VExUS (`Tube`, la cadena de cápsulas de `tubeQuery`) con su pared, anecoicos en el modo B; sin Doppler (la
  * unión con VExUS, decisión 1, lo traerá).
@@ -39,7 +40,7 @@ export const HILUM_VESSELS = defineParameters('anatomy.hilumVessels', {
     evidence: 'documentado',
     sources: ['brinkman-esplenica-2021', 'huang-esplenica-2018'],
     note:
-      'Brinkman y cols. (TC, 80 adultos): se estrecha del origen al hilio; al 75 % del trayecto, 3,5–5,5 mm. Huang y cols. ' +
+      'Brinkman y cols. (TC, 80 adultos): se estrecha del origen al hilio; al 75 % del trayecto, 3,5–6,0 mm. Huang y cols. ' +
       '(Doppler, 30 sanos): 3,5 ± 0,6 mm. El radio junto al hilio, 2 mm (4 mm de diámetro)',
   },
   splenicArteryRadiusMedialMm: {
@@ -66,7 +67,7 @@ export const HILUM_VESSELS = defineParameters('anatomy.hilumVessels', {
     range: [3.5, 5.5],
     evidence: 'documentado',
     sources: ['durur-esplenica-2025'],
-    note: 'Durur Karakaya y cols. (angio-TC, 50 controles sanos): 9,47 ± 1,12 mm a 2 cm de la cava. La ecografía, NO ENCONTRADA',
+    note: 'Durur Karakaya y cols. (angio-TC, 47 de sus 50 controles sanos con la vena renal izquierda medida): 9,47 ± 1,12 mm a 2 cm de la cava. La ecografía, NO ENCONTRADA',
   },
   renalVeinRightRadiusMm: {
     value: 5,
@@ -113,7 +114,9 @@ export const SPLENIC_BOW_MM = 10;
 export const SPLENIC_ARTERY_CRANIAL_MM = 10;
 /** Su sinuosidad (mm en z, dos ondas hacia arriba, sin acercarse a la vena) [SUPUESTO; Brinkman y cols.: asas en el 86 %]. */
 export const SPLENIC_ARTERY_WAVE_MM = 3;
-/** El extremo ciego se estrecha a esta fracción del radio (el vaso sale del modelo) [SUPUESTO]. */
+/** Fracción del camino de los esplénicos donde acaba su calibre medial; lo que sigue es el muñón ciego. */
+export const SPLENIC_FULL_T = 0.93;
+/** El extremo ciego se estrecha a esta fracción del radio en su último tramo (el vaso sale del modelo) [SUPUESTO]. */
 export const BLIND_END_TAPER = 0.6;
 
 const tube = (nodes: Array<[Vec3, number]>): Tube => ({ kind: 'tube', nodes: nodes.map(([p, r]) => ({ p, r })), apScale: 1 });
@@ -148,11 +151,12 @@ export function buildHilumVessels(spleenHilum: Vec3, spleenInward: Vec3, kidneys
     const start = add(h, scale(inward, SPLENIC_INTRA_MM));
     const end = at(25, 56, spleenHilum[2] - 2 + cranial);
     const out: Array<[Vec3, number]> = [[start, rHilum]];
-    const ts = [0, 0.2, 0.45, 0.72, 1];
+    // el calibre medial se alcanza en `SPLENIC_FULL_T`; el último tramo, de ≈ 6 mm, es el muñón ciego que se estrecha
+    const ts = [0, 0.2, 0.45, 0.72, SPLENIC_FULL_T, 1];
     for (const t of ts) {
       const base = add(h, scale(sub(end, h), t));
       const p: Vec3 = add(base, [0, SPLENIC_BOW_MM * Math.sin(Math.PI * t), 0.5 * wave * (1 - Math.cos(4 * Math.PI * t))]);
-      const r = t === 1 ? rMedial * BLIND_END_TAPER : rHilum + (rMedial - rHilum) * t;
+      const r = t === 1 ? rMedial * BLIND_END_TAPER : rHilum + (rMedial - rHilum) * Math.min(1, t / SPLENIC_FULL_T);
       out.push([p, r]);
     }
     return out;
@@ -213,6 +217,9 @@ export function buildHilumVessels(spleenHilum: Vec3, spleenInward: Vec3, kidneys
   }
   return out;
 }
+
+/** Margen de la esfera envolvente sobre la pared (mm): más que el tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5). */
+export const VESSEL_BOUND_MARGIN_MM = BOWEL_BD_CAP_MM + 1;
 
 /** Esfera envolvente de un tubo (para descartes rápidos en CPU y GPU; la de VExUS, `tubeBoundingSphere`). */
 export function tubeBoundingSphere(t: Tube, marginMm: number): { center: Vec3; r: number } {

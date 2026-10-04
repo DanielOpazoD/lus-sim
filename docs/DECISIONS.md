@@ -4385,11 +4385,14 @@ calibres de adultos sanos y la ausencia de un umbral validado para la vena espl�
    arteria, 4,5 mm por detrás y 3 hacia el polo superior (VExUS, 4 detrás): con la vena derecha de 10 mm, las de VExUS se tocaban.
    Hacia la línea media, respecto a la columna: la vena derecha, corta, hacia donde iría la cava; la arteria derecha, por detrás de
    ella; la vena izquierda, por delante de donde iría la aorta; la arteria izquierda, corta, hacia la aorta.
-4. **Extremos ciegos**: el último nodo, al 60 % del radio (`BLIND_END_TAPER`): el vaso sale del modelo. Acaban a 0–2,8 cm de la
-   línea media (`hilum-vessels-blind-ends`).
+4. **Extremos ciegos**: el último tramo se estrecha al 60 % del radio (`BLIND_END_TAPER`; en los esplénicos, un muñón de ≈ 6 mm tras
+   alcanzar su calibre medial, `SPLENIC_FULL_T`): el vaso sale del modelo. Acaban a 0–2,8 cm de la línea media
+   (`hilum-vessels-blind-ends`).
 5. **Clasificación** (`AnatomyScene.classifyTubes`, la de VExUS sin los conductos ni el Doppler): bajo el diafragma, antes de los
    órganos (entran en el bazo y en el seno renal), con la sangre en la luz, su pared fuera y la cara de su luz
    (`Interface.VeinLumen`, `ArteryLumen`) a |d|; fuera de ellos, la distancia a su pared entra en la de los órganos y el «resto».
+   Cada vaso se descarta por su esfera envolvente con un margen de 6 mm sobre la pared (`VESSEL_BOUND_MARGIN_MM`, más que el tope
+   de 5 mm de la distancia del «resto»: fuera de la esfera, la pared queda más lejos que cualquier distancia que se use).
    `faceGradient` da la normal analítica del tubo (`tubeFaceGradient`), la de la GPU en `Cls.n`.
 6. **GPU**: la tabla de los seis vasos (cabecera, esfera envolvente y hasta 8 nodos) en la textura de escena tras la de los bordes
    del pulmón (`HILUM_VESSEL_BASE`), y el gemelo GLSL (`hvTubeQuery`, la `tubeQuery` del shader de VExUS para la sección circular, y
@@ -4421,8 +4424,14 @@ calibres de adultos sanos y la ausencia de un umbral validado para la vena espl�
   esplénicos empiezan dentro del bazo (con la clasificación sin vasos, bazo) y los renales dentro del seno; fuera de su órgano no
   tocan el hígado, el estómago, el pulmón, el diafragma, el hueso ni el otro órgano, en los seis hábitos; entre las paredes de dos
   vasos queda al menos 1 mm (con los nodos de VExUS y la vena derecha de la fuente, −1,2 mm: la prueba falló y se separaron); la
-  tabla de la GPU y el gemelo en `classifyWith`; la normal radial de la cara de la luz.
+  tabla de la GPU y el gemelo en `classifyWith`; la normal radial de la cara de la luz; en muestras al azar junto a los vasos, la
+  distancia a la frontera de lo que no es vaso no pasa de la distancia verdadera a la pared más cercana, y la luz y la pared dan
+  la distancia de su cara (quitar la distancia a la pared del órgano o del «resto» la hace fallar). La salida barata de la pasada
+  B acota las caras de tubo con √(1 + estrechamiento²) de su segmento más cónico (`faceGradient.test.ts`).
 - `e2e/imagen.spec.ts` con SwiftShader: la equivalencia TS ↔ GLSL de las cápsulas, ahora con la luz de los vasos (al menos 60
   muestras de cada una).
-- `npm run check`, la e2e con SwiftShader y el CI de la PR. Sin revisión adversarial de contexto limpio: los agentes están detenidos
-  por el límite de uso hasta el 08-10; la revisó el coordinador.
+- Revisión adversarial de contexto limpio (04-10-2026): sin bloqueantes; el gemelo GLSL portado a JS coincide con TS en 720 000
+  puntos de los seis hábitos (0 desacuerdos de tejido o cara; ≤ 4,8·10⁻⁶ mm). Pidió el calibre medial esplénico que el muñón
+  ciego no alcanzaba, pruebas que mataran sus mutaciones (de 11, solo 1 caía), el margen de la esfera envolvente y dos cifras de
+  las fuentes: aplicado.
+- `npm run check`, la e2e con SwiftShader y el CI de la PR.

@@ -25,6 +25,8 @@ const P = HILUM_VESSELS.params;
 const scene = new AnatomyScene(defaultPatient());
 const byId = (s: AnatomyScene, id: HilumVessel['id']) => s.vessels.find((v) => v.id === id)!;
 
+// Los riñones no cambian con el hábito (decisión 43: la profundidad de Xue): los renales son el mismo caso en los seis; los esplénicos
+// siguen al bazo, que sí cambia
 const HABITS = (['average', 'thin', 'obese'] as const).flatMap((build) =>
   (['male', 'female'] as const).map((sex) => {
     const p = defaultPatient();
@@ -121,6 +123,12 @@ describe('Los vasos del hilio (decisión 46)', () => {
       Tissue.Vertebra,
       Tissue.Bone,
       Tissue.Myocardium,
+      Tissue.Psoas,
+      Tissue.QuadratusLumborum,
+      Tissue.Muscle,
+      Tissue.Fat,
+      Tissue.Skin,
+      Tissue.Cartilage,
     ]);
     const SPLEEN_OR_KIDNEY = new Set([
       Tissue.Spleen,
@@ -184,7 +192,48 @@ describe('Los vasos del hilio (decisión 46)', () => {
       expect(t[o + 8 + 4 * last + 3]).toBeCloseTo(v.tube.nodes[last].r, 5);
     });
     expect(ANATOMY_GLSL).toContain('if (classifyTubes(m, c, tubeOut)) return c;');
+    // la distancia a la pared de los vasos, en la de los órganos y en la del «resto»; el gemelo de tubeQuery con su estrechamiento
+    expect(ANATOMY_GLSL).toContain('perirenal)) { c.bd = min(c.bd, tubeOut); return c; }');
+    expect(ANATOMY_GLSL).toContain('dOut = min(dOut, sd - h0.y);');
+    expect(ANATOMY_GLSL).toContain('float taper = s > 0.0 && s < 1.0 ? (b.w - a.w) * inversesqrt(len2) : 0.0;');
+    expect(ANATOMY_GLSL).toContain('kc = 1.0 / r;');
     expect(ANATOMY_GLSL).toContain('c.bd = max(min(min(min(bdBowel, bdR), dSpine), tubeOut), 0.0);');
+  });
+
+  // Muestras al azar a ≤ 20 mm del eje de cada vaso (semilla fija). La distancia a la frontera de lo que no es vaso no pasa de la
+  // distancia verdadera a la cara externa de la pared más cercana (la GPU salta muestras con ella); en la luz y en la pared, la
+  // distancia a la frontera y la de la cara son las del tubo. Sin `tubes.dOut` en el órgano o el «resto», la primera falla
+  it('la distancia a la frontera respeta la pared de los vasos, y la luz y la pared dan la distancia de su cara', () => {
+    let state = 46;
+    const rnd = () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+    let outside = 0;
+    for (const v of scene.vessels)
+      for (const { p } of axisSamples(v, 3))
+        for (let k = 0; k < 12; k++) {
+          const q: Vec3 = [p[0] + 40 * (rnd() - 0.5), p[1] + 40 * (rnd() - 0.5), p[2] + 40 * (rnd() - 0.5)];
+          const c = scene.classify(q, BASELINE_INSTANT);
+          let near = Infinity;
+          let own: { v: HilumVessel; d: number } | null = null;
+          for (const w of scene.vessels) {
+            const d = tubeQuery(q, w.tube).d;
+            near = Math.min(near, d - w.wallMm);
+            if (d < w.wallMm && (!own || d < own.d)) own = { v: w, d };
+          }
+          if (own) {
+            const tag = `${own.v.id} (${q.map((x) => x.toFixed(2)).join(', ')})`;
+            expect(c.interface, tag).toBe(own.v.lumenInterface);
+            expect(c.interfaceDistance, tag).toBeCloseTo(Math.abs(own.d), 9);
+            if (own.d < 0) expect(c.boundaryDistance, tag).toBeCloseTo(-own.d, 9);
+            else expect(c.boundaryDistance, tag).toBeCloseTo(Math.min(own.d, own.v.wallMm - own.d), 9);
+          } else {
+            outside++;
+            expect(c.boundaryDistance, `${Tissue[c.tissue]} (${q.map((x) => x.toFixed(2)).join(', ')})`).toBeLessThanOrEqual(near + 1e-9);
+          }
+        }
+    expect(outside).toBeGreaterThan(1000);
   });
 
   it('la cara de la luz: su normal es la radial del tubo (el gradiente analítico, el de la GPU)', () => {

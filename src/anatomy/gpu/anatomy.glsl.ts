@@ -556,7 +556,7 @@ vec4 faceGradient(Cls c, vec3 m) {
 // Velocidad de la sangre (mm/s, marco material) para una clasificación de sangre.
 // Velocidad media UNIFORME a lo largo del vaso (decisión 6, misma ley que
 // AnatomyQuery.classifyWorld): Q = cte en un tubo afilado dispararía la periferia.
-// lus-sim (decisión 12): el tórax no tiene vasos (c.vessel siempre −1): da siempre 0, como
+// lus-sim (decisiones 12 y 46): sin Doppler, los vasos del hilio dejan c.vessel en −1: da siempre 0, como
 // WorldQuery.bloodVelocity es siempre null en TS; se conserva la función para la consulta de la e2e.
 vec3 bloodVelocity(Cls c) {
   if (c.vessel < 0) return vec3(0.0);

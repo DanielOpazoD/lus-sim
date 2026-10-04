@@ -85,7 +85,7 @@ import {
 import { retroFrame, retroperitoneum, type RetroFrame } from './organs/retroperitoneum';
 import { LIVER_EARLY_OUT_MM, ORGAN_SDF_LIPSCHITZ, buildLiver, liverLobesSd, liverSdf, type LiverShape } from './organs/liver';
 import { SPLEEN, SPLEEN_GASTRIC_ACROSS, buildSpleen, pointAtArc, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
-import { buildHilumVessels, tubeBoundingSphere, type HilumVessel } from './organs/vessels';
+import { VESSEL_BOUND_MARGIN_MM, buildHilumVessels, tubeBoundingSphere, type HilumVessel } from './organs/vessels';
 import { STOMACH, buildStomach, stomachCandidate, stomachSdf, type StomachShape } from './organs/stomach';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
@@ -160,8 +160,8 @@ export interface Classification {
    */
   interfaceDistance: number;
   /**
-   * Vaso que contiene el punto. El tórax portado no tiene vasos (decisión 10): siempre null. El campo, como
-   * `vesselHit` y `flowFactor`, conserva la forma de la clasificación de VExUS para los módulos que la leen.
+   * Vaso que contiene el punto: siempre null (sin Doppler; los vasos del hilio de la decisión 46 dan su `vesselHit`, no un id de
+   * la fisiología). El campo, como `vesselHit` y `flowFactor`, conserva la forma de la clasificación de VExUS.
    */
   vessel: null;
   vesselHit: TubeHit | null;
@@ -429,7 +429,8 @@ export class AnatomyScene {
     this.vesselBounds = [];
     const hilum = this.spleenHilum();
     this.vessels = buildHilumVessels(hilum.point, hilum.inward, this.kidneys, this.spine);
-    this.vesselBounds = this.vessels.map((v) => tubeBoundingSphere(v.tube, v.wallMm + 2));
+    // el margen pasa del tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5 mm): fuera de la esfera la pared queda más lejos
+    this.vesselBounds = this.vessels.map((v) => tubeBoundingSphere(v.tube, v.wallMm + VESSEL_BOUND_MARGIN_MM));
   }
 
   /**
