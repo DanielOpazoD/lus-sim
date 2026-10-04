@@ -190,10 +190,9 @@ conservan su identificador (decisiones 10 y 11).
   TAC sentada que en la de supino, Yamada y cols.) y el diafragma baja (en supino queda más craneal, Traser y cols., RM
   dinámica de 3 cantantes); cuánto baja el borde posterior del pulmón, NO ENCONTRADO. La pared de la espalda no cambia en
   la ecografía sentado frente a en prono (Wada y cols., 18 varones). La escápula, de pie según Cooperstein; sentado, NO
-  ENCONTRADO como comparación directa. En la interfaz (decisión 33) la posición se elige en Ajustes → Paciente o con las
-  tarjetas de la espalda, que sientan al paciente; el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
-  a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda. La animación hacia una tarjeta
-  recorre φ en línea recta: sentado, de la espalda izquierda a la derecha pasa por delante, no por la línea media posterior.
+  ENCONTRADO como comparación directa. En la interfaz (decisión 33) la posición se elige en Ajustes → Paciente (las tarjetas de la
+  espalda se quitaron en la decisión 47); el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
+  a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda.
 - **El abdomen, fuera de sus órganos, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el diafragma
   están el hígado y el bazo y, desde la 43, el estómago, los riñones y el retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la
   grasa); lo demás queda en el tejido por defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin

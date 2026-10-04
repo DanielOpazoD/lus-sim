@@ -421,7 +421,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
         caption.textContent = unavailable
           ? sitting
             ? 'Zona no explorable: cuello, brazos o fuera del alcance del modelo.'
-            : 'Zona no explorable en supino: para la espalda, sienta al paciente (Ajustes → Paciente o una tarjeta posterior).'
+            : 'Zona no explorable en supino: para la espalda, sienta al paciente (Ajustes → Paciente).'
           : `${side < 0 ? 'Derecho' : 'Izquierdo'} · ${region} · ${sitting ? 'sentado' : 'supino'}${sim.frozen ? ` · cuadro congelado ${acquisition.sample.t.toFixed(1)} s` : ''}${ribs.visible ? ' · huesos en reposo' : ''}`;
         if (mode === 'move') help.textContent = moveHelp();
         lateralButton.title = `Ver lateral ${side < 0 ? 'derecha' : 'izquierda'} del paciente`;

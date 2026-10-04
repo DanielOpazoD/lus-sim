@@ -3,7 +3,6 @@ import { buildDiagnostics, buildLabel, diagnosticsFileName, gpuInfo } from './ap
 import { BmodeFrameRate } from './app/frameRate';
 import { ErrorBudget } from './app/errorBudget';
 import { errorLog, errorMessage } from './app/errorLog';
-import { ProbeAnimator } from './app/probeAnimation';
 import { SimulationSession } from './app/session';
 import type { Simulator } from './app/simulator';
 import { Store } from './app/store';
@@ -21,7 +20,6 @@ import { MModeView } from './ui/mMode';
 import { ControlPanel } from './ui/panel';
 import { ProbeInput } from './ui/probeInput';
 import { createReview } from './ui/review';
-import { StartPointCards } from './ui/startPointCards';
 import { compoundActive } from './ultrasound/compound';
 
 /**
@@ -117,18 +115,12 @@ function requestNavigator(): void {
 }
 
 // --- Vistas ------------------------------------------------------------------
-const probeAnimator = new ProbeAnimator(
-  () => sim().pose,
-  (p) => sim().setPose(p),
-);
 /**
- * Todo gesto de la sonda pasa por aquí: cancela la animación hacia un punto de partida y, con la imagen congelada,
- * no mueve nada (lus-sim, decisión 13: en VExUS los deslizadores de la sonda y las tarjetas la movían bajo una imagen
- * congelada, lo halló la revisión).
+ * Todo gesto de la sonda pasa por aquí: con la imagen congelada no mueve nada (lus-sim, decisión 13: en VExUS los deslizadores de
+ * la sonda y las tarjetas la movían bajo una imagen congelada, lo halló la revisión).
  */
 function setPoseManual(p: Parameters<Simulator['setPose']>[0]): void {
   if (store.get().frozen) return;
-  probeAnimator.cancel(); // cualquier gesto manual cancela la animación
   sim().setPose(p);
 }
 /**
@@ -139,7 +131,6 @@ function setPatientPosition(position: PatientPosition): void {
   if (store.get().frozen) return;
   const s = sim();
   if ((s.patient.position ?? 'supine') === position) return;
-  probeAnimator.cancel();
   s.patient.position = position;
   s.setPose(s.pose);
 }
@@ -152,19 +143,7 @@ const panel = new ControlPanel($('panel'), sim, store, dispatch, {
   },
 });
 session.equipment.subscribe(() => panel.sync());
-// Carril izquierdo: los puntos de partida (la sonda se desliza hasta ellos) y la ayuda de la sonda
-const windows = new StartPointCards($('start-points'), {
-  onPick: (sp) => {
-    if (store.get().frozen) return;
-    // lus-sim (decisión 33): los puntos de la espalda sientan al paciente
-    if (sp.position) setPatientPosition(sp.position);
-    probeAnimator.goTo(sp);
-  },
-  getPose: () => sim().displayedAcquisition.pose,
-  getTorso: () => sim().scene.torso,
-  animating: () => probeAnimator.active,
-  locked: () => store.get().frozen,
-});
+// Carril izquierdo: la ayuda de la sonda (decisión 47: sin las tarjetas de los puntos BLUE)
 bindPopover($<HTMLButtonElement>('nav-help'), $('nav-help-pop'));
 let lastFps = 0;
 $<HTMLButtonElement>('tech-report').addEventListener('click', () => {
@@ -246,8 +225,6 @@ store.subscribe((st, prev) => {
     $('freeze-label').textContent = st.frozen ? 'Reanudar' : 'Congelar';
     freezeBtn.title = st.frozen ? 'Reanudar la adquisición (Espacio)' : 'Congelar la imagen (Espacio)';
     renderLines(hud.tl, hudTopLeft(PATIENT_LABEL, st.frozen));
-    if (st.frozen) probeAnimator.cancel();
-    windows.sync();
     panel.sync();
   }
 });
@@ -286,7 +263,6 @@ let lastDisplayedAcquisition: Simulator['displayedAcquisition'] | null = null;
 function frame(now: number, dt: number): void {
   const s = sim();
   input.tick(dt);
-  if (!store.get().frozen) probeAnimator.tick(dt);
   s.advance(dt);
   if (!gpu.lost) {
     s.render({ mline: mMode.prepare(s) });
@@ -308,10 +284,7 @@ function frame(now: number, dt: number): void {
   const t = s.physiology.clock.t;
   const shown = s.displayed.bmode;
   const acquired = s.displayedAcquisition;
-  if (s.frozen && acquired !== lastDisplayedAcquisition) {
-    panel.sync();
-    windows.sync();
-  }
+  if (s.frozen && acquired !== lastDisplayedAcquisition) panel.sync();
   lastDisplayedAcquisition = acquired;
   const h = hudText({
     patientLabel: PATIENT_LABEL,
@@ -338,7 +311,6 @@ function frame(now: number, dt: number): void {
     frames = 0;
     fpsWindowStarted = now;
     panel.sync(); // la pose y el acoplamiento cambian con el ratón; el equipo avisa por su cuenta
-    windows.sync();
   }
 }
 

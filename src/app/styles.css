@@ -335,52 +335,6 @@ kbd {
   font-size: 12px;
   line-height: 1.5;
 }
-.reference-points {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-.reference-points h3 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 500;
-}
-.windows-side-title {
-  margin: 10px 0 0;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.windows {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 10px;
-}
-.win-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 3px;
-  min-width: 0;
-  padding: 8px;
-  background: transparent;
-  text-align: left;
-}
-.win-name {
-  font-size: 12px;
-  font-weight: 500;
-}
-.win-sub {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--muted);
-}
-.win-card.current {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
 .menu {
   z-index: 40;
   background: var(--panel-2);
@@ -863,15 +817,6 @@ input[type='range']:disabled {
   }
   .freeze-button {
     padding-inline: 8px;
-  }
-  .windows {
-    grid-template-columns: 1fr;
-  }
-  .win-card {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 44px;
   }
 }
 @media (max-width: 800px) {
