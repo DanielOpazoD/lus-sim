@@ -20,7 +20,9 @@
  *   (grosores alto y bajo, reborde costal, peso inspiratorio; y las capas altas y bajas);
  *   tabla de los bordes del pulmón desde LUNG_BORDER_BASE (decisión 18, `organs/lungBorder.ts`): por columna de |u|, un
  *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, altura a la que se apaga el
- *   deslizamiento: decisión 19)
+ *   deslizamiento: decisión 19);
+ *   tabla de los vasos del hilio desde HILUM_VESSEL_BASE (decisión 46, `organs/vessels.ts`): por vaso, su cabecera, su esfera
+ *   envolvente y sus nodos
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, TISSUE_GLSL_NAME } from '../tissues';
 import { SPLEEN } from '../organs/spleen';
@@ -37,14 +39,14 @@ import { COMPRESSION_GLSL, PROBE_COMPRESSION } from '../compression';
 import { RESPIRATORY_INVERSE } from '../deformation';
 import { ORGAN_MODULES } from '../organs';
 import { RIB_TABLE_BASE } from '../organs/ribcage';
-import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from '../organs/lungBorder';
+import { HILUM_VESSELS_GLSL, HILUM_VESSEL_BASE, HILUM_VESSEL_TEXELS } from '../organs/vessels';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
 export const COMPRESSION_BASE = 0;
 if (RIB_TABLE_BASE < COMPRESSION_BASE + PROBE_COMPRESSION.nodes) throw new Error('la tabla costal pisa la de la compresión');
-export const SCENE_TEX_H = Math.ceil((LUNG_BORDER_BASE + LUNG_BORDER_TEXELS) / SCENE_TEX_W);
+export const SCENE_TEX_H = Math.ceil((HILUM_VESSEL_BASE + HILUM_VESSEL_TEXELS) / SCENE_TEX_W);
 export { MAX_RIBS } from './sceneUniforms';
 
 const TISSUE_DEFINES = Object.entries(TISSUE_GLSL_NAME)
@@ -194,6 +196,9 @@ float sdDome(vec3 p, out vec3 n) {
 
 // Módulos de órgano (anatomy/organs/*): gemelos GLSL de sus funciones TS
 ${ORGAN_MODULES.map((o) => o.glsl).join('\n')}
+
+// Los vasos del hilio (lus-sim, decisión 46: organs/vessels.ts)
+${HILUM_VESSELS_GLSL}
 
 // Profundidad bajo la cara interna de la pared (mm; 0 en la pleura parietal). Gemelo: AnatomyScene.insideWallMm
 float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }
@@ -461,9 +466,12 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   }
   // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo (gemelo: classifyOrgans de AnatomyScene), con el arco y la
   // profundidad bajo la pared exactos (classifyWall no los lee más hondo que su cota: u = 0)
+  // lus-sim (decisión 46): los vasos del hilio ganan a los órganos; fuera, la distancia a su pared cuenta en la de los demás
+  float tubeOut;
+  if (classifyTubes(m, c, tubeOut)) return c;
   float dOut;
   float perirenal;
-  if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut, perirenal)) return c;
+  if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut, perirenal)) { c.bd = min(c.bd, tubeOut); return c; }
   // Bajo el diafragma, fuera de los órganos, el «resto» (abdomen-generic-tissue). Su distancia a la frontera es la de las
   // interfaces que ganan antes (misma fórmula que scene.classify); detrás del peritoneo parietal posterior, el retroperitoneo
   // (lus-sim, decisión 43; decisión 81 de VExUS), con la columna en su distancia. El cuadrado lumbar necesita la profundidad
@@ -474,7 +482,7 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   if (u == 0.0 && inside < 30.0) { float uR; organColumn(m, depth, u, inside, uR, inR); }
   float bdR;
   c.tissue = retroperitoneum(m, inR, perirenal, bdR);
-  c.bd = max(min(min(bdBowel, bdR), dSpine), 0.0); c.n = tn;
+  c.bd = max(min(min(min(bdBowel, bdR), dSpine), tubeOut), 0.0); c.n = tn;
   return c;
 }
 
@@ -548,7 +556,7 @@ vec4 faceGradient(Cls c, vec3 m) {
 // Velocidad de la sangre (mm/s, marco material) para una clasificación de sangre.
 // Velocidad media UNIFORME a lo largo del vaso (decisión 6, misma ley que
 // AnatomyQuery.classifyWorld): Q = cte en un tubo afilado dispararía la periferia.
-// lus-sim (decisión 12): el tórax no tiene vasos (c.vessel siempre −1): da siempre 0, como
+// lus-sim (decisiones 12 y 46): sin Doppler, los vasos del hilio dejan c.vessel en −1: da siempre 0, como
 // WorldQuery.bloodVelocity es siempre null en TS; se conserva la función para la consulta de la e2e.
 vec3 bloodVelocity(Cls c) {
   if (c.vessel < 0) return vec3(0.0);

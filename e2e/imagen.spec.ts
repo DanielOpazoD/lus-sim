@@ -3,6 +3,9 @@ import { PRESENT_MIN_DB } from '../src/app/mirrorBench';
 import { PLEURA_RT_RANGE } from '../src/ultrasound/pleura';
 import { START_POINTS } from '../src/app/startPoints';
 
+/** Muestras mínimas de la cara de la luz de los vasos del hilio en la comparación de cápsulas (decisión 46: con SwiftShader, 160 de la vena y 123 de la arteria). */
+const VESSEL_FACE_MIN = 60;
+
 /**
  * Formación de imagen en la GPU (fase 1, paso B2a, decisión 12), con Chromium y SwiftShader: con `/?e2e=1` la
  * aplicación expone los ganchos de prueba (`window.__lusTest`) sobre su simulador vivo. La anatomía existe dos veces,
@@ -132,6 +135,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(caps.byInterface.SpleenCapsule ?? 0, ctag).toBeGreaterThan(100);
   // (decisión 43) la cápsula renal, en la escapular izquierda
   expect(caps.byInterface.RenalCapsule ?? 0, ctag).toBeGreaterThan(100);
+  // (decisión 46) la luz de los vasos del hilio: la vena y la arteria esplénicas en la base izquierda, las renales en la escapular
+  expect(caps.byInterface.VeinLumen ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
+  expect(caps.byInterface.ArteryLumen ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
   expect(caps.agreement, ctag).toBeGreaterThanOrEqual(0.999);
   expect(caps.distanceMaxErr, ctag).toBeLessThan(0.02);
   expect(caps.normalPoints, ctag).toBeGreaterThan(100);

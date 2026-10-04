@@ -420,10 +420,14 @@ describe('El bazo normal bajo la cúpula izquierda (decisiones 37 y 43; Chow y c
     expect(face.filter((t) => t !== Tissue.Diaphragm)).toEqual([]);
   });
 
+  // sin los vasos del hilio (decisión 46), que entran en el bazo por el centro de su parte gástrica y quitan bazo a esa columna
   it('su cara visceral se hunde en su parte gástrica (Gray: la cresta la parte en gástrica y renal)', () => {
     const B = scene.spleen.radii[1];
+    const bare = new AnatomyScene(defaultPatient());
+    Object.assign(bare, { vessels: [], vesselBounds: [] });
+    const bareColumns = spleenColumns(bare);
     const thick = (across: number) => {
-      const c = columns.reduce((a, x) => (Math.hypot(x.along, x.across - across) < Math.hypot(a.along, a.across - across) ? x : a));
+      const c = bareColumns.reduce((a, x) => (Math.hypot(x.along, x.across - across) < Math.hypot(a.along, a.across - across) ? x : a));
       return c.runs[0][1] - c.runs[0][0];
     };
     const diff = thick(-SPLEEN_GASTRIC_ACROSS * B) - thick(SPLEEN_GASTRIC_ACROSS * B);

@@ -7,6 +7,7 @@ import { HEART } from '../anatomy/organs/heart';
 import { LIVER } from '../anatomy/organs/liver';
 import { SPLEEN } from '../anatomy/organs/spleen';
 import { STOMACH } from '../anatomy/organs/stomach';
+import { HILUM_VESSELS } from '../anatomy/organs/vessels';
 import { KIDNEY } from '../anatomy/organs/kidney';
 import { LUNG_PULSE } from '../anatomy/organs/lungPulse';
 import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
@@ -50,6 +51,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   SPLEEN,
   KIDNEY,
   STOMACH,
+  HILUM_VESSELS,
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
   START_POINT_POSES,

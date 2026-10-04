@@ -10,6 +10,8 @@ import {
   type Spine,
   type Diaphragm,
   type Torso,
+  tubeFaceGradient,
+  tubeQuery,
   type TubeHit,
   type WallLayersAt,
 } from './primitives';
@@ -82,7 +84,8 @@ import {
 } from './organs/kidney';
 import { retroFrame, retroperitoneum, type RetroFrame } from './organs/retroperitoneum';
 import { LIVER_EARLY_OUT_MM, ORGAN_SDF_LIPSCHITZ, buildLiver, liverLobesSd, liverSdf, type LiverShape } from './organs/liver';
-import { SPLEEN, buildSpleen, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
+import { SPLEEN, SPLEEN_GASTRIC_ACROSS, buildSpleen, pointAtArc, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
+import { VESSEL_BOUND_MARGIN_MM, buildHilumVessels, tubeBoundingSphere, type HilumVessel } from './organs/vessels';
 import { STOMACH, buildStomach, stomachCandidate, stomachSdf, type StomachShape } from './organs/stomach';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
@@ -157,8 +160,8 @@ export interface Classification {
    */
   interfaceDistance: number;
   /**
-   * Vaso que contiene el punto. El tórax portado no tiene vasos (decisión 10): siempre null. El campo, como
-   * `vesselHit` y `flowFactor`, conserva la forma de la clasificación de VExUS para los módulos que la leen.
+   * Vaso que contiene el punto: siempre null (sin Doppler; los vasos del hilio de la decisión 46 dan su `vesselHit`, no un id de
+   * la fisiología). El campo, como `vesselHit` y `flowFactor`, conserva la forma de la clasificación de VExUS.
    */
   vessel: null;
   vesselHit: TubeHit | null;
@@ -268,6 +271,9 @@ export class AnatomyScene {
   readonly retro: RetroFrame;
   /** Las apófisis espinosas (lus-sim, decisión 29). */
   readonly spinous: SpinousSpec;
+  /** Los vasos del hilio del bazo y de los riñones (lus-sim, decisión 46: `organs/vessels.ts`), con su esfera envolvente. */
+  readonly vessels: readonly HilumVessel[];
+  readonly vesselBounds: ReadonlyArray<{ center: Vec3; r: number }>;
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
     const fat = patient.habitus.subcutaneousFatMm;
@@ -417,6 +423,40 @@ export class AnatomyScene {
     const d = this.diaphragm;
     this.domeTopZ = Math.max(d.right.apex, d.left.apex, d.edgeZ + d.edgeRise, this.lungBorder.zLMax);
     this.respiratoryHeight = { baseZ: this.domeTopZ, topZ: this.domeTopZ + this.lungBorder.slideSpanMm };
+    // lus-sim (decisión 46): los vasos del hilio, anclados al hilio del bazo (que se busca con la clasificación, aún sin vasos),
+    // al de cada riñón y a la columna
+    this.vessels = [];
+    this.vesselBounds = [];
+    const hilum = this.spleenHilum();
+    this.vessels = buildHilumVessels(hilum.point, hilum.inward, this.kidneys, this.spine);
+    // el margen pasa del tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5 mm): fuera de la esfera la pared queda más lejos
+    this.vesselBounds = this.vessels.map((v) => tubeBoundingSphere(v.tube, v.wallMm + VESSEL_BOUND_MARGIN_MM));
+  }
+
+  /**
+   * El hilio del bazo (decisión 46): en la parte gástrica de su cara visceral (`gastricImpressionCenter`, sobre la mitad de
+   * arriba), el punto donde la línea radial de la pared sale del bazo hacia dentro, y la dirección de vuelta hacia el bazo.
+   */
+  private spleenHilum(): { point: Vec3; inward: Vec3 } {
+    const sp = this.spleen;
+    const across = SPLEEN_GASTRIC_ACROSS * sp.radii[1];
+    const u = sp.u0 - (across * sp.sin) / sp.arcScale;
+    const z = sp.z0 + across * sp.cos;
+    const isSpleen = (d: number) => this.classify(pointAtArc(u, z, d, this.torso), BASELINE_INSTANT).tissue === Tissue.Spleen;
+    let last = -1;
+    for (let d = 0; d < sp.maxSkinDepth + 20; d += 0.5) if (isSpleen(d)) last = d;
+    if (last < 0) throw new Error('spleenHilum: la línea radial del hilio no cruza el bazo');
+    let lo = last;
+    let hi = last + 0.5;
+    for (let i = 0; i < 30; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (isSpleen(mid)) lo = mid;
+      else hi = mid;
+    }
+    const point = pointAtArc(u, z, hi, this.torso);
+    const back = pointAtArc(u, z, hi - 5, this.torso);
+    const l = Math.hypot(back[0] - point[0], back[1] - point[1], back[2] - point[2]);
+    return { point, inward: [(back[0] - point[0]) / l, (back[1] - point[1]) / l, (back[2] - point[2]) / l] };
   }
 
   /** Espesor total de la pared (mm, métrica radial) bajo el punto MATERIAL m (lus-sim, decisión 17: por región). */
@@ -566,10 +606,14 @@ export class AnatomyScene {
         ...(liverFace ? { interface: Interface.DiaphragmLiver, interfaceDistance: DIAPHRAGM_THICKNESS_MM - dDome } : {}),
       };
     }
+    // lus-sim (decisión 46): los vasos del hilio ganan a los órganos (entran en el bazo y en el seno del riñón); fuera de ellos,
+    // la distancia a su pared cuenta en la de los órganos y el «resto»
+    const tubes = this.classifyTubes(m);
+    if (tubes.cls) return tubes.cls;
     // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo
     const gap = zoaGap(this.lungBorder, m, inside, u, caudal);
     const organ = this.classifyOrgans(m, dDome - DIAPHRAGM_THICKNESS_MM, inside, u, gap);
-    if (organ.cls) return organ.cls;
+    if (organ.cls) return { ...organ.cls, boundaryDistance: Math.min(organ.cls.boundaryDistance, tubes.dOut) };
     // Bajo el diafragma, fuera de los órganos, el «resto» (decisión 10, `abdomen-generic-tissue`): el tejido por defecto de la
     // clasificación de VExUS. Su distancia a la frontera es la de las interfaces que ganan antes (el diafragma, la pared, los
     // órganos), con el tope de VExUS: con 5 mm fijos el gate volumétrico daba por interior un punto pegado al diafragma que
@@ -578,7 +622,45 @@ export class AnatomyScene {
     // clasifica antes (el psoas la bordea)
     const bd = Math.min(BOWEL_BD_CAP_MM, dDome - DIAPHRAGM_THICKNESS_MM, inside, gap, clearance, organ.dOut);
     const [tissue, dRetro] = retroperitoneum(m, inside, organ.perirenal, this.retro);
-    return { ...NONE, tissue, boundaryDistance: Math.max(0, Math.min(bd, dRetro, organ.spine)) };
+    return { ...NONE, tissue, boundaryDistance: Math.max(0, Math.min(bd, dRetro, organ.spine, tubes.dOut)) };
+  }
+
+  /** El vaso del hilio de menor distancia a su luz en m (dentro de su esfera envolvente), o null. */
+  private nearestVessel(m: Vec3): { v: HilumVessel; hit: TubeHit } | null {
+    let best: { v: HilumVessel; hit: TubeHit } | null = null;
+    for (let i = 0; i < this.vessels.length; i++) {
+      const b = this.vesselBounds[i];
+      if (Math.hypot(m[0] - b.center[0], m[1] - b.center[1], m[2] - b.center[2]) > b.r) continue;
+      const hit = tubeQuery(m, this.vessels[i].tube);
+      if (!best || hit.d < best.hit.d) best = { v: this.vessels[i], hit };
+    }
+    return best;
+  }
+
+  /**
+   * Los vasos del hilio (decisión 46; `classifyTubes` de VExUS sin los conductos ni el Doppler; gemelo GLSL en `classifyWith`):
+   * el tubo cuya pared o luz contiene el punto (el de menor distancia a su luz), con la sangre dentro y su pared fuera, y la cara
+   * de su luz a |d|. `dOut`: la distancia a la cara externa de su pared, el menor de los tubos cercanos (1e3 lejos de todos).
+   */
+  private classifyTubes(m: Vec3): { cls: Classification | null; dOut: number } {
+    let best: { v: HilumVessel; hit: TubeHit } | null = null;
+    let dOut = 1e3;
+    for (let i = 0; i < this.vessels.length; i++) {
+      const b = this.vesselBounds[i];
+      if (Math.hypot(m[0] - b.center[0], m[1] - b.center[1], m[2] - b.center[2]) > b.r) continue;
+      const v = this.vessels[i];
+      const hit = tubeQuery(m, v.tube);
+      dOut = Math.min(dOut, hit.d - v.wallMm);
+      if (hit.d < v.wallMm && (!best || hit.d < best.hit.d)) best = { v, hit };
+    }
+    if (!best) return { cls: null, dOut };
+    const { v, hit } = best;
+    const face = { interface: v.lumenInterface, interfaceDistance: Math.abs(hit.d) };
+    if (hit.d < 0) return { cls: { ...NONE, tissue: Tissue.Blood, boundaryDistance: -hit.d, vesselHit: hit, ...face }, dOut };
+    return {
+      cls: { ...NONE, tissue: v.wallTissue, boundaryDistance: Math.min(hit.d, v.wallMm - hit.d), vesselHit: hit, ...face },
+      dOut,
+    };
   }
 
   /**
@@ -793,6 +875,15 @@ export class AnatomyScene {
         const k = faceRib(m, this.torso, this.ribCage);
         const g = this.numericGradient(m, (p) => ribSd(p, k, this.torso, this.ribCage), ribCurvature(m, k, this.torso, this.ribCage));
         return { ...g, axis: ribTangent(m, k, this.torso, this.ribCage) };
+      }
+      // los vasos del hilio (decisión 46): el gradiente analítico de su tubo (`tubeFaceGradient`, el de la GPU en `Cls.n`)
+      if (iface === Interface.VeinLumen || iface === Interface.ArteryLumen) {
+        const v = this.nearestVessel(m);
+        if (v) {
+          const { gradient, curvature } = tubeFaceGradient(m, v.v.tube, 1, v.hit);
+          const l = Math.hypot(gradient[0], gradient[1], gradient[2]);
+          return { normal: [gradient[0] / l, gradient[1] / l, gradient[2] / l], norm: l, curvature };
+        }
       }
       face = faceGeometryOf(iface);
       // la cara abdominal del diafragma en la ZOA (decisión 18) es la de su lámina, no la de la cúpula

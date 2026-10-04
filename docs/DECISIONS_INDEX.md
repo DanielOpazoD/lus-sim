@@ -49,3 +49,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [43](DECISIONS.md#L3932) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
 | [44](DECISIONS.md#L4167) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
 | [45](DECISIONS.md#L4260) | La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador | vigente |
+| [46](DECISIONS.md#L4352) | Los vasos del hilio del bazo y de los riñones: la arteria y la vena esplénicas y las renales, anecoicas y con los calibres de la fuente | vigente |
