@@ -3394,7 +3394,8 @@ la pared (un espejo casi sin pérdida) y líneas A que caen ≥ 30 dB por orden.
 - El lóbulo: la calibración y `e2e/fidelidad.spec.ts` con la GPU real en la rama `feat/lobulo-pleura` y en main (con
   repeticiones en el BLUE inferior).
 - Soldati 2020 se leyó en texto completo (§1–3 y fig. 1).
-- Revisión adversarial de contexto limpio: resumen en la PR.
+- Sin revisión adversarial de contexto limpio: el agente que la llevaba se detuvo por el límite de uso; la revisó el
+  coordinador (04-10-2026).
 
 ## 39. La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips
 
@@ -3565,7 +3566,8 @@ frente a 0,46–0,72 s en el banco.
 - El barrido y la tabla: `e2e/pilaClips.spec.ts` con la GPU real (`LUS_PILA_FOLLOW`, `LUS_PILA_TREMOR`).
 - F-T11 en ocho semillas.
 - La e2e entera con la GPU real.
-- Revisión adversarial de contexto limpio: resumen en la PR.
+- Sin revisión adversarial de contexto limpio: el agente que la llevaba se detuvo por el límite de uso; la revisó el
+  coordinador (04-10-2026).
 
 ## 40. El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico
 
@@ -4325,8 +4327,14 @@ fijada en el manifiesto):
   excepción de la decisión 39. La guarda del modo M sigue con la mano apagada: allí la mano mueve la pared, que no es un
   defecto del detector.
 - **La prueba «aún no se cumple» pasa a guarda.** Seis pilas del PLAPS respirando con la mano: |piel| ≤ 0,5 px y d_pl a
-  < 2 mm. E2E_NUMS
+  < 2 mm. Con la GPU real y con SwiftShader (04-10-2026) dan lo mismo: piel −0,30 a −0,24 px y d_pl −1,37 a +0,09 mm
+  (el −1,37 es la pleura inclinada del PLAPS que cae en dos grupos de columnas, decisión 36).
 - **Se quita la limitación `sector-detector-moving-skin`.**
+- **La piel detectada deja de hundirse con el contraste en el caso de fast-check de `fidelityInvariance.test.ts`** (el
+  sector desplazado hacia el blanco, donde la pared quieta del sintético deja de «variar»): con la máscara temporal se
+  hundía más de 10 px; sobre lo encendido queda a −1,8 px de la verdadera. La prueba pasa a exigirlo (< 3 px en los dos
+  contrastes). La geometría del banco sigue fijada en el manifiesto: en los clips el arco no se acepta y la piel la siguen
+  dando los bordes.
 - **Lo que queda:** la piel del simulador sigue 0,3 px corta por la discretización del arco, y los bordes con la mano siguen
   moviéndose ±0,35 px entre pilas. No se exige más a la geometría del detector, que solo propone: el banco mide con la geometría
   fijada.
@@ -4338,4 +4346,5 @@ fijada en el manifiesto):
   prueba falla sin el cambio.
 - Las pruebas del detector de siempre, la invariancia afín y `npm run fidelity:bank` (el banco dorado, sin cambios).
 - `e2e/fidelidad.spec.ts` con la GPU real y con SwiftShader: las tres ventanas del banco y la guarda del detector con la mano.
-- Revisión adversarial de contexto limpio: resumen en la PR.
+- Sin revisión adversarial de contexto limpio: el agente que la llevaba se detuvo por el límite de uso; la revisó el
+  coordinador (04-10-2026).
