@@ -7,6 +7,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- Los vasos del hilio del bazo y de los riñones (46): la arteria y la vena esplénicas entran en el bazo por la parte gástrica de su
+  cara visceral y corren hacia la línea media por delante del riñón izquierdo; la arteria y la vena renales de cada lado salen del
+  seno (la vena delante). Tubos de VExUS con su pared, anecoicos, con los calibres de la fuente (vena esplénica 6,6 mm por
+  ecografía, Strohm y cols. y Huang y cols.; arteria esplénica 4–5,2 mm, Brinkman y cols.; arteria renal 4,9 mm, Turba y cols.;
+  venas renales 9,4 y 10 mm, Durur Karakaya y cols.), en la textura de escena y con su gemelo GLSL; acaban ciegos porque el modelo
+  no tiene la aorta, la cava ni la porta (`hilum-vessels-blind-ends`). La nota de la vena esplénica en el VExUS ampliado va a
+  `docs/UNIFICATION.md`: sin umbral validado en adultos, los de la porta como extrapolación.
+  Con SwiftShader el arranque y el cuadro no cambian (54–103 s y 433–614 ms frente a 56–113 s y 442–871 ms).
 - El estómago, los riñones y el bazo normal (43): el estómago en ayunas bajo el espacio de Traube (el volumen y el gas de
   Fidler y cols., la pared de Henry y cols.), con su gas arriba en supino; su sombra y su reverberación salen de la pasada B (la
   e2e lo mide frente a la mutación sin gas; el eco de la cara del gas falta, `test.fail`). Los riñones de VExUS con el sitio de

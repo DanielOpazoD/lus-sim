@@ -58,6 +58,17 @@ Este documento dice qué reglas hacen barata esa unión hoy y qué quedará por 
   (una lámina en la clasificación de la parrilla) y las apófisis espinosas (un módulo de órgano nuevo, `organs/spine.ts`), y
   las transversas hasta 29,3 mm de la línea media (en VExUS, 40). El paciente común tendrá la posición en su estado; el abdomen
   de VExUS se explora en supino y en decúbito lateral, que lus-sim aún no tiene.
+- **Los vasos del hilio y la vena esplénica** (decisión 46): lus-sim tiene la arteria y la vena esplénicas y las renales
+  como tubos de VExUS sin Doppler, que acaban ciegos porque el tórax no tiene la aorta, la cava ni la porta; las renales
+  repiten los nodos del seno y del hilio de VExUS en el marco del riñón. Al unir, se conectan al árbol de VExUS y reciben su
+  flujo. La vena esplénica entra en la congestión venosa: se propone como sustituta de la porta en un VExUS ampliado cuando la
+  ventana intercostal derecha no sirve [@turk-evexus-2023; @koratala-esplenica-2026], con un patrón normal casi continuo y
+  más pulsátil con la congestión, pero en adultos no hay un índice de la vena esplénica validado frente a la presión auricular
+  derecha ni un punto de corte propio (NO ENCONTRADO; solo series de casos y un estudio pediátrico, Lee y cols. 2023, con
+  diferencias de medias). La propuesta para el paciente común: la onda de la esplénica como la de la porta, algo retrasada y
+  amortiguada, con los umbrales de la fracción de pulsatilidad de la porta en VExUS (30 % y 50 %) marcados en la interfaz como
+  extrapolación, no como criterio validado. El índice de pulsatilidad «esplénico» de Bolognesi y cols. es arterial (las
+  arterias intraesplénicas) y no debe confundirse con el venoso [@bolognesi-esplenica-2012].
 - **La numeración de decisiones y limitaciones**: prefijo por módulo o numeración nueva.
 
 ## Pasos previstos al unir

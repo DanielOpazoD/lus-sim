@@ -18,7 +18,7 @@ import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from './lungBorder';
  * sigan al hábito; su trazado medial es [SUPUESTO] con la anatomía de manual (Gray): la vena esplénica corre medial por detrás del
  * páncreas y por delante del riñón izquierdo; la arteria, craneal a ella y sinuosa; la vena renal izquierda cruza por delante
  * de la aorta, la arteria renal derecha pasa por detrás de la cava. El modelo no tiene la aorta, la cava ni la porta: los vasos
- * acaban ciegos a 2–3 cm de la línea media (`hilum-vessels-blind-ends`), y no tiene el páncreas (el «resto»).
+ * acaban ciegos a 0–2,8 cm de la línea media (`hilum-vessels-blind-ends`), y no tiene el páncreas (el «resto»).
  */
 export const HILUM_VESSELS = defineParameters('anatomy.hilumVessels', {
   splenicVeinRadiusMm: {
@@ -94,13 +94,7 @@ export const HILUM_VESSELS = defineParameters('anatomy.hilumVessels', {
   },
 });
 
-export type HilumVesselId =
-  | 'splenicVein'
-  | 'splenicArtery'
-  | 'renalVeinRight'
-  | 'renalArteryRight'
-  | 'renalVeinLeft'
-  | 'renalArteryLeft';
+export type HilumVesselId = 'splenicVein' | 'splenicArtery' | 'renalVeinRight' | 'renalArteryRight' | 'renalVeinLeft' | 'renalArteryLeft';
 
 /** Un vaso del hilio: su tubo, el tejido y el grosor de su pared y la cara de su luz. */
 export interface HilumVessel {
@@ -247,7 +241,8 @@ export const HILUM_VESSEL_TEXELS = HILUM_VESSEL_COUNT * HILUM_VESSEL_STRIDE;
  * la pared, cara de la luz), (centro y radio de la esfera envolvente) y sus nodos (x, y, z, r).
  */
 export function hilumVesselTable(vessels: readonly HilumVessel[], bounds: ReadonlyArray<{ center: Vec3; r: number }>): Float32Array {
-  if (vessels.length !== HILUM_VESSEL_COUNT) throw new Error(`hilumVesselTable: ${vessels.length} vasos, la GPU espera ${HILUM_VESSEL_COUNT}`);
+  if (vessels.length !== HILUM_VESSEL_COUNT)
+    throw new Error(`hilumVesselTable: ${vessels.length} vasos, la GPU espera ${HILUM_VESSEL_COUNT}`);
   const out = new Float32Array(HILUM_VESSEL_TEXELS * 4);
   vessels.forEach((v, t) => {
     const n = v.tube.nodes.length;

@@ -4348,3 +4348,81 @@ fijada en el manifiesto):
 - `e2e/fidelidad.spec.ts` con la GPU real y con SwiftShader: las tres ventanas del banco y la guarda del detector con la mano.
 - Sin revisión adversarial de contexto limpio: el agente que la llevaba se detuvo por el límite de uso; la revisó el
   coordinador (04-10-2026).
+
+## 46. Los vasos del hilio del bazo y de los riñones: la arteria y la vena esplénicas y las renales, anecoicas y con los calibres de la fuente
+
+**Fecha.** 2026-10-04.
+
+**Contexto.** Daniel pidió el bazo normal «con vasos venosos y arteriales» y recordó que la vena esplénica entra en la congestión
+venosa del VExUS ampliado (03-10-2026). Desde la decisión 43 el bazo y los riñones no tenían hilio: sus vasos caían en la lista de
+lo que el abdomen no tiene (`abdomen-generic-tissue`, `liver-spleen-simplified`, `kidney-retroperitoneum-port`). Desde las ventanas
+de la base izquierda (la axilar posterior en el EIC10, la media en el EIC10–11, la escapular en el EIC11) el plano de la sonda llega
+al hilio del bazo y al del riñón. La búsqueda bibliográfica de esa sesión (PubMed y Europe PMC, sin enviar datos personales) dio los
+calibres de adultos sanos y la ausencia de un umbral validado para la vena esplénica.
+
+**Opciones.**
+
+- **Portar el árbol vascular de VExUS** (`vesselTree.ts`, con la aorta, la cava, la porta y las suprahepáticas): trae al tórax un
+  hígado con vasos y una cava que lus-sim no tiene, y el corte por cuadro de VExUS para 128 tubos. Es la unión (decisión 1), no
+  este paso.
+- **Pintar los vasos como manchas en el bazo**: rompe «nada se pinta».
+- **Elegida: seis tubos fijos** (la arteria y la vena esplénicas y la arteria y la vena renales de cada lado) con la consulta de
+  tubo de VExUS (`tubeQuery`), anclados a la escena y con sus calibres con fuente; los extremos mediales, ciegos.
+
+**Decisión.** `src/anatomy/organs/vessels.ts` (`HILUM_VESSELS`, `buildHilumVessels`):
+
+1. **Calibres** (radios): la vena esplénica 3,3 mm (Strohm y cols. y Huang y cols. por ecografía, 6,6 y 6,2 mm; Stella y cols.:
+   < 8 mm en el hilio en el 98 %); la arteria esplénica 2 mm junto al hilio y 2,6 hacia la línea media (Brinkman y cols.: se
+   estrecha del origen al hilio); la arteria renal 2,45 mm (Turba y cols.); la vena renal izquierda 4,7 mm y la derecha 5 mm (Durur
+   Karakaya y cols., por TC). La pared de las venas, la fina de VExUS (`VesselWallThin`, 0,6 mm); la de las arterias, la suya
+   (`ArteryWall`, 0,6 mm) [SUPUESTO].
+2. **El hilio del bazo**: `AnatomyScene.spleenHilum` busca, en la línea radial de la pared por el centro de la parte gástrica de su
+   cara visceral (`gastricImpressionCenter`), el punto donde sale el bazo. Los dos vasos esplénicos entran 5 mm en él
+   (`SPLENIC_INTRA_MM`) y van hacia un extremo a 25 mm a la izquierda y 56 por delante del centro del cuerpo vertebral (por detrás
+   de donde iría el páncreas), arqueados 10 mm hacia delante para pasar por delante del riñón izquierdo (`SPLENIC_BOW_MM`); la
+   arteria, 10 mm craneal a la vena y con dos ondas hacia arriba de 3 mm (Brinkman y cols.: asas en el 86 %) [SUPUESTO el trazado].
+3. **Los renales**: los nodos del seno y del hilio de VExUS en el marco del riñón; la vena, 6 mm por delante en w (VExUS, 5) y la
+   arteria, 4,5 mm por detrás y 3 hacia el polo superior (VExUS, 4 detrás): con la vena derecha de 10 mm, las de VExUS se tocaban.
+   Hacia la línea media, respecto a la columna: la vena derecha, corta, hacia donde iría la cava; la arteria derecha, por detrás de
+   ella; la vena izquierda, por delante de donde iría la aorta; la arteria izquierda, corta, hacia la aorta.
+4. **Extremos ciegos**: el último nodo, al 60 % del radio (`BLIND_END_TAPER`): el vaso sale del modelo. Acaban a 0–2,8 cm de la
+   línea media (`hilum-vessels-blind-ends`).
+5. **Clasificación** (`AnatomyScene.classifyTubes`, la de VExUS sin los conductos ni el Doppler): bajo el diafragma, antes de los
+   órganos (entran en el bazo y en el seno renal), con la sangre en la luz, su pared fuera y la cara de su luz
+   (`Interface.VeinLumen`, `ArteryLumen`) a |d|; fuera de ellos, la distancia a su pared entra en la de los órganos y el «resto».
+   `faceGradient` da la normal analítica del tubo (`tubeFaceGradient`), la de la GPU en `Cls.n`.
+6. **GPU**: la tabla de los seis vasos (cabecera, esfera envolvente y hasta 8 nodos) en la textura de escena tras la de los bordes
+   del pulmón (`HILUM_VESSEL_BASE`), y el gemelo GLSL (`hvTubeQuery`, la `tubeQuery` del shader de VExUS para la sección circular, y
+   `classifyTubes`) en `classifyWith` antes de `classifyOrgans`. Sin uniforms nuevos.
+
+**Consecuencias.**
+
+- **Para el alumno:** en la base izquierda y en la escapular se ven el hilio del bazo y el del riñón con sus vasos anecoicos de
+  pared fina; la vena esplénica, de 6,6 mm, por delante del riñón izquierdo. Sin Doppler: la velocidad y la pulsatilidad llegan con
+  VExUS.
+- **La vena esplénica y la congestión** (`docs/UNIFICATION.md`): en adultos no hay un índice de la vena esplénica validado frente
+  a la presión auricular derecha ni un umbral propio (solo series de casos y un estudio pediátrico); las revisiones del VExUS
+  ampliado la proponen como sustituta de la porta [@turk-evexus-2023; @koratala-esplenica-2026]. La propuesta: los umbrales de la
+  fracción de pulsatilidad de la porta (30 % y 50 %) como extrapolación declarada. El índice «esplénico» de Bolognesi y cols. es
+  arterial [@bolognesi-esplenica-2012].
+- **Rendimiento:** con SwiftShader (`boot2.mjs`, tres vueltas de dos arranques alternando los árboles, carga 5–9; 04-10-2026), frente
+  a la decisión 45: arranque 54–103 s (mediana ≈ 67) frente a 56–113 (≈ 80); cuadro en el BLUE superior 433–598 ms frente a
+  470–602, en el espacio de Traube 439–591 frente a 442–871 y en la base izquierda (la de los vasos) 440–614 frente a 447–724. No
+  cuesta más: el bucle de los seis tubos solo corre bajo el diafragma y descarta cada uno por su esfera envolvente. Con la GPU real
+  no se midió.
+- **Pruebas:** la e2e de equivalencia compara la cara de la luz de los vasos en las bases (con SwiftShader, 160 muestras de la
+  vena y 123 de la arteria; acuerdo 1, error de distancia ≤ 0,0012 mm, normales ≥ 0,99999).
+- **Pendiente:** las ramas del hilio esplénico (la arteria se divide en dos en el 95 %, Moraes y cols.), las arterias polares, las
+  interlobares renales de VExUS, el páncreas y la unión con el árbol de VExUS.
+
+**Verificación.**
+
+- `hilumVessels.test.ts`: los calibres de la fuente; el eje de cada vaso es sangre y su pared la rodea en los seis hábitos; los
+  esplénicos empiezan dentro del bazo (con la clasificación sin vasos, bazo) y los renales dentro del seno; fuera de su órgano no
+  tocan el hígado, el estómago, el pulmón, el diafragma, el hueso ni el otro órgano, en los seis hábitos; entre las paredes de dos
+  vasos queda al menos 1 mm (con los nodos de VExUS y la vena derecha de la fuente, −1,2 mm: la prueba falló y se separaron); la
+  tabla de la GPU y el gemelo en `classifyWith`; la normal radial de la cara de la luz.
+- `e2e/imagen.spec.ts` con SwiftShader: la equivalencia TS ↔ GLSL de las cápsulas, ahora con la luz de los vasos (al menos 60
+  muestras de cada una).
+- `npm run check`, la e2e con SwiftShader y el CI de la PR. Sin revisión adversarial de contexto limpio: los agentes están detenidos
+  por el límite de uso hasta el 08-10; la revisó el coordinador.

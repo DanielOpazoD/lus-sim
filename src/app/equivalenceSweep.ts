@@ -800,7 +800,7 @@ export interface CapsuleReport {
 }
 
 /**
- * Las cápsulas del hígado y del bazo (lus-sim, decisión 37) y la renal (decisión 43), TS ↔ GLSL: en las bases (`coveragePoses`:
+ * Las cápsulas del hígado y del bazo (lus-sim, decisión 37), la renal (decisión 43) y la luz de los vasos del hilio (decisión 46), TS ↔ GLSL: en las bases (`coveragePoses`:
  * el hígado bajo la cúpula derecha, el bazo bajo la izquierda), en la LAA derecha con el haz hacia los pies (el borde inferior del
  * hígado contra el «resto») y en la escapular izquierda en el EIC11 (el riñón), las muestras a 0,05 mm de las líneas cerca de una
  * cara de cápsula: la cara y su distancia, y la normal de la GPU frente al gradiente de TS donde la cara dibuja su eco (la banda de
@@ -819,12 +819,22 @@ const ORGAN_EDGE_TISSUES: ReadonlySet<Tissue> = new Set([
   Tissue.RenalMedulla,
   Tissue.RenalSinus,
   Tissue.RenalPelvis,
+  // lus-sim (decisión 46): los vasos del hilio (su luz y su pared)
+  Tissue.Blood,
+  Tissue.VesselWallThin,
+  Tissue.ArteryWall,
 ]);
 
 export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): CapsuleReport {
   const tr = sim.transducer;
   const scene = sim.scene;
-  const CAPS = new Set<number>([Interface.LiverCapsule, Interface.SpleenCapsule, Interface.RenalCapsule]);
+  const CAPS = new Set<number>([
+    Interface.LiverCapsule,
+    Interface.SpleenCapsule,
+    Interface.RenalCapsule,
+    Interface.VeinLumen,
+    Interface.ArteryLumen,
+  ]);
   const flat = { lift: 0, yaw: 0, tilt: 0 };
   const laa = icsCenter(scene, 'anteriorAxillary', -1, 9);
   const bases = coveragePoses(scene).filter((p) => ['rightBase', 'leftBase', 'leftKidney'].includes(p.id));

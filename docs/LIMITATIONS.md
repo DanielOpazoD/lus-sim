@@ -197,7 +197,7 @@ conservan su identificador (decisiones 10 y 11).
 - **El abdomen, fuera de sus órganos, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el diafragma
   están el hígado y el bazo y, desde la 43, el estómago, los riñones y el retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la
   grasa); lo demás queda en el tejido por defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin
-  vesícula, colon, páncreas, suprarrenales, vasos ni gas intestinal. En la cobertura, las dos celdas pendientes caen ahí: la axilar
+  vesícula, colon, páncreas, suprarrenales, gas intestinal ni más vasos que los del hilio del bazo y de los riñones (decisión 46). En la cobertura, las dos celdas pendientes caen ahí: la axilar
   posterior izquierda en el EIC9, donde la base pone el bazo de 4 de cada 10 adultos (Shen y cols.) y el bazo normal del modelo no
   llega, y la escapular izquierda en el EIC10, donde Gray pone el polo posterior del bazo (la grasa retroperitoneal). La cara abdominal del diafragma
   conserva las propiedades de su cara hepática en VExUS. En la imagen el «resto» es un moteado sin estructura: la textura del
@@ -208,7 +208,7 @@ conservan su identificador (decisiones 10 y 11).
   tríadas portales, vesícula, fisuras ni ligamentos; el bazo, el de un adulto normal (decisión 43: 11 × 6,5 × 4 cm de Chow y cols.), una
   lámina rígida de su grueso en las coordenadas de la pared, contra el diafragma, con la huella elíptica, los bordes redondeados
   [SUPUESTO] y la parte gástrica de la cara visceral hundida [SUPUESTO], sin escotaduras, sin la cresta entre la parte gástrica y
-  la renal y sin el hilio ni sus vasos (la arteria y la vena esplénicas, en una decisión siguiente), con la retrodispersión del
+  la renal; con la arteria y la vena esplénicas entrando por el hilio (decisión 46, `hilum-vessels-blind-ends`), con la retrodispersión del
   hígado [ESTIMADO]; en el sitio de la TC (el eje en la 11.ª costilla, dentro del reborde costal), no en el de las marcas de
   superficie de Gray. Medidos frente a la base (metas pendientes, `notYetMet`): el hígado tiene 1,76 L, por encima del peso de Gray
   (1,4–1,6 kg en el varón: 1,33–1,52 L) y de la fórmula de Vauthey para el avatar (≈ 1,5 L) [@vauthey-volumen-2002]: llena la
@@ -237,9 +237,17 @@ conservan su identificador (decisiones 10 y 11).
   el preajuste pulmonar es tenue (la sombra, 5 dB bajo lo que se vería sin gas). Bajo la cúpula, el medio elipsoide sigue al
   diafragma hacia dentro: el fondo llega a ≈ 7 cm bajo la pared; en la LMC en el EIC6, detrás del estómago queda el lóbulo
   izquierdo del hígado, que en el adulto está delante de él.
+- **Los vasos del hilio acaban ciegos** (`hilum-vessels-blind-ends`, decisión 46): la arteria y la vena esplénicas y las renales
+  salen del bazo y del seno renal hacia la línea media y acaban, estrechadas, a 0–2,8 cm de ella (la arteria renal derecha, en la línea media, donde la aorta empezaría): el modelo no tiene la aorta,
+  la cava, la porta ni el tronco celíaco, y el páncreas, detrás del que corre la vena esplénica, es el «resto». Sus calibres son los
+  de la fuente (la vena esplénica por ecografía; la arteria esplénica, las renales y las venas renales por TC, que da algo más), su
+  trazado medial es [SUPUESTO] (Gray: la vena por delante del riñón izquierdo, la arteria craneal y sinuosa; la vena renal
+  izquierda por delante de donde iría la aorta), sin las ramas del hilio esplénico (la arteria se divide en dos en el 95 %,
+  Moraes y cols.) ni las arterias polares, y en el modo B son anecoicos sin Doppler: la velocidad de la sangre y la pulsatilidad
+  de la vena esplénica (la congestión venosa, `docs/UNIFICATION.md`) llegan con la unión con VExUS.
 - **El riñón y el retroperitoneo son los de VExUS** (`kidney-retroperitoneum-port`, decisión 43): el riñón de VExUS (contorno,
   seno, pirámides, pelvis, cápsula y grasa perirrenal) en el sitio de la base (Gray, Morris, Xue y cols.) con los ejes de Glodny y
-  cols. y Choi y cols., sin vasos, uréter, suprarrenal ni la cara de Morison (la dibuja la cápsula del hígado o del bazo que apoya
+  cols. y Choi y cols., con la arteria y la vena renales del hilio (decisión 46) y sin las interlobares, el uréter, la suprarrenal ni la cara de Morison (la dibuja la cápsula del hígado o del bazo que apoya
   en su grasa); su tamaño es el de VExUS (10,8 × 5,4 × 4,6 cm; medido, 10,7 de largo), el de un adulto
   normal de hoy (Glodny y cols., Kang y cols., Bhardwaj y cols.); el grueso pasa del «algo más de 2,5 cm» de Gray, que queda bajo
   todas las medidas de hoy. Su profundidad, la de Xue, no cambia con el hábito: en el obeso queda a ≈ 5 mm de
