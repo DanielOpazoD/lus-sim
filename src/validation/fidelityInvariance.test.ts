@@ -126,9 +126,11 @@ describe('invariancia afín de las métricas del banco (fast-check, 200 corridas
     expect(withShadows).toBeGreaterThanOrEqual(0.9 * RUNS);
   }, 900_000);
 
-  it('lo que NO es invariante: la piel detectada en cada contraste (por eso la geometría del banco se fija en el manifiesto)', () => {
+  it('la piel detectada en un contraste desplazado hacia el blanco: con la máscara temporal se hundía, sobre lo encendido no (decisión 45)', () => {
     // el soporte temporal compara σ_t con el brillo sobre el fondo: con el sector desplazado hacia el blanco, la pared quieta
-    // del sintético (solo su ruido propio, 2 % del rango) deja de «variar» y la piel detectada se hunde (un caso de fast-check)
+    // del sintético (solo su ruido propio, 2 % del rango) deja de «variar» y la piel detectada sobre la máscara temporal se
+    // hundía > 10 px (un caso de fast-check). La decisión 45 mide la piel sobre lo encendido: −1,8 px. La geometría del banco
+    // sigue fijada en el manifiesto (en los clips la piel la dan los bordes)
     const c: Case = {
       dPlMm: 13.25,
       rib1: -0.2,
@@ -146,6 +148,6 @@ describe('invariancia afín de las métricas del banco (fast-check, 200 corridas
     const skin = syntheticGeometry(o);
     if (dark.kind === 'linear' || bright.kind === 'linear' || skin.kind === 'linear') throw new Error('no es convexa');
     expect(Math.abs(dark.rhoMin - skin.rhoMin)).toBeLessThan(3);
-    expect(bright.rhoMin - skin.rhoMin).toBeGreaterThan(10);
+    expect(Math.abs(bright.rhoMin - skin.rhoMin)).toBeLessThan(3);
   });
 });

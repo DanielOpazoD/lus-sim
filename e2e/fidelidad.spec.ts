@@ -84,7 +84,13 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
       // detectado acaba donde acaba lo encendido (33–42 mm de los 120). Con la geometría detectada, d_pl sale 0,1–0,6 mm más
       // larga en los puntos BLUE (la piel detectada, más honda); en el PLAPS puede salir 1,4 mm más corta: su pleura inclinada
       // cae en dos grupos de columnas y d_pl, su mediana, salta entre ellos (decisión 36). Queda en el informe (decisión 21).
-      // Estas guardas del sector detectado van abajo, con la mano del operador apagada (decisión 39)
+      // Con la mano del operador encendida, como los clips (decisión 39): la decisión 45 ajusta la piel sobre lo encendido, no
+      // sobre la máscara temporal, que la piel quieta bajo la sonda agujereaba
+      expect(r.geometry.apexErrPx, tag).toBeLessThan(25);
+      expect(Math.abs(r.geometry.thetaErrDeg.left), tag).toBeLessThan(4);
+      expect(Math.abs(r.geometry.thetaErrDeg.right), tag).toBeLessThan(4);
+      expect(Math.abs(r.geometry.rhoMinErrPx), tag).toBeLessThan(10);
+      expect(Math.abs(r.detectedMetrics['dPl.mm'].median - r.metrics['dPl.mm'].median), tag).toBeLessThan(2);
       // la pleura del detector, a ±1 mm del cruce del gemelo de A0, en todas las columnas intercostales
       expect(c.pleura.columns, tag).toBeGreaterThan(50);
       expect(c.pleura.within1mm, tag).toBe(1);
@@ -145,18 +151,6 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     expect(quietSlide.stack!.S1.sigmaBelow, JSON.stringify([apneaQuiet.stack, quietSlide.stack])).toBeGreaterThan(
       10 * apneaQuiet.stack!.S1.sigmaBelow,
     );
-    // la coherencia del sector detectado (la de arriba), con la mano apagada (decisión 39): es una guarda del detector, no del
-    // banco, que mide el simulador con la geometría verdadera (decisión 21). Con la mano, la máscara temporal del detector se
-    // corre con la piel que se mueve y en el PLAPS respirando d_pl salía 2,8–3,0 mm más larga en 2 de 4 corridas con
-    // SwiftShader (3 de 3 en main; `sector-detector-moving-skin`, la prueba «aún no se cumple» de abajo)
-    for (const r of [apneaQuiet, quietSlide]) {
-      const tag = `${startPoint}, ${r.respiration}, sin la mano: ${JSON.stringify(r.geometry)}`;
-      expect(r.geometry.apexErrPx, tag).toBeLessThan(25);
-      expect(Math.abs(r.geometry.thetaErrDeg.left), tag).toBeLessThan(4);
-      expect(Math.abs(r.geometry.thetaErrDeg.right), tag).toBeLessThan(4);
-      expect(Math.abs(r.geometry.rhoMinErrPx), tag).toBeLessThan(10);
-      expect(Math.abs(r.detectedMetrics['dPl.mm'].median - r.metrics['dPl.mm'].median), tag).toBeLessThan(2);
-    }
     // frente a la referencia, estrato a estrato (convexa, lineal, sectorial): solo informa
     const comparison = reports.map((r) => ({
       respiration: r.respiration,
@@ -174,15 +168,14 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
   });
 
 /**
- * Aún no se cumple (`sector-detector-moving-skin`, decisión 39): el detector del sector con la mano del operador encendida, en el
- * PLAPS respirando. Desde el instante fijo t = 60 s, con la semilla del operador fija, seis pilas de 30 cuadros espaciadas 0,7 s
- * a lo largo del ciclo. La meta: el borde de la piel detectado no se mueve con la mano, |rhoMinErrPx| ≤ 0,5 px en todas (sin la
- * mano, ≤ 0,2 px en 16 fases del ciclo con la GPU real). Con la mano la máscara temporal se corre con la piel: hasta 1,6 px en
- * 16 fases del ciclo y 1,2 px en estas seis (GPU real y SwiftShader, que dan casi lo mismo); de vez en cuando salta a 4,8 px y d_pl sale > 2 mm de la
- * verdadera (2 de 4 corridas de la ventana del PLAPS con SwiftShader). La prueba exige que la meta falle; cuando el detector lo
- * resuelva, esta prueba falla y hay que pasarla a una guarda normal.
+ * El detector del sector con la mano del operador encendida, en el PLAPS respirando (decisión 45; era la limitación
+ * `sector-detector-moving-skin` de la decisión 39). Desde el instante fijo t = 60 s, con la semilla del operador fija, seis pilas
+ * de 30 cuadros espaciadas 0,7 s a lo largo del ciclo: el borde de la piel detectado no se mueve con la mano, |rhoMinErrPx| ≤ 0,5
+ * px en todas. Con la máscara temporal de antes la piel quieta bajo la sonda quedaba agujereada y se corría hasta 1,2 px en
+ * estas seis (y de vez en cuando 4,8 px, con d_pl > 2 mm de la verdadera); con el arco sobre lo encendido, −0,24 a −0,30 px en
+ * las seis con la GPU real, como sin la mano (03-10-2026).
  */
-test('el detector del sector con la mano del operador, en el PLAPS respirando [aún no se cumple]', async ({ page }) => {
+test('el detector del sector con la mano del operador, en el PLAPS respirando: la piel no se mueve', async ({ page }) => {
   test.setTimeout(900_000);
   const errors = await openBench(page);
   const diffs = await page.evaluate(
@@ -207,9 +200,10 @@ test('el detector del sector con la mano del operador, en el PLAPS respirando [a
     { frames: FRAMES, dt: FRAME_INTERVAL_S },
   );
   console.log(`DETECTOR_MANO_JSON ${JSON.stringify(diffs)}`);
-  expect(() => {
-    for (const d of diffs) expect(Math.abs(d.rhoMinErrPx ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(0.5);
-  }, JSON.stringify(diffs)).toThrow();
+  for (const d of diffs) {
+    expect(Math.abs(d.rhoMinErrPx ?? Number.POSITIVE_INFINITY), JSON.stringify(diffs)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(d.diffMm), JSON.stringify(diffs)).toBeLessThan(2);
+  }
   expect(errors).toEqual([]);
 });
 

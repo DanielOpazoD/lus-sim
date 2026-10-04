@@ -313,12 +313,6 @@ conservan su identificador (decisiones 10 y 11).
   PLAPS y los paravertebrales con el paciente sentado) y escalado en lineal con la excursión del diafragma. Lo que sigue la
   mano (`chestFollow`) no tiene fuente; está ajustado con la exploración del banco y deja T2 de la pared en 0,998–0,999,
   sobre el banco (0,982–0,993): el temblor que la bajaría rompe F-T11. El latido transmitido a la pared no se modela.
-- **El detector del sector se corre con la piel que se mueve** (`sector-detector-moving-skin`, decisión 39). Su máscara
-  temporal toma por soporte lo que varía entre cuadros; con la mano del operador la piel también se mueve y, en el PLAPS
-  respirando, el borde de la piel detectado se corre hasta 1,2–1,6 px a lo largo del ciclo (GPU real y SwiftShader; sin la mano,
-  ≤ 0,2 px) y de vez en cuando salta a 4,8 px: d_pl sale entonces 2,8–3,0 mm más larga que la verdadera (2 de 4 corridas con
-  SwiftShader; 3 de 3 bien sin la mano, en main). La guarda de coherencia del detector de
-  `e2e/fidelidad.spec.ts` se mide con la mano apagada; la prueba «aún no se cumple» de ese archivo lo vigila con la mano.
 - **Sin líneas B ni colas de cometa** (`no-lung-comet-tails`): el pulmón bajo la pleura es la serie de
   reverberaciones de la pared y el deslizamiento incoherente; no hay líneas Z ni B, ni pulmón patológico. La
   física de las líneas B es de la fase 2.
