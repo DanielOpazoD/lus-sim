@@ -44,6 +44,7 @@ import { COMPRESSION_BASE, SCENE_TEX_H, SCENE_TEX_W } from '../anatomy/gpu/anato
 import { RIB_TABLE_BASE } from '../anatomy/organs/ribcage';
 import { CHEST_WALL_BASE } from '../anatomy/organs/chestWall';
 import { LUNG_BORDER_BASE } from '../anatomy/organs/lungBorder';
+import { HILUM_VESSEL_BASE, hilumVesselTable } from '../anatomy/organs/vessels';
 import { evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
 import {
   FRAG_AXIAL,
@@ -611,6 +612,7 @@ export class UltrasoundRenderer {
     this.sceneData.set(this.currentScene.ribCage.table, RIB_TABLE_BASE * 4);
     this.sceneData.set(this.currentScene.chestWall.table, CHEST_WALL_BASE * 4);
     this.sceneData.set(this.currentScene.lungBorder.table, LUNG_BORDER_BASE * 4);
+    this.sceneData.set(hilumVesselTable(this.currentScene.vessels, this.currentScene.vesselBounds), HILUM_VESSEL_BASE * 4);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {
