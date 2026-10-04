@@ -67,7 +67,7 @@ describe('Navegador del tórax: coordenadas y dominio real de adquisición', () 
   it('rechaza espalda media, extremos verticales no disponibles y puntos no finitos', () => {
     const base = defaultPose();
     expect(surfacePose(torsoSkinPoint(1.5 * Math.PI, 50, scene.torso), scene.torso, base)).toBeNull();
-    expect(surfacePose(torsoSkinPoint(0, 201, scene.torso), scene.torso, base)).toBeNull();
+    expect(surfacePose(torsoSkinPoint(0, SCAN_LIMITS.zMax + 1, scene.torso), scene.torso, base)).toBeNull();
     expect(surfacePose(torsoSkinPoint(0, -201, scene.torso), scene.torso, base)).toBeNull();
     expect(surfacePose([NaN, 0, 0], scene.torso, base)).toBeNull();
   });
@@ -89,7 +89,7 @@ describe('Navegador del tórax: coordenadas y dominio real de adquisición', () 
       pose = surfacePose(torsoSkinPoint(phi, 50, scene.torso), scene.torso, pose, 'sitting')!;
       expect(pose.phi).toBeCloseTo(phi, 12);
     }
-    expect(surfacePose(torsoSkinPoint(0, 201, scene.torso), scene.torso, pose, 'sitting')).toBeNull();
+    expect(surfacePose(torsoSkinPoint(0, SCAN_LIMITS.zMax + 1, scene.torso), scene.torso, pose, 'sitting')).toBeNull();
     // el paso de los botones cruza la línea media posterior sentado; en supino se queda en el borde
     const back = { ...defaultPose(), phi: 1.49 * Math.PI };
     expect(nudgePose(back, scene.torso, 20, 0, 0, 'sitting').phi).toBeCloseTo(1.49 * Math.PI + 20 / scene.torso.a - 2 * Math.PI, 2);

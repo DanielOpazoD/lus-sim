@@ -51,3 +51,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [45](DECISIONS.md#L4260) | La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador | vigente |
 | [46](DECISIONS.md#L4352) | Los vasos del hilio del bazo y de los riñones: la arteria y la vena esplénicas y las renales, anecoicas y con los calibres de la fuente | vigente |
 | [47](DECISIONS.md#L4439) | Sin las tarjetas de los puntos BLUE: la sonda se explora libre sobre el tórax | vigente |
+| [48](DECISIONS.md#L4465) | Los brazos arriba en el maniquí y la sonda hasta la fosa supraclavicular, por encima del vértice | vigente |

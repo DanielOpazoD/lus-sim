@@ -18,6 +18,7 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'scapula-plate',
   'spine-arch-slab',
   'patient-position-anatomy',
+  'arms-raised-anatomy',
   'chest-wall-regional-approx',
   'chest-wall-height-transition',
   'wall-generic-layers',

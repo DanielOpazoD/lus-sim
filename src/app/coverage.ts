@@ -119,7 +119,7 @@ function reachIn(position: PatientPosition): PositionReach {
   };
 }
 
-/** Decúbito supino: la sonda donde `clampPose` la deja (de −0,2π a 1,2π, por detrás de las axilares posteriores; z ±200). */
+/** Decúbito supino: la sonda donde `clampPose` la deja (de −0,2π a 1,2π, por detrás de las axilares posteriores; z de −200 a 225). */
 export const SUPINE_REACH: PositionReach = reachIn('supine');
 /** Sentado (decisión 29): la sonda da toda la vuelta al tronco; la cara posterior, como en la clínica. */
 export const SITTING_REACH: PositionReach = reachIn('sitting');
@@ -346,6 +346,7 @@ export function explorationCoverage(
     const medial = aboveApexCell(scene, side, 'medial');
     cells.push(medial, aboveApexCell(scene, side, 'lateral'));
     cells.push(supraclavicularCell(scene, side, reach, medial, C.supraclavicularXMm.value));
+    cells.push(supraclavicularCell(scene, side, reach, medial, C.supraclavicularXMm.value, true));
   }
   const byRegion: CoverageReport['byRegion'] = {
     anterior: { met: 0, total: 0 },
@@ -570,6 +571,10 @@ function aboveApexCell(scene: AnatomyScene, side: CoverageSide, zone: 'medial' |
  * La fosa supraclavicular (ii): por encima de la clavícula, la sonda de plano o inclinada hacia los pies (como en la clínica)
  * encuentra la cúpula pleural con el pulmón del vértice. Solo cuenta si el vértice existe (`medial` se cumple): con el pulmón
  * subiendo hasta el tope del tronco, la fosa vería pulmón sin que haya cúpula.
+ *
+ * `overApex` (lus-sim, decisión 48): la sonda más arriba, a la altura del vértice más alto de la base (`apexMaxZ`, 5 cm sobre la
+ * clavícula), transversal (paralela a la clavícula, como en la fosa) e inclinada hacia los pies hasta encontrar la cúpula. Antes de
+ * la decisión 48 la sonda no llegaba (z ≤ 200).
  */
 function supraclavicularCell(
   scene: AnatomyScene,
@@ -577,13 +582,14 @@ function supraclavicularCell(
   reach: (pose: ProbePose) => [string, ProbePose] | null,
   medial: CoverageCell,
   x: number,
+  overApex = false,
 ): CoverageCell {
   const t = scene.torso;
   const right = Math.PI - Math.acos(x / t.a);
   const phi = side < 0 ? right : Math.PI - right;
-  const z = clavicleTopZ(scene) + 0.5 * LUNG_APEX.params.apexAboveClavicleMm.value;
+  const z = overApex ? apexMaxZ(scene) : clavicleTopZ(scene) + 0.5 * LUNG_APEX.params.apexAboveClavicleMm.value;
   const cell = blankCell(
-    `${side < 0 ? 'D' : 'I'} fosa supraclavicular`,
+    `${side < 0 ? 'D' : 'I'} fosa supraclavicular${overApex ? ', sobre el vértice' : ''}`,
     side,
     'supraclavicular',
     0,
@@ -593,8 +599,14 @@ function supraclavicularCell(
     z,
     'lung',
   );
-  for (const rock of [0, -0.35, -0.7]) {
-    const r = reach({ phi, z, lift: 0, yaw: 0, rock, tilt: 0 });
+  // de plano, la basculación hacia los pies; sobre el vértice, transversal con el marcador a 90° y la inclinación positiva (la que
+  // lleva el haz hacia los pies en los dos lados), la más empinada primero (detrás de la clavícula, a la ladera de la cúpula; con
+  // menos, el haz entra rasante por su techo, `wall-cupola-transition`)
+  const poses: ProbePose[] = overApex
+    ? [0.7, 0.5].map((tilt) => ({ phi, z, lift: 0, yaw: Math.PI / 2, rock: 0, tilt }))
+    : [0, -0.35, -0.7].map((rock) => ({ phi, z, lift: 0, yaw: 0, rock, tilt: 0 }));
+  for (const pose of poses) {
+    const r = reach(pose);
     if (!r) continue;
     const m = probeCenterContent(scene, r[1]);
     cell.position = r[0];

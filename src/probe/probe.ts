@@ -174,13 +174,34 @@ function wrapPhi(phi: number): number {
   return ((((phi + Math.PI / 2) % turn) + turn) % turn) - Math.PI / 2;
 }
 
+/**
+ * Hasta dónde sube la sonda (lus-sim, decisión 48): la fosa supraclavicular, por encima del vértice más alto que da la base. Antes
+ * (VExUS y hasta la decisión 47), z ≤ 200, 12 mm sobre el borde superior del extremo acromial de la clavícula del modelo (z 188) y
+ * por debajo del vértice de la base en el tope de su rango (223,3).
+ */
+export const SCAN_REACH = defineParameters('probe.scanReach', {
+  cranialMm: {
+    value: 225,
+    unit: 'mm',
+    range: [223.3, 230],
+    evidence: 'derivado',
+    sources: ['gray-anatomia-1918', 'yang-clavicula-2017'],
+    note:
+      'El centro de la sonda llega sobre el vértice más alto de la base: el borde superior del tercio medial de la clavícula ' +
+      '(la escotadura yugular a 163,3 mm, derivada de Gray, más 10 mm, `anatomy.clavicle`) y el vértice hasta 5 cm por encima ' +
+      '(Gray, «Surface Markings of the Thorax»): 223,3, redondeado a 225. Más arriba, la piel cilíndrica del tronco ya no es la ' +
+      'de la fosa ni la del cuello (`thorax-cylindrical-cage`): no se sube más. El tope del rango (230) no tiene fuente',
+  },
+});
+
 export function clampPose(p: ProbePose, position: PatientPosition = 'supine'): ProbePose {
   return {
     // De la línea axilar posterior izquierda a la derecha en decúbito supino (lus-sim, decisión 10): VExUS
     // llegaba a la derecha (1,2π, su ventana renal); la izquierda es su simétrica respecto de la línea media
     // anterior (π/2), para explorar los dos hemitórax. Sentado (decisión 29), toda la vuelta
     phi: position === 'sitting' ? wrapPhi(p.phi) : clamp(p.phi, -Math.PI * 0.2, Math.PI * 1.2),
-    z: clamp(p.z, -200, 200),
+    // hacia los pies, la de VExUS; hacia la cabeza, la fosa supraclavicular (decisión 48)
+    z: clamp(p.z, -200, SCAN_REACH.params.cranialMm.value),
     lift: clamp(p.lift, -6, 25),
     yaw: ((((p.yaw + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI,
     rock: clamp(p.rock, -0.7, 0.7),

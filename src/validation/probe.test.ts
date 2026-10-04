@@ -75,9 +75,10 @@ describe('clampPose: la sonda recorre los dos hemitórax', () => {
     expect(left.phi).toBeCloseTo(Math.PI - defaultPose().phi, 12);
     const lmcLeft = clampPose({ ...defaultPose(), phi: Math.PI - measurementViewPose('blueUpper').phi });
     expect(lmcLeft.phi).toBeCloseTo(thoraxLinePhi('midclavicular', scene.torso, 1), 12);
-    // el resto de límites, los de VExUS
+    // el resto de límites, los de VExUS, salvo el craneal: la fosa supraclavicular (decisión 48)
     const c = clampPose({ phi: 1, z: 900, lift: -50, yaw: 2.5 * Math.PI, rock: 2, tilt: -2 });
-    expect(c.z).toBe(200);
+    expect(c.z).toBe(225);
+    expect(clampPose({ phi: 1, z: -900, lift: 0, yaw: 0, rock: 0, tilt: 0 }).z).toBe(-200);
     expect(c.lift).toBe(-6);
     expect(c.yaw).toBeCloseTo(0.5 * Math.PI, 9);
     expect(c.rock).toBe(0.7);
@@ -101,7 +102,7 @@ describe('clampPose: la sonda recorre los dos hemitórax', () => {
     }
     // el resto de los límites, los del supino; y en supino, el tope de siempre
     const c = clampPose({ phi: 1, z: 900, lift: -50, yaw: 0, rock: 2, tilt: -2 }, 'sitting');
-    expect([c.z, c.lift, c.rock, c.tilt]).toEqual([200, -6, 0.7, -0.7]);
+    expect([c.z, c.lift, c.rock, c.tilt]).toEqual([225, -6, 0.7, -0.7]);
     expect(clampPose({ ...base, phi: 1.4 * Math.PI }).phi).toBeCloseTo(1.2 * Math.PI, 12);
   });
 

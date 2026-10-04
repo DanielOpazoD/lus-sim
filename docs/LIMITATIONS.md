@@ -18,7 +18,7 @@ conservan su identificador (decisiones 10 y 11).
 - **Navegador paramétrico** (`navigator-parametric`, decisión 23): muestra la superficie y referencias que utiliza
   el motor, con las simplificaciones de `thorax-cylindrical-cage`. No es un atlas segmentado ni amplía la cobertura
   posterior permitida por la posición del paciente (decisión 33: sentado, toda la espalda). Desde la decisión 25, un maniquí procedural añade cabeza, hombros,
-  brazos y terminación abdominal no explorables. La piel funcional conserva la elipse acústica y muestra
+  brazos y terminación abdominal no explorables; desde la decisión 48, con los brazos arriba y las manos detrás de la cabeza. La piel funcional conserva la elipse acústica y muestra
   el contacto del cuadro por la deformación existente; entre vértices es una aproximación teselada.
   Las costillas opcionales permanecen como guía en reposo (desde la decisión 33, con las clavículas y las escápulas del
   modelo, de otro tono). La carcasa y cable son contexto de interfaz,
@@ -125,7 +125,7 @@ conservan su identificador (decisiones 10 y 11).
   subclavia y la pleura en el camino de la punción; antes de la decisión 44, 20–35). Como el tronco no se
   estrecha hacia la abertura superior (`thorax-cylindrical-cage`), la cúpula ocupa todo el ancho de la parrilla y no hay dos
   vértices separados por la tráquea (no hay mediastino). Por encima de la cúpula, la sonda ve solo músculo, también en el
-  hombro (z ≤ 200 en todo φ). En el cuello, junto a la línea media (por delante de las articulaciones esternoclaviculares y
+  hombro (z ≤ 225 en todo φ desde la decisión 48; antes, 200). En el cuello, junto a la línea media (por delante de las articulaciones esternoclaviculares y
   delante de la columna) no hay pulmón sobre la escotadura yugular, pero más adentro las columnas radiales del vértice convergen
   y el centro del corte sigue siendo pulmón (no hay mediastino). El contacto de la sonda toma por pared rígida la del tórax, sin
   lo que la cúpula le suma. Por la fosa supraclavicular la pleura queda 1,1 DE más honda que en Yadav (la pared de la columna es
@@ -173,7 +173,8 @@ conservan su identificador (decisiones 10 y 11).
   lámina llega a la cresta de las costillas (en su extremo de fuera corta hasta 2 mm de ellas; no se ve, es su sombra). En la
   mujer (la escápula de 137 mm), la glena, a la altura de la raíz de la espina, queda 3 mm sobre el ángulo superior [SUPUESTO].
   Solo con los
-  brazos a los lados: con los brazos cruzados (A-T18, el triángulo de auscultación) o el brazo levantado no se mueve. En los
+  brazos a los lados: con los brazos cruzados (A-T18, el triángulo de auscultación) o el brazo levantado no se mueve
+  (`arms-raised-anatomy`). En los
   varones, las distancias a la línea media son de poblaciones mixtas o de mujeres (NO ENCONTRADO en varones sanos en acceso
   abierto).
 - **La columna por detrás es un arco continuo** (`spine-arch-slab`, decisión 29): las láminas y las apófisis transversas, una
@@ -191,8 +192,21 @@ conservan su identificador (decisiones 10 y 11).
   dinámica de 3 cantantes); cuánto baja el borde posterior del pulmón, NO ENCONTRADO. La pared de la espalda no cambia en
   la ecografía sentado frente a en prono (Wada y cols., 18 varones). La escápula, de pie según Cooperstein; sentado, NO
   ENCONTRADO como comparación directa. En la interfaz (decisión 33) la posición se elige en Ajustes → Paciente (las tarjetas de la
-  espalda se quitaron en la decisión 47); el maniquí del navegador 3D no cambia de postura (sigue erguido con los brazos
-  a los lados, que es la escápula del modelo) y los brazos no se cruzan para abrir la espalda.
+  espalda se quitaron en la decisión 47); el maniquí del navegador 3D no cambia de postura (sigue erguido, desde la decisión 48
+  con los brazos arriba, aunque la escápula del modelo es la de los brazos a los lados: `arms-raised-anatomy`) y los brazos no
+  se cruzan para abrir la espalda.
+- **Los brazos arriba son solo del maniquí** (`arms-raised-anatomy`, decisión 48): el navegador 3D muestra los brazos arriba con
+  las manos detrás de la cabeza (abducción ≈ 163°, elección de autoría), para que los brazos no estorben la sonda en la pared
+  lateral, como pide la técnica en supino [@koenig-respiratoria-2020], pero
+  la anatomía es la de los brazos a los lados. Con el brazo elevado la escápula rota hacia arriba ≈ 50° (McClure y cols.) y, con
+  la mano sobre la cabeza, su borde vertebral sigue aprox. la cisura oblicua (Gray): la lámina sube hacia la axila y podría
+  quedar bajo la sonda en la axilar posterior alta, lo que el modelo no hace (su escápula, la de `scapula-plate`, no pasa de la
+  escapular). La piel y los músculos de la axila no se estiran ni adelgazan con el brazo (cuánto, sin medida en la base), y el
+  tronco no tiene hombro: por encima de la 1.ª costilla de las axilares (z 172,8 en la media) la sonda se apoya, hasta el tope
+  de z 225, en la pared genérica del cilindro, donde en el paciente están el contenido de la axila y la cabeza del húmero
+  (`thorax-cylindrical-cage`). La fosa supraclavicular es la piel del cilindro, sin su depresión: sobre el vértice (z 223,3),
+  inclinada 40° hacia los pies, la pleura de la cúpula queda a 44,5 mm, más honda que el «corner pocket» de Yadav junto a la
+  clavícula (1,7 ± 0,8 cm).
 - **El abdomen, fuera de sus órganos, es un tejido genérico** (`abdomen-generic-tissue`): desde la decisión 37 bajo el diafragma
   están el hígado y el bazo y, desde la 43, el estómago, los riñones y el retroperitoneo de VExUS (el psoas, el cuadrado lumbar y la
   grasa); lo demás queda en el tejido por defecto de la clasificación de VExUS, su «resto» del abdomen (`Tissue.Bowel`), sin

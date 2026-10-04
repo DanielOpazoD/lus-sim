@@ -198,7 +198,9 @@ qué cuenta como pleura, sombra o línea A. No son números del paciente, pero c
 ## Autoría visual del navegador humano (decisión 25)
 
 Los perfiles de cabeza, cuello, hombros, brazos y terminación abdominal en `src/ui/thorax/humanTorso.ts`
-son estimaciones visuales. No alteran la superficie funcional, la pared, los órganos ni la señal.
+son estimaciones visuales. Desde la decisión 48 los brazos están arriba, con las manos detrás de la cabeza: tubos por nodos
+(`raisedArmNodes`, `tubeMesh`). Koenig y cols. 2020 solo piden que los brazos dejen llegar la sonda a la pared lateral; las
+manos detrás de la cabeza, la abducción ≈ 163° y los largos y radios son elecciones de autoría, sin antropometría propia. No alteran la superficie funcional, la pared, los órganos ni la señal.
 La carcasa de `src/ui/thorax/convexProbe.ts` utiliza un margen de 2,5–3 mm alrededor del arco,
 secciones de mango de aproximadamente 24–32 mm y cable de 4,6 mm de diámetro. No son especificaciones de
 un fabricante. R=60 mm, alpha=34° y elevación=13 mm siguen siendo los del perfil acústico existente.
