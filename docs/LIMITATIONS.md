@@ -382,9 +382,40 @@ conservan su identificador (decisiones 10 y 11).
   PLAPS y los paravertebrales con el paciente sentado) y escalado en lineal con la excursión del diafragma. Lo que sigue la
   mano (`chestFollow`) no tiene fuente; está ajustado con la exploración del banco y deja T2 de la pared en 0,998–0,999,
   sobre el banco (0,982–0,993): el temblor que la bajaría rompe F-T11. El latido transmitido a la pared no se modela.
-- **Sin líneas B ni colas de cometa** (`no-lung-comet-tails`): el pulmón bajo la pleura es la serie de
-  reverberaciones de la pared y el deslizamiento incoherente; no hay líneas Z ni B, ni pulmón patológico. La
-  física de las líneas B es de la fase 2.
+- **Sin líneas Z, E ni colas de cometa del margen de una consolidación** (`no-lung-comet-tails`): desde la decisión 51 hay
+  líneas B (las trampas subpleurales, `src/ultrasound/bLines.ts`), pero no las líneas Z de la pared, las E del enfisema
+  subcutáneo ni los artefactos verticales del margen profundo de una consolidación (F-T28, F-T29, F-T37): no hay consolidación
+  ni gas en la pared.
+- **Las trampas no tienen firma en frecuencia** (`blines-no-frequency-selectivity`, decisión 51): la reirradiación de una
+  trampa no depende de la frecuencia central ni del ancho de banda (su resonancia, B26–B27), así que no se cumplen F-T20 ni
+  F-T21 (2 frente a 6 MHz). Hoy es invisible: solo hay una sonda convexa de 3,5 MHz; llega con la sonda lineal.
+- **Solo agua en las trampas** (`blines-water-only`, decisión 51): el contenido de la trampa no cambia (agua del edema), sin
+  la fibrosis que acorta y apaga los artefactos (F-T19) ni la conversión de B en Z de la EPI.
+- **Las líneas B, solo en la mirada 0** (`blines-look0-only`, decisión 51): bajo la pleura K pesa las miradas dirigidas con
+  1 − fAir (decisión 61 de VExUS), así que con la composición encendida una trampa no se desdobla en varias líneas (F-T25), y
+  la línea pleural de las miradas dirigidas no pierde lo que entra en las trampas. La armónica no cambia la reirradiación
+  (F-T24, `harmonic-simplified`). El preajuste pulmonar apaga las dos.
+- **La anchura dibujada de una línea B está acotada** (`blines-drawn-width`, decisión 51): la trampa se dibuja con la σ lateral
+  de dos vías del equipo en la pleura, con un suelo de 0,6 pasos de línea (para que la pasada B no la vea o no según caiga sobre
+  una línea) y un techo de 0,3 celdas (para que su ventana quepa en 4 × 4 celdas): con el foco muy hondo es más estrecha que
+  el haz (su intensidad sí baja). La pasada D la vuelve a filtrar con la PSF de su profundidad, así que en hondo se ensancha
+  algo más que en la física (la recepción, enfocada en la profundidad aparente, está desenfocada en la pleura).
+- **La gCNR de F-T22 satura en el gemelo** (`blines-gcnr-saturated`, decisión 51): la meta pide que la gCNR de las líneas B
+  baje ≈ 0,10 al llevar el foco de 20 a 40 mm (Ostras, en un pulmón denso); en el gemelo el fondo es la neblina oscura del pulmón
+  aireado y la gCNR queda en ≈ 0,98 con los dos focos. Se mide la anchura y el brillo de la línea de una trampa (los dos cambian
+  como pide la meta), no la gCNR.
+- **El detector no mira el movimiento** (`blines-detector-static`, decisión 51): cuenta en cada cuadro los artefactos verticales
+  que nacen en la pleura y se sostienen, sin comprobar que se muevan con el deslizamiento (un `Bsin` contaría igual).
+- **El contador tiene un rango de operación de ganancia** (`blines-gain-range`, decisión 51): con la ganancia de pantalla más la
+  TGC más de 25 dB sobre el preajuste pulmonar, o una TGC que varía más de 6 dB, de la piel a lo que lee (la pleura + 36 mm), no
+  lee el cuadro (`saturated`, conteo NaN; quien
+  lo use debe tratarlo como «no evaluable», no como 0). Es un límite declarado del instrumento, no una regla de la imagen: la
+  señal sola no separa la pared saturada de la pleura en el sector curvo (sin el límite, +30 dB dan líneas blancas falsas en el
+  pulmón normal). Un cuadro sin la ganancia de la cadena (uno externo) solo tiene la guarda de la pared casi en el blanco, que en
+  el gemelo salta con ≥ +40 dB en la ventana de ±12° pero no en el sector entero.
+- **La reverberación de cada trampa es fija** (`blines-static-ringdown`, decisión 51): su señal en la profundidad aparente se
+  sortea una vez por trampa y no cambia con el ciclo respiratorio ni con el contenido; la línea B se mueve con el pulmón, pero
+  su textura interna no parpadea, y su caída e^(−τ/L) es la misma para todas.
 - **La serie bajo la pleura remuestrea la pared en la misma línea** (`pleura-series-same-line`): las copias
   de la pared y las líneas A se forman con la pared del propio camino, no con la de la dirección reflejada
   por una pleura oblicua; las líneas A llevan el lóbulo de Kirchhoff una sola vez y tienen la anchura de la

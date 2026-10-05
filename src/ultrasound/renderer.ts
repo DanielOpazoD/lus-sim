@@ -49,6 +49,7 @@ import { LUNG_BORDER_BASE } from '../anatomy/organs/lungBorder';
 import { HILUM_VESSEL_BASE, hilumVesselTable } from '../anatomy/organs/vessels';
 import { SCENE_SAMPLERS, evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
 import { HEART_VOL_BASE, cardiacFailed, failCardiac, heartVolumeTable, type CardiacRuntime } from '../anatomy/organs/heart';
+import { SUBPLEURAL_TABLE_BASE, SUBPLEURAL_TABLE_TEXELS } from '../anatomy/organs/subpleural';
 import {
   FRAG_AXIAL,
   FRAG_BLIT,
@@ -233,6 +234,11 @@ export interface GpuPointQuery {
   gradNorm?: Float32Array;
   /** lus-sim (decisión 32), si se pidió: el punto del pulmón antes del latido menos el material (xyz por punto, mm). */
   lungPulse?: Float32Array;
+  /**
+   * lus-sim (decisión 51), si se pidió (`trapTauMm`): `bLineField` en cada punto tomado como la pleura de su línea, a la
+   * profundidad aparente τ de cada uno: (re, im, ρ, trampas) por punto. Entonces `velocity` e `iface` no valen.
+   */
+  bLines?: Float32Array;
 }
 
 /** Envolvente detectada leída de la GPU (solo pruebas): `data[muestra · lines + línea]`. */
@@ -386,6 +392,8 @@ export class UltrasoundRenderer {
   /** Tiempo (ms) del último horneado del corazón, de que se pide a que su última valla se cumple (con la compilación). */
   heartBakeMs = 0;
   private sceneData = new Float32Array(SCENE_TEX_W * SCENE_TEX_H * 4);
+  /** Versión de la aireación subpleural de la escena que está en la textura (decisión 51). */
+  private subpleuralVersion = -1;
   /** Tablas por tejido de 4 en 4 (`TISSUE_VEC4` vec4; el relleno tras el último tejido queda a 0). */
   private alpha = new Float32Array(TISSUE_VEC4 * 4);
   private back = new Float32Array(TISSUE_VEC4 * 4);
@@ -636,6 +644,8 @@ export class UltrasoundRenderer {
     // lus-sim (decisión 49): la rejilla del volumen del corazón, solo si es el horneado (ceros sin él o mientras se hornea)
     const heart = this.currentScene.heart;
     this.sceneData.set(heartVolumeTable(heart.cardiac === this.heartBaked ? heart : { ...heart, cardiac: null }), HEART_VOL_BASE * 4);
+    this.sceneData.set(this.currentScene.subpleural.table, SUBPLEURAL_TABLE_BASE * 4);
+    this.subpleuralVersion = this.currentScene.subpleural.version;
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {
@@ -662,6 +672,7 @@ export class UltrasoundRenderer {
       if (this.sceneValuesCompression !== inputs.compression) this.uploadCompressionTable(inputs.compression);
       this.sceneValuesCompression = inputs.compression;
     }
+    this.uploadSubpleuralIfChanged();
     uploadSceneUniforms(p, this.sceneValues);
     p.tex('uSceneTex', SCENE_SAMPLERS.uSceneTex, this.sceneTex);
     // lus-sim (decisión 49): el volumen del corazón de EchoTwin (3D, a mano: `GLProgram.tex` liga texturas 2D)
@@ -752,6 +763,32 @@ export class UltrasoundRenderer {
     b.timer = null;
     if (this.heartBake === b) this.heartBake = null;
     b.job.release(dropVolume);
+  }
+
+  /**
+   * lus-sim (decisión 51): la aireación subpleural del paciente en la textura de escena, si cambió desde la última subida
+   * (`AnatomyScene.setLungAeration`). Se suben solo las filas que la contienen.
+   */
+  private uploadSubpleuralIfChanged(): void {
+    const sp = this.currentScene.subpleural;
+    if (sp.version === this.subpleuralVersion) return;
+    this.subpleuralVersion = sp.version;
+    this.sceneData.set(sp.table, SUBPLEURAL_TABLE_BASE * 4);
+    const row0 = Math.floor(SUBPLEURAL_TABLE_BASE / SCENE_TEX_W);
+    const row1 = Math.floor((SUBPLEURAL_TABLE_BASE + SUBPLEURAL_TABLE_TEXELS - 1) / SCENE_TEX_W);
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
+    gl.texSubImage2D(
+      gl.TEXTURE_2D,
+      0,
+      0,
+      row0,
+      SCENE_TEX_W,
+      row1 - row0 + 1,
+      gl.RGBA,
+      gl.FLOAT,
+      this.sceneData.subarray(row0 * SCENE_TEX_W * 4, (row1 + 1) * SCENE_TEX_W * 4),
+    );
   }
 
   /**
@@ -1544,14 +1581,15 @@ export class UltrasoundRenderer {
     points: Float32Array,
     inputs: FrameInputs,
     _allTubes = false,
-    opts: { normals?: boolean; lungPulse?: boolean } = {},
+    opts: { normals?: boolean; lungPulse?: boolean; trapTauMm?: Float32Array } = {},
   ): GpuPointQuery {
     const gl = this.gl;
     const n = Math.floor(points.length / 3);
     const W = 256;
     const H = Math.max(1, Math.ceil(n / W));
     const data = new Float32Array(W * H * 4);
-    for (let i = 0; i < n; i++) data.set([points[i * 3], points[i * 3 + 1], points[i * 3 + 2], 1], i * 4);
+    const tau = opts.trapTauMm;
+    for (let i = 0; i < n; i++) data.set([points[i * 3], points[i * 3 + 1], points[i * 3 + 2], tau ? tau[i] : 1], i * 4);
     const pts = createTexture(gl, W, H, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.FLOAT, data);
     const f = { internal: gl.RGBA32F, format: gl.RGBA, type: gl.FLOAT, filter: gl.NEAREST };
@@ -1562,6 +1600,13 @@ export class UltrasoundRenderer {
     this.setSceneUniforms(this.pQuery, inputs);
     this.setBeamUniforms(this.pQuery, inputs);
     this.pQuery.tex('uPoints', 0, pts);
+    // lus-sim (decisión 51): las trampas de las líneas B en vez de la velocidad (o1), con el haz y la lente del equipo
+    this.pQuery.f('uQueryTraps', tau ? 1 : 0);
+    this.pQuery.f('uSeed', (inputs.seed % 1000) / 7.0);
+    this.pQuery.f('uElevSigma0', ELEV_SIGMA0_MM);
+    this.pQuery.f('uElevFocus', inputs.transducer.elevationFocusMm);
+    this.pQuery.f('uElevHarmonic', inputs.bmode.harmonic ? 1 : 0);
+    this.setLateralPsfUniforms(this.pQuery, inputs);
     drawFullscreen(gl);
     const out0 = new Float32Array(W * H * 4);
     const out1 = new Float32Array(W * H * 4);
@@ -1605,6 +1650,7 @@ export class UltrasoundRenderer {
     const out: GpuPointQuery = normal
       ? { tissue, vessel, velocity, iface, ifd, bd, normal, gradNorm }
       : { tissue, vessel, velocity, iface, ifd, bd };
+    if (tau) out.bLines = out1.slice(0, n * 4);
     if (out3) {
       const lungPulse = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) lungPulse.set([out3[i * 4], out3[i * 4 + 1], out3[i * 4 + 2]], i * 3);

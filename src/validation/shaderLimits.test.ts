@@ -322,14 +322,18 @@ describe('Límites del shader con margen para crecer', () => {
   // las caras del hueso con la constante de TS (`BONE_ENTRY_DB`, 7,42 dB; antes 6,0 escrito a mano: f6b08093f699bc04) y el
   // de A escribe además la transmisión con que B dibuja cada muestra (o2.z; antes 668efb9a2b5c7008). Después (8ed188a8f422812e →
   // la de abajo, decisión 38), las partes del pulmón bajo la pleura llevan los pesos de la descomposición de la neblina
-  // (`uSeriesParts`, 1 salvo en la medida).
+  // (`uSeriesParts`, 1 salvo en la medida). Después (9efb399a876fc11c → la de abajo, decisión 51), las trampas subpleurales de la
+  // línea: su reirradiación bajo la pleura (`bl.xy`), lo que quitan a cada reflexión en ella (χ por ρ = `bl.z`, también la línea
+  // pleural) y el punto material de la pleura calculado una vez para ellas y el deslizamiento (`slidingFieldAt`); con el pulmón
+  // normal (`lungMayOpen` falso) ρ = 1 y las cuentas son las de antes. Después (cc7ac3c98daa86b1 → la de abajo), solo el comentario
+  // renumerado de la decisión 50 a la 51.
   it('el main de los programas de la mirada 0 es, letra a letra, el de antes de la composición', () => {
     const mainOf = (src: string): string => src.slice(src.lastIndexOf('\nvoid main() {'));
     const print = (src: string): string => createHash('sha256').update(mainOf(src)).digest('hex').slice(0, 16);
     expect(Object.fromEntries(LOOK_PAIRS.map((p) => [p.name, print(p.look0)]))).toEqual({
       FRAG_TRANS_PREFIX: '96cbff76912bf550',
       FRAG_TRANSMISSION: '6eb8ceec72e45847',
-      FRAG_RAWFIELD: '9efb399a876fc11c',
+      FRAG_RAWFIELD: '083c790b2d89fcb6',
     });
     // y el resto de B es el mismo texto en los dos programas: solo cambian sus entradas y su main
     const inputs0 = 'uniform sampler2D uTrans0;\nuniform sampler2D uTrans1;\n';

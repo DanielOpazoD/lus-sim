@@ -28,6 +28,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   si falla sale de la escena, se informa y no se reintenta. Va en su propio chunk (106,3 kB), que se carga tras construir la
   sesión: la entrada pasa de 302,5 a 309,5 kB y el total a 971,8. Con GPU (M4) el cuadro de la ventana no cambia (7,2 ms; main
   7,5); con SwiftShader, 266 ms. La e2e lo tiene salvo en las pruebas lejos de él (`?e2e=1&corazon=0`).
+- Las líneas B (51): la aireación subpleural del paciente por región abre trampas acústicas bajo la pleura (tabiques como
+  puntos de una retícula sorteada y la inundación alveolar como campo medio) que reirradian a lo largo de la profundidad
+  aparente y quitan reflexión especular a la serie de la pleura. Nacen en la línea pleural, llegan al fondo con la compensación
+  de referencia, borran las líneas A en su columna, se mueven con el deslizamiento, confluyen al perder aire y se ensanchan con
+  el foco hondo (metas F-T13, T17, T18, T22, T26 y T27 en el gemelo); un detector las cuenta sobre la imagen mostrada (discretas,
+  confluentes y la regla %/10). Gemelo GLSL exacto en la GPU; con SwiftShader el cuadro no cambia con el pulmón normal y sube
+  ≈ 3–7 % con el congestionado.
 - Los vasos del hilio del bazo y de los riñones (46): la arteria y la vena esplénicas entran en el bazo por la parte gástrica de su
   cara visceral y corren hacia la línea media por delante del riñón izquierdo; la arteria y la vena renales de cada lado salen del
   seno (la vena delante). Tubos de VExUS con su pared, anecoicos, con los calibres de la fuente (vena esplénica 6,6 mm por

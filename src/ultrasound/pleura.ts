@@ -4,6 +4,8 @@ import { IFACE_SHIFT_MM, interfaceEchoField, roughnessCoherence } from './interf
 import { NORMAL_CALIBRATION } from './normalCalibration';
 import { RECEIVER_NOISE, glslFloat } from './receiver';
 import { scattererField } from './speckleField';
+import { SUBPLEURAL_GLSL } from '../anatomy/organs/subpleural';
+import { B_LINES_GLSL } from './bLines';
 
 /**
  * Pleura parietal y cortina pulmonar (decisión 61): lo que la pasada B dibuja bajo la pared cuando el haz
@@ -311,13 +313,17 @@ export function pleuraTerms(
   s: number,
   D: number,
   tD: number,
-  chi: number,
+  chiPleura: number,
   tAt: (d: number) => number,
   fieldBound = PLEURA_WALL_FIELD_BOUND,
+  rho = 1,
 ): PleuraTerm[] {
+  // lus-sim (decisión 51): cada reflexión en la pleura de la línea pierde la fracción del haz que entra en sus trampas (ρ,
+  // `bLines.ts`): la línea pleural ×ρ, cada ida y vuelta ×ρ y la copia espejo ×ρ² (la GLSL multiplica χ por ρ)
+  const chi = chiPleura * rho;
   const G = pleuraRoundTrip(tD, chi);
   const k = aLineOrder(s, D);
-  const out: PleuraTerm[] = [{ family: 'pleura', order: k, depth: k * D - s, gain: aLineGain(G, k) * tD }];
+  const out: PleuraTerm[] = [{ family: 'pleura', order: k, depth: k * D - s, gain: aLineGain(G, k) * tD * rho }];
   if (s <= D) return out;
   const { n, mirror, forward } = pleuraSeriesDepths(s, D);
   const gn = seriesPow(G, n);
@@ -401,7 +407,7 @@ export const PLEURA_CAP_GLSL = /* glsl */ `
 float pleuraCapMm(float D, float step) { return (max(ceil(D / step - 0.5) - 1.0, 0.0) + 0.5) * step; }
 `;
 
-export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}
+export const PLEURA_GLSL = /* glsl */ `${CURTAIN_AIR_GLSL}${SUBPLEURAL_GLSL}${B_LINES_GLSL}
 uniform sampler2D uTrans2; // A o2: rayo único (x la mirada 0, y la dirigida): tope de la transmisión sin la lámina
 const float PLEURA_RP = ${glslFloat(PLEURA_RP)};
 uniform float uPleuraRt; // R_t (normalCalibration.ts); el barrido de calibración la cambia
@@ -432,11 +438,13 @@ float pleuraSeriesEcho(float cosI, float delta) {
 float slidingAmplitude(float h) { return SLIDING_AMP * exp(-h / SLIDING_EFOLD_MM); }
 // Deslizamiento anclado al pulmón (bajado lo que ha bajado el pulmón de su altura y su columna, lungSlideMm: decisión 19;
 // y, junto al corazón, lo que lo ha deslizado el latido, lungPulseInverse: decisión 32), grano alargado a lo largo de la pleura
-vec2 slidingField(vec3 pD, float h, float salt) {
-  vec3 m = lungPulseInverse(toMaterial(pD));
+// lus-sim (decisión 51): m, el punto material de la pleura antes del latido, calculado una vez en la mirada 0 (lo usan también
+// las trampas de las líneas B)
+vec2 slidingFieldAt(vec3 m, float h, float salt) {
   vec3 q = (m + vec3(0.0, 0.0, lungSlideMm(m))) / SLIDING_LAT_MM - torsoNormal(m) * (h / SLIDING_AX_MM);
   return scattererField(q, 1.0, uSeed + SLIDING_SALT + salt) * slidingAmplitude(h);
 }
+vec2 slidingField(vec3 pD, float h, float salt) { return slidingFieldAt(lungPulseInverse(toMaterial(pD)), h, salt); }
 // Campo del medio de la imagen en p (mirada 0): clasificación (withCurtain = false bajo la pleura de la cortina:
 // lo de detrás de la lámina), tres planos de elevación (¼ ½ ¼, fasor del central), grumos (decisión 56) y eco de
 // interfaz (decisión 57: coherente, fase 0 común a la cara, antes de la transmisión). Una llamada por programa y
