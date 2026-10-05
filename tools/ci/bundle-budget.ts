@@ -63,10 +63,10 @@
 // 854,8 a 855,5. La entrada y el inicial suben a 310 kB y el total a 870: lo siguiente en la cola (los vasos del hilio
 // esplénico y renal) también va en cada programa.
 // 2026-10-04 (decisión 49): el corazón de EchoTwin (el modelo, la pose de telediástole, el clasificador portados, ≈ 5000 líneas de
-// TS, y el programa que hornea su volumen en la GPU, `ultrasound/heartBake.ts`) va en su propio chunk, `cardiacRuntime` (105,7 kB,
+// TS, y el programa que hornea su volumen en la GPU, `ultrasound/heartBake.ts`) va en su propio chunk, `cardiacRuntime` (106,3 kB,
 // `app/cardiacRuntime.ts`), que la aplicación pide después de construir la sesión (el primer cuadro es el BLUE superior derecho, sin
-// corazón a la vista): diferido. La entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,9 kB (la lectura del
-// volumen en cada programa, la carga y el horneado por pasos que el renderizador lleva); el total, de 857,3 a 971,7. La entrada
+// corazón a la vista): diferido. La entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,5 kB (la lectura del
+// volumen en cada programa, la carga y el horneado por pasos que el renderizador lleva); el total, de 857,3 a 971,8. La entrada
 // y el inicial no cambian; el total sube a 980.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';

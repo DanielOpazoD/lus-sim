@@ -17,8 +17,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   su clasificador en cada programa, el primer dibujo de SwiftShader pasaba de 26 a 900 s. El horneado va por pasos de 30 capas
   tras una valla, sin lecturas: 0,25 s con GPU y ≈ 42 s con SwiftShader, con la tarea más larga del hilo en 0,26 s y ≈ 13 s
   (antes, el horneado de una vez paraba la página ≈ 46 s con SwiftShader); el corazón entra en la escena cuando su volumen está (la CPU y la GPU a la vez), y
-  si falla sale de la escena, se informa y no se reintenta. Va en su propio chunk (105,7 kB), que se carga tras construir la
-  sesión: la entrada pasa de 302,5 a 309,9 kB y el total a 971,7. Con GPU (M4) el cuadro de la ventana no cambia (7,2 ms; main
+  si falla sale de la escena, se informa y no se reintenta. Va en su propio chunk (106,3 kB), que se carga tras construir la
+  sesión: la entrada pasa de 302,5 a 309,5 kB y el total a 971,8. Con GPU (M4) el cuadro de la ventana no cambia (7,2 ms; main
   7,5); con SwiftShader, 266 ms. La e2e lo tiene salvo en las pruebas lejos de él (`?e2e=1&corazon=0`).
 - Los vasos del hilio del bazo y de los riñones (46): la arteria y la vena esplénicas entran en el bazo por la parte gástrica de su
   cara visceral y corren hacia la línea media por delante del riñón izquierdo; la arteria y la vena renales de cada lado salen del

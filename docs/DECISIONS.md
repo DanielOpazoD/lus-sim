@@ -4589,10 +4589,12 @@ diferido.
   centro (o nada) y la distancia de su `sdf` en décimas de mm. El renderizador lo hornea al llegar el corazón (`bakeHeart`, que lleva paso a paso `ultrasound/heartBake.ts`, del chunk del
   corazón: un
   programa con la GLSL de EchoTwin, con los parámetros del modelo en RGBA32F y la retícula de su pared en R8 3D, que solo usa ese
-  programa) sin pararla de una vez: el programa se enlaza en los hilos del navegador (`GLProgram.linkLater`) y dibuja 30 capas
+  programa) sin pararla de una vez: el programa se enlaza en los hilos del navegador (`linkLater` de `heartBake.ts`) y dibuja 30 capas
   por paso (8 pasos), cada paso tras la valla del anterior, sin ninguna lectura (un `readPixels` final paraba la página ≈ 46 s con
   SwiftShader, lo halló la segunda revisión; con 4 capas por paso, entre paso y paso la imagen dibujaba sus cuadros y el horneado
-  con SwiftShader tardó 333 s); el volumen nuevo sustituye al vacío al terminar. Las pasadas leen el vóxel (`heartVoxel` en
+  con SwiftShader tardó 333 s); el volumen nuevo sustituye al vacío al terminar. Mientras se hornea, el bucle de la
+  aplicación no dibuja la imagen (`heartBaking`): con SwiftShader los cuadros entre los pasos competían con él, y en el CI los
+  ganchos de la e2e dejaron de llegar en 120 s. Las pasadas leen el vóxel (`heartVoxel` en
   `organs/heart.ts`, `uHeartVol`, con la rejilla en la textura de escena desde `HEART_VOL_BASE`, ceros mientras no está horneado);
   su gemela TS evalúa el clasificador en el mismo centro (`voxelCode`). La distancia de un punto es la del centro menos dos
   semidiagonales, con un tope de 2 mm (`HEART_VOXEL_BD_CAP_MM`), y no es una cota: la `sdf` de EchoTwin no cuenta las valvas ni las
@@ -4651,9 +4653,9 @@ diferido.
   0,26 s con GPU (main 0,37) y 12,6–13,1 s con SwiftShader (main 5,1–5,9; antes, el horneado entero), y los ganchos de la e2e, con
   el corazón ya horneado, a 1,0 s con GPU (main 0,5) y a 117–120 s con SwiftShader (main 85–244: el ruido de la máquina); la prueba de arranque y costo, 55,5 s con
   SwiftShader (main 53,4).
-- Bundle: la entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,9 kB (de 310); el corazón y su horneado,
-  105,7 kB en `cardiacRuntime` (`app/cardiacRuntime.ts`: `anatomy/` no importa el horneado, que es de `ultrasound/`), diferido;
-  el total, de 857,3 a 971,7 (su presupuesto sube a 980).
+- Bundle: la entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,5 kB (de 310); el corazón y su horneado,
+  106,3 kB en `cardiacRuntime` (`app/cardiacRuntime.ts`: `anatomy/` no importa el horneado, que es de `ultrasound/`), diferido;
+  el total, de 857,3 a 971,8 (su presupuesto sube a 980).
 - Equivalencia TS ↔ GLSL con GPU real: 50 000 puntos, acuerdo de tejido 1 (sangre y miocardio en el volumen); la distancia a la
   frontera en el volumen, a una décima (su cuanto: `boundaryDistanceMaxErrHeart` < 0,12 mm); los interiores bajan a ≈ 39 400 (más
   interfaces) y la e2e exige > 38 000.

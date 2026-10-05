@@ -115,7 +115,8 @@ conservan su identificador (decisiones 10 y 11).
     primer dibujo de SwiftShader de 26 a 900 s (A0) y de 47 a 756 s (B).
   - **Llega después del primer cuadro**: va en su propio chunk; colocarlo cuesta ≈ 0,1 s en el hilo y hornearlo, por pasos de
     30 capas tras una valla, ≈ 0,25 s con GPU y ≈ 42 s con SwiftShader; hasta que el volumen está, la ventana no tiene corazón
-    ni tapón. Con GPU la página no lo nota (su tarea más larga, 0,26 s); con SwiftShader aún se para hasta ≈ 13 s de una vez
+    ni tapón, y la imagen no se dibuja (la página sigue): con SwiftShader, los cuadros entre los pasos alargaban tanto el
+    horneado que en el CI los ganchos de la e2e no llegaban en 120 s. Con GPU la página no lo nota (su tarea más larga, 0,26 s); con SwiftShader aún se para hasta ≈ 13 s de una vez
     (main ≈ 5–6), con la compilación del programa del horneado. Si el horneado falla, el corazón no vuelve hasta recargar. Las pruebas e2e lejos del corazón lo apagan
     (`?e2e=1&corazon=0`) y miran una escena que producción solo tiene unos instantes.
   - Fuera del corazón y de sus vasos, el tórax sobre las cúpulas sigue siendo pulmón: sin el resto del mediastino (timo,

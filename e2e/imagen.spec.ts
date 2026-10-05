@@ -18,10 +18,15 @@ async function openBench(page: Page): Promise<string[]> {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(`console: ${m.text()}`);
   });
+  const tBoot = Date.now();
   await page.goto('/?e2e=1');
   // los ganchos se cargan de forma diferida (import dinámico) tras montar el simulador (SwiftShader compila los
   // programas: 20–60 s con la máquina cargada)
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
+  // los ganchos llegan con el corazón horneado (decisión 49): su horneado, 41–43 s con SwiftShader en el M4 (los ganchos a
+  // 117–120 s del arranque); en el CI pasaron de los 120 s
+  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 300_000 }).toBe('object');
+  const bakeMs = await page.evaluate(() => window.__lusTest!.sim().renderer.heartBakeMs);
+  console.log(`CORAZON ganchos a ${((Date.now() - tBoot) / 1000).toFixed(1)} s; horneado ${(bakeMs / 1000).toFixed(1)} s`);
   return errors;
 }
 

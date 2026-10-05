@@ -379,6 +379,10 @@ export class UltrasoundRenderer {
   private heartVol: WebGLTexture;
   private heartBaked: CardiacRuntime | null = null;
   private heartBake: HeartBake | null = null;
+  /** ¿Se hornea un volumen del corazón? (el bucle de la aplicación no dibuja mientras tanto) */
+  get heartBaking(): boolean {
+    return this.heartBake !== null;
+  }
   /** Tiempo (ms) del último horneado del corazón, de que se pide a que su última valla se cumple (con la compilación). */
   heartBakeMs = 0;
   private sceneData = new Float32Array(SCENE_TEX_W * SCENE_TEX_H * 4);
@@ -599,7 +603,7 @@ export class UltrasoundRenderer {
     if (this.tPersist) for (const t of this.tPersist) deleteTarget(gl, t);
     gl.deleteTexture(this.couplingTex);
     gl.deleteTexture(this.sceneTex);
-    this.endHeartBake(new HeartBakeAborted('el renderizador se cerró'));
+    this.endHeartBake(new HeartBakeAborted('renderizador cerrado'));
     gl.deleteTexture(this.heartVol);
     this.heartBaked = null;
     if (this.mapPending) gl.deleteSync(this.mapPending.sync);
@@ -686,10 +690,10 @@ export class UltrasoundRenderer {
    */
   bakeHeart(c: CardiacRuntime): Promise<void> {
     if (c === this.heartBaked) return Promise.resolve();
-    if (cardiacFailed(c)) return Promise.reject(new Error('heartBake: el volumen de este corazón ya falló'));
+    if (cardiacFailed(c)) return Promise.reject(new Error('heartBake: ya falló'));
     if (this.heartBake?.c === c) return this.heartBake.promise;
-    this.endHeartBake(new HeartBakeAborted('se pidió otro corazón'));
-    if (!heartBaker) return Promise.reject(new Error('heartBake: el horneado no está registrado'));
+    this.endHeartBake(new HeartBakeAborted('otro corazón'));
+    if (!heartBaker) return Promise.reject(new Error('heartBake: sin registrar'));
     let resolve!: () => void;
     let reject!: (e: unknown) => void;
     const promise = new Promise<void>((ok, ko) => {
@@ -705,7 +709,7 @@ export class UltrasoundRenderer {
   private stepHeartBake(b: HeartBake): void {
     b.timer = null;
     if (this.heartBake !== b) return;
-    if (this.gl.isContextLost()) return this.endHeartBake(new HeartBakeAborted('se perdió el contexto'));
+    if (this.gl.isContextLost()) return this.endHeartBake(new HeartBakeAborted('contexto perdido'));
     let done: boolean;
     try {
       done = b.job.step();

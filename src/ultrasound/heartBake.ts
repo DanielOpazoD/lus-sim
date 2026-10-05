@@ -1,12 +1,12 @@
 import type { CardiacRuntime } from '../anatomy/organs/heart';
-import { GLProgram, createTexture, drawFullscreen, texture3d } from './gl';
+import { GLProgram, createTexture, drawFullscreen, linkError, shader, texture3d } from './gl';
 import { VERT } from './shaders/passes.glsl';
 
 /**
  * El horneado del volumen del corazón de EchoTwin en la GPU (decisión 49), en su propio chunk: lo pide la aplicación con el corazón
  * (`app/session.ts`) y lo registra en el renderizador (`registerHeartBaker`), que lo lleva paso a paso (`bakeHeart`).
  *
- * El programa (la GLSL de EchoTwin, `bakeFragment`) se enlaza en los hilos del navegador (`GLProgram.linkLater`) y dibuja
+ * El programa (la GLSL de EchoTwin, `bakeFragment`) se enlaza en los hilos del navegador (`linkLater`) y dibuja
  * `HEART_BAKE_LAYERS` capas de la rejilla por paso, cada paso tras la valla del anterior, en una textura RG8UI 3D nueva con lo que su
  * clasificador dice en el centro de cada vóxel; los parámetros del modelo (RGBA32F) y la retícula de su pared (R8 3D) solo los usa
  * este programa. Ninguna lectura: con SwiftShader un `readPixels` final paraba la página ≈ 46 s.
@@ -35,7 +35,7 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
   const params = createTexture(gl, c.paramTexels, 1, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
   const noise = texture3d(gl, 128, 128, 128, gl.R8, gl.RED, gl.UNSIGNED_BYTE, c.noise);
   const fbo = gl.createFramebuffer();
-  let link: ReturnType<typeof GLProgram.linkLater> | null = null;
+  let link: ReturnType<typeof linkLater> | null = null;
   let program: GLProgram | null = null;
   let sync: WebGLSync | null = null;
   let next = 0;
@@ -43,7 +43,7 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
   try {
     gl.bindTexture(gl.TEXTURE_2D, params);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, c.paramTexels, 1, gl.RGBA, gl.FLOAT, c.params);
-    link = GLProgram.linkLater(gl, VERT, c.bakeFragment, 'heartBake');
+    link = linkLater(gl, VERT, c.bakeFragment, 'heartBake');
   } catch (e) {
     pending = e instanceof Error ? e : new Error(`heartBake: ${String(e)}`);
   }
@@ -95,6 +95,47 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
       gl.deleteTexture(params);
       gl.deleteTexture(noise);
       if (dropVolume) gl.deleteTexture(volume);
+    },
+  };
+}
+
+/**
+ * Encarga un programa sin esperarlo. `ready()` dice, sin bloquear, si su enlace terminó (`COMPLETION_STATUS_KHR` de
+ * KHR_parallel_shader_compile; sin la extensión, siempre sí); `finish()` lo comprueba como `GLProgram.linkAll` (lanza con el registro
+ * si falló) y lo devuelve; `abandon()` lo libera sin comprobarlo.
+ */
+function linkLater(
+  gl: WebGL2RenderingContext,
+  vert: string,
+  frag: string,
+  name: string,
+): { ready(): boolean; finish(): GLProgram; abandon(): void } {
+  const vs = shader(gl, gl.VERTEX_SHADER, vert);
+  const fs = shader(gl, gl.FRAGMENT_SHADER, frag);
+  const p = gl.createProgram();
+  if (!p) throw new Error('createProgram');
+  gl.attachShader(p, vs);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  const ext = gl.getExtension('KHR_parallel_shader_compile') as { COMPLETION_STATUS_KHR: number } | null;
+  const drop = () => {
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+  };
+  return {
+    ready: () => !ext || gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR) === true,
+    finish: () => {
+      const error = gl.getProgramParameter(p, gl.LINK_STATUS) ? null : linkError(gl, { name, vs, fs, p }, vert, frag);
+      drop();
+      if (error) {
+        gl.deleteProgram(p);
+        throw error;
+      }
+      return GLProgram.adopt(gl, p, name, frag);
+    },
+    abandon: () => {
+      drop();
+      gl.deleteProgram(p);
     },
   };
 }

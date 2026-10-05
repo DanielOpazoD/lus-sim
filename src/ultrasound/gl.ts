@@ -51,45 +51,9 @@ export class GLProgram {
     return out;
   }
 
-  /**
-   * lus-sim (decisión 49): encarga un programa sin esperarlo. `ready()` dice, sin bloquear, si su enlace terminó
-   * (`COMPLETION_STATUS_KHR` de KHR_parallel_shader_compile; sin la extensión, siempre sí); `finish()` lo comprueba como
-   * `linkAll` (lanza con el registro si falló) y lo devuelve; `abandon()` lo libera sin comprobarlo.
-   */
-  static linkLater(
-    gl: WebGL2RenderingContext,
-    vert: string,
-    frag: string,
-    name: string,
-  ): { ready(): boolean; finish(): GLProgram; abandon(): void } {
-    const vs = shader(gl, gl.VERTEX_SHADER, vert);
-    const fs = shader(gl, gl.FRAGMENT_SHADER, frag);
-    const p = gl.createProgram();
-    if (!p) throw new Error('createProgram');
-    gl.attachShader(p, vs);
-    gl.attachShader(p, fs);
-    gl.linkProgram(p);
-    const ext = gl.getExtension('KHR_parallel_shader_compile') as { COMPLETION_STATUS_KHR: number } | null;
-    const drop = () => {
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-    };
-    return {
-      ready: () => !ext || gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR) === true,
-      finish: () => {
-        const error = gl.getProgramParameter(p, gl.LINK_STATUS) ? null : linkError(gl, { name, vs, fs, p }, vert, frag);
-        drop();
-        if (error) {
-          gl.deleteProgram(p);
-          throw error;
-        }
-        return new GLProgram(gl, p, name, fragmentOutputCount(frag));
-      },
-      abandon: () => {
-        drop();
-        gl.deleteProgram(p);
-      },
-    };
+  /** lus-sim (decisión 49): un programa ya enlazado y comprobado fuera de `linkAll` (el horneado del corazón, `heartBake.ts`). */
+  static adopt(gl: WebGL2RenderingContext, program: WebGLProgram, name: string, frag: string): GLProgram {
+    return new GLProgram(gl, program, name, fragmentOutputCount(frag));
   }
 
   use(): void {
@@ -141,7 +105,7 @@ export class GLProgram {
   }
 }
 
-function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
+export function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
   const s = gl.createShader(type);
   if (!s) throw new Error('createShader');
   gl.shaderSource(s, src);
@@ -150,7 +114,7 @@ function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLSha
 }
 
 /** Causa de un enlace fallido: el shader que no compiló (con las líneas del error) o el registro del enlace. */
-function linkError(
+export function linkError(
   gl: WebGL2RenderingContext,
   s: { name: string; vs: WebGLShader; fs: WebGLShader; p: WebGLProgram },
   vert: string,

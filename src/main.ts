@@ -269,7 +269,10 @@ function frame(now: number, dt: number): void {
   const s = sim();
   input.tick(dt);
   s.advance(dt);
-  if (!gpu.lost) {
+  // lus-sim (decisión 49): mientras se hornea el corazón la imagen espera y el horneado tiene la GPU para él (≈ 0,25 s con GPU);
+  // con SwiftShader, los cuadros entre sus pasos lo alargaban tanto que en el CI los ganchos no llegaban en 120 s
+  const baking = s.renderer.heartBaking;
+  if (!gpu.lost && !baking) {
     s.render({ mline: mMode.prepare(s) });
     // un cuadro del modo B solo si se dibujó (con la imagen congelada `render` no dibuja)
     if (s.frozen) bmodeRate.reset();
@@ -277,7 +280,7 @@ function frame(now: number, dt: number): void {
     cine.tick();
     requestNavigator();
   }
-  if (gpu.lost) bmodeRate.reset();
+  if (gpu.lost || baking) bmodeRate.reset();
   try {
     navigator3D?.sync();
   } catch (error) {

@@ -18,9 +18,14 @@ async function boot(page: Page): Promise<string[]> {
     if (m.type() === 'error') errors.push(`console: ${m.text()}`);
     if (m.type() === 'warning' && /WebGL: INVALID|GL_INVALID/.test(m.text())) errors.push(`warning: ${m.text()}`);
   });
+  const tBoot = Date.now();
   await page.goto('/?e2e=1');
   await expect(page.locator('#status')).toContainText(/\d+ fps/, { timeout: 120_000 });
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 60_000 }).toBe('object');
+  // los ganchos llegan con el corazón horneado (decisión 49): su horneado, 41–43 s con SwiftShader en el M4 (los ganchos a
+  // 117–120 s del arranque); en el CI pasaron de los 120 s
+  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 300_000 }).toBe('object');
+  const bakeMs = await page.evaluate(() => window.__lusTest!.sim().renderer.heartBakeMs);
+  console.log(`CORAZON ganchos a ${((Date.now() - tBoot) / 1000).toFixed(1)} s; horneado ${(bakeMs / 1000).toFixed(1)} s`);
   return errors;
 }
 
@@ -34,7 +39,7 @@ async function timed<T>(label: string, run: () => Promise<T>): Promise<T> {
 
 test('pulso pulmonar: el gemelo GLSL y la estratósfera lejos del corazón en apnea (F-T11)', async ({ page }) => {
   // en el CI (#42) la prueba entera con 73 columnas pasó de 240 s: se parte en dos y se mide cada paso
-  test.setTimeout(240_000);
+  test.setTimeout(420_000);
   const errors = await timed('arranque', () => boot(page));
   // el gemelo, en la telesístole (el corazón vacío del todo): float32 frente a float64
   const eq = await timed('gemelo', () => page.evaluate(() => window.__lusTest!.lungPulseEquivalence()));
@@ -54,7 +59,7 @@ test('pulso pulmonar: el gemelo GLSL y la estratósfera lejos del corazón en ap
 });
 
 test('pulso pulmonar: sobre el ápex en apnea, el pico del modo M a la FC (S3) y sin estratósfera', async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(420_000);
   const errors = await timed('arranque', () => boot(page));
   // 3 s de modo M a 10 columnas por segundo (Nyquist 5 Hz; resolución 1/3 Hz)
   const apex = await timed('ápex', () =>
