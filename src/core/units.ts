@@ -50,3 +50,30 @@ export function nyquistVelocityCms(prfHz: number, f0Hz: number, angleCorrectionR
 export function prfFromNyquistCms(cms: number, f0Hz: number, cMmS = C_RECONSTRUCTION_MM_S): number {
   return (cmsToMms(cms) * 2 * 2 * f0Hz) / cMmS;
 }
+
+/**
+ * Marco del tórax de EchoTwin (lus-sim, decisión 49): cm, dextrógiro, x izquierda del paciente, y superior, z anterior, con el
+ * origen en la piel sobre el esternón a la altura del 4.º EIC. El de lus-sim (decisión 7): mm, levógiro, x izquierda, y
+ * anterior, z craneal, con el origen en la unión xifoesternal. Las mismas direcciones con otro nombre: cambiar y por z invierte la
+ * quiralidad del marco sin espejar el cuerpo (la izquierda sigue en +x). `zIcs4Mm` es la altura (z de lus-sim) del 4.º EIC en el
+ * borde del esternón y `skinYMm`, la y de la piel en la línea media anterior.
+ */
+export interface EchoTwinOrigin {
+  readonly zIcs4Mm: number;
+  readonly skinYMm: number;
+}
+
+/** Punto de lus-sim (mm) en el tórax de EchoTwin (cm). */
+export function lusToEchoTwinCm(p: readonly [number, number, number], o: EchoTwinOrigin): [number, number, number] {
+  return [p[0] / 10, (p[2] - o.zIcs4Mm) / 10, (p[1] - o.skinYMm) / 10];
+}
+
+/** Punto del tórax de EchoTwin (cm) en lus-sim (mm): la inversa de `lusToEchoTwinCm`. */
+export function echoTwinCmToLus(q: readonly [number, number, number], o: EchoTwinOrigin): [number, number, number] {
+  return [q[0] * 10, q[2] * 10 + o.skinYMm, q[1] * 10 + o.zIcs4Mm];
+}
+
+/** Dirección (o normal) de EchoTwin en lus-sim y al revés: solo cambia el nombre de y y z (sin escala ni origen). */
+export function swapYZ(d: readonly [number, number, number]): [number, number, number] {
+  return [d[0], d[2], d[1]];
+}

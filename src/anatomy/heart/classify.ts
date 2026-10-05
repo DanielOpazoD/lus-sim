@@ -1,0 +1,80 @@
+import type { TissueSample } from './tissue';
+import { anchorsCached } from './anchors';
+import type { HeartModel } from './heartModel';
+import type { HeartPose } from './heartPose';
+import { ctx } from './classify/context';
+import { rootCoordinates } from './classify/root';
+import { classifyValves } from './classify/valves';
+import { classifyLeftVentricle } from './classify/leftVentricle';
+import { classifyAorticRoot } from './classify/aorticRoot';
+import { classifyAtria } from './classify/atria';
+import { classifyRightVentricle } from './classify/rightVentricle';
+import { classifyPericardium, posteriorColumnDistance } from './classify/pericardium';
+
+/**
+ * What a miss reports in `out.sdf` when the point lies outside the heart's bounding sphere: on a miss `out.sdf` is the
+ * distance (cm) from the point to the outside of the pericardial sac, which the thorax classifier uses to wrap the lungs
+ * around the heart (decision 144).
+ */
+export const FAR_FROM_HEART_CM = 99;
+
+/**
+ * Classify a heart-frame point. Writes into `out` and returns true when the point belongs to a
+ * cardiac structure (including pericardium/effusion); false when outside the heart.
+ *
+ * The blocks run in priority order and share a context (`classify/context.ts`): thin structures first
+ * (valves, annuli, chordae), then the left ventricle, the aortic root and curtain, the atria and veins, the
+ * right ventricle with its outflow, and last the pericardial sac around everything. `gpu/glslHeart.ts`
+ * mirrors the same order; `e2e/gpu-equivalence.spec.ts` compares the two.
+ */
+export function classifyHeart(
+  m: HeartModel,
+  hp: HeartPose,
+  x0: number,
+  y: number,
+  z: number,
+  out: TissueSample,
+): boolean {
+  out.segment = 0;
+  // swinging heart (tamponade): rigid translation of the whole heart inside the pericardial sac
+  const x = x0 - hp.swingX;
+  const bc = m.boundCenter;
+  const bdx = x - bc.x,
+    bdy = y - bc.y,
+    bdz = z - bc.z;
+  if (bdx * bdx + bdy * bdy + bdz * bdz > m.boundRadius * m.boundRadius) {
+    out.sdf = FAR_FROM_HEART_CM;
+    return false;
+  }
+
+  const c = ctx;
+  c.m = m;
+  c.hp = hp;
+  c.A = anchorsCached(m);
+  c.x = x;
+  c.y = y;
+  c.z = z;
+  c.out = out;
+  const A = c.A;
+  c.colDist = posteriorColumnDistance(
+    x0,
+    y,
+    z,
+    A.colU.x,
+    A.colU.y,
+    A.colU.z,
+    A.colAorta.x,
+    A.colAorta.y,
+    A.colAorta.z,
+    A.colSpine.x,
+    A.colSpine.y,
+    A.colSpine.z,
+  );
+  rootCoordinates(c);
+  if (classifyValves(c)) return true;
+  if (classifyLeftVentricle(c)) return true;
+  if (classifyAorticRoot(c)) return true;
+  if (classifyAtria(c)) return true;
+  if (classifyRightVentricle(c)) return true;
+  return classifyPericardium(c);
+}

@@ -51,6 +51,47 @@ export class GLProgram {
     return out;
   }
 
+  /**
+   * lus-sim (decisión 49): encarga un programa sin esperarlo. `ready()` dice, sin bloquear, si su enlace terminó
+   * (`COMPLETION_STATUS_KHR` de KHR_parallel_shader_compile; sin la extensión, siempre sí); `finish()` lo comprueba como
+   * `linkAll` (lanza con el registro si falló) y lo devuelve; `abandon()` lo libera sin comprobarlo.
+   */
+  static linkLater(
+    gl: WebGL2RenderingContext,
+    vert: string,
+    frag: string,
+    name: string,
+  ): { ready(): boolean; finish(): GLProgram; abandon(): void } {
+    const vs = shader(gl, gl.VERTEX_SHADER, vert);
+    const fs = shader(gl, gl.FRAGMENT_SHADER, frag);
+    const p = gl.createProgram();
+    if (!p) throw new Error('createProgram');
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    const ext = gl.getExtension('KHR_parallel_shader_compile') as { COMPLETION_STATUS_KHR: number } | null;
+    const drop = () => {
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+    };
+    return {
+      ready: () => !ext || gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR) === true,
+      finish: () => {
+        const error = gl.getProgramParameter(p, gl.LINK_STATUS) ? null : linkError(gl, { name, vs, fs, p }, vert, frag);
+        drop();
+        if (error) {
+          gl.deleteProgram(p);
+          throw error;
+        }
+        return new GLProgram(gl, p, name, fragmentOutputCount(frag));
+      },
+      abandon: () => {
+        drop();
+        gl.deleteProgram(p);
+      },
+    };
+  }
+
   use(): void {
     this.gl.useProgram(this.program);
   }
@@ -233,4 +274,26 @@ export function setActiveOutputs(gl: WebGL2RenderingContext, t: RenderTarget, n:
 
 export function drawFullscreen(gl: WebGL2RenderingContext): void {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/** lus-sim (decisión 49): textura 3D sin filtro (texelFetch) con sus datos o vacía. */
+export function texture3d(
+  gl: WebGL2RenderingContext,
+  w: number,
+  h: number,
+  d: number,
+  internal: number,
+  format: number,
+  type: number,
+  data: ArrayBufferView | null,
+): WebGLTexture {
+  const t = gl.createTexture();
+  if (!t) throw new Error('createTexture');
+  gl.bindTexture(gl.TEXTURE_3D, t);
+  for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, k, gl.NEAREST);
+  for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, k, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage3D(gl.TEXTURE_3D, 0, internal, w, h, d, 0, format, type, data);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  return t;
 }

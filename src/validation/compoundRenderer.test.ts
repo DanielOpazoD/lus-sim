@@ -18,6 +18,11 @@ import {
 } from '../ultrasound/shaders/passes.glsl';
 import { lookWavenumber } from '../ultrasound/steering';
 import { recordingGl } from './support/recordingGl';
+import { registerCardiac } from '../anatomy/organs/heart';
+
+// lus-sim (decisión 49): estas pruebas cuentan los dibujos y los enlaces de las pasadas; sin el corazón de EchoTwin, que el
+// renderizador hornea con su propio programa al llegar (lo prueban `cardiac.test.ts` y la e2e)
+registerCardiac(null);
 
 /**
  * Cableado de la composición espacial en el renderizador real sobre un WebGL falso (decisión 58): cada

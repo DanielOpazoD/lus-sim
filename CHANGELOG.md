@@ -7,6 +7,19 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El corazón de EchoTwin (49), fase 1: el del caso normal (cuatro cavidades, paredes, válvulas con sus cuerdas, raíz aórtica,
+  tronco pulmonar, venas cavas y pulmonares, pericardio), portado de `echotwin-tte@c15aec7` con procedencia, estático en
+  telediástole, con su gemelo GLSL y sus parámetros en una textura. Su eje es el del caso (Engblom); su ápex, el de Gray (5.º EIC,
+  ≈ 8 cm de la línea media, bajo la língula), y su pericardio, contra la pleura en la ventana de Latham, con un tapón de grasa de
+  hasta ≈ 10,8 mm (antes, 25 mm de miocardio). La conversión de marcos y unidades a EchoTwin, en `core/units.ts`. La ventana
+  cardiaca y la paraesternal izquierda muestran el ventrículo derecho, el tabique, el ventrículo izquierdo, la mitral y la aorta.
+  Va horneado: la GLSL de EchoTwin solo en el programa que escribe su volumen (vóxeles de 0,7 mm) y las pasadas leen el vóxel; con
+  su clasificador en cada programa, el primer dibujo de SwiftShader pasaba de 26 a 900 s. El horneado va por pasos de 30 capas
+  tras una valla, sin lecturas: 0,25 s con GPU y ≈ 42 s con SwiftShader, con la tarea más larga del hilo en 0,26 s y ≈ 13 s
+  (antes, el horneado de una vez paraba la página ≈ 46 s con SwiftShader); el corazón entra en la escena cuando su volumen está (la CPU y la GPU a la vez), y
+  si falla sale de la escena, se informa y no se reintenta. Va en su propio chunk (105,7 kB), que se carga tras construir la
+  sesión: la entrada pasa de 302,5 a 309,9 kB y el total a 971,7. Con GPU (M4) el cuadro de la ventana no cambia (7,2 ms; main
+  7,5); con SwiftShader, 266 ms. La e2e lo tiene salvo en las pruebas lejos de él (`?e2e=1&corazon=0`).
 - Los vasos del hilio del bazo y de los riñones (46): la arteria y la vena esplénicas entran en el bazo por la parte gástrica de su
   cara visceral y corren hacia la línea media por delante del riñón izquierdo; la arteria y la vena renales de cada lado salen del
   seno (la vena delante). Tubos de VExUS con su pared, anecoicos, con los calibres de la fuente (vena esplénica 6,6 mm por

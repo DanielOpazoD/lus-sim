@@ -152,6 +152,11 @@ export interface VolumeEquivalenceReport {
    */
   boundaryDistanceMaxErr: number;
   boundaryWorst: string;
+  /**
+   * Lo mismo dentro de la esfera del volumen del corazón de EchoTwin (lus-sim, decisión 49): su distancia se guarda en décimas de
+   * mm, y un redondeo en el borde de una décima (float32 en la GPU, float64 en la CPU) la cambia en una.
+   */
+  boundaryDistanceMaxErrHeart: number;
   /** Puntos interiores donde la distancia al borde de la CPU no es continua (`boundaryStable`) y no se compara. */
   boundaryUnstable: number;
   /** Puntos interiores por tejido (en la CPU), para ver que la prueba tiene dientes. */
@@ -205,7 +210,18 @@ export function volumeEquivalence(
   const faceCupola = new FaceTally();
   const apexMinZ = sim.scene.chestWall.apexMinZ;
   let bdMax = 0;
+  let bdMaxHeart = 0;
   let bdWorst = '';
+  const vol = sim.scene.heart.cardiac?.vol;
+  // dentro de la rejilla del volumen (no de su esfera, que abarca pulmón, pared y cúpula)
+  const inHeartVolume = (m: readonly number[]) => {
+    if (!vol) return false;
+    const r = [m[0] - vol.originMm[0], m[1] - vol.originMm[1], m[2] - vol.originMm[2]];
+    return [vol.ex, vol.ey, vol.ez].every((e, a) => {
+      const q = (r[0] * e[0] + r[1] * e[1] + r[2] * e[2]) / vol.voxelMm;
+      return q >= -1 && q <= vol.dims[a] + 1;
+    });
+  };
   let bdUnstable = 0;
   for (let i = 0; i < n; i++) {
     const p: [number, number, number] = [pts[i * 3], pts[i * 3 + 1], pts[i * 3 + 2]];
@@ -219,7 +235,8 @@ export function volumeEquivalence(
     if (cpuTissue === gpu.tissue[i]) {
       same++;
       const e = bdComparable ? Math.abs(Math.min(gpu.bd[i], BOUNDARY_RELEVANT_MM) - Math.min(q.boundaryDistance, BOUNDARY_RELEVANT_MM)) : 0;
-      if (e > bdMax) {
+      if (inHeartVolume(q.material)) bdMaxHeart = Math.max(bdMaxHeart, e);
+      else if (e > bdMax) {
         bdMax = e;
         bdWorst = `${Tissue[q.tissue]} en (${p.map((x) => x.toFixed(1)).join(', ')}): CPU ${q.boundaryDistance.toFixed(4)}, GPU ${gpu.bd[i].toFixed(4)} mm`;
       }
@@ -253,6 +270,7 @@ export function volumeEquivalence(
       .filter(Boolean)
       .join('; '),
     boundaryDistanceMaxErr: bdMax,
+    boundaryDistanceMaxErrHeart: bdMaxHeart,
     boundaryWorst: bdWorst,
     boundaryUnstable: bdUnstable,
     byTissue,

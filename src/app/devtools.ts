@@ -17,12 +17,17 @@ declare global {
   }
 }
 
-export function registerDevtools(getSim: () => Simulator, dispatch: (cmd: EquipmentCommand) => void): void {
+export function registerDevtools(
+  getSim: () => Simulator,
+  dispatch: (cmd: EquipmentCommand) => void,
+  ready: Promise<void> = Promise.resolve(),
+): void {
   if (import.meta.env.DEV || new URLSearchParams(location.search).has('e2e')) {
     // Carga diferida: el código de prueba no entra en el bundle principal
     // lus-sim (decisión 29): una carga fallida lo dice (antes la e2e solo veía 60 s sin ganchos)
-    import('./testHooks')
-      .then((m) => (window.__lusTest = m.createTestHooks(getSim, dispatch)))
+    // lus-sim (decisión 49): los ganchos llegan con el corazón de EchoTwin ya en la escena (`ready`)
+    Promise.all([import('./testHooks'), ready])
+      .then(([m]) => (window.__lusTest = m.createTestHooks(getSim, dispatch)))
       .catch((e: unknown) => console.error('devtools: no cargaron los ganchos de prueba (testHooks)', e));
   }
   if (!import.meta.env.DEV) return;

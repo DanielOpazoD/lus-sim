@@ -23,9 +23,11 @@ import {
   deleteTarget,
   drawFullscreen,
   setActiveOutputs,
+  texture3d,
   type RenderTarget,
   type TargetFormat,
 } from './gl';
+import type { HeartBakeJob } from './heartBake';
 import { GpuPassTimer, summarizeGpuTimings, type GpuFrameTimings } from './gpuTimer';
 import { RECEIVER_NOISE } from './receiver';
 import { ELEV_SIGMA0_MM, PLEURA_RT } from './pleura';
@@ -45,7 +47,8 @@ import { RIB_TABLE_BASE } from '../anatomy/organs/ribcage';
 import { CHEST_WALL_BASE } from '../anatomy/organs/chestWall';
 import { LUNG_BORDER_BASE } from '../anatomy/organs/lungBorder';
 import { HILUM_VESSEL_BASE, hilumVesselTable } from '../anatomy/organs/vessels';
-import { evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
+import { SCENE_SAMPLERS, evaluateSceneUniforms, uploadSceneUniforms, type SceneUniformValues } from '../anatomy/gpu/sceneUniforms';
+import { HEART_VOL_BASE, cardiacFailed, failCardiac, heartVolumeTable, type CardiacRuntime } from '../anatomy/organs/heart';
 import {
   FRAG_AXIAL,
   FRAG_BLIT,
@@ -369,6 +372,15 @@ export class UltrasoundRenderer {
   }
   /** Textura de datos de la escena (decisión 24): en lus-sim, solo la tabla de la compresión de la sonda. */
   private sceneTex: WebGLTexture;
+  /**
+   * lus-sim (decisión 49): el volumen del corazón de EchoTwin (RG8UI 3D), horneado en la GPU con su GLSL cuando el corazón llega
+   * (`bakeHeart`); 1 × 1 × 1 vacío hasta entonces. `heartBaked`, el corazón horneado; `heartBake`, el que se hornea.
+   */
+  private heartVol: WebGLTexture;
+  private heartBaked: CardiacRuntime | null = null;
+  private heartBake: HeartBake | null = null;
+  /** Tiempo (ms) del último horneado del corazón, de que se pide a que su última valla se cumple (con la compilación). */
+  heartBakeMs = 0;
   private sceneData = new Float32Array(SCENE_TEX_W * SCENE_TEX_H * 4);
   /** Tablas por tejido de 4 en 4 (`TISSUE_VEC4` vec4; el relleno tras el último tejido queda a 0). */
   private alpha = new Float32Array(TISSUE_VEC4 * 4);
@@ -519,6 +531,7 @@ export class UltrasoundRenderer {
     this.tMap = createTarget(gl, MAP_W, MAP_H, [{ internal: gl.RGBA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE, filter: gl.NEAREST }]);
     this.couplingTex = createTexture(gl, LINES, 1, gl.R32F, gl.RED, gl.FLOAT, gl.LINEAR);
     this.sceneTex = createTexture(gl, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+    this.heartVol = texture3d(gl, 1, 1, 1, gl.RG8UI, gl.RG_INTEGER, gl.UNSIGNED_BYTE, new Uint8Array(2));
     this.uploadSceneStatic();
   }
 
@@ -586,6 +599,9 @@ export class UltrasoundRenderer {
     if (this.tPersist) for (const t of this.tPersist) deleteTarget(gl, t);
     gl.deleteTexture(this.couplingTex);
     gl.deleteTexture(this.sceneTex);
+    this.endHeartBake(new HeartBakeAborted('el renderizador se cerró'));
+    gl.deleteTexture(this.heartVol);
+    this.heartBaked = null;
     if (this.mapPending) gl.deleteSync(this.mapPending.sync);
     if (this.mapPbo) gl.deleteBuffer(this.mapPbo);
     this.mapPending = null;
@@ -613,6 +629,9 @@ export class UltrasoundRenderer {
     this.sceneData.set(this.currentScene.chestWall.table, CHEST_WALL_BASE * 4);
     this.sceneData.set(this.currentScene.lungBorder.table, LUNG_BORDER_BASE * 4);
     this.sceneData.set(hilumVesselTable(this.currentScene.vessels, this.currentScene.vesselBounds), HILUM_VESSEL_BASE * 4);
+    // lus-sim (decisión 49): la rejilla del volumen del corazón, solo si es el horneado (ceros sin él o mientras se hornea)
+    const heart = this.currentScene.heart;
+    this.sceneData.set(heartVolumeTable(heart.cardiac === this.heartBaked ? heart : { ...heart, cardiac: null }), HEART_VOL_BASE * 4);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTex);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA, gl.FLOAT, this.sceneData);
     for (let i = 0; i < TISSUE_COUNT; i++) {
@@ -640,7 +659,95 @@ export class UltrasoundRenderer {
       this.sceneValuesCompression = inputs.compression;
     }
     uploadSceneUniforms(p, this.sceneValues);
-    p.tex('uSceneTex', 6, this.sceneTex);
+    p.tex('uSceneTex', SCENE_SAMPLERS.uSceneTex, this.sceneTex);
+    // lus-sim (decisión 49): el volumen del corazón de EchoTwin (3D, a mano: `GLProgram.tex` liga texturas 2D)
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0 + SCENE_SAMPLERS.uHeartVol);
+    gl.bindTexture(gl.TEXTURE_3D, this.heartVol);
+    p.i('uHeartVol', SCENE_SAMPLERS.uHeartVol);
+  }
+
+  /**
+   * El corazón de la escena cambió (decisión 49: llegó o se fue): la rejilla en la textura de escena y los uniforms del corazón (el
+   * tapón, la esfera de la base). Las miradas guardadas eran de la escena de antes; el cine y una imagen congelada se conservan.
+   */
+  heartChanged(): void {
+    this.sceneValuesFor = null;
+    this.ring.invalidate();
+    this.uploadSceneStatic();
+  }
+
+  /**
+   * Hornea el volumen del corazón de EchoTwin `c` (decisión 49) sin parar la página de una vez: el horneado (`heartBake.ts`, en su
+   * propio chunk, registrado con `registerHeartBaker`) da un paso en cada tarea, sin bloquear, y el volumen del renderizador se
+   * cambia al terminar. Se cumple cuando el volumen está en uso; si falla, el corazón sale de la escena y no se reintenta
+   * (`failCardiac`), y la promesa lo rechaza con su causa (quien lo pidió lo informa). `HeartBakeAborted` si se pidió otro corazón,
+   * se perdió el contexto o se cerró el renderizador.
+   */
+  bakeHeart(c: CardiacRuntime): Promise<void> {
+    if (c === this.heartBaked) return Promise.resolve();
+    if (cardiacFailed(c)) return Promise.reject(new Error('heartBake: el volumen de este corazón ya falló'));
+    if (this.heartBake?.c === c) return this.heartBake.promise;
+    this.endHeartBake(new HeartBakeAborted('se pidió otro corazón'));
+    if (!heartBaker) return Promise.reject(new Error('heartBake: el horneado no está registrado'));
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<void>((ok, ko) => {
+      resolve = ok;
+      reject = ko;
+    });
+    const b: HeartBake = { c, promise, resolve, reject, t0: performance.now(), job: heartBaker(this.gl, c), timer: null };
+    this.heartBake = b;
+    b.timer = setTimeout(() => this.stepHeartBake(b), 0);
+    return promise;
+  }
+
+  private stepHeartBake(b: HeartBake): void {
+    b.timer = null;
+    if (this.heartBake !== b) return;
+    if (this.gl.isContextLost()) return this.endHeartBake(new HeartBakeAborted('se perdió el contexto'));
+    let done: boolean;
+    try {
+      done = b.job.step();
+    } catch (e) {
+      return this.failHeartBake(b, e);
+    }
+    if (!done) {
+      b.timer = setTimeout(() => this.stepHeartBake(b), 0);
+      return;
+    }
+    // el volumen está entero: pasa a ser el del renderizador y, si es el de la escena, la imagen lo ve desde el cuadro siguiente
+    this.releaseHeartBake(b, false);
+    this.gl.deleteTexture(this.heartVol);
+    this.heartVol = b.job.volume;
+    this.heartBaked = b.c;
+    this.heartBakeMs = performance.now() - b.t0;
+    if (this.currentScene.heart.cardiac === b.c) this.heartChanged();
+    b.resolve();
+  }
+
+  /** El horneado falló: el corazón sale de la escena (la CPU, como la GPU, sin él) y no se reintenta. */
+  private failHeartBake(b: HeartBake, e: unknown): void {
+    this.releaseHeartBake(b, true);
+    const had = this.currentScene.heart.cardiac === b.c;
+    failCardiac(this.currentScene.heart, b.c);
+    if (had) this.heartChanged();
+    b.reject(e);
+  }
+
+  /** Corta el horneado en curso (si hay) sin culpar al corazón: se puede volver a pedir. */
+  private endHeartBake(reason: HeartBakeAborted): void {
+    const b = this.heartBake;
+    if (!b) return;
+    this.releaseHeartBake(b, true);
+    b.reject(reason);
+  }
+
+  private releaseHeartBake(b: HeartBake, dropVolume: boolean): void {
+    if (b.timer !== null) clearTimeout(b.timer);
+    b.timer = null;
+    if (this.heartBake === b) this.heartBake = null;
+    b.job.release(dropVolume);
   }
 
   /**
@@ -1767,5 +1874,34 @@ export class UltrasoundRenderer {
     const gray = new Uint8Array(width * height);
     for (let i = 0; i < width * height; i++) gray[i] = rgba[i * 4];
     return { width, height, gray };
+  }
+}
+
+/** Un horneado del volumen del corazón en curso (`UltrasoundRenderer.bakeHeart`). */
+interface HeartBake {
+  c: CardiacRuntime;
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (e: unknown) => void;
+  t0: number;
+  job: HeartBakeJob;
+  timer: ReturnType<typeof setTimeout> | null;
+}
+
+/** Lo que empieza un horneado del volumen del corazón (`heartBake.ts`, en su chunk). */
+export type HeartBaker = (gl: WebGL2RenderingContext, c: CardiacRuntime) => HeartBakeJob;
+
+let heartBaker: HeartBaker | null = null;
+
+/** Registra el horneado del corazón (decisión 49): la aplicación, cuando llega su chunk; las pruebas, al arrancar. */
+export function registerHeartBaker(baker: HeartBaker | null): void {
+  heartBaker = baker;
+}
+
+/** El horneado del corazón se cortó sin culpa del corazón (otro corazón, contexto perdido, renderizador cerrado). */
+export class HeartBakeAborted extends Error {
+  constructor(reason: string) {
+    super(`heartBake: ${reason}`);
+    this.name = 'HeartBakeAborted';
   }
 }

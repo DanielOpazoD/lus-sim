@@ -62,6 +62,12 @@
 // cada programa que clasifica, y el techo de la distancia a la frontera) lleva la entrada de 299,9 a 300,6 kB y el total de
 // 854,8 a 855,5. La entrada y el inicial suben a 310 kB y el total a 870: lo siguiente en la cola (los vasos del hilio
 // esplénico y renal) también va en cada programa.
+// 2026-10-04 (decisión 49): el corazón de EchoTwin (el modelo, la pose de telediástole, el clasificador portados, ≈ 5000 líneas de
+// TS, y el programa que hornea su volumen en la GPU, `ultrasound/heartBake.ts`) va en su propio chunk, `cardiacRuntime` (105,7 kB,
+// `app/cardiacRuntime.ts`), que la aplicación pide después de construir la sesión (el primer cuadro es el BLUE superior derecho, sin
+// corazón a la vista): diferido. La entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,9 kB (la lectura del
+// volumen en cada programa, la carga y el horneado por pasos que el renderizador lleva); el total, de 857,3 a 971,7. La entrada
+// y el inicial no cambian; el total sube a 980.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -74,8 +80,8 @@ const BUDGETS: Array<[RegExp, number]> = [
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
 const INITIAL_JS_BUDGET = 310 * KB;
-const TOTAL_JS_BUDGET = 870 * KB;
-const DEFERRED_JS = /^(?:thorax|frozenReview|coverage)-.*\.js$/;
+const TOTAL_JS_BUDGET = 980 * KB;
+const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

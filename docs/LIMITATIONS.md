@@ -84,21 +84,43 @@ conservan su identificador (decisiones 10 y 11).
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
   texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
   músculos del abdomen de VExUS.
-- **El corazón es un elipsoide estático** (`heart-simplified`, decisión 18): miocardio con una sola cavidad de sangre, su
-  ápex donde lo pone Gray (5.º EIC, 9 cm de la línea media, 10 mm por dentro de la pleura: la língula) y un tapón de
-  miocardio que lo une a la pared en el disco de la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea
-  media en el 5.º EIC; un elipsoide que tocara la pared dejaría una ventana alargada de lado a lado). No late: su
-  latido solo mueve el pulmón de alrededor (el pulso pulmonar, decisión 32: el deslizamiento tangente a la pared de un campo
-  que sigue a la cara del corazón, con su alcance estimado) y no el corazón en la ventana, que sigue quieto, ni el borde del
-  pulmón ni el de la ventana; su pericardio no tiene cara propia y el
-  borde de la ventana es duro (sin el volumen parcial de la cortina), aunque el pulmón que la rodea es una cuña fina sobre el
-  corazón (una franja de 25 mm donde el corazón llega a la lámina de la cortina [SUPUESTO]). El corazón, con su tapón y su
-  franja, no se mueve con la respiración (el campo respiratorio vuelve a su valor a 50 mm [SUPUESTO]), y la ventana no se
-  achica al inspirar (en el paciente real el pulmón se interpone y la tapa en parte; la e2e exige hoy que no cambie). En la ventana el
-  miocardio mide hasta 25 mm antes de la cavidad (el tapón; el ventrículo derecho real, ≈ 5 mm); la cara inferior, cortada
-  por la cúpula, es pared de 10 mm. Fuera del corazón, todo el tórax sobre las cúpulas
-  sigue siendo pulmón: sin mediastino, grandes vasos, timo ni esófago. Largo, ancho, grosor, orientación y paredes son
-  [SUPUESTO] (la base no los da).
+- **El corazón es el de EchoTwin, estático en telediástole** (`heart-simplified`, decisiones 18 y 49): el del caso normal de
+  EchoTwin (`echotwin-tte@c15aec7`, sus cuatro cavidades, paredes, válvulas, raíz aórtica, tronco pulmonar, venas y pericardio),
+  con el eje de Engblom, su ápex donde lo pone Gray (5.º EIC, ≈ 8 cm de la línea media, por dentro de la pleura: la língula) y su
+  pericardio contra la pleura en la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea media en el 5.º EIC),
+  con un tapón de grasa de hasta ≈ 10,8 mm donde el corazón se aleja de la pared bajo el disco. Lo que falta:
+  - **No late** (la fase 2, con el reloj único y el pulso pulmonar del mismo volumen): está en el comienzo del QRS de su latido
+    de 65 lpm; su latido solo mueve el pulmón de alrededor (el pulso pulmonar, decisión 32, que sigue a la cara del elipsoide de
+    la decisión 18, no a la del corazón) y no el corazón en la ventana, ni el borde del pulmón ni el de la ventana.
+  - **No respira**: el elipsoide con su tapón y una esfera que cubre la base (78 mm de radio, rampa de 50 mm [SUPUESTO]) no se
+    mueven con el campo respiratorio; el pulmón junto a la base tampoco. La ventana no se achica al inspirar.
+  - **La cúpula de lus-sim lo corta**: ≈ 70 mL de lo que EchoTwin pone bajo el corazón (la cara inferior de los ventrículos y la
+    cava inferior) quedan bajo el diafragma de lus-sim y son del abdomen; la sangre llega al diafragma en esa cara (en EchoTwin el
+    diafragma se ajusta al corazón, su decisión 229).
+  - **La ventana es el disco de Latham**: fuera de él la lámina de la cortina (3 mm) gana al corazón, que la cara anterior del
+    ventrículo derecho llega a tocar en un anillo de hasta ≈ 4 cm alrededor del disco (≤ 1,7 mm por dentro de la pleura): ahí el
+    corazón pierde su capa más anterior bajo la lámina de pulmón.
+  - **Sin caras propias**: el pericardio, las válvulas y el endocardio dan su eco por el tejido (los de lus-sim: el pericardio y
+    los anillos fibrosos, el ligamento venoso; valvas, cuerdas y paredes de vasos, la pared arterial; no caben tejidos nuevos),
+    sin el eco especular de EchoTwin ni la anisotropía de sus fibras; la distancia a la frontera de la sangre no cuenta las
+    valvas ni las cuerdas que flotan en ella.
+  - **Horneado en vóxeles de 0,7 mm**: la imagen y su gemela TS leen lo que el clasificador de EchoTwin dice en el centro de cada
+    vóxel de una rejilla en el marco del corazón (una textura RG8UI 3D de 206 × 198 × 238, ≈ 19 MB), no el clasificador en cada
+    muestra: las fronteras tienen escalones de 0,7 mm (por debajo de la PSF del preajuste) y lo más fino que un vóxel se pierde.
+    Medido por la revisión, sobre los puntos de cada estructura: las cuerdas tendinosas desaparecen del todo (0 de 287), del
+    anillo tricuspídeo queda el 0,7 %, de la válvula mitral el 50 % y de las cúspides aórticas el 62,5 %. La distancia a la
+    frontera se guarda en décimas de mm, menos dos semidiagonales del vóxel y con un tope de 2 mm, y no es una cota (la de
+    EchoTwin no cuenta las valvas que flotan en la sangre ni los vasos fuera del saco): no se usa como tal, porque dentro de la
+    rejilla la pasada B reclasifica toda muestra de elevación. El clasificador entero en cada programa de la imagen llevaba el
+    primer dibujo de SwiftShader de 26 a 900 s (A0) y de 47 a 756 s (B).
+  - **Llega después del primer cuadro**: va en su propio chunk; colocarlo cuesta ≈ 0,1 s en el hilo y hornearlo, por pasos de
+    30 capas tras una valla, ≈ 0,25 s con GPU y ≈ 42 s con SwiftShader; hasta que el volumen está, la ventana no tiene corazón
+    ni tapón. Con GPU la página no lo nota (su tarea más larga, 0,26 s); con SwiftShader aún se para hasta ≈ 13 s de una vez
+    (main ≈ 5–6), con la compilación del programa del horneado. Si el horneado falla, el corazón no vuelve hasta recargar. Las pruebas e2e lejos del corazón lo apagan
+    (`?e2e=1&corazon=0`) y miran una escena que producción solo tiene unos instantes.
+  - Fuera del corazón y de sus vasos, el tórax sobre las cúpulas sigue siendo pulmón: sin el resto del mediastino (timo,
+    esófago, aorta descendente, que el corazón sí rodea), ni el tórax de EchoTwin. El elipsoide de la decisión 18 sigue con sus
+    dimensiones [SUPUESTO] como envoltura del pulso pulmonar y de la franja.
 - **Los bordes del pulmón son una tabla por columna, la misma a los dos lados** (`lung-border-table`, decisión 18): el borde
   en FRC y la reflexión pleural se anclan en la paraesternal, la LMC, la LAM y la paravertebral (Gray) y se interpolan
   entre ellas; sin el receso costomediastínico izquierdo (Choi) ni diferencia entre los dos lados salvo la ventana

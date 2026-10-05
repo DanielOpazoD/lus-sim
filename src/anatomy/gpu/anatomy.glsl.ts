@@ -22,7 +22,9 @@
  *   téxel (borde del pulmón en FRC, reflexión pleural, grosor de la pared en el borde, altura a la que se apaga el
  *   deslizamiento: decisión 19);
  *   tabla de los vasos del hilio desde HILUM_VESSEL_BASE (decisión 46, `organs/vessels.ts`): por vaso, su cabecera, su esfera
- *   envolvente y sus nodos
+ *   envolvente y sus nodos;
+ *   la rejilla del volumen del corazón de EchoTwin desde HEART_VOL_BASE (decisión 49, `organs/heart.ts`): su esfera envolvente, su
+ *   origen con el lado del vóxel y sus tres ejes (el volumen, en `uHeartVol`)
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, TISSUE_GLSL_NAME } from '../tissues';
 import { SPLEEN } from '../organs/spleen';
@@ -39,14 +41,15 @@ import { COMPRESSION_GLSL, PROBE_COMPRESSION } from '../compression';
 import { RESPIRATORY_INVERSE } from '../deformation';
 import { ORGAN_MODULES } from '../organs';
 import { RIB_TABLE_BASE } from '../organs/ribcage';
-import { HILUM_VESSELS_GLSL, HILUM_VESSEL_BASE, HILUM_VESSEL_TEXELS } from '../organs/vessels';
+import { HILUM_VESSELS_GLSL } from '../organs/vessels';
+import { HEART_VOL_BASE, HEART_VOL_TEXELS } from '../organs/heart';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
 export const COMPRESSION_BASE = 0;
 if (RIB_TABLE_BASE < COMPRESSION_BASE + PROBE_COMPRESSION.nodes) throw new Error('la tabla costal pisa la de la compresión');
-export const SCENE_TEX_H = Math.ceil((HILUM_VESSEL_BASE + HILUM_VESSEL_TEXELS) / SCENE_TEX_W);
+export const SCENE_TEX_H = Math.ceil((HEART_VOL_BASE + HEART_VOL_TEXELS) / SCENE_TEX_W);
 export { MAX_RIBS } from './sceneUniforms';
 
 const TISSUE_DEFINES = Object.entries(TISSUE_GLSL_NAME)
@@ -423,26 +426,22 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   // lus-sim (decisión 18): el arco de la muestra (el de classifyWall: lo calcula donde lo miran el tapón de la ventana
   // cardiaca, la lámina de la cortina, la ZOA y la cota de su cara para el «resto»; más hondo, ninguno depende de él)
   float inside = -depth - wall;
-  // El corazón y el tapón de la ventana (organs/heart.ts), sobre la cúpula (se apoya en ella)
-  bool blood;
-  float dHeart = heartDistance(m, inside, u, blood);
-  if (dHeart >= 0.0) {
+  // El corazón (organs/heart.ts; decisión 49: el de EchoTwin, y el tapón y la franja de grasa), sobre la cúpula (se apoya en
+  // ella); bajo la cúpula, lo que el corazón tendría ahí es del abdomen, con distancia a la frontera 0
+  float hD;
+  float clear;
+  int hT = heartQuery(m, inside, u, hD, clear);
+  // Cortina pulmonar (módulo de órgano: anatomy/organs/lungCurtain.ts; decisión 18, los dos hemitórax); decisión 49: fuera del
+  // disco de la ventana la lámina gana al corazón
+  float dCurtain = withCurtain ? lungCurtainDistance(m, inside, u) : -1.0;
+  bool sheet = dCurtain >= 0.0 && heartWindowDistance(u, m.z) >= 0.0;
+  if (hT >= 0 && !sheet) {
     vec3 hn;
     float dHeartDome = sdDome(m, hn);
-    if (dHeartDome < 0.0) {
-      // la cúpula corta el corazón: su cara inferior es pared (la cavidad no llega al diafragma)
-      float floorD = -dHeartDome - HEART_SIDE_WALL;
-      if (blood && floorD > 0.0) { c.tissue = T_BLOOD; c.bd = min(dHeart, floorD); c.n = tn; return c; }
-      c.tissue = T_MYOCARDIUM; c.bd = blood ? min(-floorD, -dHeartDome) : min(min(dHeart, -dHeartDome), abs(floorD)); c.n = tn;
-      return c;
-    }
+    if (dHeartDome < 0.0) { c.tissue = hT; c.bd = min(hD, -dHeartDome); c.n = tn; return c; }
   }
-  float clear = heartClearance(m, inside, u);
-  // Cortina pulmonar (módulo de órgano: anatomy/organs/lungCurtain.ts; decisión 18, los dos hemitórax)
-  if (withCurtain) {
-    float dCurtain = lungCurtainDistance(m, inside, u);
-    if (dCurtain >= 0.0) { c.tissue = T_LUNG; c.bd = min(dCurtain, clear); c.n = torsoNormal(m); return c; }
-  }
+  if (hT >= 0) clear = 0.0;
+  if (dCurtain >= 0.0) { c.tissue = T_LUNG; c.bd = min(dCurtain, clear); c.n = torsoNormal(m); return c; }
   // La zona de aposición (decisión 18, organs/lungBorder.ts): el diafragma contra la pared bajo el borde del pulmón; su
   // mitad de dentro dibuja la cara abdominal con la normal de la pared (c.kc = 1: faceGradient la distingue de la cúpula)
   float dZoa = zoaDistance(m, inside, u);

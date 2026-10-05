@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 async function boot(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/?e2e=1');
+  await page.goto('/?e2e=1&corazon=0');
   await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
   const toggle = page.locator('#navigator-toggle');
   if ((await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();

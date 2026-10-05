@@ -10,7 +10,7 @@ async function boot(page: Page): Promise<string[]> {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
   });
-  await page.goto('/?e2e=1');
+  await page.goto('/?e2e=1&corazon=0');
   await expect(page.locator('#status')).toContainText(/\d+ fps/, { timeout: 120_000 });
   await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 60_000 }).toBe('object');
   return errors;

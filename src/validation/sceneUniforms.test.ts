@@ -22,7 +22,7 @@ import {
  * sonda; el esquema es el del tórax (sin los uniforms del hígado, la vesícula, la aurícula, el gas ni los riñones).
  */
 const body = ANATOMY_GLSL.replace(SCENE_UNIFORMS_GLSL, '');
-const declared = new Set([...SCENE_UNIFORMS.map((u) => u.name), 'uSceneTex']);
+const declared = new Set([...SCENE_UNIFORMS.map((u) => u.name), 'uSceneTex', 'uHeartVol']);
 
 describe('Esquema de uniforms de la escena', () => {
   it('ANATOMY_GLSL no contiene declaraciones de uniform escritas a mano', () => {

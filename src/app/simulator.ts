@@ -3,6 +3,8 @@ import type { AcquisitionState } from '../ultrasound/cine';
 import type { ProbeCompression } from '../anatomy/compression';
 import { AnatomyQuery } from '../anatomy/query';
 import { AnatomyScene } from '../anatomy/scene';
+import { attachCardiac, type CardiacAttach, type Heart } from '../anatomy/organs/heart';
+import { errorLog } from './errorLog';
 import { PhysiologyEngine, type PhysiologySample } from '../physiology/engine';
 import type { PatientState } from '../physiology/patientState';
 import { probeContact, type ProbeContact } from '../probe/contact';
@@ -17,7 +19,14 @@ import {
 import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 import type { Vec3 } from '../core/vec3';
 import { clampPose, defaultPose, type ProbeFrame, type ProbePose, type Transducer } from '../probe/probe';
-import { DEFAULT_BMODE, UltrasoundRenderer, type BModeSettings, type GpuPointQuery, type PassRepeat } from '../ultrasound/renderer';
+import {
+  DEFAULT_BMODE,
+  HeartBakeAborted,
+  UltrasoundRenderer,
+  type BModeSettings,
+  type GpuPointQuery,
+  type PassRepeat,
+} from '../ultrasound/renderer';
 
 /** Misma pose, campo a campo (el contacto se reutiliza con la sonda quieta). */
 function samePose(a: ProbePose, b: ProbePose): boolean {
@@ -107,6 +116,44 @@ export class Simulator {
     this.applyOperator();
     if (renderer) renderer.setScene(this.scene);
     this.renderer = renderer ?? new UltrasoundRenderer(canvas, this.scene, this.profile);
+    this.bakeSceneHeart();
+  }
+
+  /**
+   * El corazón de EchoTwin llegó en su chunk (decisión 49): se coloca aparte, el renderizador hornea su volumen y, cuando lo tiene,
+   * entra en la escena (la CPU y la GPU lo ven a la vez). Las escenas que se construyan después lo traen desde el constructor
+   * (`registerCardiac`), con el volumen ya horneado. Si el horneado falla, la promesa lo rechaza y la escena sigue sin él.
+   */
+  attachCardiac(attach: CardiacAttach): Promise<void> {
+    this.cardiacAttach = attach;
+    const h = this.scene.heart;
+    if (h.cardiac) return this.renderer.bakeHeart(h.cardiac);
+    const placed: Heart = { ...h };
+    attachCardiac(placed, this.scene.torso, this.scene.ribCage, attach);
+    const c = placed.cardiac;
+    if (!c) return Promise.resolve();
+    return this.renderer.bakeHeart(c).then(() => {
+      if (h.cardiac) return;
+      h.cardiac = c;
+      h.plugDepthMm = placed.plugDepthMm;
+      h.base = placed.base;
+      if (this.renderer.scene === this.scene) this.renderer.heartChanged();
+    });
+  }
+
+  /** Lo que coloca el corazón de EchoTwin, una vez llegado (para volver a pedirlo tras perder el contexto). */
+  private cardiacAttach: CardiacAttach | null = null;
+
+  /**
+   * El volumen del corazón de la escena en el renderizador (uno nuevo, el de otro simulador): mientras se hornea, la GPU ve la
+   * escena sin él. Un fallo se informa; el corazón sale de la escena (`failCardiac`).
+   */
+  private bakeSceneHeart(): void {
+    const c = this.scene.heart.cardiac;
+    const done = c ? this.renderer.bakeHeart(c) : this.cardiacAttach ? this.attachCardiac(this.cardiacAttach) : null;
+    done?.catch((e: unknown) => {
+      if (!(e instanceof HeartBakeAborted)) errorLog.report('gpu', e);
+    });
   }
 
   // Ajustes de solo lectura: se cambian con comandos (`EquipmentController`), nunca en sitio
@@ -183,6 +230,7 @@ export class Simulator {
    */
   rebuildRenderer(canvas: HTMLCanvasElement): void {
     this.renderer = new UltrasoundRenderer(canvas, this.scene, this.profile);
+    this.bakeSceneHeart();
   }
 
   /**

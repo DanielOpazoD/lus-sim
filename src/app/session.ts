@@ -2,7 +2,9 @@ import { C_RECONSTRUCTION_MM_S } from '../core/units';
 import { defaultPatient, type PatientState } from '../physiology/patientState';
 import { EquipmentController } from './equipment';
 import { errorLog } from './errorLog';
+import { registerCardiac } from '../anatomy/organs/heart';
 import { Simulator, defaultEquipment } from './simulator';
+import { HeartBakeAborted, registerHeartBaker } from '../ultrasound/renderer';
 
 /**
  * Sesión de simulación (Fase 1): dueña del `Simulator` vivo y del estado del equipo, que
@@ -33,6 +35,27 @@ export class SimulationSession {
     this.equipment.subscribe((next) => {
       this.current.equipment = next;
     });
+  }
+
+  /**
+   * Carga el corazón de EchoTwin en su propio chunk (decisión 49) y lo pone en el simulador vivo y en los que vengan. La aplicación
+   * lo pide tras construir la sesión (el primer cuadro es el BLUE superior derecho, sin corazón a la vista); un fallo lo dice.
+   */
+  loadCardiac(): Promise<void> {
+    // el corazón y su horneado, en un chunk diferido (`app/cardiacRuntime.ts`)
+    return import('./cardiacRuntime').then(
+      (m) => {
+        registerHeartBaker(m.startHeartBake);
+        registerCardiac(m.attachEchoTwinHeart);
+        // se cumple con el volumen horneado y el corazón en la escena; un horneado fallido se informa y la escena sigue sin él
+        return this.current.attachCardiac(m.attachEchoTwinHeart).catch((e: unknown) => {
+          if (!(e instanceof HeartBakeAborted)) errorLog.report('gpu', e);
+        });
+      },
+      (e: unknown) => {
+        errorLog.report('caso', e);
+      },
+    );
   }
 
   get sim(): Simulator {

@@ -15,7 +15,7 @@ async function boot(page: Page): Promise<string[]> {
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
   });
-  await page.goto('/?e2e=1');
+  await page.goto('/?e2e=1&corazon=0');
   await expect(page).toHaveTitle(/lus-sim/);
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
