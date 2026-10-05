@@ -250,10 +250,14 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   // La parrilla costal (lus-sim, decisión 16, organs/ribcage.ts), antes de la grasa subcutánea donde puede llegar (la
   // grasa no la corta): el esternón y las costillas del lado de la muestra; el hueso más cercano da la cortical al tejido
   // blando de fuera, el cartílago su pericondrio
+  // lus-sim (decisión 50): los vasos subclavios, en la pared sobre la clavícula (el hueso gana; su distancia cuenta la de ellos)
+  float subOut = 1e3;
+  Cls tc = c;
+  bool inTube = d < wall && m.z > uCupola.y - HV_SUBCLAVIAN_GATE && classifyTubes(m, tc, subOut, HV_COUNT, HV_COUNT + HV_SUBCLAVIAN);
   float inD; bool cart; float ribD; int ribI; float ribAny;
   int ri = ribScan(m, d, u, wall, inD, cart, ribD, ribI, ribAny);
   if (ri >= 0) {
-    c.tissue = cart ? T_CARTILAGE : T_BONE; c.bd = -inD;
+    c.tissue = cart ? T_CARTILAGE : T_BONE; c.bd = min(-inD, subOut);
     c.n = normalize(vec3(-tn.xy * sign(d - ribCenterDepth(m)), 0.0) + vec3(0.0, 0.0, 1e-4));
     if (cart) { c.iface = IF_PERICHONDRIUM; c.ifd = -inD; c.tangent = ribTangent(m, ri); c.kc = ribCurvature(m, ri); }
     return true;
@@ -261,14 +265,17 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
   // lus-sim (decisión 29): la columna dentro de la pared de la espalda, las espinosas y la cara posterior del arco (gemelo:
   // classifyWall)
   if (spn < 0.0) { c.tissue = T_VERTEBRA; c.bd = -spn; c.n = tn; return true; }
+  if (inTube) { c = tc; return true; }
   if (d < wall) {
     // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, músculo sin caras
     // (gemelo: classifyWall de AnatomyScene)
     float cup = wallCupolaMm(u, m.z);
-    if (cup >= CUPOLA_CAP && d >= wall - cup) {
+    // (decisión 50) desde la pared del tórax sin la depresión de la fosa: lo que hay encima son las capas del cuello
+    float roofTop = wall - cup + wallFossaMm(u, m.z);
+    if (cup >= CUPOLA_CAP && d >= roofTop) {
       // (decisión 44) y el techo de la cúpula, horizontal en zTop desde la profundidad D de su ladera
       c.tissue = T_MUSCLE;
-      c.bd = min(min(min(min(d - (wall - cup), ribAny / 1.1), spn), wallCupolaBd(u, m.z)), wallCupolaRoofBd(u, m.z, d - (wall - cup)));
+      c.bd = min(min(min(min(min(d - roofTop, ribAny / 1.1), spn), wallCupolaBd(u, m.z)), wallCupolaRoofBd(u, m.z, d - roofTop)), subOut);
       c.n = tn;
       return true;
     }
@@ -278,7 +285,7 @@ bool classifyWall(vec3 m, out Cls c, out float depth, out vec3 tn, out float wal
     c.bd = d < wd.y ? min(d - skin, wd.y - d) : (d < wd.z ? min(d - wd.y, wd.z - d) : min(d - wd.z, wall - d));
     c.bd = min(min(c.bd, ribAny / 1.1), spn);
     // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (wallCupolaBd)
-    c.bd = min(c.bd, wallCupolaBd(u, m.z));
+    c.bd = min(min(c.bd, wallCupolaBd(u, m.z)), subOut);
     c.n = tn;
     vec2 wf = wallFace(d, u, m.z, ribD);
     c.iface = int(wf.x + 0.5); c.ifd = wf.y;
@@ -467,7 +474,7 @@ Cls classifyWith(vec3 m, bool withCurtain) {
   // profundidad bajo la pared exactos (classifyWall no los lee más hondo que su cota: u = 0)
   // lus-sim (decisión 46): los vasos del hilio ganan a los órganos; fuera, la distancia a su pared cuenta en la de los demás
   float tubeOut;
-  if (classifyTubes(m, c, tubeOut)) return c;
+  if (classifyTubes(m, c, tubeOut, 0, HV_COUNT)) return c;
   float dOut;
   float perirenal;
   if (classifyOrgans(m, dDome - DIAPHRAGM_MM, depth, u, inside, dSpine, tn, c, dOut, perirenal)) { c.bd = min(c.bd, tubeOut); return c; }

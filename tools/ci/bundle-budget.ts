@@ -68,6 +68,10 @@
 // corazón a la vista): diferido. La entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,5 kB (la lectura del
 // volumen en cada programa, la carga y el horneado por pasos que el renderizador lleva); el total, de 857,3 a 971,8. La entrada
 // y el inicial no cambian; el total sube a 980.
+// 2026-10-05 (decisión 50): la fosa supraclavicular (`anatomy/organs/supraclavicular.ts`, sus capas del cuello y su depresión en la
+// pared, con sus gemelos GLSL en cada programa que clasifica) y los vasos subclavios (en la tabla de los del hilio, con la pared que
+// los mira) llevan la entrada con el chunk compartido de 309,5 a 315,4 kB y el total de 971,8 a 977,7. La entrada y el inicial suben
+// a 320 kB y el total a 990.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -75,12 +79,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 310 * KB],
+  [/index-.*\.js$/, 320 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 310 * KB;
-const TOTAL_JS_BUDGET = 980 * KB;
+const INITIAL_JS_BUDGET = 320 * KB;
+const TOTAL_JS_BUDGET = 990 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

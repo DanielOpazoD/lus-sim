@@ -217,7 +217,12 @@ export function probeCenterContent(
     2 * depthMm,
   );
   const pointAt = (r: number) => material(pointOnLine(contact.frame, tr, 0, r));
-  const at = (r: number) => scene.classify(pointAt(r), instant).tissue;
+  // lus-sim (decisión 50): un vaso (su luz y su pared) deja pasar el haz como las partes blandas: la sangre del corazón no es
+  // de un vaso
+  const at = (r: number) => {
+    const c = scene.classify(pointAt(r), instant);
+    return c.vesselHit ? Tissue.Muscle : c.tissue;
+  };
   const none: CenterContent = { content: 'none', organ: null, stomach: false, pleuraMm: null };
   // el órgano en r: el tejido y si es el estómago (su pared y su luz)
   const below = (r: number): CenterContent => {

@@ -14,6 +14,7 @@ import { LUNG_BORDER, LUNG_SLIDING } from '../anatomy/organs/lungBorder';
 import { CLAVICLE, RIBCAGE, SCAPULA } from '../anatomy/organs/ribcage';
 import { SPINE } from '../anatomy/organs/spine';
 import { LUNG_APEX } from '../anatomy/organs/lungApex';
+import { SUPRACLAVICULAR } from '../anatomy/organs/supraclavicular';
 import { SCAPULAR_LINE, THORAX_LINES } from '../anatomy/thoraxLines';
 import { COVERAGE } from '../app/coverage';
 import { TORSO } from '../anatomy/scene';
@@ -40,6 +41,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   SCAPULA,
   SPINE,
   LUNG_APEX,
+  SUPRACLAVICULAR,
   THORAX_LINES,
   SCAPULAR_LINE,
   CHEST_WALL,

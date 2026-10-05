@@ -11,6 +11,7 @@ import {
   HILUM_VESSEL_COUNT,
   HILUM_VESSEL_MAX_NODES,
   HILUM_VESSEL_STRIDE,
+  VESSEL_TABLE_COUNT,
   hilumVesselTable,
   type HilumVessel,
 } from '../anatomy/organs/vessels';
@@ -24,6 +25,8 @@ import type { Vec3 } from '../core/vec3';
 const P = HILUM_VESSELS.params;
 const scene = new AnatomyScene(defaultPatient());
 const byId = (s: AnatomyScene, id: HilumVessel['id']) => s.vessels.find((v) => v.id === id)!;
+/** Los vasos del hilio de la escena: los primeros de la tabla (tras ellos, desde la decisión 50, los subclavios). */
+const hil = (s: AnatomyScene) => s.vessels.slice(0, HILUM_VESSEL_COUNT);
 
 // Los riñones no cambian con el hábito (decisión 43: la profundidad de Xue): los renales son el mismo caso en los seis; los esplénicos
 // siguen al bazo, que sí cambia
@@ -56,10 +59,12 @@ function axisSamples(v: HilumVessel, step = 1): Array<{ p: Vec3; r: number; seg:
 
 describe('Los vasos del hilio (decisión 46)', () => {
   it('seis vasos con los calibres de la fuente: la vena esplénica 6,6 mm, la arteria 4 en el hilio, las renales 4,9 / 9,4 / 10', () => {
-    expect(scene.vessels.map((v) => v.id).sort()).toEqual(
-      ['renalArteryLeft', 'renalArteryRight', 'renalVeinLeft', 'renalVeinRight', 'splenicArtery', 'splenicVein'].sort(),
-    );
-    expect(scene.vessels.length).toBe(HILUM_VESSEL_COUNT);
+    expect(
+      hil(scene)
+        .map((v) => v.id)
+        .sort(),
+    ).toEqual(['renalArteryLeft', 'renalArteryRight', 'renalVeinLeft', 'renalVeinRight', 'splenicArtery', 'splenicVein'].sort());
+    expect(scene.vessels.length).toBe(VESSEL_TABLE_COUNT);
     const maxR = (id: HilumVessel['id']) => Math.max(...byId(scene, id).tube.nodes.map((n) => n.r));
     expect(maxR('splenicVein')).toBeCloseTo(P.splenicVeinRadiusMm.value, 6);
     expect(byId(scene, 'splenicArtery').tube.nodes[0].r).toBeCloseTo(P.splenicArteryRadiusHilumMm.value, 6);
@@ -67,7 +72,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
     expect(maxR('renalVeinLeft')).toBeCloseTo(P.renalVeinLeftRadiusMm.value, 6);
     expect(maxR('renalVeinRight')).toBeCloseTo(P.renalVeinRightRadiusMm.value, 6);
     // las venas, de pared fina; la luz, sangre
-    for (const v of scene.vessels) {
+    for (const v of hil(scene)) {
       expect(v.wallTissue).toBe(v.lumenInterface === Interface.VeinLumen ? Tissue.VesselWallThin : Tissue.ArteryWall);
       expect(v.tube.nodes.length).toBeLessThanOrEqual(HILUM_VESSEL_MAX_NODES);
       // el extremo medial, ciego, más estrecho (el vaso sale del modelo)
@@ -79,7 +84,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
 
   it('el eje de cada vaso es sangre y su pared rodea la luz, en los seis hábitos', () => {
     for (const { tag, scene: s } of HABITS)
-      for (const v of s.vessels)
+      for (const v of hil(s))
         for (const { p, r } of axisSamples(v, 2)) {
           const c = s.classify(p, BASELINE_INSTANT);
           expect(c.tissue, `${tag} ${v.id} (${p.map((x) => x.toFixed(1)).join(', ')})`).toBe(Tissue.Blood);
@@ -139,7 +144,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
       Tissue.RenalPelvis,
     ]);
     for (const { tag, scene: s } of HABITS)
-      for (const v of s.vessels) {
+      for (const v of hil(s)) {
         const hits: string[] = [];
         for (const { p, r, seg } of axisSamples(v, 1)) {
           // un anillo justo fuera de la pared, en el plano normal al eje
@@ -181,7 +186,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
 
   it('la tabla de la GPU: cabecera, esfera envolvente y nodos de cada vaso; el gemelo GLSL va en la anatomía', () => {
     const t = hilumVesselTable(scene.vessels, scene.vesselBounds);
-    expect(t.length).toBe(HILUM_VESSEL_COUNT * HILUM_VESSEL_STRIDE * 4);
+    expect(t.length).toBe(VESSEL_TABLE_COUNT * HILUM_VESSEL_STRIDE * 4);
     scene.vessels.forEach((v, i) => {
       const o = i * HILUM_VESSEL_STRIDE * 4;
       expect(t[o]).toBe(v.tube.nodes.length);
@@ -191,7 +196,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
       const last = v.tube.nodes.length - 1;
       expect(t[o + 8 + 4 * last + 3]).toBeCloseTo(v.tube.nodes[last].r, 5);
     });
-    expect(ANATOMY_GLSL).toContain('if (classifyTubes(m, c, tubeOut)) return c;');
+    expect(ANATOMY_GLSL).toContain('if (classifyTubes(m, c, tubeOut, 0, HV_COUNT)) return c;');
     // la distancia a la pared de los vasos, en la de los órganos y en la del «resto»; el gemelo de tubeQuery con su estrechamiento
     expect(ANATOMY_GLSL).toContain('perirenal)) { c.bd = min(c.bd, tubeOut); return c; }');
     expect(ANATOMY_GLSL).toContain('dOut = min(dOut, sd - h0.y);');
@@ -210,11 +215,14 @@ describe('Los vasos del hilio (decisión 46)', () => {
       return state / 4294967296;
     };
     let outside = 0;
-    for (const v of scene.vessels)
+    scene.vessels.forEach((v, vi) => {
       for (const { p } of axisSamples(v, 3))
         for (let k = 0; k < 12; k++) {
           const q: Vec3 = [p[0] + 40 * (rnd() - 0.5), p[1] + 40 * (rnd() - 0.5), p[2] + 40 * (rnd() - 0.5)];
           const c = scene.classify(q, BASELINE_INSTANT);
+          // junto a los subclavios (decisión 50), ni el aire (la GPU no lo muestrea) ni el pulmón (su distancia no cuenta la pleura, que
+          // dibuja la pasada A, y la arteria va sobre ella, más lejos): solo ahí
+          if (vi >= HILUM_VESSEL_COUNT && (c.tissue === Tissue.Air || c.tissue === Tissue.Lung)) continue;
           let near = Infinity;
           let own: { v: HilumVessel; d: number } | null = null;
           for (const w of scene.vessels) {
@@ -233,6 +241,7 @@ describe('Los vasos del hilio (decisión 46)', () => {
             expect(c.boundaryDistance, `${Tissue[c.tissue]} (${q.map((x) => x.toFixed(2)).join(', ')})`).toBeLessThanOrEqual(near + 1e-9);
           }
         }
+    });
     expect(outside).toBeGreaterThan(1000);
   });
 

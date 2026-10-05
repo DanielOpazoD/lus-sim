@@ -18,6 +18,8 @@ describe('Módulos de órgano', () => {
     // (decisión 29) las apófisis espinosas, tras la parrilla (usan la altura de sus vértebras)
     expect(ORGAN_MODULES.map((o) => o.id)).toEqual([
       'lungApex',
+      // (decisión 50) la fosa supraclavicular, antes de la pared torácica (que resta su depresión y lee sus capas del cuello)
+      'supraclavicular',
       'chestWall',
       'wall',
       'ribcage',

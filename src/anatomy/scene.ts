@@ -53,6 +53,8 @@ import {
   respiratoryWallBlendMm,
   respiratoryWallOf,
   setChestWallApex,
+  setChestWallFossa,
+  wallFossaMm,
   setChestWallCage,
   skinArc,
   wallCupolaBd,
@@ -85,7 +87,16 @@ import {
 import { retroFrame, retroperitoneum, type RetroFrame } from './organs/retroperitoneum';
 import { LIVER_EARLY_OUT_MM, ORGAN_SDF_LIPSCHITZ, buildLiver, liverLobesSd, liverSdf, type LiverShape } from './organs/liver';
 import { SPLEEN, SPLEEN_GASTRIC_ACROSS, buildSpleen, pointAtArc, spleenCandidate, spleenSdf, type SpleenShape } from './organs/spleen';
-import { VESSEL_BOUND_MARGIN_MM, buildHilumVessels, tubeBoundingSphere, type HilumVessel } from './organs/vessels';
+import {
+  HILUM_VESSEL_COUNT,
+  SUBCLAVIAN_GATE_MM,
+  VESSEL_BOUND_MARGIN_MM,
+  VESSEL_TABLE_COUNT,
+  buildHilumVessels,
+  buildSubclavianVessels,
+  tubeBoundingSphere,
+  type HilumVessel,
+} from './organs/vessels';
 import { STOMACH, buildStomach, stomachCandidate, stomachSdf, type StomachShape } from './organs/stomach';
 import { thoraxLinePhi } from './thoraxLines';
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, Tissue } from './tissues';
@@ -370,6 +381,8 @@ export class AnatomyScene {
       Math.abs(wallArc(torsoSkinPoint(-Math.acos(CLAVICLE.params.medialEndXMm.value / walled.a), 0, walled), walled)),
     );
     setChestWallApex(this.chestWall, apex.zApex, apex.zTop);
+    // lus-sim (decisión 50): la fosa supraclavicular sobre la clavícula (`organs/supraclavicular.ts`)
+    setChestWallFossa(this.chestWall, cage.clavicle, walled);
     // lus-sim (decisión 29): con la pared ya construida (la espalda alta, más gruesa), los extremos posteriores de las costillas
     // vuelven a la punta de las transversas más 6 mm
     setRibPosteriorEnds(cage, walled, this.spine.archHalfWidth + 6);
@@ -428,7 +441,16 @@ export class AnatomyScene {
     this.vessels = [];
     this.vesselBounds = [];
     const hilum = this.spleenHilum();
-    this.vessels = buildHilumVessels(hilum.point, hilum.inward, this.kidneys, this.spine);
+    // lus-sim (decisión 50): y los subclavios, sobre la pleura de la cúpula y tras la clavícula (`organs/vessels.ts`)
+    this.vessels = [
+      ...buildHilumVessels(hilum.point, hilum.inward, this.kidneys, this.spine),
+      ...buildSubclavianVessels(
+        this.torso,
+        cage.clavicle,
+        (u, z) => this.chestWall.total(u, z),
+        (u, z) => this.chestWall.layers(u, z).skin,
+      ),
+    ];
     // el margen pasa del tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5 mm): fuera de la esfera la pared queda más lejos
     this.vesselBounds = this.vessels.map((v) => tubeBoundingSphere(v.tube, v.wallMm + VESSEL_BOUND_MARGIN_MM));
   }
@@ -606,7 +628,7 @@ export class AnatomyScene {
     }
     // lus-sim (decisión 46): los vasos del hilio ganan a los órganos (entran en el bazo y en el seno del riñón); fuera de ellos,
     // la distancia a su pared cuenta en la de los órganos y el «resto»
-    const tubes = this.classifyTubes(m);
+    const tubes = this.classifyTubes(m, 0, HILUM_VESSEL_COUNT);
     if (tubes.cls) return tubes.cls;
     // lus-sim (decisión 37): bajo el diafragma, el hígado y el bazo
     const gap = zoaGap(this.lungBorder, m, inside, u, caudal);
@@ -638,14 +660,20 @@ export class AnatomyScene {
   /**
    * Los vasos del hilio (decisión 46; `classifyTubes` de VExUS sin los conductos ni el Doppler; gemelo GLSL en `classifyWith`):
    * el tubo cuya pared o luz contiene el punto (el de menor distancia a su luz), con la sangre dentro y su pared fuera, y la cara
-   * de su luz a |d|. `dOut`: la distancia a la cara externa de su pared, el menor de los tubos cercanos (1e3 lejos de todos).
+   * de su luz a |d|. `dOut`: la distancia a la cara externa de su pared, el menor de los tubos cercanos (1e3 lejos de todos). t0, t1:
+   * el tramo de la tabla (los del hilio bajo el diafragma; los subclavios en la pared, decisión 50).
    */
-  private classifyTubes(m: Vec3): { cls: Classification | null; dOut: number } {
+  private classifyTubes(m: Vec3, t0: number, t1: number): { cls: Classification | null; dOut: number } {
     let best: { v: HilumVessel; hit: TubeHit } | null = null;
     let dOut = 1e3;
-    for (let i = 0; i < this.vessels.length; i++) {
+    for (let i = t0; i < Math.min(t1, this.vessels.length); i++) {
       const b = this.vesselBounds[i];
-      if (Math.hypot(m[0] - b.center[0], m[1] - b.center[1], m[2] - b.center[2]) > b.r) continue;
+      // fuera de la esfera, su pared queda al menos a lo que la esfera tiene de margen sobre ella (decisión 50; gemelo GLSL)
+      const ds = Math.hypot(m[0] - b.center[0], m[1] - b.center[1], m[2] - b.center[2]);
+      if (ds > b.r) {
+        dOut = Math.min(dOut, ds - b.r + VESSEL_BOUND_MARGIN_MM);
+        continue;
+      }
       const v = this.vessels[i];
       const hit = tubeQuery(m, v.tube);
       dOut = Math.min(dOut, hit.d - v.wallMm);
@@ -927,13 +955,23 @@ export class AnatomyScene {
     // espinosas y la cara posterior del arco, a 27 mm)
     const spine = Math.min(spinousSd(m, this.spine, this.spinous), sdSpine(m, this.spine));
     // la cara de la capa más cercana; la distancia a la frontera cuenta el hueso o cartílago más cercano (|∇| ≤ 1,1)
+    // lus-sim (decisión 50): los vasos subclavios, en la pared sobre la clavícula; fuera de ellos, la distancia a su pared
+    const sub =
+      d < wall && m[2] > this.chestWall.fossaMinZ - SUBCLAVIAN_GATE_MM
+        ? this.classifyTubes(m, HILUM_VESSEL_COUNT, VESSEL_TABLE_COUNT)
+        : { cls: null, dOut: 1e3 };
     const layer = (tissue: Tissue, bd: number, ribD: number, ribAny: number): { final: true; cls: Classification } => {
       const [face, dist] = wallFace(d, u, m[2], ribD, torso, caudalMm);
       // lus-sim (cobertura torácica): sobre la cúpula pleural, la cota vertical (`wallCupolaBd`)
-      const boundaryDistance = Math.min(bd, ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]));
+      const boundaryDistance = Math.min(bd, ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]), sub.dOut);
       return { final: true, cls: { ...NONE, tissue, boundaryDistance, interface: face, interfaceDistance: dist } };
     };
-    if (d < skin) return layer(Tissue.Skin, skin - d, 1e3, 1e3);
+    // (la piel, sin la distancia a los vasos subclavios: ninguno sube hasta ella; gemelo GLSL)
+    if (d < skin) {
+      const [face, dist] = wallFace(d, u, m[2], 1e3, torso, caudalMm);
+      const boundaryDistance = Math.min(skin - d, 1e3 / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]));
+      return { final: true, cls: { ...NONE, tissue: Tissue.Skin, boundaryDistance, interface: face, interfaceDistance: dist } };
+    }
     // La parrilla, antes de la grasa subcutánea donde puede llegar (la grasa no la corta): el esternón y las costillas del
     // lado de la muestra; el hueso más cercano da la cortical, el cartílago su pericondrio (bajo la pared, `ribScan` no
     // mira nada)
@@ -942,18 +980,21 @@ export class AnatomyScene {
       const face = scan.cartilage ? { interface: Interface.Perichondrium, interfaceDistance: -scan.inD } : {};
       return {
         final: true,
-        cls: { ...NONE, tissue: scan.cartilage ? Tissue.Cartilage : Tissue.Bone, boundaryDistance: -scan.inD, ...face },
+        cls: { ...NONE, tissue: scan.cartilage ? Tissue.Cartilage : Tissue.Bone, boundaryDistance: Math.min(-scan.inD, sub.dOut), ...face },
       };
     }
     // lus-sim (decisión 29): la columna dentro de la pared de la espalda (las espinosas y la cara posterior del arco)
     if (spine < 0) return { final: true, cls: { ...NONE, tissue: Tissue.Vertebra, boundaryDistance: -spine } };
+    if (sub.cls) return { final: true, cls: sub.cls };
     // lus-sim (cobertura torácica): sobre el techo de la cúpula pleural, más hondo que la pared del tórax, las partes blandas
     // del cuello y del hombro: músculo sin caras (las de la pared quedarían más allá del centro del tronco)
+    // (decisión 50) desde la pared del tórax sin la depresión de la fosa: lo que hay encima son las capas del cuello
     const cup = wallCupolaMm(this.chestWall, u, m[2]);
-    if (cup >= CUPOLA_CAP_MM && d < wall && d >= wall - cup) {
+    const roofTop = wall - cup + wallFossaMm(this.chestWall, u, m[2]);
+    if (cup >= CUPOLA_CAP_MM && d < wall && d >= roofTop) {
       // (decisión 44) y el techo de la cúpula, horizontal en zTop desde la profundidad D de su ladera
-      const roof = wallCupolaRoofBd(this.chestWall, u, m[2], d - (wall - cup));
-      const bd = Math.min(d - (wall - cup), scan.ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]), roof);
+      const roof = wallCupolaRoofBd(this.chestWall, u, m[2], d - roofTop);
+      const bd = Math.min(d - roofTop, scan.ribAny / 1.1, spine, wallCupolaBd(this.chestWall, u, m[2]), roof, sub.dOut);
       return { final: true, cls: { ...NONE, tissue: Tissue.Muscle, boundaryDistance: bd } };
     }
     if (d >= wall) {

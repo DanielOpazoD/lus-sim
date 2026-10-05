@@ -1253,16 +1253,25 @@ describe('A-T23 y A-T24: el vértice, la clavícula y la fosa supraclavicular (c
     expect(span).toBeLessThanOrEqual(165 + 2 * c.radius);
   });
 
-  /** Profundidad (mm) de la pleura de la cúpula por la fosa supraclavicular, con el haz 20° hacia los pies. */
+  /**
+   * Profundidad (mm) de la pleura de la cúpula por la fosa supraclavicular, como la mide Yadav: la sonda en la fosa, paralela a la
+   * clavícula (transversal), de plano o inclinada hacia los pies 11° o 20°, la menor (en cinco hábitos, de plano; en la mujer obesa, a
+   * 20°). Hasta la decisión 50, longitudinal y 20° hacia los pies. La depresión de la fosa se calibra con Yadav: es una calibración.
+   */
   const fossaDepth = (sc: AnatomyScene, side: -1 | 1): number | null => {
     const right = Math.PI - Math.acos(70 / sc.torso.a);
     const phi = side < 0 ? right : Math.PI - right;
     const top = sc.ribCage.sternum.zTop + C.medialTopAboveNotchMm.value;
-    const m = probeCenterContent(sc, { ...longitudinalPose(phi, top + 12.5), rock: -0.35 });
-    return m.content === 'lung' ? m.pleuraMm : null;
+    let best: number | null = null;
+    for (const tilt of [0, 0.2, 0.35]) {
+      const m = probeCenterContent(sc, { phi, z: top + 12.5, lift: 0, yaw: Math.PI / 2, rock: 0, tilt });
+      if (m.content === 'lung' && m.pleuraMm !== null && (best === null || m.pleuraMm < best)) best = m.pleuraMm;
+    }
+    return best;
   };
-  // Yadav: piel → «corner pocket» (cm) ≈ 0,068·IMC + 0,085, DE 0,8; el IMC de cada hábito de la base (§2.3–2.5)
-  const yadav = (bmi: number) => [(0.068 * bmi + 0.085 - 1.6) * 10, (0.068 * bmi + 0.085 + 1.6) * 10] as const;
+  // Yadav: piel → «corner pocket» (cm) ≈ 0,068·IMC + 0,085, DE 0,8; el IMC de cada hábito de la base (§2.3–2.5). Desde la decisión
+  // 50, a ± 1 DE (antes, ± 2: la pleura quedaba 1,1 DE más honda); la mujer obesa, a ± 2 DE (+1,6 DE: medido 36,3 mm)
+  const yadav = (bmi: number, sd = 1) => [(0.068 * bmi + 0.085 - 0.8 * sd) * 10, (0.068 * bmi + 0.085 + 0.8 * sd) * 10] as const;
   const BMI = { average: 22.9, thin: 18.5, obese: 33.5 } as const;
   const fossaCases: Array<[ChestHabitus, boolean]> = [
     [{ build: 'average', sex: 'male' }, true],
@@ -1273,11 +1282,11 @@ describe('A-T23 y A-T24: el vértice, la clavícula y la fosa supraclavicular (c
     [{ build: 'obese', sex: 'female' }, true],
   ];
   for (const [chest, met] of fossaCases) {
-    const title = `A-T24: por la fosa supraclavicular la cúpula pleural, a la profundidad de Yadav ± 2 DE (${chest.build}, ${chest.sex})`;
+    const title = `A-T24: por la fosa supraclavicular la cúpula pleural, a la profundidad de Yadav ± 1 DE (${chest.build}, ${chest.sex}; la mujer obesa, ± 2)`;
     const body = () => {
       const p = defaultPatient();
       const sc = chest.build === 'average' && chest.sex === 'male' ? scene : new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } });
-      const [lo, hi] = yadav(BMI[chest.build]);
+      const [lo, hi] = yadav(BMI[chest.build], chest.build === 'obese' && chest.sex === 'female' ? 2 : 1);
       for (const side of [-1, 1] as const) {
         const d = fossaDepth(sc, side);
         expect(d, `${side}`).not.toBeNull();
