@@ -147,8 +147,12 @@ test('brazos arriba (decisión 48): la sonda sube por la axilar media hasta la a
   page,
 }, info) => {
   test.setTimeout(240_000);
+  const t0 = Date.now();
+  const phases: Record<string, number> = {};
+  const mark = (label: string) => (phases[label] = Date.now() - t0);
   await page.setViewportSize({ width: 1440, height: 900 });
   const errors = await boot(page);
+  mark('arranque');
   const nav = page.locator('#thorax-navigator');
   const canvas = page.locator('.thorax-canvas');
   const torso = await page.evaluate(() => ({ a: window.__lusTest!.sim().scene.torso.a, b: window.__lusTest!.sim().scene.torso.b }));
@@ -158,11 +162,13 @@ test('brazos arriba (decisión 48): la sonda sube por la axilar media hasta la a
     const screen = points.map((p) => project(p, az, 0.1, box));
     await page.mouse.move(screen[0].x, screen[0].y);
     await page.mouse.down();
-    for (const s of screen.slice(1)) {
-      await page.mouse.move(s.x, s.y);
-      await settle(page);
-    }
+    // pocos pasos y sin esperar cuadros entre ellos: con SwiftShader cada `mouse.move` espera al hilo principal, ocupado con
+    // el modo B (25 + 15 pasos con dos cuadros cada uno agotaban los 240 s del CI en `mouse.move`); lo que se prueba es adónde
+    // llega el arrastre. Medido con SwiftShader (04-10-2026, carga 4): arranque 48 s, cada arrastre ≈ 4 s, total 60 s; con la
+    // máquina cargada (8–17), 200 s, casi todo el arranque. El plazo de 240 s es el de las otras pruebas del archivo
+    for (const s of screen.slice(1)) await page.mouse.move(s.x, s.y);
     await page.mouse.up();
+    await settle(page);
     return page.evaluate(() => ({ ...window.__lusTest!.sim().pose }));
   };
   // la axila derecha, de frente (la vista lateral del lado de la sonda): de la 5.ª costilla a 2 mm del tope, por la axilar media
@@ -170,24 +176,29 @@ test('brazos arriba (decisión 48): la sonda sube por la axilar media hasta la a
   await settle(page);
   const axilla = await drag(
     Math.PI,
-    Array.from({ length: 25 }, (_, i) => [-torso.a, 0, 60 + (163 * i) / 24] as [number, number, number]),
+    Array.from({ length: 4 }, (_, i) => [-torso.a, 0, 60 + (163 * i) / 3] as [number, number, number]),
   );
+  mark('axila');
   expect(Math.abs(axilla.phi - Math.PI), JSON.stringify(axilla)).toBeLessThan(0.05);
   // por encima de la 1.ª costilla de la axilar media (z 172,8): con los brazos a los lados, el brazo tapaba desde z −63
   expect(axilla.z, JSON.stringify(axilla)).toBeGreaterThan(215);
   await expect(nav.locator('.thorax-caption')).not.toContainText('Zona no explorable');
   await canvas.screenshot({ path: info.outputPath('brazos-axila.png') });
+  mark('captura axila');
   // la fosa supraclavicular derecha, de frente: a 70 mm de la línea media, de la clavícula al tope (antes, z ≤ 200)
   await nav.getByRole('button', { name: 'Anterior', exact: true }).click();
   await settle(page);
   const y = torso.b * Math.sqrt(1 - (70 / torso.a) ** 2);
   const fossa = await drag(
     Math.PI / 2,
-    Array.from({ length: 15 }, (_, i) => [-70, y, 150 + (73 * i) / 14] as [number, number, number]),
+    Array.from({ length: 4 }, (_, i) => [-70, y, 150 + (73 * i) / 3] as [number, number, number]),
   );
+  mark('fosa');
   expect(fossa.z, JSON.stringify(fossa)).toBeGreaterThan(215);
   expect(fossa.z).toBeLessThanOrEqual(225);
   await expect(nav.locator('.thorax-caption')).not.toContainText('Zona no explorable');
   await canvas.screenshot({ path: info.outputPath('brazos-fosa.png') });
+  mark('captura fosa');
+  console.log('BRAZOS_ARRIBA_MS', JSON.stringify(phases));
   expect(errors).toEqual([]);
 });
