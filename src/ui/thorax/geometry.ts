@@ -321,3 +321,68 @@ export function loftMesh(
   }
   return { positions, indices };
 }
+
+/** Nodo VISUAL de un tubo en coordenadas del paciente (mm): x, y, z y el radio. No es anatomía acústica. */
+export type TubeNode = readonly [number, number, number, number];
+
+/**
+ * Tubo cerrado por un camino de nodos (lus-sim, decisión 48: los brazos levantados, que doblan el codo y cruzan detrás de la
+ * cabeza; un perfil por alturas no los sigue). Catmull-Rom por los nodos, marcos por transporte paralelo (sin giros bruscos) y
+ * una tapa en cada extremo. Teselación del visor, no parámetros anatómicos.
+ */
+export function tubeMesh(nodes: readonly TubeNode[], subdivisions = 6, segments = 20): MeshData {
+  if (nodes.length < 2) throw new Error('tubeMesh: hacen falta al menos dos nodos');
+  const at = (i: number) => nodes[Math.max(0, Math.min(nodes.length - 1, i))];
+  const samples: TubeNode[] = [];
+  for (let i = 0; i < nodes.length - 1; i++)
+    for (let j = 0; j < subdivisions; j++) {
+      const t = j / subdivisions;
+      const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+      samples.push(
+        p1.map(
+          (_, k) =>
+            0.5 *
+            (2 * p1[k] +
+              (-p0[k] + p2[k]) * t +
+              (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t +
+              (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t * t * t),
+        ) as unknown as TubeNode,
+      );
+    }
+  samples.push(nodes[nodes.length - 1]);
+  const point = (s: TubeNode): Vec3 => [s[0], s[1], s[2]];
+  const tangent = (i: number): Vec3 =>
+    normalize(add(point(samples[Math.min(samples.length - 1, i + 1)]), scale(point(samples[Math.max(0, i - 1)]), -1)));
+  const t0 = tangent(0);
+  // primera normal: la que menos se parece a la tangente
+  let normal = normalize(cross(t0, Math.abs(t0[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]));
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i < samples.length; i++) {
+    const t = tangent(i);
+    // transporte paralelo: se quita a la normal su parte en la tangente nueva
+    normal = normalize(add(normal, scale(t, -(normal[0] * t[0] + normal[1] * t[1] + normal[2] * t[2]))));
+    const binormal = cross(t, normal);
+    const c = point(samples[i]);
+    const r = samples[i][3];
+    for (let j = 0; j < segments; j++) {
+      const a = (2 * Math.PI * j) / segments;
+      positions.push(...patientToView(add(c, add(scale(normal, r * Math.cos(a)), scale(binormal, r * Math.sin(a))))));
+      if (i < samples.length - 1) {
+        const p = i * segments + j;
+        const q = i * segments + ((j + 1) % segments);
+        indices.push(p, p + segments, q, q, p + segments, q + segments);
+      }
+    }
+  }
+  for (const i of [0, samples.length - 1]) {
+    const center = positions.length / 3;
+    positions.push(...patientToView(point(samples[i])));
+    for (let j = 0; j < segments; j++) {
+      const p = i * segments + j;
+      const q = i * segments + ((j + 1) % segments);
+      indices.push(...(i === 0 ? [center, p, q] : [center, q, p]));
+    }
+  }
+  return { positions, indices };
+}

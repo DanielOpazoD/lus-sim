@@ -4461,3 +4461,88 @@ arrastre, y comprueban la pose del cuadro mostrado en lugar de la tarjeta resalt
 
 **Verificación.** `npm run check`; la e2e de la adquisición, el humo y el navegador 3D con SwiftShader; ninguna referencia a las
 tarjetas queda en `src/` ni en `index.html`.
+
+## 48. Los brazos arriba en el maniquí y la sonda hasta la fosa supraclavicular, por encima del vértice
+
+**Fecha.** 2026-10-04.
+
+**Contexto.** Daniel pidió (04-10-2026) que el modelo 3D tenga los brazos arriba para examinar todo el tórax, axilas incluidas, y
+señaló que faltaba campo ecográfico sobre las clavículas. Es el requisito de cobertura de `docs/MISSION.md`: el vértice y la fosa
+supraclavicular se alcanzan, y el lateral se explora entero. Medido en `main`:
+
+- **Los brazos colgaban junto al tronco** (decisión 25). Desde la vista «Lateral» (elevación 0,1 rad) el brazo era lo primero
+  que tocaba el rayo sobre la axilar media desde z −63 hacia arriba, sobre la axilar anterior desde z 124 y sobre la posterior
+  desde 122. La pared lateral alta y la axila no se podían tocar con el ratón: el clic caía en el brazo («Zona no explorable»).
+  La 1.ª costilla de la axilar media está en z 172,8 y su EIC1 en 158,3.
+- **La sonda no subía de z 200** (`clampPose`, el tope de VExUS). La clavícula del modelo tiene el borde superior en z 173,3
+  (tercio medial) a 188 (extremo acromial): quedaban 12–27 mm de piel sobre ella. El vértice de la base sube 2,5 cm (hasta 5) sobre el tercio medial de la clavícula (Gray): a z 223,3 en el tope de su rango, por encima del alcance. La piel funcional
+  del navegador acababa en ese mismo tope.
+
+**Opciones.**
+
+- **Mover la anatomía con los brazos arriba** (la escápula rotada, la piel de la axila estirada, el hombro): con el brazo
+  elevado la escápula rota hacia arriba ≈ 50° (McClure y cols., pines óseos en el plano escapular) y, con la mano sobre la cabeza,
+  su borde vertebral sigue aprox. la cisura oblicua (Gray). Es una escápula por postura, que hoy no existe ni para los brazos
+  cruzados (A-T18): el modelo tiene una sola, la de los brazos a los lados, que usa la exploración posterior sentado. Se descarta
+  aquí y queda como limitación (`arms-raised-anatomy`).
+- **Un alcance por ángulo φ** (la axila más baja que la fosa): el navegador y `clampPose` usan un rectángulo en (φ, z); con un
+  tope variable, la piel funcional y `surfacePose` cambian de forma. Lo que el tope uniforme deja de más (la pared lateral por
+  encima de la 1.ª costilla, donde en el paciente está el contenido de la axila y la cabeza del húmero) ya lo deja el tronco
+  cilíndrico (`thorax-cylindrical-cage`). Se descarta.
+- **Elegida: los brazos arriba como contexto visual y el tope craneal donde termina el vértice de la base.**
+
+**Decisión.**
+
+1. **El maniquí con los brazos arriba y las manos detrás de la cabeza** (`ui/thorax/humanTorso.ts`, `raisedArmNodes`): la
+   postura de la exploración lateral en supino: la técnica pide los brazos colocados para que la sonda llegue a la pared lateral
+   sin estorbo [@koenig-respiratoria-2020]. Las manos detrás de la cabeza, la abducción del hombro ≈ 163° (del hombro al codo,
+   16,7° de la vertical) y el codo doblado son elecciones de autoría, no de la fuente. Cada brazo es un tubo por un camino de nodos (`tubeMesh`, nuevo en `ui/thorax/geometry.ts`:
+   Catmull-Rom con marcos por transporte paralelo), porque un perfil por alturas (`loftMesh`) no sigue un codo doblado. Su raíz
+   queda dentro del tronco y lo que asoma empieza sobre el tope de la piel explorable. La cabeza no se mueve (perfiles con la
+   altura de antes, `HEAD_BASE_MM`); sin el hombro de los brazos a los lados, la elipse del tronco sigue 14 mm sobre el tope y
+   baja por el trapecio al cuello. Son medidas de autoría visual, como las de la decisión 25.
+2. **La sonda sube hasta z 225** (`SCAN_REACH`, `probe.scanReach.cranialMm`, en `probe/probe.ts`; derivado): el borde superior
+   del tercio medial de la clavícula (la escotadura yugular a 163,3, derivada de Gray: a la altura del borde inferior de T2, más
+   10 mm, `anatomy.clavicle`) y el vértice hasta 5 cm por encima (Gray) dan 223,3, que se redondea a 225. Una prueba exige que
+   el tope no quede por debajo de `apexMaxZ` en ningún hábito. Más arriba, la piel cilíndrica del tronco ya no es la de la fosa ni la
+   del cuello: no se sube más. `SCAN_LIMITS` del navegador sale del mismo `clampPose`, y la piel funcional llega al nuevo tope.
+3. **Una celda de cobertura más por lado: la fosa supraclavicular sobre el vértice** (`app/coverage.ts`). La sonda va a la
+   altura del vértice más alto de la base (`apexMaxZ`, 223,3), a 70 mm de la línea media, transversal (paralela a la
+   clavícula) e inclinada hacia los pies (+0,7 y +0,5 rad; con el signo contrario el haz va hacia la cabeza). Se prueba primero la
+   inclinación más empinada (40°), la que lleva el haz detrás de la clavícula a la ladera de la cúpula; con menos, el haz entra
+   rasante por el techo de la cúpula (`wall-cupola-transition`).
+4. **La anatomía no cambia con los brazos arriba**: la escápula, la pared lateral y la axila siguen las de los brazos a los
+   lados (`arms-raised-anatomy`).
+
+**Consecuencias.**
+
+- **El navegador alcanza la axila y la fosa.** Desde la vista lateral, con elevaciones de −0,3 a 0,4 rad, el primer impacto
+  sobre las tres líneas axilares es la piel funcional de z −150 hasta el tope (antes, el brazo desde z −63 en la axilar media).
+  Desde la vista anterior y la de «Centrar modelo», la fosa supraclavicular (a 70 mm de la línea media) es piel funcional de la
+  clavícula al tope. El alumno arrastra la sonda por la axilar media hasta z > 215 y por la fosa hasta el tope (e2e).
+- **La imagen sobre la clavícula.** La sonda en la fosa ve la pared genérica (sin escalenos, esternocleidomastoideo, vasos
+  subclavios ni plexo, `apex-cupola-wall`), la sombra de la clavícula cuando el haz pasa detrás de ella y la cúpula pleural con
+  el vértice, que no desliza (`sliding-linear-height`, como en la base). Sobre el vértice, de plano, el haz no cruza pulmón
+  (solo partes blandas); inclinada 40° hacia los pies, la pleura de la cúpula aparece a 44,5 mm por la línea central (con
+  presión de examen). Es más honda que el «corner pocket» de Yadav (1,7 ± 0,8 cm, sobre el tercio medio, junto a la clavícula):
+  la sonda está 5 cm sobre la clavícula en una piel cilíndrica sin la depresión de la fosa (`thorax-cylindrical-cage`).
+- **Cobertura:** de 136 a 138 de 140 (vértice 8/8): las dos celdas nuevas se cumplen; con el tope de antes (z ≤ 200), no.
+  Las dos pendientes son las de la decisión 43.
+- **Presupuesto del maniquí:** 17 416 triángulos con la sonda (tope 18 000; los brazos, 1 640 cada uno).
+- **Lo que queda:** la escápula rotada, la axila estirada y el hombro con los brazos arriba (`arms-raised-anatomy`); la fosa con
+  su depresión y sus partes blandas; un alcance que siga la forma real de la axila.
+
+**Verificación.**
+
+- `thoraxAppearance.test.ts`: los rayos de la cámara del navegador, desde la vista lateral (tres elevaciones) sobre las tres
+  axilares de z −150 al tope y desde la anterior y la de «Centrar» sobre la fosa, tocan primero la piel funcional. Con los
+  brazos de `main` falla (el brazo tapa la axilar media desde z −63). La abducción del hombro queda entre 150° y 180°, la mano
+  detrás de la cabeza y ningún vértice del brazo fuera del tronco bajo el tope. El tubo tiene las caras hacia fuera (el material
+  es de una sola cara).
+- `coverage.test.ts`: las dos celdas nuevas, con la sonda en supino, pulmón inclinada hacia los pies y nada de plano; con el
+  alcance de antes (z ≤ 200) no se cumplen y la fosa de siempre sí (mutación del alcance). El total pasa a 138/140.
+- `probe.test.ts` y `thoraxGeometry.test.ts`: el tope craneal de `clampPose` es 225 y el caudal sigue en −200; `surfacePose`
+  rechaza la piel por encima del tope.
+- `e2e/humanNavigator.spec.ts` («brazos arriba»): arrastre real con el ratón por la axilar media derecha en la vista lateral y
+  por la fosa supraclavicular en la anterior, sin «Zona no explorable».
+- Capturas con la GPU real (Metal): el maniquí, la sonda en la axila y la vista supraclavicular.

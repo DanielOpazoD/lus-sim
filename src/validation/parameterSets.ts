@@ -19,7 +19,7 @@ import { COVERAGE } from '../app/coverage';
 import { TORSO } from '../anatomy/scene';
 import { HANDS } from '../anatomy/hands';
 import { COSTAL_CARTILAGE } from '../anatomy/tissues';
-import { BLUE_UPPER_POSE } from '../probe/probe';
+import { BLUE_UPPER_POSE, SCAN_REACH } from '../probe/probe';
 import { LUNG_PRESET, TGC_REFERENCE } from '../ultrasound/lungPreset';
 import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
 import { NORMAL_CALIBRATION } from '../ultrasound/normalCalibration';
@@ -54,6 +54,7 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   HILUM_VESSELS,
   COSTAL_CARTILAGE,
   BLUE_UPPER_POSE,
+  SCAN_REACH,
   START_POINT_POSES,
   MEASUREMENT_VIEW_POSES,
   POSTERIOR_START_POSES,

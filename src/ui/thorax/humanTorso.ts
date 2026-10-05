@@ -6,12 +6,46 @@ import { dist, type Vec3 } from '../../core/vec3';
 import { probeContact } from '../../probe/contact';
 import type { ProbeFrame, Transducer } from '../../probe/probe';
 import type { AcquisitionState } from '../../ultrasound/cine';
-import { loftMesh, patientToView, SCAN_LIMITS, viewToPatient, type MeshData, type VisualProfile } from './geometry';
+import {
+  loftMesh,
+  patientToView,
+  SCAN_LIMITS,
+  tubeMesh,
+  viewToPatient,
+  type MeshData,
+  type TubeNode,
+  type VisualProfile,
+} from './geometry';
+
+/** Altura de referencia de la cabeza (mm): el tope de la piel explorable hasta la decisión 47. La cabeza no sube con él. */
+const HEAD_BASE_MM = 200;
+
+/**
+ * Los brazos levantados, con las manos detrás de la cabeza (lus-sim, decisión 48): la postura de la exploración lateral en supino,
+ * con los brazos fuera del camino de la sonda (Koenig y cols. 2020, sin más detalle). El hombro en abducción de ≈ 163° (del hombro
+ * al codo, 16,7° de la vertical), el codo doblado y la mano tras el occipucio son elecciones de autoría. Un lado: −1 derecho, 1 izquierdo. Nodos de AUTORÍA visual en mm
+ * del paciente; la raíz queda dentro del tronco y lo que asoma empieza sobre `zMax`: el brazo nunca tapa la piel explorable, la
+ * axila incluida.
+ */
+export function raisedArmNodes(a: number, side: -1 | 1): TubeNode[] {
+  return [
+    [side * (a - 35), -12, 250, 22],
+    [side * (a + 2), -14, 278, 44],
+    [side * (a + 30), -18, 360, 42],
+    [side * (a + 62), -30, 470, 37],
+    [side * (a + 70), -45, 505, 34],
+    [side * 130, -80, 520, 31],
+    [side * 60, -100, 500, 26],
+    [side * 18, -95, 488, 22],
+    [side * 4, -95, 484, 8],
+  ];
+}
 
 /** Medidas de AUTORÍA visual del maniquí, no antropometría ni nuevos parámetros del paciente. */
 export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context: MeshData[] } {
   const { a, b } = scene.torso;
   const { zMin, zMax } = SCAN_LIMITS;
+  const H = HEAD_BASE_MM;
   // La piel explorable conserva exactamente la elipse del motor, con altura suficiente para mostrar contacto.
   const skin = loftMesh(
     [
@@ -22,20 +56,21 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
     64,
     false,
   );
+  // decisión 48: sin el hombro de los brazos a los lados, la elipse sigue un poco sobre zMax (la sonda en el borde se apoya en
+  // piel) y baja por el trapecio al cuello; la cabeza, donde estaba
   const upper: VisualProfile[] = [
     [zMax, a, b, 0, 0],
-    [zMax + 18, a, b, 0, 0],
-    [zMax + 40, a * 1.12, b * 0.91, 0, -2],
-    [zMax + 60, a * 0.94, b * 0.73, 0, -4],
-    [zMax + 82, 55, 46, 0, -8],
-    [zMax + 112, 43, 39, 0, -8],
-    [zMax + 132, 48, 47, 0, 4],
-    [zMax + 151, 58, 65, 0, 6],
-    [zMax + 192, 70, 79, 0, -3],
-    [zMax + 234, 73, 80, 0, -8],
-    [zMax + 276, 59, 68, 0, -10],
-    [zMax + 308, 39, 46, 0, -12],
-    [zMax + 324, 3, 4, 0, -12],
+    [zMax + 14, a, b, 0, 0],
+    [H + 62, a * 0.86, b * 0.86, 0, -3],
+    [H + 82, 55, 46, 0, -8],
+    [H + 112, 43, 39, 0, -8],
+    [H + 132, 48, 47, 0, 4],
+    [H + 151, 58, 65, 0, 6],
+    [H + 192, 70, 79, 0, -3],
+    [H + 234, 73, 80, 0, -8],
+    [H + 276, 59, 68, 0, -10],
+    [H + 308, 39, 46, 0, -12],
+    [H + 324, 3, 4, 0, -12],
   ];
   const lower: VisualProfile[] = [
     [zMin - 105, a * 0.86, b * 0.9, 0, -1],
@@ -44,28 +79,12 @@ export function humanTorsoMeshes(scene: AnatomyScene): { skin: MeshData; context
     [zMin - 12, a, b, 0, 0],
     [zMin, a, b, 0, 0],
   ];
-  // Los brazos se abren hacia fuera: solo se unen sobre zMax, nunca encima de una ventana acústica.
-  const arms = [-1, 1].map((side) =>
-    loftMesh(
-      [
-        [-50, 5, 7, side * (a + 134), 0],
-        [-38, 24, 27, side * (a + 134), 0],
-        [10, 29, 33, side * (a + 128), 0],
-        [105, 33, 40, side * (a + 99), 0],
-        [190, 44, 52, side * (a + 56), -1],
-        [230, 48, 59, side * (a + 30), -2],
-        [250, 34, 45, side * (a + 16), -4],
-        [258, 5, 7, side * (a + 10), -5],
-      ],
-      3,
-      32,
-    ),
-  );
+  const arms = ([-1, 1] as const).map((side) => tubeMesh(raisedArmNodes(a, side), 5, 20));
   const head = loftMesh(upper, 3, 64, [false, true]);
   // Relieve facial mínimo del maniquí: nariz/mentón orientan el frente sin textura ni identidad humana.
   // Solo contexto por encima de zMax: no mueve piel explorada ni representa una estructura acústica.
   for (let i = 0; i < head.positions.length; i += 3) {
-    const z = head.positions[i + 1] * 1000 - zMax;
+    const z = head.positions[i + 1] * 1000 - H;
     const x = head.positions[i] * 1000;
     if (head.positions[i + 2] > 0 && z > 132)
       head.positions[i + 2] +=

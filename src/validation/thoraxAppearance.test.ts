@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { MeshStandardMaterial, Raycaster, Vector3 } from 'three';
 import { AnatomyScene } from '../anatomy/scene';
+import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
+import { clavicleTopZ, COVERAGE } from '../app/coverage';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { dist, dot, sub, type Vec3 } from '../core/vec3';
 import { defaultPatient } from '../physiology/patientState';
 import { PhysiologyEngine } from '../physiology/engine';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, defaultPose, pointOnLine } from '../probe/probe';
-import { HumanTorso, humanTorsoMeshes } from '../ui/thorax/humanTorso';
+import { HumanTorso, humanTorsoMeshes, raisedArmNodes } from '../ui/thorax/humanTorso';
 import { ConvexProbe, convexHousingMesh, convexLensMesh, convexMarkerLocal, cablePath } from '../ui/thorax/convexProbe';
-import { patientToView, probeViewAxes, viewToPatient, type MeshData } from '../ui/thorax/geometry';
+import { patientToView, probeViewAxes, SCAN_LIMITS, tubeMesh, viewToPatient, type MeshData } from '../ui/thorax/geometry';
 
 const scene = new AnatomyScene(defaultPatient());
 const tr = CONVEX_C35;
@@ -91,8 +93,8 @@ describe('Maniquí procedural: geometría real, contacto e historial', () => {
     const human = new HumanTorso(scene, mat, mat);
     for (const pose of [
       { z: 0, lift: 25 },
-      { z: 200, lift: -3 },
-      { z: -200, lift: -3 },
+      { z: SCAN_LIMITS.zMax, lift: -3 },
+      { z: SCAN_LIMITS.zMin, lift: -3 },
     ]) {
       human.update(acquisition(pose), tr);
       const pos = human.skin.geometry.getAttribute('position');
@@ -181,6 +183,83 @@ describe('Maniquí procedural: geometría real, contacto e historial', () => {
     human.dispose();
     probe.dispose();
     mat.dispose();
+  });
+  it('los brazos levantados (decisión 48): ni la pared lateral, ni la axila, ni la fosa supraclavicular quedan tapadas', () => {
+    const mat = new MeshStandardMaterial();
+    const human = new HumanTorso(scene, mat, mat);
+    human.root.updateMatrixWorld(true);
+    const objects = [human.skin, ...human.occluders];
+    // la cámara del navegador (`ui/thorax/index.ts`): acimut az y elevación el, ortográfica; se mira el punto de piel desde fuera
+    const first = (phi: number, z: number, az: number, el: number) => {
+      const dir = new Vector3(-Math.cos(el) * Math.cos(az), -Math.sin(el), -Math.cos(el) * Math.sin(az));
+      const p = new Vector3(...patientToView(torsoSkinPoint(phi, z, scene.torso)));
+      return new Raycaster(p.addScaledVector(dir, -1.5), dir).intersectObjects(objects, false)[0].object.name;
+    };
+    const top = SCAN_LIMITS.zMax - 1;
+    for (const side of [-1, 1] as const) {
+      // la vista lateral, de frente a la axila: cada línea axilar entera, del flanco a la axila y por encima de la 1.ª costilla
+      // (antes, con los brazos a los lados, el brazo tapaba la axilar media desde z −63 hacia arriba)
+      const lateral = side < 0 ? Math.PI : 0;
+      for (const line of ['anteriorAxillary', 'midaxillary', 'posteriorAxillary'] as ThoraxLine[])
+        for (const el of [-0.3, 0.1, 0.4])
+          for (let z = -150; z <= top; z += 5)
+            expect(first(thoraxLinePhi(line, scene.torso, side), z, lateral, el), `${side} ${line} z ${z} el ${el}`).toBe(
+              'functional-skin',
+            );
+      // la fosa supraclavicular, de la clavícula al tope, en la vista anterior y la de «Centrar modelo»
+      const x = COVERAGE.params.supraclavicularXMm.value;
+      const phi = side < 0 ? Math.PI - Math.acos(x / scene.torso.a) : Math.acos(x / scene.torso.a);
+      for (const az of [Math.PI / 2, Math.PI / 2 + 0.55])
+        for (let z = clavicleTopZ(scene); z <= top; z += 3) expect(first(phi, z, az, 0.1), `${side} fosa z ${z}`).toBe('functional-skin');
+    }
+    human.dispose();
+    mat.dispose();
+  });
+  it('los brazos levantados: abducción de 150–180°, la mano detrás de la cabeza y nada fuera del tronco bajo zMax', () => {
+    for (const side of [-1, 1] as const) {
+      const n = raisedArmNodes(scene.torso.a, side);
+      // del hombro (el segundo nodo) al codo (el quinto): el ángulo con la vertical es 180° menos la abducción
+      const [sx, , sz] = n[1];
+      const [ex, , ez] = n[4];
+      const abduction = 180 - (Math.atan2(Math.abs(ex - sx), ez - sz) * 180) / Math.PI;
+      expect(abduction).toBeGreaterThan(150);
+      expect(abduction).toBeLessThan(180);
+      // el codo, por fuera del hombro; la mano, detrás de la cabeza (por detrás del plano coronal) y cerca de la línea media
+      expect(Math.abs(ex)).toBeGreaterThan(Math.abs(sx));
+      const hand = n[n.length - 2];
+      expect(hand[1]).toBeLessThan(-80);
+      expect(Math.abs(hand[0])).toBeLessThan(30);
+      expect(hand[2]).toBeGreaterThan(SCAN_LIMITS.zMax + 200);
+    }
+    const data = humanTorsoMeshes(scene);
+    for (const arm of data.context.slice(2)) {
+      checkMesh(arm);
+      for (let i = 0; i < arm.positions.length; i += 3) {
+        const p = viewToPatient(arm.positions.slice(i, i + 3) as Vec3);
+        // bajo el tope de la piel explorable, el brazo solo existe dentro del tronco (su raíz): nunca sobre la piel
+        if (p[2] < SCAN_LIMITS.zMax) expect(torsoDepth(p, scene.torso)).toBeLessThan(0);
+      }
+    }
+  });
+  it('el tubo de los brazos tiene sus caras hacia fuera (el material es de una sola cara)', () => {
+    const tube = tubeMesh(
+      [
+        [0, 0, 0, 10],
+        [0, 0, 100, 10],
+        [50, 0, 150, 10],
+      ],
+      4,
+      12,
+    );
+    checkMesh(tube);
+    const v = (i: number) => new Vector3(...tube.positions.slice(i * 3, i * 3 + 3));
+    // en el tramo recto (eje z del paciente, y de la vista), la normal de cada cara apunta lejos del eje
+    for (let k = 0; k < 4 * 12 * 6; k += 3) {
+      const [a, b, c] = [v(tube.indices[k]), v(tube.indices[k + 1]), v(tube.indices[k + 2])];
+      const normal = b.clone().sub(a).cross(c.clone().sub(a));
+      const centroid = a.clone().add(b).add(c).divideScalar(3);
+      expect(normal.dot(new Vector3(centroid.x, 0, centroid.z))).toBeGreaterThan(0);
+    }
   });
   it('veinte reconstrucciones liberan una vez cada geometría propia', () => {
     const mat = new MeshStandardMaterial();

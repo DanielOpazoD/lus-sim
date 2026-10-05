@@ -15,6 +15,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   no tiene la aorta, la cava ni la porta (`hilum-vessels-blind-ends`). La nota de la vena esplénica en el VExUS ampliado va a
   `docs/UNIFICATION.md`: sin umbral validado en adultos, los de la porta como extrapolación.
   Con SwiftShader el arranque y el cuadro no cambian (54–103 s y 433–614 ms frente a 56–113 s y 442–871 ms).
+
+- Los brazos arriba y la fosa supraclavicular (48): el maniquí del navegador 3D levanta los brazos con las manos detrás de la
+  cabeza (abducción ≈ 163°), la postura de la exploración lateral en supino; desde la vista lateral, las tres líneas axilares son
+  piel seleccionable hasta el tope (antes, el brazo tapaba la axilar media desde z −63). La sonda sube hasta z 225 (antes 200):
+  el vértice más alto de la base (5 cm sobre la clavícula, Gray). Cobertura de exploración: de 136/138 a 138/140, con la fosa
+  supraclavicular sobre el vértice (transversal, inclinada hacia los pies). Nueva limitación `arms-raised-anatomy`: la escápula,
+  la axila y el hombro siguen los de los brazos a los lados.
+
 - El estómago, los riñones y el bazo normal (43): el estómago en ayunas bajo el espacio de Traube (el volumen y el gas de
   Fidler y cols., la pared de Henry y cols.), con su gas arriba en supino; su sombra y su reverberación salen de la pasada B (la
   e2e lo mide frente a la mutación sin gas; el eco de la cara del gas falta, `test.fail`). Los riñones de VExUS con el sitio de

@@ -7,6 +7,7 @@ import {
   BORDER_MARGIN_MM,
   SITTING_REACH,
   SUPINE_REACH,
+  apexMaxZ,
   baseBorderZ,
   explorationCoverage,
   probeCenterContent,
@@ -16,6 +17,7 @@ import {
   type CoverageCell,
   type PositionReach,
 } from '../app/coverage';
+import { CONVEX_C35, probeFrame, SCAN_REACH } from '../probe/probe';
 import { longitudinalPose } from './support/chestView';
 
 /**
@@ -74,15 +76,16 @@ describe('cobertura de exploración: cada celda', () => {
 });
 
 describe('cobertura de exploración: el total', () => {
-  // medido (03-10-2026): 136/138 (anterior 28/28, lateral 59/60, posterior 43/44, vértice 6/6); con la decisión 37, 127/138
+  // medido (04-10-2026): 138/140 (anterior 28/28, lateral 59/60, posterior 43/44, vértice 8/8), con la fosa supraclavicular sobre
+  // el vértice de la decisión 48; antes (03-10-2026), 136/138 (vértice 6/6); con la decisión 37, 127/138
   // (anterior 25/28, lateral 56/60, posterior 40/44); antes, 106/138 (anterior 20/28, lateral 42/60, posterior 38/44)
-  it('el total y las regiones: lo medido con el estómago, los riñones y el bazo normal (decisión 43)', () => {
-    expect(`${report.met}/${report.total}`).toBe('136/138');
+  it('el total y las regiones: lo medido con el estómago, los riñones y el bazo normal (decisión 43) y la fosa alta (48)', () => {
+    expect(`${report.met}/${report.total}`).toBe('138/140');
     expect(report.byRegion).toEqual({
       anterior: { met: 28, total: 28 },
       lateral: { met: 59, total: 60 },
       posterior: { met: 43, total: 44 },
-      apex: { met: 6, total: 6 },
+      apex: { met: 8, total: 8 },
     });
   });
   notYetMet('la cobertura es completa (meta v0.2.0: 100 %)', () => {
@@ -109,7 +112,7 @@ describe('cobertura de exploración: las celdas son las de la anatomía', () => 
         const got = report.cells.filter((c) => c.kind === 'ics' && c.id.startsWith(`${s} ${l} EIC`)).map((c) => c.ics);
         expect(got, `${s} ${l}`).toEqual(Array.from({ length: n }, (_, i) => i + 1));
       }
-    expect(report.cells.filter((c) => c.kind === 'supraclavicular')).toHaveLength(2);
+    expect(report.cells.filter((c) => c.kind === 'supraclavicular')).toHaveLength(4);
     expect(report.cells.filter((c) => c.kind === 'aboveApex')).toHaveLength(4);
   });
 
@@ -275,6 +278,42 @@ describe('cobertura de exploración: el medidor mira lo que hay', () => {
     // solo en supino, la espalda vuelve a quedar fuera
     const supine = explorationCoverage(scene, [SUPINE_REACH]);
     expect(supine.byRegion.posterior.met).toBe(0);
+  });
+
+  it('la fosa supraclavicular sobre el vértice (decisión 48): la sonda llega, de plano no ve pulmón y hacia los pies, la cúpula', () => {
+    for (const s of BOTH) {
+      const c = report.cells.find((x) => x.id === `${s} fosa supraclavicular, sobre el vértice`)!;
+      // a la altura del vértice más alto de la base (5 cm sobre la clavícula, Gray), en supino
+      expect(c.z).toBeCloseTo(scene.ribCage.sternum.zTop + 10 + 50, 9);
+      expect(c.position).toBe('supine');
+      expect(c.content).toBe('lung');
+      // sobre la cúpula, el haz horizontal no cruza pulmón: lo que se ve es por la inclinación
+      expect(probeCenterContent(scene, { phi: c.phi, z: c.z, lift: 0, yaw: Math.PI / 2, rock: 0, tilt: 0 }).content).toBe('none');
+      // la inclinación que lo encuentra lleva el haz hacia los pies, y es la de 40° (la ladera de la cúpula, a 44,5 mm)
+      const steep = { phi: c.phi, z: c.z, lift: 0, yaw: Math.PI / 2, rock: 0, tilt: 0.7 };
+      expect(probeFrame(steep, scene.torso, CONVEX_C35).axial[2]).toBeLessThan(-0.5);
+      expect(probeCenterContent(scene, steep).pleuraMm).toBe(c.pleuraMm);
+      expect(c.pleuraMm!).toBeGreaterThan(40);
+      expect(c.pleuraMm!).toBeLessThan(50);
+    }
+    // el tope de la sonda no queda bajo el vértice más alto de la base en ningún hábito (`probe.scanReach`)
+    const p = defaultPatient();
+    for (const chest of [
+      { build: 'average', sex: 'female' },
+      { build: 'obese', sex: 'male' },
+      { build: 'obese', sex: 'female' },
+    ] as const) {
+      const variant = new AnatomyScene({ ...p, habitus: { ...p.habitus, chest } });
+      expect(SCAN_REACH.params.cranialMm.value).toBeGreaterThanOrEqual(apexMaxZ(variant));
+    }
+    expect(SCAN_REACH.params.cranialMm.value).toBeGreaterThanOrEqual(apexMaxZ(scene));
+    // mutación del alcance: con el tope de antes (z ≤ 200), la sonda no se apoya ahí
+    const old: PositionReach = { id: 'z ≤ 200', admit: (p) => (p.z <= 200 ? SUPINE_REACH.admit(p) : null) };
+    const before = explorationCoverage(scene, [old]);
+    for (const s of BOTH) {
+      expect(before.cells.find((x) => x.id === `${s} fosa supraclavicular, sobre el vértice`)!.met).toBe(false);
+      expect(before.cells.find((x) => x.id === `${s} fosa supraclavicular`)!.met).toBe(true);
+    }
   });
 
   it('en supino no alcanza la espalda: el límite es el de clampPose', () => {
