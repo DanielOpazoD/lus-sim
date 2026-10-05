@@ -1,6 +1,6 @@
 # Propuesta: protocolos de insuficiencia cardiaca guiados por la presión de llenado
 
-**Estado:** propuesta sin implementar (03-10-2026), a pedido de Daniel. No es una decisión: cada paso, al implementarse,
+**Estado:** propuesta (03-10-2026), a pedido de Daniel; **implementada en parte** por las decisiones 51 (la física de las líneas B y el detector) y 51 (capas 0–3, el paso de la capa 4 al paciente, la regla de los protocolos y la interfaz; ver allí lo calibrado y lo pendiente). No es una decisión: cada paso, al implementarse,
 abre su entrada en `docs/DECISIONS.md`. **Respaldo:** un estudio bibliográfico del 03-10-2026 que vive fuera del repo; aquí
 solo entran sus conclusiones con las claves de `docs/REFERENCES.md`. Lo que la base ya tenía, más lo que esta propuesta
 le añade (filas 1.2.16–1.2.17 y 1.11.12, metas P-T30–T31 y C-T32), está en `docs/knowledge/clinical.md` (§1.1, §1.8.5,

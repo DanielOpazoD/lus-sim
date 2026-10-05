@@ -10,6 +10,8 @@ export interface AcquireActions {
   /** lus-sim (decisión 33): sentar o tumbar al paciente. */
   setPosition: (position: PatientPosition) => void;
   onResetPatient: () => void;
+  /** lus-sim (decisión 52): abre el panel de insuficiencia cardiaca (se carga al pedirlo). */
+  openHeartFailure: () => void;
 }
 
 export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: AcquireActions): void {
@@ -56,6 +58,13 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
     resp,
     'Restablece la respiración y borra el cine. Conserva la ubicación de la sonda, la posición del paciente y los ajustes del equipo.',
   );
+
+  // lus-sim (decisión 52): el mando hemodinámico y los protocolos de IC, en un panel que se carga al abrirlo
+  const hf = ctx.section(p, 'Insuficiencia cardiaca', {
+    collapsed: true,
+    info: 'Elige una presión de llenado o el agua extravascular: el pulmón pierde aire donde se acumula el agua y las líneas B salen de la física. El mapa del protocolo cuenta lo que mide el detector sobre la imagen.',
+  });
+  ctx.track(button(row(hf), 'Abrir el panel de IC', actions.openHeartFailure));
 
   const probe = ctx.section(p, 'Sonda', {
     collapsed: true,

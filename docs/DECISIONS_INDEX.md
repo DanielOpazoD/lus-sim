@@ -55,3 +55,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [49](DECISIONS.md#L4550) | El corazón de EchoTwin en el tórax: fase 1, estático en telediástole, horneado en un volumen y en su propio chunk | vigente |
 | [50](DECISIONS.md#L4687) | La fosa supraclavicular creíble: la depresión, las capas del cuello y los vasos subclavios | vigente |
 | [51](DECISIONS.md#L4792) | Las líneas B emergen de las trampas subpleurales que abre el agua, y un detector las cuenta sobre la señal | vigente |
+| [52](DECISIONS.md#L4922) | Los protocolos de insuficiencia cardiaca con un mando hemodinámico: de la presión de llenado al agua, a la aireación y al puntaje medido | vigente |

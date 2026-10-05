@@ -49,7 +49,11 @@ import {
   type LungPulseReport,
 } from './lungPulseBench';
 import type { RenderMeasureOptions, Simulator } from './simulator';
-import { bLineClip, bLineEquivalence, setLungGas, type BLineClip, type BLineEquivalence } from './bLineBench';
+import { bLineEquivalence, setLungGas, type BLineEquivalence } from './bLineBench';
+import { bLineClip, type BLineClip } from './bLineClip';
+import { HeartFailureModel, measureProtocol } from './heartFailure';
+import { protocolById, type ProtocolId } from '../lus/protocols';
+import { DEFAULT_CALIBRATION, type HemodynamicCalibration, type HemodynamicInput } from '../physiology/hemodynamics';
 import { START_POINTS, type StartPoint } from './startPoints';
 import { measurementViewPose, type MeasurementViewId } from './measurementViews';
 
@@ -134,6 +138,25 @@ export interface TestHooks {
   /** Un clip en la pose (o la actual) medido con el detector de líneas B, en la mirada 0. */
   /** Un clip medido con el detector; con `gainDb`, a esa ganancia (con el comando del equipo; al terminar, la de antes). */
   bLineClip: (opts: { pose?: ProbePose; frames?: number; intervalS?: number; gainDb?: number }) => BLineClip;
+  /**
+   * lus-sim (decisión 52): el mando hemodinámico (`app/heartFailure.ts`), en equilibrio o no; devuelve el EVLWI actual y el de
+   * equilibrio (mL/kg). `wait`: minutos de agua sin mover la respiración.
+   */
+  setHeartFailure: (
+    input: HemodynamicInput | null,
+    opts?: { equilibrate?: boolean; waitMin?: number; calibration?: Partial<HemodynamicCalibration> },
+  ) => { now: number; steady: number };
+  /** La verdad del modelo de un protocolo: cada sitio en su pose ideal, medido con el detector (`measureProtocol`). */
+  protocolSweep: (
+    id: ProtocolId,
+    opts?: { frames?: number },
+  ) => {
+    total: number;
+    positive: { right: number; left: number };
+    band: string | null;
+    flags: string[];
+    sites: Array<[string, number, boolean]>;
+  };
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -312,6 +335,7 @@ export const A_LINE_BACKGROUND_MM = 4;
 export const A_LINE_MIN_PROMINENCE_DB = 6;
 
 export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: EquipmentCommand) => void): TestHooks {
+  let hf: HeartFailureModel | undefined;
   const hooks: TestHooks = {
     equivalenceSweep: (opts) => {
       const sim = getSim();
@@ -483,6 +507,32 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
         if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: gain } });
       }
     },
+    setHeartFailure: (input, opts = {}) => {
+      hf ??= new HeartFailureModel(getSim);
+      if (input === null) {
+        hf.reset();
+        return { now: 0, steady: 0 };
+      }
+      hf.calibration = { ...DEFAULT_CALIBRATION, ...opts.calibration };
+      hf.setInput(input, opts.equilibrate ?? true);
+      if (opts.waitMin) hf.wait(opts.waitMin);
+      return hf.evlwi();
+    },
+    protocolSweep: (id, opts = {}) =>
+      withCompound(getSim(), dispatch, false, () => {
+        const m = measureProtocol(getSim(), protocolById(id), { frames: opts.frames ?? 2 });
+        const r = m.result;
+        return {
+          total: r.total,
+          positive: r.positive,
+          band: r.band,
+          flags: r.flags,
+          sites: m.sites.map(
+            (x) =>
+              [`${x.site.side}-${x.site.line}-${x.site.ics}`, x.observation.count, x.observation.confluent] as [string, number, boolean],
+          ),
+        };
+      }),
     lungPulseEquivalence: () => lungPulseEquivalence(getSim()),
     wallNormals: (opts) => {
       const sim = getSim();
