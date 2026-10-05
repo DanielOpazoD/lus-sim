@@ -25,7 +25,7 @@ async function boot(page: Page): Promise<string[]> {
     // un uso inválido de WebGL es un aviso, no un error, en la consola de Chromium
     if (m.type() === 'warning' && /WebGL: INVALID|GL_INVALID/.test(m.text())) errors.push(`warning: ${m.text()}`);
   });
-  await page.goto('/?e2e=1');
+  await page.goto('/?e2e=1&corazon=0');
   await expect(page.locator('#status')).toContainText(/\d+ fps/, { timeout: 120_000 });
   // los ganchos de prueba se cargan de forma diferida (import dinámico)
   await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 60_000 }).toBe('object');

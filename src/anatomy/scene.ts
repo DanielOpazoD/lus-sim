@@ -26,7 +26,7 @@ import {
   zoaThicknessMm,
   type LungBorder,
 } from './organs/lungBorder';
-import { HEART, buildHeart, heartAtWall, heartClearance, heartDistance, heartStillWeight, type Heart } from './organs/heart';
+import { buildHeart, heartAtWall, heartQuery, heartStillWeight, heartWindowDistance, type Heart } from './organs/heart';
 import {
   CLAVICLE,
   RIBCAGE,
@@ -567,20 +567,18 @@ export class AnatomyScene {
     const caudal = instant.diaphragmCaudalMm;
     const u = wallArc(m, torso);
     // lus-sim (decisión 18): el corazón y el tapón de la ventana cardiaca, sobre la cúpula (se apoya en ella); lo de fuera
-    // cuenta su cara en la distancia a la frontera
-    const heart = heartDistance(this.heart, m, inside, u);
-    if (heart) {
-      const dHeartDome = sdDiaphragm(m, this.diaphragm, torso);
-      if (dHeartDome < 0) {
-        // la cúpula corta el corazón: su cara inferior es pared (la cavidad no llega al diafragma)
-        const floor = -dHeartDome - HEART.params.sideWallMm.value;
-        if (heart.blood && floor > 0) return { ...NONE, tissue: Tissue.Blood, boundaryDistance: Math.min(heart.d, floor) };
-        const d = heart.blood ? Math.min(-floor, -dHeartDome) : Math.min(heart.d, -dHeartDome, Math.abs(floor));
-        return { ...NONE, tissue: Tissue.Myocardium, boundaryDistance: d };
-      }
-    }
-    const clearance = heartClearance(this.heart, m, inside, u);
+    // cuenta su cara en la distancia a la frontera. Decisión 49: el corazón de EchoTwin, y el tapón y la franja de grasa
+    const heart = heartQuery(this.heart, m, inside, u);
+    // la lámina de la cortina gana al corazón fuera del disco de la ventana (decisión 49): el borde fino del pulmón sobre él, y la
+    // pleura que A0 registra fuera de la ventana tiene pulmón debajo
     const curtain = withCurtain ? this.classifyLungCurtain(m, inside, u, caudal) : null;
+    const sheet = curtain !== null && heartWindowDistance(this.heart, u, m[2]) >= 0;
+    if (heart.tissue !== -1 && !sheet) {
+      const dHeartDome = sdDiaphragm(m, this.diaphragm, torso);
+      if (dHeartDome < 0) return { ...NONE, tissue: heart.tissue, boundaryDistance: Math.min(heart.d, -dHeartDome) };
+    }
+    // bajo la cúpula (o bajo la lámina), lo que el corazón tendría ahí es de otro: su distancia a la frontera, 0
+    const clearance = heart.tissue !== -1 ? 0 : heart.clear;
     if (curtain) return { ...curtain, boundaryDistance: Math.min(curtain.boundaryDistance, clearance) };
     // la zona de aposición (decisión 18): bajo el borde del pulmón en FRC, el diafragma contra la pared; su mitad de dentro
     // dibuja la cara abdominal, con la normal de la pared

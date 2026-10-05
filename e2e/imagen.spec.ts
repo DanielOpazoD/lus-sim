@@ -18,10 +18,15 @@ async function openBench(page: Page): Promise<string[]> {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(`console: ${m.text()}`);
   });
+  const tBoot = Date.now();
   await page.goto('/?e2e=1');
   // los ganchos se cargan de forma diferida (import dinámico) tras montar el simulador (SwiftShader compila los
   // programas: 20–60 s con la máquina cargada)
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
+  // los ganchos llegan con el corazón horneado (decisión 49): su horneado, 41–43 s con SwiftShader en el M4 (los ganchos a
+  // 117–120 s del arranque); en el CI pasaron de los 120 s
+  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 300_000 }).toBe('object');
+  const bakeMs = await page.evaluate(() => window.__lusTest!.sim().renderer.heartBakeMs);
+  console.log(`CORAZON ganchos a ${((Date.now() - tBoot) / 1000).toFixed(1)} s; horneado ${(bakeMs / 1000).toFixed(1)} s`);
   return errors;
 }
 
@@ -57,7 +62,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // anatomías deben coincidir EXACTAMENTE en tejido y en cara; la distancia a la cara, a la precisión de float32
   const vol = await page.evaluate(() => window.__lusTest!.volumeEquivalence(50_000));
   const vtag = JSON.stringify(vol);
-  expect(vol.interiorPoints, vtag).toBeGreaterThan(40_000);
+  // (decisión 49) el corazón de EchoTwin tiene más interfaces que el elipsoide: 39 925 interiores con GPU real (antes, > 40 000)
+  expect(vol.interiorPoints, vtag).toBeGreaterThan(38_000);
   expect(vol.tissueAgreement, vtag).toBe(1);
   // el volumen tiene dientes: los tejidos del tórax de la escena (medido con la parrilla del paso C1, decisión 16, y la pared
   // por región del C2, decisión 17, con GPU real y con SwiftShader: pulmón 18 418, «resto» 15 036, músculo 4915, columna
@@ -70,6 +76,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   for (const t of ['RenalCortex', 'PerirenalFat', 'Fluid', 'Psoas', 'QuadratusLumborum'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(20);
   expect(vol.byTissue.Cartilage ?? 0, vtag).toBeGreaterThan(20);
+  // (decisión 49) el corazón de EchoTwin: sangre de sus cavidades y vasos (917 con GPU real) y miocardio (290)
+  expect(vol.byTissue.Blood ?? 0, vtag).toBeGreaterThan(400);
+  expect(vol.byTissue.Myocardium ?? 0, vtag).toBeGreaterThan(150);
   expect(vol.interfacePoints, vtag).toBeGreaterThan(3000);
   expect(vol.interfaceAgreement, vtag).toBe(1);
   // GPU real (M4): 2·10⁻⁵ mm; SwiftShader, 0,014 mm (en VExUS, la cara del diafragma): una décima del eco
@@ -81,6 +90,8 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // lo añadió la revisión), donde es continua (`boundaryStable`: sin el salto del pulmón de la cortina al del tórax, el
   // mismo tejido, a 3 mm de la pleura): GPU real 1·10⁻⁴ mm, SwiftShader 0,014 mm
   expect(vol.boundaryDistanceMaxErr, vtag).toBeLessThan(0.02);
+  // (decisión 49) en el volumen del corazón, una décima de mm (su cuanto) más lo de siempre
+  expect(vol.boundaryDistanceMaxErrHeart, vtag).toBeLessThan(0.12);
   // y lo que no se compara es poco: los puntos junto a la cara interna de la lámina de la cortina
   expect(vol.boundaryUnstable, vtag).toBeLessThan(0.005 * vol.interiorPoints);
   // El vértice (cobertura torácica, decisión 27): 10 000 puntos de z 150 a 230, con la cúpula pleural (la pared que engruesa
@@ -230,6 +241,7 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   expect(insp.vol.interfaceDistanceMaxErr, itag).toBeLessThan(0.02);
   expect(insp.vol.interfaceDistanceMaxErrCupola, itag).toBeLessThan(0.05);
   expect(insp.vol.boundaryDistanceMaxErr, itag).toBeLessThan(0.02);
+  expect(insp.vol.boundaryDistanceMaxErrHeart, itag).toBeLessThan(0.12);
   expect(insp.sweep.map((r) => r.id)).toEqual([
     ...START_POINTS.map((p) => p.id),
     'cardiacWindow',

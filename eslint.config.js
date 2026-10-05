@@ -22,4 +22,11 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  // lus-sim (decisión 49): el corazón portado de EchoTwin conserva su fuente (docs/PROVENANCE.md). EchoTwin compila con
+  // `noUncheckedIndexedAccess` y escribe `a[i]!`, que aquí sobra; y su generador aleatorio declara con valor inicial las variables
+  // de su bucle `do … while`. Quitarlo alejaría el fuente de su origen sin cambiar nada
+  {
+    files: ['src/anatomy/heart/**/*.ts'],
+    rules: { '@typescript-eslint/no-unnecessary-type-assertion': 'off', 'no-useless-assignment': 'off' },
+  },
 );

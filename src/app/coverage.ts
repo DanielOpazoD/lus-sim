@@ -10,6 +10,7 @@ import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { BASELINE_INSTANT, type AnatomyScene, type SceneInstant } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
 import { Tissue } from '../anatomy/tissues';
+import { CARDIAC_TISSUES } from '../anatomy/organs/heart';
 import type { RespiratorySample } from '../physiology/respiratory';
 import { probeContact } from '../probe/contact';
 import { CONVEX_C35, clampPose, lineDirection, pointOnLine, type PatientPosition, type ProbePose, type Transducer } from '../probe/probe';
@@ -228,7 +229,8 @@ export function probeCenterContent(
     if (PASS_TISSUES.has(t)) continue;
     if (t === Tissue.Lung) return { ...none, content: crossing ? 'lung' : 'none', pleuraMm: crossing ? crossing.D : null };
     if (t === Tissue.Bone || t === Tissue.Vertebra) return { ...none, content: 'bone' };
-    if (t === Tissue.Myocardium || t === Tissue.Blood) return { ...none, content: 'heart' };
+    // el corazón (decisión 49: el de EchoTwin; su tapón de grasa en la ventana es como la de la pared)
+    if (CARDIAC_TISSUES.has(t)) return { ...none, content: 'heart' };
     if (t === Tissue.Diaphragm || t === Tissue.RetroperitonealFat) {
       // el órgano: lo primero bajo el diafragma; la grasa retroperitoneal, solo si detrás está el riñón (lus-sim, decisión 43: la
       // grasa pararrenal posterior, entre el diafragma y la grasa del riñón, es una capa de grasa como la de la pared; delante de

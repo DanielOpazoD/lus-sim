@@ -51,7 +51,7 @@ for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
     page.on('console', (m) => {
       if (m.type() === 'error') errors.push(`console: ${m.text()}`);
     });
-    await page.goto('/?e2e=1');
+    await page.goto('/?e2e=1&corazon=0');
     await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
     const result = await page.evaluate(
       ({ startPoint, ranges, frames, sampleTimeS }) => {

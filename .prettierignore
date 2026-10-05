@@ -9,3 +9,6 @@ playwright-report
 .claude
 # generado por `npm run fidelity:ref` (decisión 21), como el índice de decisiones
 docs/reference-bank/reference-stats.json
+# corazón portado de EchoTwin (decisión 49): conserva el formato de su origen (docs/PROVENANCE.md); el puente propio sí se formatea
+src/anatomy/heart/**
+!src/anatomy/heart/cardiac.ts

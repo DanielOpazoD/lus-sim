@@ -41,7 +41,7 @@ test.skip(process.env.LUS_PILA !== '1', 'herramienta de la pila con el protocolo
 for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const)
   test(`la pila con el protocolo de los clips en ${startPoint}`, async ({ page }, testInfo) => {
     test.setTimeout(3_600_000);
-    await page.goto('/?e2e=1');
+    await page.goto('/?e2e=1&corazon=0');
     await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
     const rows = await page.evaluate(
       ({ startPoint, follow, tremor, frames, fps }) => {

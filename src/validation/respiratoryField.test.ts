@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import { chai, describe, expect, it } from 'vitest';
 import { RESPIRATORY_INVERSE, RespiratoryDeformation, respiratoryInverse } from '../anatomy/deformation';
 import { RESPIRATORY_WALL, respiratoryWallOf, wallTotalOf } from '../anatomy/organs/chestWall';
-import { HEART, heartStillWeight } from '../anatomy/organs/heart';
+import { CARDIAC_TISSUES, HEART, heartStillWeight } from '../anatomy/organs/heart';
 import { probeHitPoint } from '../anatomy/organs/ribcage';
 import { torsoDepth, torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyQuery } from '../anatomy/query';
@@ -534,7 +534,7 @@ describe('Excursión por patrón, por el camino real (motor → consulta → esc
     expect(floor(restF) - floor(insp)).toBeGreaterThanOrEqual(0.9 * E);
   });
 
-  it('la ventana cardiaca no se mueve con la inspiración profunda: miocardio bajo la pleura y sin pleura registrada', () => {
+  it('la ventana cardiaca no se mueve con la inspiración profunda: el corazón bajo la pleura y sin pleura registrada', () => {
     const t = scene.torso;
     const w = scene.heart.window;
     const deep = peak('deep');
@@ -545,7 +545,11 @@ describe('Excursión por patrón, por el camino real (motor → consulta → esc
       const pleura = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)), t, z);
       const under = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
       for (const s of [rest, deep]) {
-        expect(q.classifyWorld(under, s).tissue, `dz ${dz}`).toBe(Tissue.Myocardium);
+        // decisión 49: bajo la pleura, el tapón de grasa (lo que el pericardio deja libre) o el corazón de EchoTwin; nunca pulmón, y
+        // lo mismo en reposo y en la inspiración profunda (no respiran)
+        const t0 = q.classifyWorld(under, s).tissue;
+        expect(t0 === Tissue.Fat || CARDIAC_TISSUES.has(t0), `dz ${dz}: ${t0}`).toBe(true);
+        expect(t0, `dz ${dz}`).toBe(q.classifyWorld(under, rest).tissue);
         const m = q.deformation.toMaterial(pleura, s.resp);
         expect(m).toEqual(pleura);
         expect(scene.lungEdgeMm(m, q.instantFor(s))!).toBeLessThan(-100);

@@ -58,6 +58,8 @@ export default defineConfig({
     include: tier === 'slow' ? SLOW : ['src/**/*.test.ts'],
     exclude: tier === 'fast' ? ['node_modules/**', ...SLOW] : ['node_modules/**'],
     environment: 'node',
+    // lus-sim (decisión 49): el corazón de EchoTwin, registrado antes de construir ninguna escena
+    setupFiles: ['src/validation/support/setupHeart.ts'],
     testTimeout: 60_000,
     coverage: {
       provider: 'v8',

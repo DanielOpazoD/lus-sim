@@ -214,7 +214,7 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   {
     name: 'uHeartC',
     type: 'vec4',
-    doc: 'corazón (decisión 18, organs/heart.ts): centro del elipsoide y profundidad del tapón de la ventana',
+    doc: 'corazón (decisión 18, organs/heart.ts): centro del elipsoide y profundidad del tapón de la ventana (decisión 49: hasta el pericardio)',
     value: (s) => [...s.heart.center, s.heart.plugDepthMm],
   },
   {
@@ -231,10 +231,12 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     value: (s) => [...s.heart.e3, s.heart.radii[2]],
   },
   {
-    name: 'uHeartCav',
+    name: 'uHeartBase',
     type: 'vec4',
-    doc: 'cavidad del corazón: desplazamiento por el eje corto y sus semiejes',
-    value: (s) => [s.heart.cavityOffset, ...s.heart.cavityRadii],
+    doc:
+      'lus-sim (decisión 49): esfera de la base del corazón de EchoTwin (centro y radio, mm), que con el elipsoide no respira ' +
+      '(heartStillWeight); el volumen del corazón va aparte (uHeartVol, con su rejilla en uSceneTex)',
+    value: (s) => [...s.heart.base.c, s.heart.base.r],
   },
   {
     name: 'uHeartWin',
@@ -287,11 +289,17 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   },
 ];
 
-/** Declaraciones GLSL generadas del esquema (más el sampler de la textura de escena). */
+/** Declaraciones GLSL generadas del esquema (más los samplers de la textura de escena y del corazón). */
 export const SCENE_UNIFORMS_GLSL = [
   ...SCENE_UNIFORMS.map((u) => `uniform ${u.type} ${u.name}${u.count ? `[${u.count}]` : ''}; // ${u.doc}`),
   'uniform sampler2D uSceneTex; // tablas de la compresión de la sonda y de las alturas costales (lus-sim: sin tubos)',
+  // lus-sim (decisión 49): el volumen del corazón de EchoTwin horneado (RG8UI 3D: código del tejido y décimas de mm; su rejilla,
+  // en uSceneTex desde HEART_VOL_BASE)
+  'uniform highp usampler3D uHeartVol;',
 ].join('\n');
+
+/** Samplers de la escena y sus unidades de textura (el renderizador los liga en cada programa que usa la anatomía). */
+export const SCENE_SAMPLERS = { uSceneTex: 6, uHeartVol: 8 } as const;
 
 /** Valores de un cuadro, evaluados UNA vez y subidos a cada programa que usa la anatomía. */
 export type SceneUniformValues = ReadonlyArray<{ spec: UniformSpec; data: Float32Array }>;

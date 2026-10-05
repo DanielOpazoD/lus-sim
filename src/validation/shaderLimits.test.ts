@@ -38,7 +38,7 @@ function uniformSlots(src: string): { slots: number; arrays: string[] } {
   const arrays: string[] = [];
   for (const m of code.matchAll(/\buniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(?:\[\s*(\w+)\s*\])?\s*;/g)) {
     const [, type, name, size] = m;
-    if (type.startsWith('sampler')) continue;
+    if (/^[iu]?sampler/.test(type)) continue;
     const n = size === undefined ? 1 : /^\d+$/.test(size) ? Number(size) : defines.get(size);
     if (n === undefined) throw new Error(`uniform ${name}[${size}]: tamaño sin resolver`);
     slots += n * (type === 'mat4' ? 4 : type === 'mat3' ? 3 : type === 'mat2' ? 2 : 1);
@@ -252,8 +252,8 @@ describe('Límites del shader con margen para crecer', () => {
   // dos de B leen además la pleura parietal de A0 (uHits2) y el rayo único de A (uTrans2), decisión 61.
   it('cada shader de fragmentos declara ≤ 16 samplers; B, A y K, los de su diseño', () => {
     for (const [name, src] of FRAGMENT_SHADERS) expect(samplersOf(src).length, name).toBeLessThanOrEqual(16);
-    expect(samplersOf(FRAG_RAWFIELD)).toEqual(['uSceneTex', 'uCoupling', 'uTrans0', 'uTrans1', 'uHits2', 'uTrans2']);
-    expect(samplersOf(FRAG_RAWFIELD_STEERED)).toEqual(['uSceneTex', 'uCoupling', 'uTrans1', 'uTrans3', 'uHits2', 'uTrans2']);
+    expect(samplersOf(FRAG_RAWFIELD)).toEqual(['uSceneTex', 'uHeartVol', 'uCoupling', 'uTrans0', 'uTrans1', 'uHits2', 'uTrans2']);
+    expect(samplersOf(FRAG_RAWFIELD_STEERED)).toEqual(['uSceneTex', 'uHeartVol', 'uCoupling', 'uTrans1', 'uTrans3', 'uHits2', 'uTrans2']);
     // lus-sim (decisión 20): A lee además la pleura y la costilla de cada línea (A0 h2 y h3), y el prefijo dirigido de A2,
     // la costilla (h3)
     expect(samplersOf(FRAG_TRANSMISSION)).toEqual(['uCoupling', 'uPre0', 'uPre1', 'uHits0', 'uHits2', 'uHits3']);

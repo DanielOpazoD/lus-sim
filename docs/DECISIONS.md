@@ -4546,3 +4546,140 @@ supraclavicular se alcanzan, y el lateral se explora entero. Medido en `main`:
 - `e2e/humanNavigator.spec.ts` («brazos arriba»): arrastre real con el ratón por la axilar media derecha en la vista lateral y
   por la fosa supraclavicular en la anterior, sin «Zona no explorable».
 - Capturas con la GPU real (Metal): el maniquí, la sonda en la axila y la vista supraclavicular.
+
+## 49. El corazón de EchoTwin en el tórax: fase 1, estático en telediástole, horneado en un volumen y en su propio chunk
+
+**Fecha.** 2026-10-04.
+
+**Contexto.** Daniel, el 04-10-2026: «falta agregar corazón que puedes sacar de simulador EchoTwin TTE». El corazón de lus-sim era
+el de la decisión 18: un elipsoide de miocardio (120 × 90 × 65 mm [SUPUESTO]) con una cavidad y un tapón de miocardio de hasta
+25 mm que lo unía a la pared en la ventana de Latham (`heart-simplified`). En la ventana cardiaca y en la región paraesternal
+izquierda la imagen mostraba una pared gruesa y un hueco, no un corazón. EchoTwin (`echotwin-tte`, público, el mismo autor) tiene
+un corazón analítico completo (cuatro cavidades, paredes con su grosor regional, válvulas mitral, tricúspide, aórtica y pulmonar
+con sus cuerdas, raíz aórtica y aorta ascendente, tracto de salida y tronco pulmonar con sus ramas, venas cavas y pulmonares,
+seno coronario, pericardio y grasa epicárdica), con su clasificador TS y su gemelo GLSL escrito a mano (≈ 1100 líneas). Límites de
+partida: la pasada B en 127/129 de sus 130 ranuras de uniforms, los 32 tejidos llenos (`TISSUE_VEC4`), la entrada del bundle en
+302,5 de 310 kB, y la guarda de compilación de SwiftShader (`shaderLimits.test.ts`: el JIT crece con el código inlineado).
+
+**Opciones.** Para el corazón: (a) agrandar el elipsoide con cavidades propias; (b) portar el de EchoTwin con procedencia. Para la
+GPU: (i) su clasificador en cada programa que clasifica, con sus parámetros en una textura (como en EchoTwin); (ii) un volumen
+horneado: su clasificador solo en un programa que, al llegar el corazón, escribe en una textura 3D lo que dice en el centro de
+cada vóxel, y las pasadas leen el vóxel. Medido con SwiftShader, (i) llevaba el primer dibujo de A0 de 26 a 900 s, el de B de 47 a
+756 s (166 s sin el bucle de los planos) y el de la consulta de 56 a 73 s: la e2e del CI no cabe. Para los tejidos: añadir los de
+EchoTwin (no caben) o llevarlos a los de lus-sim. Para el bundle: subir el presupuesto (≈ 104 kB más en la entrada) o un chunk
+diferido. Para lo que rodea al corazón (el tapón, la franja, el pulso pulmonar, lo que no respira): rehacerlo o conservarlo.
+
+**Decisión.** (b) con (ii), en dos fases; esta es la 1: el corazón del caso normal, estático en el comienzo del QRS, en un chunk
+diferido.
+
+- **El puerto** (`src/anatomy/heart/`, filas en `docs/PROVENANCE.md`, `echotwin-tte@c15aec7`): el modelo, la pose y el
+  clasificador de EchoTwin; 15 archivos idénticos y el resto con importaciones relativas, el caso sin Zod (`schema.ts`,
+  `normal-excellent.ts`: los tipos y los valores por omisión escritos), solo las constantes de la columna del tórax de EchoTwin y la
+  forma del estado del latido (`CycleState`). Su GLSL (`gpu/`) lleva el prefijo `et_` escrito en el fuente (sus nombres —`smin`,
+  `sdRoundCone`, `T_BLOOD`, `P`— chocaban con los de lus-sim; así el renombrado del build ve los nombres finales); `paramLayout.ts`
+  empaqueta solo el corazón (`packHeart`). Conservan el formato de su origen (`.prettierignore`).
+- **El puente** (`heart/cardiac.ts`, propio): el estado del latido es el de `cycleStateAt(tables, 0)` del caso en EchoTwin
+  (`HEART_ED_STATE`: el VI con 120 mL, las valvas cerradas); el marco, el de EchoTwin (cm, dextrógiro, origen en la piel sobre el
+  esternón en el 4.º EIC) convertido al de lus-sim con `core/units.ts` (`lusToEchoTwinCm`, `echoTwinCmToLus`, `swapYZ`: cambiar
+  y por z invierte la quiralidad sin espejar la izquierda); una caja en el marco del corazón (`CARDIAC_BOX_CM`) que contiene todo
+  lo cardiaco; los tejidos de EchoTwin sobre los de lus-sim (`ET_TO_LUS_TISSUE`: sangre y miocardio los suyos; valvas, cuerdas y
+  paredes de vasos, la pared arterial; pericardio y anillos fibrosos, el ligamento venoso; la grasa epicárdica, la grasa).
+- **El volumen** (`heart/cardiacRuntime.ts`, propio, el chunk diferido): una rejilla de 0,7 mm en el marco del corazón sobre su
+  caja (206 × 198 × 238 vóxeles, RG8UI 3D, ≈ 19 MB): en cada vóxel, el tejido de lus-sim que el clasificador de EchoTwin da en su
+  centro (o nada) y la distancia de su `sdf` en décimas de mm. El renderizador lo hornea al llegar el corazón (`bakeHeart`, que lleva paso a paso `ultrasound/heartBake.ts`, del chunk del
+  corazón: un
+  programa con la GLSL de EchoTwin, con los parámetros del modelo en RGBA32F y la retícula de su pared en R8 3D, que solo usa ese
+  programa) sin pararla de una vez: el programa se enlaza en los hilos del navegador (`linkLater` de `heartBake.ts`) y dibuja 30 capas
+  por paso (8 pasos), cada paso tras la valla del anterior, sin ninguna lectura (un `readPixels` final paraba la página ≈ 46 s con
+  SwiftShader, lo halló la segunda revisión; con 4 capas por paso, entre paso y paso la imagen dibujaba sus cuadros y el horneado
+  con SwiftShader tardó 333 s); el volumen nuevo sustituye al vacío al terminar. Mientras se hornea, el bucle de la
+  aplicación no dibuja la imagen (`heartBaking`): con SwiftShader los cuadros entre los pasos competían con él, y en el CI los
+  ganchos de la e2e dejaron de llegar en 120 s. Las pasadas leen el vóxel (`heartVoxel` en
+  `organs/heart.ts`, `uHeartVol`, con la rejilla en la textura de escena desde `HEART_VOL_BASE`, ceros mientras no está horneado);
+  su gemela TS evalúa el clasificador en el mismo centro (`voxelCode`). La distancia de un punto es la del centro menos dos
+  semidiagonales, con un tope de 2 mm (`HEART_VOXEL_BD_CAP_MM`), y no es una cota: la `sdf` de EchoTwin no cuenta las valvas ni las
+  cuerdas que flotan en la sangre ni los vasos fuera del saco (su exceso llega a 19 mm), y con ella el entorno de ese radio cambia
+  de tejido en ≈ 2–3 % de los puntos (≈ 0,7 % aun con 0,5 mm de tope; medido en `cardiac.test.ts`). Nadie la usa como cota: la
+  pasada B solo reutiliza el tejido del centro si la distancia pasa de σ_elev + 0,5 mm (`sampleSide`), y σ_elev nunca baja de
+  1,6 mm, así que dentro de la rejilla toda muestra de elevación se reclasifica (la prueba lo fija). Cero ranuras de uniforms nuevas
+  (`uHeartBase` ocupa la de `uHeartCav`).
+- **Un horneado fallido**: el corazón sale de la escena (`failCardiac`: la CPU queda como la GPU, sin él) y de las que vengan, no se
+  vuelve a intentar ni a compilar, y el error llega a `errorLog` (origen `gpu`). Antes la excepción subía desde `setScene` y dejaba
+  la escena a medias, rompía «Reiniciar paciente» y la recuperación del contexto, y cada intento recompilaba (lo halló la segunda
+  revisión; `heartBake.test.ts`).
+- **La carga diferida**: nada de la entrada importa `anatomy/heart/` en tiempo de ejecución; `SimulationSession.loadCardiac` lo
+  pide al construir la sesión (el primer cuadro es el BLUE superior derecho, sin corazón a la vista) y lo registra para las
+  escenas que vengan (`registerCardiac`). En la viva (`Simulator.attachCardiac`) se coloca aparte y entra en la escena cuando el
+  renderizador tiene su volumen: la CPU y la GPU lo ven desde el mismo cuadro. Su llegada no borra el cine ni una imagen congelada
+  (`heartChanged` ya no es un cambio de escena; sí invalida las miradas guardadas). Una escena nueva del mismo paciente (otra
+  respiración, «Restablecer paciente») trae el mismo volumen (`buildCardiac` recuerda los cuatro últimos corazones por su sitio y
+  el chunk, su volumen por corazón) y no se vuelve a hornear; con un renderizador nuevo (tras perder el contexto), se vuelve a
+  hornear y, mientras tanto, la GPU ve la escena sin él. Las pruebas lo registran al arrancar
+  (`validation/support/setupHeart.ts`). La e2e tiene el corazón, como producción, y sus ganchos llegan con él horneado; las
+  pruebas lejos del corazón lo apagan con `?e2e=1&corazon=0` (todas salvo las de `imagen.spec.ts`, con la equivalencia, el
+  costo y el pulso pulmonar): con SwiftShader el horneado ocupa ≈ 46 s en cada página, y la suite entera con el corazón en
+  todas (5 trabajadores, carga ≈ 20) agotó los plazos de seis pruebas, con el fragmento del CI que lo lleva ya en 20,2 de sus
+  25 min. Esas pruebas ven una escena que producción solo tiene unos instantes: en la ventana, el pulmón de la cortina de 20 a
+  80 mm, y `heartAtWall` apagando la pleura igual.
+- **El sitio** (`attachEchoTwinHeart`): el eje del caso (Engblom); el ápex del saco pericárdico, primero en el del elipsoide de la
+  decisión 18 (la pleura bajo la piel a 9 cm de la línea media en el 5.º EIC, 10 mm hacia dentro) y después el corazón llevado por
+  la normal de la ventana hasta que su punto más cercano a la pleura bajo el disco queda a `windowContactMm` (0 [SUPUESTO]: en la
+  zona desnuda el pericardio se apoya en el esternón y los cartílagos). Donde queda en el avatar: el ápex del saco a 79,7 mm de la
+  línea media, en el 5.º EIC, 5,2 mm por dentro de la pleura. Las traslaciones se miden con el corazón de partida trasladado y el
+  corazón se construye una vez en su sitio (96 ms en la CPU, medido por la revisión).
+- **Lo de alrededor, conservado** (con dos cambios medidos): el tapón de la ventana es grasa, de la pleura hasta el pericardio
+  (≈ 10,8 mm en el avatar; antes, 25 mm de miocardio); la franja, grasa bajo la lámina de la cortina; el pulso pulmonar, el elipsoide y
+  `heartAtWall`, sin cambios. (1) Lo que no respira (`heartStillWeight`): el elipsoide con su tapón y una esfera que cubre la base
+  del corazón de EchoTwin que él no cubre (aurículas y raíces; 78 mm de radio), con una rampa de 50 mm desde su superficie
+  (`baseStillRampMm` [SUPUESTO]; con 20 mm el campo se plegaba sobre ella): con la del elipsoide, que empieza tras el margen del
+  tapón, el hígado a 9 cm a la derecha no respiraba entero (peso 0,96 en z 0; 19 mm de
+  descenso en lugar de > 40 en la inspiración profunda), y sin la esfera las aurículas y la aorta se estiraban con la respiración.
+  (2) Fuera del disco de la ventana, la lámina de la cortina gana al corazón (`scene.classify` y `classifyWith`): la cara anterior
+  del ventrículo derecho llega a ≤ 1,7 mm por dentro de la pleura en un anillo de ≈ 4 cm alrededor del disco, y la pleura que A0
+  registra fuera de la ventana debe tener pulmón debajo.
+- **La cúpula**: el corazón solo existe sobre ella, como antes; lo que EchoTwin pone por debajo (≈ 70 mL: la cava inferior, la
+  vena hepática y la cara inferior de los ventrículos) es del abdomen.
+
+**Consecuencias.**
+
+- En la ventana cardiaca (con GPU real): bajo la pared, el pericardio y el ventrículo derecho, el tabique, el ventrículo izquierdo
+  con sus papilares, la válvula mitral y la aorta; en la paraesternal izquierda, el corazón detrás del pulmón donde el pulmón lo
+  tapa (capturas en la PR; el volumen y el clasificador dan la misma imagen a la vista). Volúmenes (rejilla de 2,5 mm): VI y VD los
+  del caso, aurículas en su mínimo de telediástole (≈ 29 y 30 mL), masa del VI normal.
+- Costo, medido con la GPU real (Apple M4, Metal) y con SwiftShader (el del CI), frente a main (d954a97): el cuadro del BLUE
+  superior 4,9 ms (main 7,9; el ruido de la máquina) y el de la ventana 7,2 (main 7,5) con GPU, 268 y 266 ms (main 263 y 254) con
+  SwiftShader; el horneado, 525 ms con GPU y 46,5 s con SwiftShader (compilación incluida, de una vez y con una lectura al
+  final, que paraba la página), tras el primer cuadro; por pasos (con la carga de la máquina en 5–9), 0,25 s con GPU y 41–43 s con SwiftShader, con la tarea más larga del hilo en
+  0,26 s con GPU (main 0,37) y 12,6–13,1 s con SwiftShader (main 5,1–5,9; antes, el horneado entero), y los ganchos de la e2e, con
+  el corazón ya horneado, a 1,0 s con GPU (main 0,5) y a 117–120 s con SwiftShader (main 85–244: el ruido de la máquina); la prueba de arranque y costo, 55,5 s con
+  SwiftShader (main 53,4).
+- Bundle: la entrada con el chunk compartido que separa Rollup pasa de 302,5 a 309,5 kB (de 310); el corazón y su horneado,
+  106,3 kB en `cardiacRuntime` (`app/cardiacRuntime.ts`: `anatomy/` no importa el horneado, que es de `ultrasound/`), diferido;
+  el total, de 857,3 a 971,8 (su presupuesto sube a 980).
+- Equivalencia TS ↔ GLSL con GPU real: 50 000 puntos, acuerdo de tejido 1 (sangre y miocardio en el volumen); la distancia a la
+  frontera en el volumen, a una décima (su cuanto: `boundaryDistanceMaxErrHeart` < 0,12 mm); los interiores bajan a ≈ 39 400 (más
+  interfaces) y la e2e exige > 38 000.
+- La cobertura vuelve a 136 de 138 (la ventana cuenta como corazón la grasa del tapón seguida de un tejido cardiaco,
+  `CARDIAC_TISSUES`).
+- `heart-simplified` se reescribe: el corazón no late ni respira, la cúpula lo corta, la ventana sigue siendo el disco de Latham,
+  está horneado en vóxeles de 0,7 mm, llega después del primer cuadro, sin caras propias ni anisotropía, sin el resto del
+  mediastino.
+- Fase 2 (`docs/ROADMAP.md`): el latido desde el reloj único con las tablas de EchoTwin (`cycleModel.ts` entero), la pose por fase
+  (≈ 35–60 ms en la CPU) y el pulso pulmonar del mismo volumen. El volumen no se puede hornear en cada cuadro (≈ 9,7 M vóxeles):
+  una serie de volúmenes por fase del latido (≈ 19 MB cada uno: pocos, o comprimidos), o hornear solo la losa que corta el
+  sector. Después, el paso siguiente: el diafragma ajustado al corazón (decisión 229 de EchoTwin) en lugar del corte de la cúpula
+  (≈ 70 mL, de ellos ≈ 33 de ventrículo según la segunda revisión).
+
+**Verificación.** `npm run check` (cobertura incluida, con las pruebas lentas: `respiratoryField.test.ts` vigila que la esfera de la base no pliegue el campo) y la e2e con GPU real y con SwiftShader. Revisión adversarial de contexto limpio (con scripts): halló la rampa de 20 mm que plegaba el campo, la distancia del volumen que no era cota (ahora con tope), la tolerancia de la equivalencia que abarcaba toda la esfera del volumen (ahora solo la rejilla), y un horneado fallido que dejaba la CPU con corazón y la GPU sin él (ahora el volumen solo se cambia si el horneado termina, y el error llega a `errorLog`); corregidos. `cardiac.test.ts`: el puerto
+reproduce el clasificador de EchoTwin en 320 puntos del origen (`support/echotwinHeartGolden.json`, generados con EchoTwin en
+c15aec7: mismo tejido, misma estructura y la sdf a 1e-8), los volúmenes, la caja (nada cardiaco fuera), la esfera de la base con el
+elipsoide (nada del saco fuera de lo que no respira), el ápex en el 5.º EIC entre 7 y 10 cm y por dentro de la pleura, el centro
+mitral detrás del 3.º–4.º cartílago, el contacto en la ventana a windowContactMm, la lámina fuera del disco, lo que queda bajo la
+cúpula, la conversión de marcos (ida y vuelta, direcciones, quiralidad), el prefijo de la GLSL, el vóxel igual al clasificador en
+su centro y la escena sin corazón antes de que llegue. Las pruebas con WebGL falso que cuentan dibujos y enlaces corren sin el
+corazón. A-T16, la cobertura, las guardas de la GLSL (samplers, uniforms, el orden de la cortina, las copias de classify, que no
+cambian) y la equivalencia e2e, al día. Segunda revisión adversarial (sin bloqueantes; el puerto, sin discrepancias en 40 000
+puntos frente a c15aec7): el horneado fallido sin atrapar, la lectura que paraba la página, la e2e sin corazón por omisión, la
+distancia del volumen que no es cota, la llegada que borraba el cine y la caché sin límite; corregidos, con `heartBake.test.ts`
+(por pasos, sin lecturas, la escena con el corazón solo con su volumen; el fallo lo saca, se informa una vez y no se recompila) y
+las pruebas de la distancia y de la caché en `cardiac.test.ts`.

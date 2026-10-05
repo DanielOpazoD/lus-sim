@@ -182,7 +182,12 @@ const input = new ProbeInput(
   setPoseManual,
   () => !store.get().frozen,
 );
-registerDevtools(sim, dispatch);
+// lus-sim (decisión 49): el corazón de EchoTwin, en su propio chunk, tras construir la sesión. Las pruebas lejos del corazón lo
+// apagan con `?e2e=1&corazon=0`: su horneado ocupa ≈ 46 s de SwiftShader en cada página (el CI no lo aguanta en todas), y sin él
+// ven la escena de antes de que llegue (en la ventana, el pulmón de la cortina). La e2e cerca del corazón lo tiene, como producción
+const query = new URLSearchParams(location.search);
+const cardiacReady = query.has('e2e') && query.get('corazon') === '0' ? Promise.resolve() : session.loadCardiac();
+registerDevtools(sim, dispatch, cardiacReady);
 /**
  * El cine y la imagen congelada eran del simulador o del renderizador anterior: tras reiniciar el paciente o recuperar
  * la GPU, una imagen congelada ya no existe (se vería negra, con la regla y el HUD de otro cuadro). Se vuelve a la
@@ -264,7 +269,10 @@ function frame(now: number, dt: number): void {
   const s = sim();
   input.tick(dt);
   s.advance(dt);
-  if (!gpu.lost) {
+  // lus-sim (decisión 49): mientras se hornea el corazón la imagen espera y el horneado tiene la GPU para él (≈ 0,25 s con GPU);
+  // con SwiftShader, los cuadros entre sus pasos lo alargaban tanto que en el CI los ganchos no llegaban en 120 s
+  const baking = s.renderer.heartBaking;
+  if (!gpu.lost && !baking) {
     s.render({ mline: mMode.prepare(s) });
     // un cuadro del modo B solo si se dibujó (con la imagen congelada `render` no dibuja)
     if (s.frozen) bmodeRate.reset();
@@ -272,7 +280,7 @@ function frame(now: number, dt: number): void {
     cine.tick();
     requestNavigator();
   }
-  if (gpu.lost) bmodeRate.reset();
+  if (gpu.lost || baking) bmodeRate.reset();
   try {
     navigator3D?.sync();
   } catch (error) {

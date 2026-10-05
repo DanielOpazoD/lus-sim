@@ -18,8 +18,13 @@ test('el costo por cuadro espera a la GPU y no deja errores de WebGL (decisión 
     if (m.type() === 'error') problems.push(`console: ${m.text()}`);
     if (m.type() === 'warning' && /WebGL: INVALID|GL_INVALID/.test(m.text())) problems.push(`warning: ${m.text()}`);
   });
+  const tBoot = Date.now();
   await page.goto('/?e2e=1');
-  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 120_000 }).toBe('object');
+  // los ganchos llegan con el corazón horneado (decisión 49): su horneado, 41–43 s con SwiftShader en el M4 (los ganchos a
+  // 117–120 s del arranque); en el CI pasaron de los 120 s
+  await expect.poll(() => page.evaluate(() => typeof window.__lusTest), { timeout: 300_000 }).toBe('object');
+  const bakeMs = await page.evaluate(() => window.__lusTest!.sim().renderer.heartBakeMs);
+  console.log(`CORAZON ganchos a ${((Date.now() - tBoot) / 1000).toFixed(1)} s; horneado ${(bakeMs / 1000).toFixed(1)} s`);
   const r = await page.evaluate(() => {
     const hooks = window.__lusTest!;
     const sim = hooks.sim();

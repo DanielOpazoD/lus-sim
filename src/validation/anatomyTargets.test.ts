@@ -16,6 +16,7 @@ import { SITTING_REACH, apexMaxZ, clavicleTopZ, probeCenterContent } from '../ap
 import { torsoNormal, torsoSkinPoint } from '../anatomy/primitives';
 import { AnatomyScene, BASELINE_INSTANT } from '../anatomy/scene';
 import { thoraxLinePhi, type ThoraxLine } from '../anatomy/thoraxLines';
+import { CARDIAC_TISSUES } from '../anatomy/organs/heart';
 import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
 import { LUNG_BORDER, lungBorderAt, lungSlideMm } from '../anatomy/organs/lungBorder';
@@ -957,7 +958,14 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
       const z = intercostalZ(scene, n, phi);
       const pleura = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)), t, z);
       const deep = probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + 1.5, t, z);
-      return { tissue: scene.classify(deep, BASELINE_INSTANT).tissue, edge: scene.lungEdgeMm(pleura, BASELINE_INSTANT)! };
+      // decisión 49: bajo la pleura, el tapón de grasa (hasta el pericardio) y el corazón de EchoTwin; el primer tejido que no es
+      // grasa, en el tapón o justo bajo él, sin pulmón antes
+      let heart: Tissue | null = null;
+      for (let d = 0.5; d <= scene.heart.plugDepthMm + 3 && heart === null; d += 0.5) {
+        const k = scene.classify(probeHitPoint(phi, scene.wallThicknessAt(torsoSkinPoint(phi, z, t)) + d, t, z), BASELINE_INSTANT).tissue;
+        if (k !== Tissue.Fat) heart = k;
+      }
+      return { tissue: scene.classify(deep, BASELINE_INSTANT).tissue, heart, edge: scene.lungEdgeMm(pleura, BASELINE_INSTANT)! };
     };
     for (const [X, n] of [
       [30, 5],
@@ -967,7 +975,8 @@ describe('A-T12–A-T16: pulmón, pleura, diafragma y corazón en los dos hemit�
     ] as const) {
       const left = check(X, n, 1);
       // corazón bajo la pleura, y la pasada A0 no registra pleura (su borde, muy por debajo)
-      expect(left.tissue, `izquierda, EIC${n} a ${X} mm`).toBe(Tissue.Myocardium);
+      expect(CARDIAC_TISSUES.has(left.heart as Tissue), `izquierda, EIC${n} a ${X} mm: ${left.heart}`).toBe(true);
+      expect(left.tissue, `izquierda, EIC${n} a ${X} mm`).not.toBe(Tissue.Lung);
       expect(left.edge).toBeLessThan(-100);
       // al otro lado, pulmón
       expect(check(X, n, -1).tissue, `derecha, EIC${n} a ${X} mm`).toBe(Tissue.Lung);

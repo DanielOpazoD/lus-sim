@@ -506,7 +506,8 @@ describe('clasificación sin la cortina (gemelo de classifyWith(m, false))', () 
 
   it('la GLSL: classify es classifyWith(m, true) y la cortina solo se mira con withCurtain', () => {
     expect(ANATOMY_GLSL).toContain('Cls classify(vec3 m) { return classifyWith(m, true); }');
-    expect(ANATOMY_GLSL).toMatch(/if \(withCurtain\) \{\n\s+float dCurtain = lungCurtainDistance\(m, inside, u\);/);
+    // decisión 49: la cortina se mira antes de aceptar el corazón (fuera de la ventana, la lámina le gana), solo con withCurtain
+    expect(ANATOMY_GLSL).toContain('float dCurtain = withCurtain ? lungCurtainDistance(m, inside, u) : -1.0;');
     expect(ANATOMY_GLSL).toContain('float insideWallMm(vec3 m) { return -torsoDepth(m) - wallTotalMm(m); }');
     // el tejido que se ve a través del borde y sus planos laterales usan la variante bajo la pleura (la muestra de
     // la imagen); la pared que copia la serie, el prefijo de la pared de classify (classifyWall: piel, costillas y

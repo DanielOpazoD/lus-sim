@@ -51,6 +51,11 @@ export class GLProgram {
     return out;
   }
 
+  /** lus-sim (decisión 49): un programa ya enlazado y comprobado fuera de `linkAll` (el horneado del corazón, `heartBake.ts`). */
+  static adopt(gl: WebGL2RenderingContext, program: WebGLProgram, name: string, frag: string): GLProgram {
+    return new GLProgram(gl, program, name, fragmentOutputCount(frag));
+  }
+
   use(): void {
     this.gl.useProgram(this.program);
   }
@@ -100,7 +105,7 @@ export class GLProgram {
   }
 }
 
-function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
+export function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
   const s = gl.createShader(type);
   if (!s) throw new Error('createShader');
   gl.shaderSource(s, src);
@@ -109,7 +114,7 @@ function shader(gl: WebGL2RenderingContext, type: number, src: string): WebGLSha
 }
 
 /** Causa de un enlace fallido: el shader que no compiló (con las líneas del error) o el registro del enlace. */
-function linkError(
+export function linkError(
   gl: WebGL2RenderingContext,
   s: { name: string; vs: WebGLShader; fs: WebGLShader; p: WebGLProgram },
   vert: string,
@@ -233,4 +238,26 @@ export function setActiveOutputs(gl: WebGL2RenderingContext, t: RenderTarget, n:
 
 export function drawFullscreen(gl: WebGL2RenderingContext): void {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/** lus-sim (decisión 49): textura 3D sin filtro (texelFetch) con sus datos o vacía. */
+export function texture3d(
+  gl: WebGL2RenderingContext,
+  w: number,
+  h: number,
+  d: number,
+  internal: number,
+  format: number,
+  type: number,
+  data: ArrayBufferView | null,
+): WebGLTexture {
+  const t = gl.createTexture();
+  if (!t) throw new Error('createTexture');
+  gl.bindTexture(gl.TEXTURE_3D, t);
+  for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, k, gl.NEAREST);
+  for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, k, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage3D(gl.TEXTURE_3D, 0, internal, w, h, d, 0, format, type, data);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  return t;
 }
