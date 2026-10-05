@@ -49,6 +49,10 @@ la salida actual no protege nada.
   interfaz muestra en respuesta a un gesto se escribe en el acto, no en el cuadro siguiente.
 - **Mirar la pantalla cuesta.** Con la imagen en vivo en el CI, una captura del lienzo tarda 26–42 s y decodificarla en la
   página otros 19–41 s; congelada, 5–11 s y 1 s. Las capturas se decodifican en Node (pngjs, que trae Playwright): 0,02 s.
+- **Cada evento de ratón cuesta lo que un cuadro** (decisión 48, la e2e de los brazos arriba): en el CI, con la imagen en
+  vivo, un arrastre de cuatro puntos con el cambio de vista tardó 37–56 s y cada captura del lienzo 46–61 s; la prueba con dos
+  arrastres y dos capturas llegó a 241–243 s y agotó su plazo de 240 dos veces (run 37254446871). Se deja un arrastre real de
+  dos puntos y un clic, sin capturas: lo que se prueba es adónde llega la sonda, y las capturas de la GPU real van fuera del CI.
 - **Lo pasajero se registra, no se espera a verlo.** El aviso de la recuperación de la GPU dura 5 s y el primer cuadro del
   renderizador nuevo puede bloquear la página más que eso con SwiftShader: la prueba registra los avisos con un
   MutationObserver al aparecer (con un trabajador por fragmento, esperar a verlo falló en los dos intentos del CI).
