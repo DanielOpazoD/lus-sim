@@ -54,6 +54,8 @@ import { bLineClip, type BLineClip } from './bLineClip';
 import { HeartFailureModel, measureProtocol } from './heartFailure';
 import { protocolById, type ProtocolId } from '../lus/protocols';
 import { DEFAULT_CALIBRATION, type HemodynamicCalibration, type HemodynamicInput } from '../physiology/hemodynamics';
+import { heartBeatEquivalence, type HeartBeatEquivalenceReport } from './heartBeatEquivalence';
+import { softwareGl } from './simulator';
 import { START_POINTS, type StartPoint } from './startPoints';
 import { measurementViewPose, type MeasurementViewId } from './measurementViews';
 
@@ -243,6 +245,13 @@ export interface TestHooks {
   envelopeGuard: (opts: { startPoint: MeasurementViewId }) => { threw: boolean; message: string; look: number };
   /** El simulador vivo. */
   sim: () => Simulator;
+  /**
+   * Fase 2 del corazón: hornea el latido de `layers` capas del volumen alrededor de la ventana (todas sin `layers`) y lo pone en la
+   * escena; devuelve las capas y lo que tardó (ms).
+   */
+  heartBeat: (layers?: number) => Promise<{ k0: number; k1: number; ms: number }>;
+  /** Equivalencia TS ↔ GLSL del latido en las capas que lo llevan, en esas fases (`heartBeatEquivalence`). */
+  heartBeatEquivalence: (phases: number[], n?: number) => HeartBeatEquivalenceReport;
 }
 
 /** Opciones de `frameCostMs`. */
@@ -674,6 +683,37 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       });
     },
     sim: getSim,
+    heartBeat: async (layers) => {
+      const sim = getSim();
+      const h = sim.scene.heart;
+      const v = h.cardiac?.vol;
+      if (!v) throw new Error('heartBeat: sin corazón');
+      // ya late (la aplicación lo horneó entero con GPU): no se estrecha
+      if (h.beat) return { ...h.beat, ms: 0 };
+      let k0 = 0;
+      let k1 = v.dims[2];
+      if (layers !== undefined) {
+        // las capas que corta la línea central de la ventana, a 2 cm bajo la pleura
+        const p = pointOnLine(sim.frame, sim.transducer, 0, 35);
+        const r = [p[0] - v.originMm[0], p[1] - v.originMm[1], p[2] - v.originMm[2]];
+        const k = Math.floor((r[0] * v.ez[0] + r[1] * v.ez[1] + r[2] * v.ez[2]) / v.voxelMm);
+        k0 = Math.max(0, Math.min(v.dims[2] - layers, k - (layers >> 1)));
+        k1 = k0 + layers;
+      }
+      const t0 = performance.now();
+      if (softwareGl(sim.renderer.gl)) {
+        // sin GPU (SwiftShader) el programa del latido no compila: las capas, con las palabras de la gemela TS
+        const [nx, ny] = v.dims;
+        const words = new Uint16Array(nx * ny * (k1 - k0) * 4);
+        for (let k = k0; k < k1; k++)
+          for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) words.set(v.voxel(i, j, k, true), (((k - k0) * ny + j) * nx + i) * 4);
+        sim.renderer.writeHeartLayers(h.cardiac!, k0, k1, words);
+        h.beat = { k0, k1 };
+        sim.renderer.heartChanged();
+      } else await sim.bakeBeat(k0, k1);
+      return { k0, k1, ms: performance.now() - t0 };
+    },
+    heartBeatEquivalence: (phases, n) => heartBeatEquivalence(getSim(), phases, n),
   };
   return hooks;
 }

@@ -5,6 +5,7 @@ import { errorLog } from './errorLog';
 import { registerCardiac } from '../anatomy/organs/heart';
 import { Simulator, defaultEquipment } from './simulator';
 import { HeartBakeAborted, registerHeartBaker } from '../ultrasound/renderer';
+import { registerBeatModel } from '../physiology/cardiacBeat';
 
 /**
  * Sesión de simulación (Fase 1): dueña del `Simulator` vivo y del estado del equipo, que
@@ -46,6 +47,7 @@ export class SimulationSession {
     return import('./cardiacRuntime').then(
       (m) => {
         registerHeartBaker(m.startHeartBake);
+        registerBeatModel(m.echoTwinBeatModel());
         registerCardiac(m.attachEchoTwinHeart);
         // se cumple con el volumen horneado y el corazón en la escena; un horneado fallido se informa y la escena sigue sin él
         return this.current.attachCardiac(m.attachEchoTwinHeart).catch((e: unknown) => {

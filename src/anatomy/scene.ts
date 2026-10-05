@@ -605,7 +605,7 @@ export class AnatomyScene {
     const u = wallArc(m, torso);
     // lus-sim (decisión 18): el corazón y el tapón de la ventana cardiaca, sobre la cúpula (se apoya en ella); lo de fuera
     // cuenta su cara en la distancia a la frontera. Decisión 49: el corazón de EchoTwin, y el tapón y la franja de grasa
-    const heart = heartQuery(this.heart, m, inside, u);
+    const heart = heartQuery(this.heart, m, inside, u, instant.heartPhase ?? 0);
     // la lámina de la cortina gana al corazón fuera del disco de la ventana (decisión 49): el borde fino del pulmón sobre él, y la
     // pleura que A0 registra fuera de la ventana tiene pulmón debajo
     const curtain = withCurtain ? this.classifyLungCurtain(m, inside, u, caudal) : null;
@@ -1059,6 +1059,11 @@ const NONE: Classification = Object.freeze({
 export interface SceneInstant {
   /** Descenso caudal del diafragma en este instante (mm, 0 en espiración): baja la cortina pulmonar. */
   diaphragmCaudalMm: number;
+  /**
+   * Fase fina del latido (0–255, `heartFinePhase` de `PhysiologySample.heartPhase`): la del volumen del corazón de EchoTwin (fase 2
+   * del corazón). Sin ella, telediástole (0).
+   */
+  heartPhase?: number;
 }
 
 /**
@@ -1080,6 +1085,7 @@ export interface RespiratoryColumn {
 /** Instante de referencia: fin de espiración (sin descenso del diafragma); el `BASELINE_CALIBER` de VExUS. */
 export const BASELINE_INSTANT: SceneInstant = {
   diaphragmCaudalMm: 0,
+  heartPhase: 0,
 };
 
 /** Cortina pulmonar: módulo de órgano `organs/lungCurtain` (se reexporta por compatibilidad). */

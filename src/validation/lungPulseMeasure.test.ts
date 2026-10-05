@@ -92,6 +92,6 @@ describe('el latido en la GLSL (decisión 32)', () => {
       'vec2 slidingField(vec3 pD, float h, float salt) { return slidingFieldAt(lungPulseInverse(toMaterial(pD)), h, salt); }',
     );
     expect(FRAG_RAWFIELD).toContain('vec3 mD = needM ? lungPulseInverse(toMaterial(pD)) : vec3(0.0);');
-    expect(FRAG_QUERY).toContain('o3 = vec4(lungPulseInverse(m) - m, uLungPulse);');
+    expect(FRAG_QUERY).toContain('o3 = vec4(lungPulseInverse(m) - m, uLungPulse.x);');
   });
 });

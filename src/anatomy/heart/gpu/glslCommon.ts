@@ -115,7 +115,9 @@ export function enumDefinesGlsl(): string {
  */
 export const GLSL_COMMON = /* glsl */ `
 // uHeartTex (RGBA32F, 4 floats per texel) and uHeartNoise (R8 128^3: wallNoise) come from lus-sim's uniform scheme
-float et_P(int i) { return texelFetch(uHeartTex, ivec2(i >> 2, 0), 0)[i & 3]; }
+// lus-sim (fase 2 del corazón): la fila de la textura es la fase fina del latido que se evalúa (el horneado la cambia)
+int et_row = 0;
+float et_P(int i) { return texelFetch(uHeartTex, ivec2(i >> 2, et_row), 0)[i & 3]; }
 ${paramDefinesGlsl()}
 ${enumDefinesGlsl()}
 const float et_PI = 3.14159265358979;

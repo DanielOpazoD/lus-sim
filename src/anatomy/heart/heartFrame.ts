@@ -1,4 +1,4 @@
-import type { AnatomyConfig } from './schema';
+import type { AnatomyConfig } from '../../physiology/heart/schema';
 import type { Vec3 } from './core/vec3';
 import { cross, normalize, sub, v3, dot, scale, add } from './core/vec3';
 

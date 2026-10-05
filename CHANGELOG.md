@@ -15,6 +15,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   30,7 con la longitudinal de plano de la celda de cobertura); la mujer obesa no cambia (36,3). Nuevas limitaciones
   `supraclavicular-fossa-model` y `subclavian-vessels-short`.
 
+- El latido del corazón de EchoTwin (53): con el reloj único, el corazón late en la ventana cardiaca y en la paraesternal
+  izquierda (el VI se vacía y engrosa su pared, la mitral abre y cierra) y el pulmón de alrededor late con la misma curva de
+  volumen del VI (eyección, llenado rápido, diástasis y onda A). Las tablas del latido de EchoTwin, portadas; cada latido del reloj
+  se lleva al de referencia por tramos. Cada vóxel del volumen guarda su línea de tiempo (su tejido en 16 fases y el cambio
+  afinado a 1/256 de latido, cinco cambios): da lo que el clasificador de EchoTwin en el 98,7 % de las fases donde se mueve, y la
+  CPU y la GPU coinciden en el 99,9–100 % en cinco fases. Con GPU se hornea en segundo plano (6–17 s con el M4) y no cuesta en
+  el cuadro; sin GPU (SwiftShader) el corazón queda quieto. El volumen pasa de 19 a 78 MB.
 - El corazón de EchoTwin (49), fase 1: el del caso normal (cuatro cavidades, paredes, válvulas con sus cuerdas, raíz aórtica,
   tronco pulmonar, venas cavas y pulmonares, pericardio), portado de `echotwin-tte@c15aec7` con procedencia, estático en
   telediástole, con su gemelo GLSL y sus parámetros en una textura. Su eje es el del caso (Engblom); su ápex, el de Gray (5.º EIC,

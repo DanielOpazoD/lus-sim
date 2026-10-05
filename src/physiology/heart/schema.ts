@@ -74,10 +74,42 @@ export interface PhysiologyConfig {
   contractility: number;
 }
 
-/** Lo que lus-sim toma de un caso de EchoTwin: su semilla, su anatomía y su fisiología. */
+/** Ritmo del caso (`RhythmSchema` de EchoTwin): la FC de su latido (30–180 lpm) y su variabilidad (por omisión 1 %). */
+export interface RhythmConfig {
+  type: 'sinus' | 'sinus-tachycardia' | 'sinus-bradycardia' | 'atrial-fibrillation';
+  heartRateBpm: number;
+  rrVariabilityPct: number;
+  pvcProbability: number;
+}
+
+/** Hemodinámica del caso (`HemodynamicsSchema` de EchoTwin): presiones, áreas valvulares y regurgitaciones. */
+export interface HemodynamicConfig {
+  systolicBpMmHg: number;
+  diastolicBpMmHg: number;
+  rapMmHg: number;
+  paspMmHg: number;
+  avEffectiveAreaCm2: number;
+  /** Derivada de E/A cuando falta. */
+  mvEffectiveAreaCm2?: number;
+  trPresent: boolean;
+  /** Gradiente pico del TSVI (mmHg; por omisión 0). */
+  lvotPeakGradientMmHg: number;
+  regurgitation: {
+    mr?: { eroaCm2: number; jetDirectionDeg: number };
+    ar?: { eroaCm2: number; phtMs: number };
+    tr?: { eroaCm2: number };
+  };
+}
+
+/**
+ * Lo que lus-sim toma de un caso de EchoTwin: su semilla, su anatomía, su fisiología, y (fase 2 del corazón) su ritmo y su
+ * hemodinámica, que leen las tablas del latido (`cycleModel.ts`).
+ */
 export interface CardiacCase {
   id: string;
   seed: number;
+  rhythm: RhythmConfig;
   anatomy: AnatomyConfig;
   physiology: PhysiologyConfig;
+  hemodynamics: HemodynamicConfig;
 }

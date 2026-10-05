@@ -81,14 +81,11 @@ Objetivos: O2, O1, O5.
   superior cae en el EIC1). Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular hasta ≈ 19 mm y, con ellas, las vistas
   de medida y los puntos BLUE: decisión aparte con la recalibración (decisión 44).
 - El corazón de EchoTwin (decisión 49). Fase 1, hecha: el corazón del caso normal, estático en telediástole, en la ventana
-  cardiaca y la región paraesternal izquierda. Siguiente paso: el diafragma ajustado bajo el corazón (la decisión 229 de
+  cardiaca y la región paraesternal izquierda. Fase 2, hecha (decisión 53): el latido con el reloj único y el pulso pulmonar de
+  la misma curva de volumen. Siguiente paso: el diafragma ajustado bajo el corazón (la decisión 229 de
   EchoTwin) en lugar del corte de la cúpula, que hoy deja en el abdomen ≈ 70 mL de lo que EchoTwin pone bajo el corazón (≈ 33 de
-  ventrículo). Fase 2: que lata con el reloj único (`core/clock.ts`): las tablas del latido de EchoTwin (`buildBeatTables`,
-  `cycleStateAt` de `cycleModel.ts`, portados enteros) con la fase y la FC de `physiology/`, la pose por fase
-  (`computeHeartPose`, ≈ 35–60 ms en la CPU: una tabla de poses por fase o en un trabajador) y su volumen, que no se puede hornear
-  en cada cuadro (≈ 9,7 M vóxeles): una serie de volúmenes por fase (≈ 19 MB cada uno: pocos, o comprimidos) o solo la losa que
-  corta el sector; el pulso pulmonar (decisión 32) desde el mismo volumen del VI (hoy, la fracción expulsada de
-  `physiology/ventricle.ts` y el elipsoide de la decisión 18). Después: la ventana que se achica al inspirar.
+  ventrículo). Después: el pulso pulmonar que siga a la cara del corazón de EchoTwin (hoy, a la del elipsoide de la decisión 18),
+  el latido sin GPU (una línea de tiempo más corta o en un trabajador) y la ventana que se achica al inspirar.
 
 ## Fase 4 — Clínica (v0.5.0)
 

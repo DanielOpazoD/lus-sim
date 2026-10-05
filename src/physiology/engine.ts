@@ -3,7 +3,7 @@ import type { PatientState } from './patientState';
 import { validatePatient } from './patientState';
 import { RespiratoryModel, type RespiratorySample } from './respiratory';
 import { RhythmGenerator } from './rhythm';
-import { ventricularEjection } from './ventricle';
+import { cardiacEjection, referencePhase } from './cardiacBeat';
 
 /**
  * Muestra del estado fisiológico en un instante del reloj. Es la única
@@ -19,8 +19,13 @@ export interface PhysiologySample {
   beatIndex: number;
   lastR: number;
   rr: number;
-  /** lus-sim (decisión 32): fracción del volumen latido expulsada (0 en la telediástole, 1 en la telesístole), `ventricle.ts`. */
+  /**
+   * lus-sim (decisión 32): fracción del volumen latido expulsada (0 en la telediástole, 1 en la telesístole); desde la fase 2 del
+   * corazón, la de la curva de volumen del latido de EchoTwin en `heartPhase` (`cardiacBeat.ts`), la misma que mueve el corazón.
+   */
   cardiacEjection: number;
+  /** Fase del latido de referencia de EchoTwin en [0, 1) (`cardiacBeat.ts`): la que mueve el corazón y el pulmón de alrededor. */
+  heartPhase: number;
   resp: RespiratorySample;
 }
 
@@ -105,6 +110,7 @@ export class PhysiologyEngine {
   private sampleFrom(t: number, resp?: RespiratorySample): PhysiologySample {
     const r = resp ?? this.respiratory.sample(t);
     const beat = this.rhythm.currentBeat(t);
+    const heartPhase = referencePhase(beat, t);
     return {
       t,
       ecgMv: this.rhythm.ecg(t),
@@ -112,7 +118,8 @@ export class PhysiologyEngine {
       beatIndex: beat.index,
       lastR: beat.tR,
       rr: beat.rr,
-      cardiacEjection: ventricularEjection(beat, t),
+      cardiacEjection: cardiacEjection(beat, t, heartPhase),
+      heartPhase,
       resp: r,
     };
   }

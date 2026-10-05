@@ -387,8 +387,12 @@ export class UltrasoundRenderer {
   private heartBake: HeartBake | null = null;
   /** ¿Se hornea un volumen del corazón? (el bucle de la aplicación no dibuja mientras tanto) */
   get heartBaking(): boolean {
-    return this.heartBake !== null;
+    return this.heartBake !== null && !this.heartBake.beat;
   }
+  /** Tiempo (ms) del último horneado del latido (fase 2 del corazón). */
+  heartBeatMs = 0;
+  /** Las capas del volumen con la línea de tiempo del latido, y de qué corazón (fase 2): las escenas nuevas las toman de aquí. */
+  heartBeatLayers: { c: CardiacRuntime; k0: number; k1: number } | null = null;
   /** Tiempo (ms) del último horneado del corazón, de que se pide a que su última valla se cumple (con la compilación). */
   heartBakeMs = 0;
   private sceneData = new Float32Array(SCENE_TEX_W * SCENE_TEX_H * 4);
@@ -543,7 +547,7 @@ export class UltrasoundRenderer {
     this.tMap = createTarget(gl, MAP_W, MAP_H, [{ internal: gl.RGBA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE, filter: gl.NEAREST }]);
     this.couplingTex = createTexture(gl, LINES, 1, gl.R32F, gl.RED, gl.FLOAT, gl.LINEAR);
     this.sceneTex = createTexture(gl, SCENE_TEX_W, SCENE_TEX_H, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
-    this.heartVol = texture3d(gl, 1, 1, 1, gl.RG8UI, gl.RG_INTEGER, gl.UNSIGNED_BYTE, new Uint8Array(2));
+    this.heartVol = texture3d(gl, 1, 1, 1, gl.RGBA16UI, gl.RGBA_INTEGER, gl.UNSIGNED_SHORT, new Uint16Array(4));
     this.uploadSceneStatic();
   }
 
@@ -711,7 +715,38 @@ export class UltrasoundRenderer {
       resolve = ok;
       reject = ko;
     });
-    const b: HeartBake = { c, promise, resolve, reject, t0: performance.now(), job: heartBaker(this.gl, c), timer: null };
+    const b: HeartBake = {
+      c,
+      promise,
+      resolve,
+      reject,
+      t0: performance.now(),
+      job: heartBaker(this.gl, c),
+      timer: null,
+      beat: false,
+      k0: 0,
+      k1: 0,
+    };
+    this.heartBake = b;
+    b.timer = setTimeout(() => this.stepHeartBake(b), 0);
+    return promise;
+  }
+
+  /**
+   * Fase 2 del corazón: hornea la línea de tiempo del latido de las capas k0 ≤ k < k1 del volumen de `c` (que ya debe estar), en el
+   * mismo volumen y sin parar la página. Mientras la escena no tiene el latido (`Heart.beat`), la imagen lee la fase 0, que en esas
+   * capas es su tejido en telediástole. Un fallo deja el corazón quieto (la promesa lo rechaza).
+   */
+  bakeHeartBeat(c: CardiacRuntime, k0: number, k1: number): Promise<void> {
+    if (c !== this.heartBaked || !heartBaker || this.heartBake) return Promise.reject(new Error('heartBake: el latido sin su volumen'));
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<void>((ok, ko) => {
+      resolve = ok;
+      reject = ko;
+    });
+    const job = heartBaker(this.gl, c, { volume: this.heartVol, k0, k1 });
+    const b: HeartBake = { c, promise, resolve, reject, t0: performance.now(), job, timer: null, beat: true, k0, k1 };
     this.heartBake = b;
     b.timer = setTimeout(() => this.stepHeartBake(b), 0);
     return promise;
@@ -731,10 +766,17 @@ export class UltrasoundRenderer {
       b.timer = setTimeout(() => this.stepHeartBake(b), 0);
       return;
     }
-    // el volumen está entero: pasa a ser el del renderizador y, si es el de la escena, la imagen lo ve desde el cuadro siguiente
     this.releaseHeartBake(b, false);
+    if (b.beat) {
+      // el latido, en el mismo volumen: lo pone en la escena quien lo pidió (`Heart.beat`)
+      this.heartBeatMs = performance.now() - b.t0;
+      this.heartBeatLayers = { c: b.c, k0: b.k0, k1: b.k1 };
+      return b.resolve();
+    }
+    // el volumen está entero: pasa a ser el del renderizador y, si es el de la escena, la imagen lo ve desde el cuadro siguiente
     this.gl.deleteTexture(this.heartVol);
     this.heartVol = b.job.volume;
+    this.heartBeatLayers = null;
     this.heartBaked = b.c;
     this.heartBakeMs = performance.now() - b.t0;
     if (this.currentScene.heart.cardiac === b.c) this.heartChanged();
@@ -744,10 +786,23 @@ export class UltrasoundRenderer {
   /** El horneado falló: el corazón sale de la escena (la CPU, como la GPU, sin él) y no se reintenta. */
   private failHeartBake(b: HeartBake, e: unknown): void {
     this.releaseHeartBake(b, true);
+    if (b.beat) return b.reject(e);
     const had = this.currentScene.heart.cardiac === b.c;
     failCardiac(this.currentScene.heart, b.c);
     if (had) this.heartChanged();
     b.reject(e);
+  }
+
+  /**
+   * Las pruebas sin GPU (fase 2 del corazón): escribe en el volumen de `c` las capas k0 ≤ k < k1 con las palabras de la gemela TS
+   * (RGBA16UI, `nx·ny` vóxeles por capa), en lugar de hornearlas: con SwiftShader el programa del latido no acaba de compilar.
+   */
+  writeHeartLayers(c: CardiacRuntime, k0: number, k1: number, words: Uint16Array): void {
+    if (c !== this.heartBaked) throw new Error('heartBake: el latido sin su volumen');
+    const gl = this.gl;
+    const [nx, ny] = c.vol.dims;
+    gl.bindTexture(gl.TEXTURE_3D, this.heartVol);
+    gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, k0, nx, ny, k1 - k0, gl.RGBA_INTEGER, gl.UNSIGNED_SHORT, words);
   }
 
   /** Corta el horneado en curso (si hay) sin culpar al corazón: se puede volver a pedir. */
@@ -1936,10 +1991,18 @@ interface HeartBake {
   t0: number;
   job: HeartBakeJob;
   timer: ReturnType<typeof setTimeout> | null;
+  /** El del latido (en el volumen del renderizador, capas k0 ≤ k < k1) o el de telediástole (en uno nuevo). */
+  beat: boolean;
+  k0: number;
+  k1: number;
 }
 
 /** Lo que empieza un horneado del volumen del corazón (`heartBake.ts`, en su chunk). */
-export type HeartBaker = (gl: WebGL2RenderingContext, c: CardiacRuntime) => HeartBakeJob;
+export type HeartBaker = (
+  gl: WebGL2RenderingContext,
+  c: CardiacRuntime,
+  beat?: { volume: WebGLTexture; k0: number; k1: number } | null,
+) => HeartBakeJob;
 
 let heartBaker: HeartBaker | null = null;
 

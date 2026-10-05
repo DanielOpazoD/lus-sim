@@ -113,7 +113,7 @@ ecogénico que el hígado en el adulto) y no lleva la heterogeneidad lenta del h
 distancia a la frontera junto al hígado y el bazo toma la de sus formas y la de la cúpula por 0,5 (`ORGAN_SDF_LIPSCHITZ`: la cota
 que deja la medida por debajo de la real, rastreada en 200 direcciones).
 
-El pulso pulmonar (decisión 32, `src/anatomy/organs/lungPulse.ts` y `src/physiology/ventricle.ts`): la amplitud del borde del
+El pulso pulmonar (decisión 32, `src/anatomy/organs/lungPulse.ts`; su forma en el tiempo, `src/physiology/cardiacBeat.ts`): la amplitud del borde del
 pulmón junto al corazón sale de Hsu 2017 (TAC); la base no tiene la amplitud ecográfica (`docs/knowledge/physics.md` D12) ni
 cómo decae con la distancia.
 
@@ -126,9 +126,17 @@ el borde; lo que el borde pueda deslizarse a lo largo del corazón, no medido, n
 vale en las caras de los lados y de detrás y la del derecho en la anterior, mezcladas con la componente anterior de la normal
 del corazón; de él solo se desliza su parte tangente a la pared (sin derrame la pleura visceral no se separa de la parietal),
 así que donde la cara del corazón es paralela a la pared casi no se desliza; y su forma en el tiempo es la de la fracción
-del volumen latido expulsada con dos cosenos alzados atados a los eventos mecánicos del latido de VExUS (sube de la R a la
-telesístole, la onda v, y baja en el llenado rápido, con el punto medio en el descenso y), sin la diástasis ni la contracción
-auricular. El máximo, en la telesístole, sí es el de White.
+del volumen latido expulsada. Con el corazón de EchoTwin (decisión 53), la de su curva de volumen del VI (eyección, relajación
+isovolumétrica, llenado rápido, diástasis y onda A) en la fase del latido de referencia, la misma que mueve el corazón; antes de
+que llegue su chunk, la de la decisión 32 (`ventricle.ts`: dos cosenos alzados atados a los eventos mecánicos del latido de
+VExUS, sin la diástasis ni la contracción auricular). El máximo, en la telesístole, es el de White.
+
+La fase del latido (decisión 53, `src/physiology/cardiacBeat.ts`): cada latido del reloj (con su RR, su variabilidad y la FA) se
+lleva al latido de referencia de EchoTwin (el del caso, 65 lpm) por tramos, su sístole (de la R a la telesístole del reloj, el
+centro de la onda v) sobre la de referencia y su diástole sobre la de referencia, lineal dentro de cada tramo [SUPUESTO]: la
+forma del latido de referencia no cambia con la FC (el modelo de EchoTwin, construido a otra FC, la cambiaría). La línea de tiempo de cada
+vóxel guarda cinco cambios de tejido (los tramos más cortos se funden) y lo que el corazón deja vacío al latir es grasa
+[SUPUESTO]: el pericardio y la grasa del mediastino, que en lus-sim no existen, en lugar del pulmón.
 
 ## Sonda y exploración
 

@@ -2,6 +2,7 @@ import type { Vec3 } from '../core/vec3';
 import type { PhysiologySample } from '../physiology/engine';
 import type { ProbeCompression } from './compression';
 import { RespiratoryDeformation } from './deformation';
+import { heartFinePhase } from './organs/heart';
 import { type AnatomyScene, type Classification, type FaceGeometry, type SceneInstant } from './scene';
 
 /**
@@ -52,7 +53,7 @@ export class AnatomyQuery {
    */
   instantFor(s: PhysiologySample): SceneInstant {
     if (s === this.lastSample && this.lastInstant) return this.lastInstant;
-    const instant: SceneInstant = { diaphragmCaudalMm: s.resp.diaphragmCaudalMm };
+    const instant: SceneInstant = { diaphragmCaudalMm: s.resp.diaphragmCaudalMm, heartPhase: heartFinePhase(s.heartPhase) };
     this.lastSample = s;
     this.lastInstant = instant;
     return instant;

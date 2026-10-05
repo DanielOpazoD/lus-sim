@@ -11,7 +11,8 @@ import type { Vec3 } from '../core/vec3';
 import { START_POINTS } from '../app/startPoints';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient, type ChestHabitus, type PatientState } from '../physiology/patientState';
-import { ventricularEjection } from '../physiology/ventricle';
+import { ejectedFraction, referenceBeat } from '../physiology/echoTwinBeat';
+import { referencePhase } from '../physiology/cardiacBeat';
 
 /**
  * El pulso pulmonar (decisión 32, `anatomy/organs/lungPulse.ts`): el deslizamiento del pulmón junto al corazón con el latido.
@@ -225,21 +226,42 @@ describe('pulso pulmonar: amplitud por distancia al corazón', () => {
   });
 });
 
-describe('el latido del reloj único: la fracción expulsada (physiology/ventricle.ts)', () => {
-  it('0 en la R, 1 en la telesístole (el centro de la onda v), de vuelta a 0 en el llenado rápido, entre 0 y 1', () => {
+describe('el latido del reloj único: la fracción expulsada de la curva de volumen de EchoTwin (physiology/cardiacBeat.ts)', () => {
+  it('cada latido del reloj, por tramos sobre el de referencia: la R en 0, la telesístole del reloj en la de referencia', () => {
+    const ref = referenceBeat();
     const e = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory' });
     const beats = e.rhythm.beatsBetween(0.5, 6);
     expect(beats.length).toBeGreaterThan(4);
     for (const b of beats) {
-      expect(ventricularEjection(b, b.tR)).toBe(0);
-      expect(ventricularEjection(b, b.tV)).toBeCloseTo(1, 12);
-      expect(ventricularEjection(b, 2 * b.tY - b.tV)).toBeCloseTo(0, 12);
-      for (let k = 0; k <= 200; k++) {
-        const v = ventricularEjection(b, b.tR + (k / 200) * b.rr);
-        expect(v).toBeGreaterThanOrEqual(0);
-        expect(v).toBeLessThanOrEqual(1);
+      expect(referencePhase(b, b.tR)).toBe(0);
+      expect(referencePhase(b, b.tV)).toBeCloseTo(ref.endSystoleS / ref.rrS, 12);
+      // monótona y en [0, 1)
+      let prev = -1;
+      for (let k = 0; k < 200; k++) {
+        const p = referencePhase(b, b.tR + (k / 200) * b.rr);
+        expect(p).toBeGreaterThan(prev);
+        expect(p).toBeLessThan(1);
+        prev = p;
       }
     }
+  });
+
+  it('0 en la telediástole, 1 en la telesístole de EchoTwin, entre 0 y 1: la eyección, el llenado rápido y la onda A', () => {
+    const ref = referenceBeat();
+    expect(ejectedFraction(0)).toBeCloseTo(0, 2);
+    // la telesístole de EchoTwin: el VI en su mínimo (≈ 45 mL de 120)
+    expect(ejectedFraction(ref.endSystoleS / ref.rrS)).toBeCloseTo(1, 2);
+    let max = 0;
+    for (let k = 0; k < 400; k++) {
+      const f = ejectedFraction(k / 400);
+      expect(f).toBeGreaterThanOrEqual(-0.02);
+      expect(f).toBeLessThanOrEqual(1.02);
+      max = Math.max(max, f);
+    }
+    expect(max).toBeCloseTo(1, 2);
+    // antes de la onda A el VI no está lleno: la contracción auricular aporta el último llenado
+    const tm = ref.timings;
+    expect(ejectedFraction(tm.aStartS / ref.rrS)).toBeGreaterThan(0.1);
   });
 
   it('la muestra del motor la lleva, continua y periódica a la FC (sin respiración en apnea)', () => {

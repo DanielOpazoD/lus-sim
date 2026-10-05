@@ -1,10 +1,12 @@
 import type { Vec3 } from '../../core/vec3';
 import { echoTwinCmToLus, swapYZ, type EchoTwinOrigin } from '../../core/units';
 import { Tissue, TISSUE_GLSL_NAME } from '../tissues';
-import type { CycleState } from './cycleModel';
+import { cycleStateAt, type CycleState } from '../../physiology/heart/cycleModel';
+import { referenceBeat } from '../../physiology/echoTwinBeat';
+import { HEART_PALETTE, HEART_PHASES } from '../organs/heart';
 import { classifyHeart, computeHeartPose, createHeartModel, type HeartModel, type HeartPose } from './heartModel';
-import { normalExcellentCase } from './normal-excellent';
-import type { CardiacCase, Vec3Config } from './schema';
+import { normalExcellentCase } from '../../physiology/heart/normal-excellent';
+import type { CardiacCase, Vec3Config } from '../../physiology/heart/schema';
 import { makeSample, Tissue as EtTissue, type TissueSample } from './tissue';
 import { GLSL_COMMON } from './gpu/glslCommon';
 import { GLSL_HEART } from './gpu/glslHeart';
@@ -26,30 +28,12 @@ import { allocPacked, packHeart, PARAM_COUNT } from './gpu/paramLayout';
  */
 
 /**
- * Estado del latido en telediástole: el de `cycleStateAt(tables, 0)` del caso normal de EchoTwin (c15aec7, 65 lpm, supino, en
- * espiración), la fase 0 de su latido, el comienzo del QRS: el VI con su volumen telediastólico, las válvulas cerradas salvo la
- * tricúspide que acaba de cerrarse (0,14) y el anillo mitral 0,15 mm hacia el ápex (1 % del MAPSE). Fase 2: lo dará el reloj.
+ * Estado del latido en telediástole: la fase 0 del latido de referencia (`physiology/cardiacBeat.ts`, las tablas de EchoTwin
+ * portadas), el comienzo del QRS: el VI con su volumen telediastólico, las válvulas cerradas salvo la tricúspide que acaba de
+ * cerrarse (0,14) y el anillo mitral 0,15 mm hacia el ápex (1 % del MAPSE). En la fase 1 era una copia escrita a mano de
+ * `cycleStateAt(tables, 0)` de EchoTwin; las tablas portadas dan el mismo estado, campo a campo (`cardiac.test.ts`).
  */
-export const HEART_ED_STATE: CycleState = {
-  phase: 0,
-  timeInBeatS: 0,
-  rrS: 0.9230769230769231,
-  lvVolumeMl: 120,
-  contraction: 8.137981924931796e-7,
-  mvOpen: 0,
-  avOpen: 0,
-  tvOpen: 0.14086627842071503,
-  pvOpen: 0,
-  longitudinal: 0.010911422781646252,
-  rvLongitudinal: 0.01091143861413002,
-  atrialContraction: 0,
-  atrialHold: 1,
-  mitralFlowMlps: 0,
-  aorticFlowMlps: 0,
-  edvMl: 120.00006103515625,
-  esvMl: 44.99970245361328,
-  aorticPressure: 0.10264569994712097,
-};
+export const HEART_ED_STATE: CycleState = cycleStateAt(referenceBeat(), 0);
 
 /**
  * Los tejidos de EchoTwin (`tissue.ts`) sobre los de lus-sim (`anatomy/tissues.ts`), que tiene sus 32 llenos (`TISSUE_VEC4`):
@@ -79,6 +63,12 @@ export const ET_TO_LUS_TISSUE: Readonly<Record<EtTissue, Tissue>> = {
   [EtTissue.Chordae]: Tissue.ArteryWall,
 };
 const ET_TISSUE_COUNT = 18;
+
+/** El índice de 4 bits (`HEART_PALETTE`, organs/heart.ts) de cada tejido de EchoTwin: el del tejido de lus-sim que le toca, + 1. */
+export const ET_TO_PALETTE: readonly number[] = Array.from(
+  { length: ET_TISSUE_COUNT },
+  (_, i) => HEART_PALETTE.indexOf(ET_TO_LUS_TISSUE[i as EtTissue]) + 1,
+);
 
 /**
  * Los tejidos de lus-sim que en el tórax solo da el corazón (la sangre de sus cavidades y vasos, el miocardio, la pared arterial
@@ -161,6 +151,30 @@ export function buildCardiac(baseCm: Vec3Config, o: EchoTwinOrigin, c: CardiacCa
   return out;
 }
 
+const poses = new WeakMap<Cardiac, (HeartPose | undefined)[]>();
+
+/**
+ * La pose del corazón en la fase fina `f` (0–255, `HEART_PHASES`) del latido de referencia: `computeHeartPose` de EchoTwin con su
+ * `cycleStateAt`, guardada por corazón (≈ 2,6 ms cada una). La 0 es la de telediástole (`pose`).
+ */
+export function cardiacPoseAt(c: Cardiac, f: number): HeartPose {
+  if (f === 0) return c.pose;
+  let list = poses.get(c);
+  if (!list) poses.set(c, (list = new Array<HeartPose | undefined>(HEART_PHASES)));
+  return (list[f] ??= computeHeartPose(c.model, cycleStateAt(referenceBeat(), f / HEART_PHASES)));
+}
+
+/** La fila de la textura de parámetros en la fase fina `f`: la pose empaquetada y, desde `PARAM_COUNT`, el marco en lus-sim. */
+export function cardiacParamsAt(c: Cardiac, f: number): Float32Array {
+  if (f === 0) return c.params;
+  const packed = allocPacked();
+  packHeart(c.model, cardiacPoseAt(c, f), packed);
+  const row = new Float32Array(CARDIAC_TEX_TEXELS * 4);
+  row.set(packed.data.subarray(0, PARAM_COUNT));
+  row.set(c.params.subarray(PARAM_COUNT, PARAM_COUNT + CARDIAC_LUS_PARAMS), PARAM_COUNT);
+  return row;
+}
+
 /** Punto de lus-sim (mm) en el marco del corazón (cm) (gemelo GLSL `cardiacLocal`). */
 export function cardiacLocal(c: Cardiac, m: Vec3): Vec3 {
   const d: Vec3 = [(m[0] - c.originMm[0]) * 0.1, (m[1] - c.originMm[1]) * 0.1, (m[2] - c.originMm[2]) * 0.1];
@@ -237,6 +251,7 @@ export const CARDIAC_GLSL = /* glsl */ `
 ${GLSL_COMMON}
 ${GLSL_HEART}
 #define CL_BASE ${PARAM_COUNT}
+const int ET_TO_PALETTE[${ET_TISSUE_COUNT}] = int[${ET_TISSUE_COUNT}](${ET_TO_PALETTE.join(', ')});
 const int ET_TO_LUS_TISSUE[${ET_TISSUE_COUNT}] = int[${ET_TISSUE_COUNT}](${Array.from({ length: ET_TISSUE_COUNT }, (_, i) => TISSUE_GLSL_NAME[ET_TO_LUS_TISSUE[i as EtTissue]]).join(', ')});
 const vec3 CARDIAC_BOX_MIN = ${v3s(CARDIAC_BOX_CM.min)};
 const vec3 CARDIAC_BOX_MAX = ${v3s(CARDIAC_BOX_CM.max)};

@@ -5,6 +5,7 @@ import { AnatomyQuery } from '../anatomy/query';
 import { AnatomyScene } from '../anatomy/scene';
 import { attachCardiac, type CardiacAttach, type Heart } from '../anatomy/organs/heart';
 import { errorLog } from './errorLog';
+import { gpuInfo } from './diagnostics';
 import { PhysiologyEngine, type PhysiologySample } from '../physiology/engine';
 import type { PatientState } from '../physiology/patientState';
 import { probeContact, type ProbeContact } from '../probe/contact';
@@ -66,6 +67,15 @@ export function defaultEquipment(): EquipmentSettings {
  * maniobras respiratorias explícitas. lus-sim (decisión 12): sin la cadena del PW, el audio, la puerta ni la
  * cadencia del color de VExUS.
  */
+/**
+ * ¿La GL es por software (SwiftShader, llvmpipe)? Ahí no se hornea el latido (fase 2 del corazón): el de telediástole tarda de 17 a
+ * 48 s y el del latido, de 16 a 80 veces más. No por el tiempo del de telediástole: con GPU, la primera vez que el navegador compila
+ * su programa tardó 3,6 s.
+ */
+export function softwareGl(gl: WebGL2RenderingContext): boolean {
+  return /swiftshader|llvmpipe|software|basic render/i.test(gpuInfo(gl)?.renderer ?? '');
+}
+
 export class Simulator {
   readonly patient: PatientState;
   readonly scene: AnatomyScene;
@@ -127,7 +137,7 @@ export class Simulator {
   attachCardiac(attach: CardiacAttach): Promise<void> {
     this.cardiacAttach = attach;
     const h = this.scene.heart;
-    if (h.cardiac) return this.renderer.bakeHeart(h.cardiac);
+    if (h.cardiac) return this.renderer.bakeHeart(h.cardiac).then(() => this.beatSceneHeart());
     const placed: Heart = { ...h };
     attachCardiac(placed, this.scene.torso, this.scene.ribCage, attach);
     const c = placed.cardiac;
@@ -137,6 +147,38 @@ export class Simulator {
       h.cardiac = c;
       h.plugDepthMm = placed.plugDepthMm;
       h.base = placed.base;
+      if (this.renderer.scene === this.scene) this.renderer.heartChanged();
+      return this.beatSceneHeart();
+    });
+  }
+
+  /**
+   * Fase 2 del corazón: el latido de la escena. Si el renderizador ya tiene la línea de tiempo de este corazón (la de otra escena
+   * del mismo paciente), entra en la escena; si no, la hornea entera y entra al terminar. Sin GPU (`softwareGl`, como con
+   * SwiftShader) el corazón queda quieto: el del latido tardaría de 16 a 80 veces el de telediástole.
+   */
+  beatSceneHeart(): Promise<void> {
+    const h = this.scene.heart;
+    const c = h.cardiac;
+    if (!c || h.beat) return Promise.resolve();
+    const have = this.renderer.heartBeatLayers;
+    if (have?.c === c) {
+      h.beat = { k0: have.k0, k1: have.k1 };
+      if (this.renderer.scene === this.scene) this.renderer.heartChanged();
+      return Promise.resolve();
+    }
+    if (softwareGl(this.renderer.gl)) return Promise.resolve();
+    return this.bakeBeat(0, c.vol.dims[2]);
+  }
+
+  /** Hornea el latido de las capas k0 ≤ k < k1 del volumen del corazón (las pruebas, unas pocas) y lo pone en la escena. */
+  bakeBeat(k0: number, k1: number): Promise<void> {
+    const h = this.scene.heart;
+    const c = h.cardiac;
+    if (!c) return Promise.reject(new Error('heartBake: sin corazón'));
+    return this.renderer.bakeHeartBeat(c, k0, k1).then(() => {
+      if (h.cardiac !== c) return;
+      h.beat = { k0, k1 };
       if (this.renderer.scene === this.scene) this.renderer.heartChanged();
     });
   }
@@ -150,7 +192,11 @@ export class Simulator {
    */
   private bakeSceneHeart(): void {
     const c = this.scene.heart.cardiac;
-    const done = c ? this.renderer.bakeHeart(c) : this.cardiacAttach ? this.attachCardiac(this.cardiacAttach) : null;
+    const done = c
+      ? this.renderer.bakeHeart(c).then(() => this.beatSceneHeart())
+      : this.cardiacAttach
+        ? this.attachCardiac(this.cardiacAttach)
+        : null;
     done?.catch((e: unknown) => {
       if (!(e instanceof HeartBakeAborted)) errorLog.report('gpu', e);
     });

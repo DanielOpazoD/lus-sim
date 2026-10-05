@@ -5,3 +5,4 @@
  */
 export { attachEchoTwinHeart } from '../anatomy/heart/cardiacRuntime';
 export { startHeartBake } from '../ultrasound/heartBake';
+export { echoTwinBeatModel } from '../physiology/echoTwinBeat';

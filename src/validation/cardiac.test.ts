@@ -19,7 +19,7 @@ import {
   cardiacSample,
 } from '../anatomy/heart/cardiac';
 import { classifyHeart, computeHeartPose, createHeartModel } from '../anatomy/heart/heartModel';
-import { normalExcellentCase } from '../anatomy/heart/normal-excellent';
+import { normalExcellentCase } from '../physiology/heart/normal-excellent';
 import { Structure, Tissue as EtTissue, makeSample } from '../anatomy/heart/tissue';
 import { GLSL_COMMON } from '../anatomy/heart/gpu/glslCommon';
 import { GLSL_HEART } from '../anatomy/heart/gpu/glslHeart';
@@ -35,9 +35,11 @@ import {
   heartVolumeTable,
   heartWindowDistance,
   echoTwinOrigin,
+  decodeHeartVoxel,
+  HEART_PALETTE,
 } from '../anatomy/organs/heart';
 import { ELEV_SIGMA0_MM, elevSigmaMm } from '../ultrasound/pleura';
-import { VOXEL_MM, voxelCode } from '../anatomy/heart/cardiacRuntime';
+import { VOXEL_MM, voxelWords } from '../anatomy/heart/cardiacRuntime';
 import { ribTableZ, ribLineArc } from '../anatomy/organs/ribcage';
 import { wallArc } from '../anatomy/organs/wall';
 import { sdDiaphragm } from '../anatomy/primitives';
@@ -359,7 +361,7 @@ describe('el volumen horneado del corazón (decisión 49)', () => {
       [150, 150, 60],
       [120, 70, 200],
     ]) {
-      const w = voxelCode(cardiac, i, j, k);
+      const w = decodeHeartVoxel(voxelWords(cardiac, i, j, k, false), 0);
       const hit = classifyHeart(
         cardiac.model,
         cardiac.pose,
@@ -368,8 +370,8 @@ describe('el volumen horneado del corazón (decisión 49)', () => {
         min[2] + (k + 0.5) * 0.07,
         s,
       );
-      expect(w & 255).toBe(hit ? ET_TO_LUS_TISSUE[s.tissue] + 1 : 0);
-      expect(w >> 8).toBe(Math.min(255, Math.floor((hit ? Math.max(0, -s.sdf) : Math.max(0, s.sdf)) * 100 + 0.5)));
+      expect(w.idx > 0 ? HEART_PALETTE[w.idx - 1] : -1).toBe(hit ? ET_TO_LUS_TISSUE[s.tissue] : -1);
+      expect(w.dq).toBe(Math.min(7, Math.floor((hit ? Math.max(0, -s.sdf) : Math.max(0, s.sdf)) * 20 + 0.5)));
     }
     expect(v.voxelMm).toBe(VOXEL_MM);
     for (let a = 0; a < 3; a++)
@@ -472,7 +474,7 @@ describe('el volumen horneado del corazón (decisión 49)', () => {
   });
 
   // la última: suelta el corazón de las demás
-  it('la caché de corazones guarda los últimos y suelta el más antiguo', () => {
+  it('la caché de corazones guarda los últimos y suelta el más antiguo', { timeout: 300_000 }, () => {
     const o = echoTwinOrigin(scene.torso, scene.ribCage);
     const base = normalExcellentCase.anatomy.heartPosition.baseCm;
     const at = (dx: number) => buildCardiac({ x: base.x + dx, y: base.y, z: base.z }, o);

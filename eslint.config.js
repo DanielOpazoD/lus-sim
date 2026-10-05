@@ -26,7 +26,7 @@ export default tseslint.config(
   // `noUncheckedIndexedAccess` y escribe `a[i]!`, que aquí sobra; y su generador aleatorio declara con valor inicial las variables
   // de su bucle `do … while`. Quitarlo alejaría el fuente de su origen sin cambiar nada
   {
-    files: ['src/anatomy/heart/**/*.ts'],
+    files: ['src/anatomy/heart/**/*.ts', 'src/physiology/heart/**/*.ts'],
     rules: { '@typescript-eslint/no-unnecessary-type-assertion': 'off', 'no-useless-assignment': 'off' },
   },
 );

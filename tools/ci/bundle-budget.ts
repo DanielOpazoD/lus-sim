@@ -84,6 +84,11 @@
 // sección de los ajustes que abre el panel (≈ 0,7 kB) y la frontera nueva entre chunks (Rollup separa en `transmission` lo que la
 // entrada comparte con el chunk diferido; cada enlace cruzado cuesta su import y su export: ≈ 2,4 kB). El total, de 987,0 a
 // 1018,7. El inicial no cambia (330 kB) y el total sube a 1025.
+// 2026-10-08 (decisión 53, fase 2 del corazón): el latido. En la entrada, la lectura de la línea de tiempo de cada vóxel (TS y
+// GLSL), el horneado del latido que el renderizador lleva y su paso a la escena: sobre main a0f49d9, de 327,8 a 331,4 kB. En el
+// chunk del corazón, las tablas del latido de EchoTwin (`physiology/heart/cycleModel.ts`, ≈ 15 kB) y el horneado de la línea de
+// tiempo: de 106,4 a 120,2 kB (su límite propio, 140). El total, de 1018,7 a 1036,2. La entrada y el inicial suben a 335 kB y el
+// total a 1040.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -91,12 +96,13 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 330 * KB],
+  [/index-.*\.js$/, 335 * KB],
+  [/^cardiacRuntime-.*\.js$/, 140 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 330 * KB;
-const TOTAL_JS_BUDGET = 1025 * KB;
+const INITIAL_JS_BUDGET = 335 * KB;
+const TOTAL_JS_BUDGET = 1040 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime|heartFailure|heartFailurePanel|bLineClip)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

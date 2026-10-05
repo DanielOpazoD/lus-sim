@@ -1,4 +1,4 @@
-import type { CycleState } from './cycleModel';
+import type { CycleState } from '../../physiology/heart/cycleModel';
 import { Structure } from './tissue';
 import type { TissueSample } from './tissue';
 import { lvCavityRadius, lvProfileG } from './lvShape';
