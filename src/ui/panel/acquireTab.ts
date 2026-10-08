@@ -59,13 +59,6 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
     'Restablece la respiración y borra el cine. Conserva la ubicación de la sonda, la posición del paciente y los ajustes del equipo.',
   );
 
-  // lus-sim (decisión 52): el mando hemodinámico y los protocolos de IC, en un panel que se carga al abrirlo
-  const hf = ctx.section(p, 'Insuficiencia cardiaca', {
-    collapsed: true,
-    info: 'Elige una presión de llenado o el agua extravascular: el pulmón pierde aire donde se acumula el agua y las líneas B salen de la física. El mapa del protocolo cuenta lo que mide el detector sobre la imagen.',
-  });
-  ctx.track(button(row(hf), 'Abrir el panel de IC', actions.openHeartFailure));
-
   const probe = ctx.section(p, 'Sonda', {
     collapsed: true,
     info: 'Mueve el transductor sobre el tórax. Estos controles ajustan su orientación y contacto. Con la imagen congelada muestran la pose del cuadro elegido.',
@@ -114,4 +107,12 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
   note(probe, 'La ubicación sobre la piel se conserva.');
 
   buildImageAdvanced(ctx, ctx.section(p, 'Avanzado', { collapsed: true, info: IMAGE_ADVANCED_INFO }));
+
+  // lus-sim (decisión 52): el mando hemodinámico y los protocolos de IC, en un panel que se carga al abrirlo. Al final de la
+  // pestaña: su ayuda (ⓘ) abierta por el puntero no debe tapar los controles de arriba (la e2e de los mandos del equipo lo vio)
+  const hf = ctx.section(p, 'Insuficiencia cardiaca', {
+    collapsed: true,
+    info: 'Elige una presión de llenado o el agua extravascular: el pulmón pierde aire donde se acumula el agua y las líneas B salen de la física. El mapa del protocolo cuenta lo que mide el detector sobre la imagen.',
+  });
+  ctx.track(button(row(hf), 'Abrir el panel de IC', actions.openHeartFailure));
 }

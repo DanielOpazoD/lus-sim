@@ -44,6 +44,8 @@ test('protocolos de IC: la presión de llenado mueve el puntaje medido sobre la 
 
   // el panel: se carga al abrirlo, aplica el mando y mide la verdad del modelo del protocolo de 4 sitios de estrés
   await page.locator('#settings-toggle').click();
+  // el puntero quedó sobre la ⓘ de alguna sección y su ayuda (que se abre al pasar) tapa el botón de la de abajo
+  await page.mouse.move(2, 2);
   await page.getByRole('button', { name: 'Insuficiencia cardiaca', exact: true }).click();
   await page.getByRole('button', { name: 'Abrir el panel de IC' }).click();
   const dialog = page.getByRole('dialog', { name: /Insuficiencia cardiaca/ });
