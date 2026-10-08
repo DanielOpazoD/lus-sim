@@ -10,6 +10,8 @@ export interface AcquireActions {
   /** lus-sim (decisión 33): sentar o tumbar al paciente. */
   setPosition: (position: PatientPosition) => void;
   onResetPatient: () => void;
+  /** lus-sim (decisión 52): abre el panel de insuficiencia cardiaca (se carga al pedirlo). */
+  openHeartFailure: () => void;
 }
 
 export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: AcquireActions): void {
@@ -105,4 +107,12 @@ export function buildAcquireTab(ctx: PanelContext, p: HTMLElement, actions: Acqu
   note(probe, 'La ubicación sobre la piel se conserva.');
 
   buildImageAdvanced(ctx, ctx.section(p, 'Avanzado', { collapsed: true, info: IMAGE_ADVANCED_INFO }));
+
+  // lus-sim (decisión 52): el mando hemodinámico y los protocolos de IC, en un panel que se carga al abrirlo. Al final de la
+  // pestaña: su ayuda (ⓘ) abierta por el puntero no debe tapar los controles de arriba (la e2e de los mandos del equipo lo vio)
+  const hf = ctx.section(p, 'Insuficiencia cardiaca', {
+    collapsed: true,
+    info: 'Elige una presión de llenado o el agua extravascular: el pulmón pierde aire donde se acumula el agua y las líneas B salen de la física. El mapa del protocolo cuenta lo que mide el detector sobre la imagen.',
+  });
+  ctx.track(button(row(hf), 'Abrir el panel de IC', actions.openHeartFailure));
 }

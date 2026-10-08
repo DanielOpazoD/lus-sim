@@ -356,6 +356,23 @@ conservan su identificador (decisiones 10 y 11).
   ventilación mecánica no se alcanza desde la interfaz), de la ventilación
   regional ni de la deformación (menor delante que detrás, D8), y no se mueve con el latido (sin pulso pulmonar).
 
+- **Una sola presión de llenado** (`hf-single-filling-pressure`, decisión 52): PAI, PD2VI y PCWP se tratan como una misma presión
+  de llenado izquierda (`docs/HEART_FAILURE.md`, capa 0): la relación entre ellas no se investigó y la interfaz lo dice.
+- **La cadena de la presión al agua está calibrada a medias** (`hf-partial-calibration`, decisión 52): k (por fenotipo), la
+  amortiguación de la gravedad y el gas por mL/kg se ajustaron con la GPU real a las anclas de Mayr (BL28 frente al EVLWI) y de
+  Imanishi (8 zonas frente a la PCWP), con un error que la decisión declara; las cinéticas, el suelo del sano, la postura (C-T31),
+  el ejercicio (P-T10) y las cohortes virtuales (P-T2, P-T9) están por medir. No hay variabilidad entre pacientes (capa 6).
+- **La verdad del modelo mueve la sonda** (`hf-truth-sweep`, decisión 52): «Verdad del modelo» mide cada sitio en su pose ideal con
+  la misma física y el mismo detector, y para eso coloca la sonda y avanza el reloj unos segundos por sitio (el agua apenas
+  cambia: minutos); al terminar la devuelve a donde estaba. Los cuadros quedan en el cine.
+- **Los sitios de los protocolos** (`hf-protocol-sites`, decisión 52): las zonas laterales basales se buscan en las axilares media y
+  posterior en los EIC 5–6, con el paciente en la posición que tenga (supino o sentado); no hay decúbito lateral ni la sonda
+  sectorial de 18 cm de Platz y del EACVI (solo la convexa del preajuste). **Los reparos de dos protocolos no están verificados**:
+  las 6 zonas de Pivetta (MC EIC 2 y 4 y AM EIC 5 por lado) no constan en la base (`docs/knowledge/clinical.md` §3.2 documenta
+  otro reparto de 6 zonas, el de 2026, y Pivetta 2015 solo se leyó en su resumen) y los de las 4 zonas de Platz están marcados
+  «NO VERIFICADOS» (§3.6 bis: el artículo los define en una figura). Son una elección del simulador; las reglas de cada
+  protocolo (zona positiva, difuso, ≥ 7) sí son de su fuente. La descripción de cada protocolo en el panel lo declara.
+
 ## Sonda
 
 - **Solo la sonda convexa de 3,5 MHz** (`convex-probe-only`): la de VExUS (radio 60 mm, ±34°, 192 líneas).

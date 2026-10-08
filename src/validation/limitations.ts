@@ -33,6 +33,10 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'hilum-vessels-blind-ends',
   'sliding-linear-height',
   'respiratory-field-vertical',
+  'hf-single-filling-pressure',
+  'hf-partial-calibration',
+  'hf-truth-sweep',
+  'hf-protocol-sites',
   // sonda
   'convex-probe-only',
   'probe-compression-kinematic',

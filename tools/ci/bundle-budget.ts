@@ -78,6 +78,12 @@
 // Todo lo que entra es de la imagen (lo lee la pasada B en cada cuadro); los gemelos TS (`bLineTraps.ts`, `subpleuralTraps.ts`),
 // el detector y su banco van solo en los ganchos de prueba (con ellos en el módulo de la GLSL la entrada medía 2,8 kB más), y el
 // mando hemodinámico y los protocolos (decisión 52), en chunks diferidos. La entrada y el inicial suben a 330 kB y el total a 1000.
+// 2026-10-08 (decisión 52): el mando hemodinámico y los protocolos de IC (el modelo de la presión al agua, las reglas de los
+// protocolos, el detector, el clip medido con él y el panel con su mapa) van en dos chunks diferidos que se piden al abrir el
+// panel (`heartFailure` 18,3 kB y `heartFailurePanel` 10,1 kB). Sobre main 4e1930a, el JS inicial pasa de 324,6 a 327,8 kB: la
+// sección de los ajustes que abre el panel (≈ 0,7 kB) y la frontera nueva entre chunks (Rollup separa en `transmission` lo que la
+// entrada comparte con el chunk diferido; cada enlace cruzado cuesta su import y su export: ≈ 2,4 kB). El total, de 987,0 a
+// 1018,7. El inicial no cambia (330 kB) y el total sube a 1025.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -90,8 +96,8 @@ const BUDGETS: Array<[RegExp, number]> = [
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
 const INITIAL_JS_BUDGET = 330 * KB;
-const TOTAL_JS_BUDGET = 1000 * KB;
-const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime)-.*\.js$/;
+const TOTAL_JS_BUDGET = 1025 * KB;
+const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime|heartFailure|heartFailurePanel|bLineClip)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;
 

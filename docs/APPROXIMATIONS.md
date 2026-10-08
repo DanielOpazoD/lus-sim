@@ -237,6 +237,41 @@ Aproximaciones del modelo, además de los parámetros:
 - **Las ganancias de la pasada B** (`TRAP_RAW_GAIN_DB`, `DIFFUSE_RAW_GAIN_DB`) se midieron en el gemelo como la media de cinco
   realizaciones del moteado y de la reirradiación, para que la imagen dé `trapSourceDb` y `alveolarSourceDb`.
 
+## Insuficiencia cardiaca (decisión 52)
+
+La cadena de la presión de llenado al agua y a la aireación (`src/physiology/hemodynamics.ts`; `docs/HEART_FAILURE.md`, capas 0–4).
+Lo publicado (EVLWI normal de Tagami, las bisagras de Imanishi) y lo derivado (0,77 mmHg/cm) van con su evidencia en el código;
+aquí lo estimado. El banco de calibración (`setHeartFailure` con `calibration` en los ganchos) los cambia sin recompilar.
+
+| Parámetro                                                                                                          | Valor y rango                             | Por qué                                                                                                   | Cómo calibrar                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `physiology.hemodynamics.hingeHealthy`                                                                             | 22 mmHg (18–26)                           | Pivote del sano, sin dato humano: entre los de la IC.                                                     | P-T31 (≥ 80 % de sanos sin líneas B) con cohortes virtuales.                                                                           |
+| `physiology.hemodynamics.slopeHfpef`, `physiology.hemodynamics.slopeHfref`, `physiology.hemodynamics.slopeHealthy` | ver la decisión 52 (0,3–3 mL/kg por mmHg) | k sobre la bisagra: no hay valor publicado.                                                               | P-T30 (Imanishi: ≈ 8 líneas en 8 zonas con 19–24 mmHg en la FE preservada, ≈ 24 con ≥ 25 en la reducida), después de la física (Mayr). |
+| `physiology.hemodynamics.hingeWidth`                                                                               | 1,5 mmHg (0,5–4)                          | Ancho de la bisagra suavizada: ningún ajuste publicado.                                                   | La forma de la curva de 8 zonas frente a la PCWP de Imanishi.                                                                          |
+| `physiology.hemodynamics.rapHingeShift`                                                                            | 0,3 (0–0,6)                               | La PAD baja el pivote (poscarga linfática; asociación de Reddy, mecanismo en ovejas).                     | P-T10 y C-T29 (ejercicio en la FE preservada).                                                                                         |
+| `physiology.hemodynamics.tauUpMin`, `physiology.hemodynamics.tauDownMin`                                           | 15 y 180 min (3–60; 70–1900)              | Las t½ publicadas son de puntajes (Martindale, Cortellaro), no del agua.                                  | P-T8, P-T21 y C-T23 con el puntaje simulado de cada estudio.                                                                           |
+| `physiology.hemodynamics.gravityDamping`                                                                           | ver la decisión 52 (0–1)                  | Fracción del gradiente hidrostático que llega a la presión capilar efectiva: tal cual exagera la postura. | C-T31 (25 % más de líneas B en supino que sentado) y P-T21 (los ápices se aclaran antes).                                              |
+| `physiology.hemodynamics.gasPerEvlwi`                                                                              | ver la decisión 52 (0,013–0,05)           | Gas subpleural que quita cada mL/kg de agua de más: lineal [SUPUESTO].                                    | P-T1–T3 (la regresión de Mayr con el detector en los 28 sitios).                                                                       |
+| `physiology.hemodynamics.laHeightMm`, `physiology.hemodynamics.laDepthMm`                                          | 60 y −20 mm (30–90; −50–10)               | La aurícula izquierda en el marco del tronco, sin medida.                                                 | La anatomía del corazón cuando el modelo la tenga (EchoTwin).                                                                          |
+
+Supuestos de la cadena que no son parámetros del registro (decisión 52):
+
+- **El EVLWI global** (`globalEvlwi`) es la media del agua de más de los nodos de la rejilla pleural que son pulmón, con el mismo
+  peso en cada nodo: no pesa por la masa de pulmón de cada región ni por su tamaño, y es lo que traduce el EVLWI como mando a una
+  presión equivalente y el estado que muestra el panel.
+- **Qué nodos son pulmón** (`HeartFailureModel.geometry`): los de la rejilla desde 10 mm bajo el borde inferior del pulmón hasta 200 mm sobre
+  la cúpula superior de la escena [SUPUESTO]; ambos márgenes son del modelo, sin fuente, y cambian a qué nodos se promedia.
+- **El suelo de gas** de `aerationFromExcess` es 0,05 de fracción [SUPUESTO]: ninguna región pierde más gas que eso por el agua
+  de más (un pulmón completamente edematoso queda con la aireación de un suelo, no en cero). Es independiente de `gasPerEvlwi`.
+- **Los reparos de dos protocolos son del simulador, no de su fuente**: las 6 zonas de Pivetta (MC EIC 2 y 4, AM EIC 5 por lado)
+  no están en la base (que documenta otro reparto de 6 zonas, el de 2026, y de Pivetta solo el resumen) y las 4 zonas de Platz
+  (anterior superior y lateral basal del esquema de 8) tampoco (`docs/knowledge/clinical.md` §3.2 y §3.6 bis: «NO VERIFICADOS»).
+  El panel lo dice en la descripción de cada protocolo. Las reglas (≥ 3 líneas, difuso con ≥ 2 por lado, ≥ 7 de Platz) sí son de
+  su fuente.
+- **Una zona con un sitio ilegible** (conteo NaN por la ganancia saturada) no vale 0: es una cota inferior marcada «parcial», o
+  «no evaluable» si los sitios legibles no tienen líneas (el ilegible pudo ser el peor) o, en los protocolos de zonas positivas, si
+  no hay ninguno positivo. Con zonas parciales el total no tiene banda clínica.
+
 ## Autoría visual del navegador humano (decisión 25)
 
 Los perfiles de cabeza, cuello, hombros, brazos y terminación abdominal en `src/ui/thorax/humanTorso.ts`

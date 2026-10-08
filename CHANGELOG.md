@@ -28,6 +28,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   si falla sale de la escena, se informa y no se reintenta. Va en su propio chunk (106,3 kB), que se carga tras construir la
   sesión: la entrada pasa de 302,5 a 309,5 kB y el total a 971,8. Con GPU (M4) el cuadro de la ventana no cambia (7,2 ms; main
   7,5); con SwiftShader, 266 ms. La e2e lo tiene salvo en las pruebas lejos de él (`?e2e=1&corazon=0`).
+- Los protocolos de insuficiencia cardiaca con un mando hemodinámico (52): el usuario elige la PCWP, la PAI, la PD2VI o el EVLWI,
+  el fenotipo y la PAD; el agua de cada región sube con la bisagra de Imanishi (19 o 25 mmHg), su cinética y la gravedad, y quita
+  gas al pulmón subpleural: las líneas B salen de la física (51). Los protocolos (28 sitios, 8 zonas en puntaje y conteo, 6, 4 de
+  Platz y 4 de estrés) son datos con reglas puras sobre lo que mide el detector en cada sitio. Panel diferido con el mapa del
+  protocolo, lo medido por el alumno y la verdad del modelo, con sus cortes y fuentes.
+  Los reparos de las 6 zonas de Pivetta y de las 4 de Platz no están verificados en la base y el panel lo declara; una zona con un
+  sitio ilegible es parcial (cota inferior «≥») o no evaluable, y la banda clínica solo se da con el protocolo completo.
 - Las líneas B (51): la aireación subpleural del paciente por región abre trampas acústicas bajo la pleura (tabiques como
   puntos de una retícula sorteada y la inundación alveolar como campo medio) que reirradian a lo largo de la profundidad
   aparente y quitan reflexión especular a la serie de la pleura. Nacen en la línea pleural, llegan al fondo con la compensación

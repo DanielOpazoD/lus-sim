@@ -141,6 +141,14 @@ const panel = new ControlPanel($('panel'), sim, store, dispatch, {
     const error = session.resetPatient();
     if (error) banner.show(`No se pudo reiniciar el paciente: ${errorMessage(error)}`, 6000);
   },
+  // lus-sim (decisión 52): el panel de insuficiencia cardiaca, un chunk diferido
+  openHeartFailure: () => {
+    // el panel no es modal: el diálogo de ajustes (modal) se cierra para que no lo deje inerte
+    $<HTMLDialogElement>('acquisition-settings').close();
+    void import('./ui/heartFailurePanel')
+      .then(({ openHeartFailurePanel }) => openHeartFailurePanel(sim, () => store.get().frozen))
+      .catch((e: unknown) => errorLog.report('ui', e));
+  },
 });
 session.equipment.subscribe(() => panel.sync());
 // Carril izquierdo: la ayuda de la sonda (decisión 47: sin las tarjetas de los puntos BLUE)

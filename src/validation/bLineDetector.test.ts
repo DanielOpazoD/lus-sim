@@ -1,4 +1,4 @@
-import { gainOverPresetDb } from '../app/bLineBench';
+import { gainOverPresetDb } from '../app/bLineClip';
 import { DEFAULT_BMODE } from '../ultrasound/renderer';
 import { describe, expect, it } from 'vitest';
 import { B_LINE_DETECTOR, clipBLines, detectBLines, type PolarFrame } from '../measure/bLines';
