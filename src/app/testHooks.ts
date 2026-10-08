@@ -49,6 +49,7 @@ import {
   type LungPulseReport,
 } from './lungPulseBench';
 import type { RenderMeasureOptions, Simulator } from './simulator';
+import { bLineClip, bLineEquivalence, setLungGas, type BLineClip, type BLineEquivalence } from './bLineBench';
 import { START_POINTS, type StartPoint } from './startPoints';
 import { measurementViewPose, type MeasurementViewId } from './measurementViews';
 
@@ -123,6 +124,16 @@ export interface TestHooks {
   lungPulse: (opts: LungPulseOptions) => LungPulseReport;
   /** Gemelo TS ↔ GLSL del pulso pulmonar en el pulmón junto al corazón, en la telesístole. */
   lungPulseEquivalence: () => LungPulseEquivalence;
+  /**
+   * lus-sim (decisión 51): la aireación subpleural del paciente, la misma en todo el pulmón, un gradiente con la altura
+   * (`{ top, bottom }`) o la normal (null).
+   */
+  setLungGas: (gas: number | null | { top: number; bottom: number }) => void;
+  /** Gemelo TS ↔ GLSL de las trampas de las líneas B en la pleura de las líneas de la pose actual (`bLineBench.ts`). */
+  bLineEquivalence: () => BLineEquivalence;
+  /** Un clip en la pose (o la actual) medido con el detector de líneas B, en la mirada 0. */
+  /** Un clip medido con el detector; con `gainDb`, a esa ganancia (con el comando del equipo; al terminar, la de antes). */
+  bLineClip: (opts: { pose?: ProbePose; frames?: number; intervalS?: number; gainDb?: number }) => BLineClip;
   /**
    * Caras de la pared y de las costillas (decisión 62): la cara, la normal y la norma del gradiente de la GPU
    * (`faceGradient`: `wallFaceSd`, `ribSd`) frente a las de TS (`AnatomyScene.faceGradient`) en los puntos del
@@ -461,6 +472,17 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       }
     },
     lungPulse: (opts) => withCompound(getSim(), dispatch, false, () => lungPulseMMode(getSim(), opts)),
+    setLungGas: (gas) => setLungGas(getSim(), gas),
+    bLineEquivalence: () => withCompound(getSim(), dispatch, false, () => bLineEquivalence(getSim())),
+    bLineClip: (opts) => {
+      const gain = getSim().bmode.gainDb;
+      try {
+        if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: opts.gainDb } });
+        return withCompound(getSim(), dispatch, false, () => bLineClip(getSim(), opts));
+      } finally {
+        if (opts.gainDb !== undefined) dispatch({ type: 'bmode', patch: { gainDb: gain } });
+      }
+    },
     lungPulseEquivalence: () => lungPulseEquivalence(getSim()),
     wallNormals: (opts) => {
       const sim = getSim();

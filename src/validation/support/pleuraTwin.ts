@@ -33,6 +33,19 @@ import {
   slidingField,
 } from '../../ultrasound/pleura';
 import { RECEIVER_NOISE } from '../../ultrasound/receiver';
+import { ALVEOLAR_SOURCE, B_LINES, TRAP_SOURCE } from '../../ultrasound/bLines';
+import {
+  diffuseField,
+  ringDown,
+  trapGeometry,
+  trapOffset,
+  trapScan,
+  type BLineSample,
+  type TrapGeometry,
+} from '../../ultrasound/bLineTraps';
+import { seedBits } from '../../anatomy/organs/subpleuralTraps';
+import { SUBPLEURAL_TRAPS } from '../../anatomy/organs/subpleural';
+import type { SubpleuralQuad } from '../../physiology/lungAeration';
 import {
   TISSUE_SALT_STEP,
   anchoredClumpGain,
@@ -93,7 +106,7 @@ function flatWallFace(y: number): [Interface, number] | null {
 
 export const thetaOf = (u: number): number => -HALF + (2 * HALF * (u + 0.5)) / LINES;
 const linePitch = (r: number): number => (RC + r) * ((2 * HALF) / (LINES - 1));
-const latSigmaMm = (r: number): number => lateralFwhmMm(r, FOCUS) / 2.3548;
+const latSigmaMm = (r: number, focus = FOCUS): number => lateralFwhmMm(r, focus) / 2.3548;
 /** Distancia de la línea θ a la pleura (plano y = 28 mm bajo la cara). */
 export const pleuraDepth = (th: number): number => (RC + WALL[2]) / Math.cos(th) - RC;
 /** Posición lateral (mm) del cruce de la línea θ con la pleura: la z anatómica de este gemelo. */
@@ -115,6 +128,33 @@ export interface PleuraTwinOpts {
   parts?: { pleura?: boolean; series?: boolean; mirror?: boolean; forward?: boolean; sliding?: boolean; tissue?: boolean };
   /** Ganancia del eco de las caras en las copias de la pared (`WALL_COPY_FACE_GAIN` por omisión): su rango. */
   wallCopyFaceGain?: number;
+  /**
+   * lus-sim (decisión 51): la fracción de gas subpleural, la misma en todo el pulmón (sin ella, la normal: sin trampas). Las
+   * trampas viven en el mapa (u, z) de la pleura plana: u, la elevación (0 en el plano) y z, la coordenada lateral de la pleura
+   * con el pulmón en espiración (z + `caudalMm`, como el deslizamiento).
+   */
+  gas?: number;
+  /** Semilla de las trampas (la del paciente: `seedBits`); 921 por omisión, la del paciente por omisión. */
+  trapSeed?: number;
+  /** Foco de emisión (mm) del haz de la imagen (D y las trampas); `FOCUS` por omisión. */
+  focusMm?: number;
+  /** Desplazamiento elevacional del plano (mm): otro corte del mismo pulmón. */
+  elevationMm?: number;
+  /** Sin la reirradiación de las trampas (solo su pérdida en la serie): la mutación de las pruebas. */
+  noReradiation?: boolean;
+  /**
+   * Calibración (decisión 51): en lugar de la población, una sola trampa con κ = 1 en (u, z) = (0, `zMm`) del mapa, o el campo
+   * difuso con ηa fijo en todo el pulmón; sin pérdida en la serie, para medir solo la reirradiación frente a la línea pleural.
+   */
+  forced?: {
+    trapZMm?: number;
+    alveolar?: number;
+    hash?: number;
+    /** Con la fracción del haz que entra de la física (κ0 = min(1, A/(2π·σl·σe)), la de `trapScan`) en lugar de κ = 1. */
+    physicalKappa?: boolean;
+    /** Desplazamiento elevacional de la trampa (mm). */
+    trapUMm?: number;
+  };
 }
 
 export interface PleuraTwinOut {
@@ -125,6 +165,10 @@ export interface PleuraTwinOut {
   /** Por línea: distancia a la pleura, fracción de aire e incidencia (rad). */
   D: Float64Array;
   fAir: Float64Array;
+  /** Por línea (decisión 51): la fracción del haz que entra en las trampas η, la reflexión que queda ρ y las trampas que ve. */
+  eta: Float64Array;
+  rho: Float64Array;
+  traps: Float64Array;
 }
 
 /** Tejido de la pared plana en la profundidad y (mm bajo la cara). */
@@ -180,6 +224,36 @@ function rng(seed: number): () => number {
   };
 }
 
+/**
+ * La reirradiación de una sola trampa con κ = 1 en (0, `trapZMm`) del mapa (su peso en la línea, el de `trapScan`) o del campo
+ * difuso con ηa fijo, sin pérdida en la serie (ρ = 1): la calibración de la decisión 51.
+ */
+function forcedSample(g: TrapGeometry, f: NonNullable<PleuraTwinOpts['forced']>, tau: number, seedU: number): BLineSample {
+  let re = 0;
+  let im = 0;
+  if (tau >= 0) {
+    const decay = Math.exp(-tau / B_LINES.params.ringDownEfoldMm.value);
+    if (f.trapZMm !== undefined) {
+      const du = (f.trapUMm ?? 0) - g.u;
+      const dz = f.trapZMm - g.z;
+      const [dl, de] = trapOffset(g, du, dz);
+      const w = Math.exp(-0.5 * ((dl * dl) / (g.sigmaDrawMm * g.sigmaDrawMm) + (de * de) / (g.sigmaElevMm * g.sigmaElevMm)));
+      const s = ringDown(f.hash ?? 12345, tau);
+      const kappa = f.physicalKappa
+        ? Math.min(1, SUBPLEURAL_TRAPS.params.septalAccessMm2.value / (2 * Math.PI * g.sigmaPhysMm * g.sigmaElevMm))
+        : 1;
+      re += TRAP_SOURCE * decay * kappa * w * s[0];
+      im += TRAP_SOURCE * decay * kappa * w * s[1];
+    }
+    if (f.alveolar) {
+      const d = diffuseField(g.u, g.z, tau, seedU);
+      re += ALVEOLAR_SOURCE * f.alveolar * decay * d[0];
+      im += ALVEOLAR_SOURCE * f.alveolar * decay * d[1];
+    }
+  }
+  return { re, im, rho: 1, eta: 0, alveolar: f.alveolar ?? 0, traps: f.trapZMm === undefined ? 0 : 1 };
+}
+
 export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
   const depth = o.depth ?? 180;
   const dr = depth / FINE;
@@ -226,13 +300,20 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
   const raw = new Float32Array(nv * LINES * 2);
   const Ds = new Float64Array(LINES);
   const fAirs = new Float64Array(LINES);
+  const etas = new Float64Array(LINES);
+  const rhos = new Float64Array(LINES).fill(1);
+  const trapsBy = new Float64Array(LINES);
+  const focus = o.focusMm ?? FOCUS;
+  const gas = o.gas;
+  const quad: SubpleuralQuad | null = gas === undefined ? null : { j: 0, i: 0, g: [gas, gas, gas, gas] };
+  const seedU = seedBits(o.trapSeed ?? 921);
   for (let u = 0; u < LINES; u++) {
     const th = thetaOf(u);
     const c = Math.cos(th);
     const sn = Math.sin(th);
     const D = pleuraDepth(th);
     const xP = pleuraLateral(th);
-    const sigma = curtainEdgeSigmaMm(elevSigmaMm(D, ELEV_FOCUS) * Math.SQRT1_2, latSigmaMm(D), 0, c);
+    const sigma = curtainEdgeSigmaMm(elevSigmaMm(D, ELEV_FOCUS) * Math.SQRT1_2, latSigmaMm(D, focus), 0, c);
     const fAir = curtainAirFraction(xP - o.edgeMm, sigma);
     const curtain = fAir >= CURTAIN_MIN_AIR;
     Ds[u] = D;
@@ -240,6 +321,32 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
     const tD = transmission(th, D);
     const T = (d: number) => transmission(th, Math.min(d, D));
     const pD: Vec3 = [0, 0, xP];
+    // las trampas de la línea (decisión 51): el mapa (u, z) = (elevación, lateral + descenso); la dirección lateral de la línea
+    // θ corre sobre la pleura con cos θ
+    const geom: TrapGeometry | null =
+      (quad || o.forced) && curtain
+        ? trapGeometry(
+            o.elevationMm ?? 0,
+            xP + caudal,
+            0,
+            c,
+            1,
+            0,
+            latSigmaMm(D, focus),
+            linePitch(D),
+            elevSigmaMm(D, ELEV_FOCUS) * Math.SQRT1_2,
+          )
+        : null;
+    const forced = o.forced;
+    const at = (tau: number): BLineSample | null => {
+      if (forced && geom) return forcedSample(geom, forced, tau, seedU);
+      return quad && curtain ? trapScan(geom, quad, gas!, seedU, tau) : null;
+    };
+    const top = at(-1);
+    const rho = top?.rho ?? 1;
+    etas[u] = top?.eta ?? 0;
+    rhos[u] = rho;
+    trapsBy[u] = top?.traps ?? 0;
     for (let v = 0; v < nv; v++) {
       const r = (v + 0.5) * dr;
       const x = (RC + r) * sn;
@@ -257,7 +364,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
       if (curtain) {
         let ar = 0;
         let ai = 0;
-        for (const term of pleuraTerms(r, D, tD, pleuraCoherence(c, K0), T)) {
+        for (const term of pleuraTerms(r, D, tD, pleuraCoherence(c, K0), T, undefined, rho)) {
           if (term.family === 'pleura') {
             if (parts.pleura) ar += term.gain * pleuraSeriesEcho(c, term.depth, K0);
             continue;
@@ -275,6 +382,11 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
           const s = slidingField(pD, [0, -1, 0], caudal, r - D, salt);
           ar += s[0] * tD;
           ai += s[1] * tD;
+        }
+        if (under && (quad || forced) && !o.noReradiation) {
+          const b = at(r - D)!;
+          ar += b.re * tD;
+          ai += b.im * tD;
         }
         re += fAir * ar;
         im += fAir * ai;
@@ -310,7 +422,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
   const env = new Float32Array(nv * LINES);
   for (let v = 0; v < nv; v++) {
     const r = (v + 0.5) * dr;
-    const sT = Math.max(0.35, latSigmaMm(r) / linePitch(r));
+    const sT = Math.max(0.35, latSigmaMm(r, focus) / linePitch(r));
     const RL = Math.min(14, Math.ceil(sT * 2.5));
     const wL = Array.from({ length: 2 * RL + 1 }, (_, k) => Math.exp(-0.5 * ((k - RL) / sT) ** 2));
     const nL = Math.hypot(...wL);
@@ -325,7 +437,7 @@ export function simulatePleura(o: PleuraTwinOpts): PleuraTwinOut {
       env[v * LINES + u] = (Math.hypot(re, im) / nL) * 1.1283792;
     }
   }
-  return { env, nv, dr, depth, D: Ds, fAir: fAirs };
+  return { env, nv, dr, depth, D: Ds, fAir: fAirs, eta: etas, rho: rhos, traps: trapsBy };
 }
 
 /** Mediana de la envolvente del hígado puro con transmisión 1 (la referencia del gris 100). */
@@ -346,6 +458,15 @@ export function greyAt(env: number, r: number, liverMed: number): number {
   const comp = Math.min(TGC_CAP_DB, 2 * attenuationDbPerCm(Tissue.Liver, F_B) * (r / 10));
   const y = Y_LIVER + (20 * Math.log10(Math.max(env, 1e-12) / liverMed) + comp) / DR_DB;
   return 255 * greyOfLevel(Math.min(1, Math.max(0, y)));
+}
+
+/**
+ * Nivel mostrado en dB de la envolvente sobre la mediana del hígado puro, con el recorte de la pantalla de rango dinámico
+ * `DR_DB` cuyo blanco está en `whiteDb` (sobre el hígado): lo que ve el detector de líneas B (decisión 51). Con el preajuste
+ * pulmonar la línea pleural queda 1 dB bajo el blanco (`LUNG_PRESET.gainDb`): el blanco, el nivel de la pleura normal + 1.
+ */
+export function displayLevelAt(env: number, r: number, liverMed: number, whiteDb: number): number {
+  return Math.min(whiteDb, Math.max(whiteDb - DR_DB, levelDbAt(env, r, liverMed)));
 }
 
 /** Nivel mostrado en dB (sin recortar) de la envolvente, sobre la mediana del hígado puro. */

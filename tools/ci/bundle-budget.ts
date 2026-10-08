@@ -72,6 +72,12 @@
 // pared, con sus gemelos GLSL en cada programa que clasifica) y los vasos subclavios (en la tabla de los del hilio, con la pared que
 // los mira) llevan la entrada con el chunk compartido de 309,5 a 315,4 kB y el total de 971,8 a 977,7. La entrada y el inicial suben
 // a 320 kB y el total a 990.
+// 2026-10-08 (decisión 51): las líneas B (la aireación subpleural del paciente, las trampas y su reirradiación en GLSL para la
+// pasada B y la consulta de puntos, ≈ 5,8 kB de GLSL antes de compactar, y sus parámetros con sus notas) llevan el JS inicial de
+// 315,4 a 324,6 kB y el total de 977,7 a 987,0 (vite build sobre main bb7c16e con la rama; sobre 6af7abe eran 309,5 → 318,7).
+// Todo lo que entra es de la imagen (lo lee la pasada B en cada cuadro); los gemelos TS (`bLineTraps.ts`, `subpleuralTraps.ts`),
+// el detector y su banco van solo en los ganchos de prueba (con ellos en el módulo de la GLSL la entrada medía 2,8 kB más), y el
+// mando hemodinámico y los protocolos (decisión 52), en chunks diferidos. La entrada y el inicial suben a 330 kB y el total a 1000.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -79,12 +85,12 @@ const KB = 1024;
 const BUDGETS: Array<[RegExp, number]> = [
   [/^thorax-.*\.js$/, 560 * KB],
   [/^frozenReview-.*\.js$/, 24 * KB],
-  [/index-.*\.js$/, 320 * KB],
+  [/index-.*\.js$/, 330 * KB],
   [/\.css$/, 20 * KB],
   [/\.js$/, 120 * KB], // cualquier otro chunk
 ];
-const INITIAL_JS_BUDGET = 320 * KB;
-const TOTAL_JS_BUDGET = 990 * KB;
+const INITIAL_JS_BUDGET = 330 * KB;
+const TOTAL_JS_BUDGET = 1000 * KB;
 const DEFERRED_JS = /^(?:thorax|frozenReview|coverage|cardiacRuntime)-.*\.js$/;
 /** Chunks que un usuario nunca descarga (solo `?e2e` o desarrollo): fuera del total, con su límite por chunk. */
 const TEST_ONLY = /^testHooks-.*\.js$/;

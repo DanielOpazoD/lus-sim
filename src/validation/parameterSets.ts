@@ -26,6 +26,10 @@ import { BONE_TRANSMISSION } from '../ultrasound/boneTransmission';
 import { NORMAL_CALIBRATION } from '../ultrasound/normalCalibration';
 import { DIAPHRAGM_EXCURSION } from '../physiology/respiratory';
 import { FIDELITY_BENCH } from '../measure/fidelity/parameters';
+import { SUBPLEURAL_AERATION } from '../physiology/lungAeration';
+import { SUBPLEURAL_TRAPS } from '../anatomy/organs/subpleural';
+import { B_LINES } from '../ultrasound/bLines';
+import { B_LINE_DETECTOR } from '../measure/bLines';
 
 /**
  * Todos los conjuntos de parámetros del modelo (decisión 4). `evidence.test.ts` comprueba sobre esta
@@ -69,4 +73,8 @@ export const PARAMETER_SETS: readonly ParameterSet[] = [
   FIDELITY_BENCH,
   COVERAGE,
   OPERATOR_HAND,
+  SUBPLEURAL_AERATION,
+  SUBPLEURAL_TRAPS,
+  B_LINES,
+  B_LINE_DETECTOR,
 ];

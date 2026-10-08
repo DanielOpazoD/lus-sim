@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bandCorrelation, bandRows, bandSpectrum } from '../measure/lungPulse';
 import { PLEURA_GLSL } from '../ultrasound/pleura';
-import { FRAG_QUERY } from '../ultrasound/shaders/passes.glsl';
+import { FRAG_QUERY, FRAG_RAWFIELD } from '../ultrasound/shaders/passes.glsl';
 
 /**
  * La medida del pulso pulmonar y de la estratósfera en el modo M (decisión 32, `src/measure/lungPulse.ts`), sobre franjas
@@ -87,7 +87,11 @@ describe('S3: el pico espectral del pulso pulmonar', () => {
 
 describe('el latido en la GLSL (decisión 32)', () => {
   it('la arena del deslizamiento se ancla al punto del pulmón antes del latido, y la consulta lo devuelve', () => {
-    expect(PLEURA_GLSL).toContain('vec3 m = lungPulseInverse(toMaterial(pD));');
+    // lus-sim (decisión 51): la mirada 0 lo calcula una vez (lo usan también las trampas de las líneas B); la dirigida, en slidingField
+    expect(PLEURA_GLSL).toContain(
+      'vec2 slidingField(vec3 pD, float h, float salt) { return slidingFieldAt(lungPulseInverse(toMaterial(pD)), h, salt); }',
+    );
+    expect(FRAG_RAWFIELD).toContain('vec3 mD = needM ? lungPulseInverse(toMaterial(pD)) : vec3(0.0);');
     expect(FRAG_QUERY).toContain('o3 = vec4(lungPulseInverse(m) - m, uLungPulse);');
   });
 });

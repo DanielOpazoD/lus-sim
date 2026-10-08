@@ -357,8 +357,10 @@ describe('serie de reverberaciones bajo la pleura: amplitudes frente a los camin
     );
     // R_t como uniform (lus-sim, decisión 35: `uPleuraRt`, el valor del registro salvo en el barrido de calibración)
     expect(PLEURA_GLSL).toContain('float pleuraRoundTrip(float tD, float chi) { return PLEURA_RP * chi * uPleuraRt * tD; }');
+    // lus-sim (decisión 51): en la mirada 0, χ lleva además lo que las trampas de la línea le quitan a cada reflexión (ρ = bl.z)
+    expect(FRAG_RAWFIELD).toContain('float chi = pleuraCoherence(cosI) * bl.z;');
+    expect(FRAG_RAWFIELD_STEERED).toContain('float chi = pleuraCoherence(cosI);');
     for (const src of [FRAG_RAWFIELD, FRAG_RAWFIELD_STEERED]) {
-      expect(src).toContain('float chi = pleuraCoherence(cosI);');
       expect(src).toContain('float G = pleuraRoundTrip(tD, chi);');
       // con los pesos de la descomposición de la neblina (decisión 38: 1 salvo en `calibrationOverride({ seriesParts })`)
       expect(src).toContain(
@@ -976,14 +978,18 @@ describe('la rama de la cortina de la pasada B (mirada 0)', () => {
       'float tFree = min(t0.x, texture(uTrans2, vUv).x) * gain;',
       'float T = (curtain ? (under ? min(tFree, tD) : texture(uTrans0, vec2(vUv.x, min(r, rCap) / uDepth)).x) : t0.x) * coupling;',
       'float k = aLineOrder(r, D);',
-      'air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
+      'air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * bl.z * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);',
       'vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);',
       'bool series = under && gn * tD * PLEURA_WALL_FIELD_BOUND * coupling > PLEURA_SERIES_FLOOR;',
       'int nWall = series ? 2 : 0;',
       'float d = j == 1 ? ser.y : ser.z;',
       'float td = texture(uTrans0, vec2(vUv.x, min(d, rCap) / uDepth)).x;',
       'air += f * (j == 1 ? uSeriesParts.x * (ser.x + 1.0) * PLEURA_RP * PLEURA_RP * chi * chi * tD * tD / max(td, 1e-6) * gn : uSeriesParts.y * (ser.x + 2.0) * td * G * gn);',
-      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, r - D, 0.0) * tD;',
+      'if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingFieldAt(mD, r - D, 0.0) * tD;',
+      // lus-sim (decisión 51): las trampas de la línea (su reirradiación y ρ) y el punto material de la pleura, una vez
+      'vec3 mD = needM ? lungPulseInverse(toMaterial(pD)) : vec3(0.0);',
+      'vec4 bl = traps ? bLineField(mD, dir0, D, r - D) : vec4(0.0, 0.0, 1.0, 0.0);',
+      'air += bl.xy * tD;',
     ])
       expect(FRAG_RAWFIELD, line).toContain(line);
     // y las funciones compartidas son las del gemelo

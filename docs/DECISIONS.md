@@ -4788,3 +4788,133 @@ la piel es la del tronco cilíndrico (`thorax-cylindrical-cage`), sin la depresi
   día; los números honestos (la mitad de la mejora del avatar es de la sonda transversal; la mujer obesa no cambia); la grasa del
   cuello con el tope del plexo y fuera del tercio lateral; pruebas que fallan sin el cambio (la sonda apoyada en la fosa, la
   arteria estrecha del hábito delgado) y el salto del aire y del pulmón solo junto a los subclavios en `hilumVessels.test.ts`.
+
+## 51. Las líneas B emergen de las trampas subpleurales que abre el agua, y un detector las cuenta sobre la señal
+
+**Fecha.** 2026-10-04.
+
+**Contexto.** Daniel pidió (04-10-2026) la simulación de las líneas B según los puntajes y la investigación de la insuficiencia
+cardiaca (`docs/HEART_FAILURE.md`). Hasta aquí el pulmón bajo la pleura era la serie de reverberaciones de la pared y el
+deslizamiento (`no-lung-comet-tails`): sin líneas B no hay F-T13, F-T17, F-T18, F-T22, F-T26 ni F-T27, ni puntaje que medir.
+La base fija el camino: nada se pinta (guía §5 y §20); un mapa de aireación y una población de trampas producen las líneas A, las
+B aisladas, las confluentes y el blanco (`docs/knowledge/physics.md` §3.1, principio 3); la hipótesis de consenso es la trampa
+acústica que reirradia como fuente secundaria (Demi 2023; Soldati 2020; §2.4). La pasada B estaba en 127 de 130 ranuras de
+uniforms (129 la dirigida) y el JS inicial en 309,5 de 310 kB (main 6af7abe, con el corazón de la decisión 49).
+
+**Opciones.** (a) Una textura de líneas verticales modulada por la aireación: prohibida (guía §20). (b) Fuentes puntuales en la
+pleura que reirradian a lo largo de la profundidad aparente, ancladas al pulmón, que quitan reflexión especular a la serie: la
+física de la base. (c) Lo mismo con una pasada nueva por línea que liste las trampas, η y ρ (A0 ya usa sus cuatro salidas: un
+recurso y un programa más): más barata en la GPU, pero toca el grafo y el arranque; medido el costo de (b) con la GPU real
+(abajo), se deja para cuando lo pida. (d) Un único campo difuso para todo: no da líneas discretas que contar.
+
+**Decisión.** (b), con el estado repartido por capas:
+
+- **Paciente** (`src/physiology/lungAeration.ts`): `PatientState.lung`, la fracción de gas subpleural en una rejilla de 25 × 13
+  nodos sobre el tórax (u, el arco de la piel; z, la altura; mm del marco de VExUS): un contrato del paciente común
+  (`docs/UNIFICATION.md`), no un número de líneas. Sin él, la aireación normal (0,80, L13).
+- **Estado físico** (`src/anatomy/organs/subpleural.ts`, con su gemelo TS en `subpleuralTraps.ts`): la tabla de la aireación en
+  la textura de escena (tras la de los vasos del hilio, con un téxel de resumen: la menor fracción de gas) y las trampas. Las
+  **septales** son puntos de una retícula de 5,9 mm en el mapa (u, z + lo que bajó el pulmón) —el mismo que ancla el
+  deslizamiento—, con su posición, su susceptibilidad y su tamaño sorteados por un hash entero (PCG, exacto en TS y GLSL); una
+  trampa está abierta si su susceptibilidad es menor que la fracción abierta de su región, una rampa de 0 con φ ≥ 0,72 (Ostras:
+  solo líneas A con 70 y 80 % de aireación) a 1 con φ ≤ 0,50. La **inundación alveolar** es un campo medio: una fracción
+  accesible de la pleura (0 desde 0,55, 0,85 con φ ≤ 0,30).
+- **Imagen** (`src/ultrasound/bLines.ts`, `bLineField` en la mirada 0 de la pasada B; gemelo TS en `bLineTraps.ts`): cada trampa
+  que el haz cubre en la pleura reirradia una señal aleatoria fija a la trampa a lo largo de τ = r − D, con la caída
+  e^(−τ/35 mm) y la transmisión de la pared T(D). Su peso en la línea es gaussiano en su distancia al eje del haz, la
+  **proyección** de su desplazamiento en el mapa sobre las direcciones lateral y elevacional (Δlat = ∂u/∂lat·Δu + ∂z/∂lat·Δz:
+  Jᵀ; en incidencia oblicua la huella es cos θ más corta), con la σ lateral de dos vías en D y la elevacional de dos vías. La
+  fracción del haz que entra, η = Σκ·w (κ = min(1, A/(2π·σl·σe)), A = 2 mm²), y la alveolar, ηa, quitan a cada reflexión en la
+  pleura de la línea el factor ρ = (1 − η)(1 − ηa): la línea pleural ×ρ, cada ida y vuelta de la serie ×ρ (χ·ρ en la GLSL). La
+  inundación alveolar reirradia un campo difuso anclado al pulmón (fuentes por debajo de la resolución en una retícula de
+  0,6 mm, con la reirradiación de las trampas en τ). Las interpolaciones entre nodos independientes llevan sus pesos
+  normalizados (`nodeWeights`): sin ellos la energía caía −3 dB a medio paso y el campo difuso dejaba bandas paralelas a la
+  pleura. Nada de esto conoce un número de líneas: la vertical, la llegada al fondo, el borrado local de las líneas A, el
+  movimiento con el deslizamiento, la confluencia y la anchura con el foco salen de ahí.
+- **Costo**: sin uniforms nuevos (la tabla va en la textura de escena: B sigue en 127 y 129 ranuras). Con el pulmón normal la
+  pasada B lee un téxel (`lungMayOpen`) y hace las cuentas de antes (ρ = 1 multiplica exacto); con trampas, `bLineField` corre
+  solo en las muestras desde `IFACE_REACH` sobre la pleura (más arriba la línea pleural es 0). El punto material de la pleura
+  antes del latido se calcula una vez para las trampas y el deslizamiento (`slidingFieldAt`).
+- **Medida** (`src/measure/bLines.ts`): un detector sobre el nivel mostrado (con el recorte del rango dinámico de la pantalla) en
+  la rejilla polar, con las reglas de `docs/knowledge/clinical.md` §6.3, sin nada del modelo: halla la **pleura en la imagen**
+  (el primer eco a 10 dB del máximo de su línea; en sombra si queda > 20 dB bajo la pleura del cuadro, si no tiene debajo su
+  reverberación a 2D o si está en la pared, a < 0,6 de la profundidad de las pleuras más brillantes); una columna es de línea B si
+  la mediana de su banda de 30 mm bajo la pleura queda a < 30 dB de la pleura del cuadro, si es hiperecoica (≥ 6 dB sobre la pared
+  del cuadro: con mucha ganancia la pleura satura y la neblina normal pasaría el margen) y si su pared no está más de 6 dB sobre la
+  de las otras líneas (nace en la pleura); no se exige que llegue al fondo (2026, D1_1.1). Con el máximo de una línea en el blanco,
+  si el primer eco a 10 dB no satura, la pleura es el primer punto saturado debajo solo si entre los dos hay pared oscura (su
+  mediana 10 dB bajo el umbral): así se salta un eco de la pared que no satura sobre una pleura que sí, y no se toma por la pleura
+  el blanco de un pulmón sin aire que satura más hondo (una versión anterior, «el primer eco saturado», hacía caer a 0 el pulmón
+  blanco entre +8 y +15 dB con 120 y 160 mm: lo halló la sexta revisión). **Rango de operación**: la cadena da al detector la ganancia de pantalla más la TGC sobre el preajuste
+  pulmonar en cada profundidad, y el detector la mira de la piel a lo que lee (la pleura más honda + 36 mm); si pasa de 25 dB o
+  varía más de 6 dB en ese tramo (una TGC que aclara u oscurece lo de bajo la pleura frente a ella), el cuadro no se lee (`saturated`, conteo NaN: ilegible no es «sin líneas B») y el clip
+  lo descarta, como quien baja la ganancia antes de contar; tampoco si la pared del cuadro queda a menos de 6 dB del blanco (nada
+  puede ser hiperecoico frente a ella). Ninguna regla de la señal sola resultó robusta: dos versiones (por línea y por bandas
+  horizontales) tomaban el blanco bajo la pleura por pared saturada o no veían nunca la pared en el sector curvo (revisiones
+  tercera y cuarta), y sin el rango el gemelo da, con +30 dB, 9–15 líneas blancas en el pulmón normal y, en el sector entero con
+  +40 o +50 dB, 5 en cualquier pulmón; de 0 a +28 dB lee bien en las tres realizaciones probadas. La TGC cuenta igual: una
+  primera versión miraba solo la mitad alta de la imagen, que con 60 mm de profundidad acaba en la pleura, y +15 dB de TGC bajo
+  ella con +15 de ganancia daban 9–13 líneas en el pulmón normal, y a ganancia 0 el pulmón blanco se leía con 4 (quinta revisión).
+  Con la regla de la pleura saturada, en el gemelo (3 realizaciones; 60, 120 y 160 mm; ganancia de 0 a +25 dB; TGC plana, 0 → +6,
+  la pared a −6 y ± 3) el pulmón normal da siempre 0 o NaN, el blanco (φ 0,35) confluente con 9–10 o NaN, y el de φ 0,54 de 4 a 9;
+  la prueba fija de +5 a +15 dB en pasos de 1.
+  En el gemelo, con la TGC subiendo o bajando bajo la pleura: ± 3 dB no cambian el conteo del normal (0) ni del blanco
+  (confluente); con ± 6 el blanco baja a 8–9 y la pérdida leve sube hasta 2 líneas; con 10 o 15 aparecen líneas falsas o el blanco
+  deja de ser confluente. Máximos separados por un valle de
+  3 dB en los tramos no confluentes; un tramo de más de 6 mm es confluente y no se cuenta por sus máximos: el número del cuadro es
+  máx(conteo, redondeo(10·f_blanco)); el clip, su peor cuadro.
+
+**Consecuencias.**
+
+- **Gemelo B → C → D** (`src/validation/bLinesTwin.test.ts`; la pleura plana a 28 mm con el foco en ella, 120 mm de
+  profundidad, el detector sobre lo que se ve con la pleura 1 dB bajo el blanco, en una ventana de ±12°, ≈ 37 mm de pleura). Toda
+  meta se mide en **cinco realizaciones** de la población (semillas 921, 1, 2, 3 y 77, cada una con su moteado) y se exigen
+  medianas o proporciones. Calibración sobre la media de las cinco: una trampa que capta todo el haz a −8,0 dB de la línea
+  pleural y el campo difuso completo a −20,0 dB (antes, ajustada a una sola realización: −19,3 con otra semilla). F-T27,
+  medianas: 0 líneas con φ 0,80; 0 con 0,70 (máx. 2); 1 con 0,66; 3 con 0,62 (blanco 15 %); 4–5 con 0,54–0,58 (22–28 %);
+  confluente y blanco 100 % con ≤ 0,45; con 0,35 la réplica de orden 2 no destaca (mediana < 1 dB; > 6 dB en el pulmón normal).
+  F-T17: el 90 % de las líneas nacen en la pleura (< 1 dB sobre ella, > 15 dB 4 mm bajo ella) y su máximo lateral a 10 y a 80 mm
+  cae en la misma línea (±0,4°). F-T18: el 80 % llega a 114 mm a < 8 dB de su nivel junto a la pleura. F-T26: en la columna de una
+  línea B la réplica de orden 2 queda ≤ 3 dB sobre su entorno (mediana); entre líneas, ≥ 6 dB. La pérdida especular, sola (sin
+  reirradiación): la réplica de orden 2 cae lo que dicen sus reflexiones, 40·log10 ρ, a ±1,5 dB (mediana). F-T13: el origen de
+  una trampa se desplaza lo que baja el pulmón a ±5 % (6 mm). F-T22, en una trampa suelta con la fracción del haz que entra de la
+  física, en cinco configuraciones (otra línea, otra distancia elevacional, otra reirradiación y otro moteado): con el foco a 60 mm
+  su línea es 1,29–1,31 veces más ancha (se exige > 1,2) y 4,7–5,3 dB más tenue (se exige > 3). La anchura emerge del haz; la caída
+  del brillo, no del todo: sale de κ₀ ∝ 1/(σl·σe), la fracción del haz que entra, que el modelo fija (con κ = 1 la línea es 2,8 dB
+  más brillante con el foco a 60 mm), así que esa mitad de F-T22 es casi una consecuencia de la definición de κ₀. La caída del brillo de la población
+  no se usa: depende de qué trampas ve cada línea y del moteado (0,4–2,7 dB entre realizaciones, revisión de la decisión 51); la
+  gCNR del gemelo satura (≈ 0,98 con los dos focos, `blines-gcnr-saturated`). La calibración, F-T13 y F-T22 usan esas cinco
+  configuraciones. Con +20 dB de ganancia (la pleura satura) el pulmón normal sigue sin líneas B en las cinco; el congestivo (φ 0,54,
+  0,45 y 0,35) sigue legible con +15, +20 y +25 dB y da sus líneas (confluente con ≤ 0,45); con +25 dB también en el sector
+  entero, y con +30 y +40 dB el normal y el de φ 0,35 dan NaN (fuera del rango), nunca un 0 ni un blanco falsos; lo mismo con
+  la TGC bajo la pleura a +15 (con ganancia 0 y +15), +10 (con +20) y −10 dB, y con ± 3 dB leen 0 y confluente.
+  Mutación: sin la reirradiación el detector no ve ninguna.
+- **GPU** (`e2e/lineasB.spec.ts`, SwiftShader): el gemelo GLSL de las trampas en la pleura de las 192 líneas del BLUE inferior, a
+  cinco profundidades aparentes, con φ 0,62 (360 trampas), 0,5 (705) y un gradiente de 0,45 en la base a 0,75 en el vértice
+  (345): las mismas trampas en el 100 %, |Δρ| ≤ 7·10⁻⁵ y error relativo mediano del campo ≤ 3·10⁻⁴. La imagen: el detector halla
+  la pleura de la anatomía a ≤ 1,5 mm (sin ninguna donde no la hay); 0 líneas con el pulmón normal, 4 discretas con φ 0,62
+  (blanco 16 %) y confluente con 0,38. Con GPU real (Apple M4), normal / φ 0,62 / 0,52 / 0,38: BLUE inferior 0 / 3 / 6 / 9
+  (confluente), BLUE superior 0 / 4 / 6 / 9 (confluente), PLAPS 0 / 1 / 5 / 9 (confluente); la pleura hallada coincide con la de
+  A0 en el 90–100 % de las líneas.
+- **Costo por cuadro** (`frameCostMs`, 60 cuadros, BLUE inferior). GPU real (M4): main 5,1–5,5 ms; la rama 5,0–5,5 con el pulmón
+  normal, 5,9–6,4 con φ 0,6 y 7,2–7,4 con φ 0,38: + 2 ms en el peor caso, lejos de los 33 ms de 30 FPS. SwiftShader (ruidoso con
+  la máquina compartida): 287 ms main, 261–279 la rama. El JS inicial sube de 315,4 a 324,6 kB y el total de 977,7 a 987,0
+  (main bb7c16e, con la fosa supraclavicular de la decisión 50; sobre 6af7abe eran 309,5 → 318,7; `tools/ci/bundle-budget.ts`: a 330 y
+  1000 kB): ≈ 5,8 kB son la GLSL de las
+  trampas, todo lo que entra es de la imagen; los gemelos TS (`bLineTraps.ts`, `subpleuralTraps.ts`) viven aparte de la GLSL
+  para no viajar en la entrada (con ellos, 2,8 kB más).
+- La equivalencia y el detector viven en los ganchos de prueba (`src/app/bLineBench.ts`: `setLungGas`, `bLineEquivalence`,
+  `bLineClip`); la consulta de puntos devuelve `bLineField` con `trapTauMm`.
+- Pendiente: el banco de referencia no tiene clips con líneas B (los 34 son normales), así que los niveles y el detector se
+  calibran con las metas F, no con clips; las limitaciones nuevas (`blines-no-frequency-selectivity`, `blines-water-only`,
+  `blines-look0-only`, `blines-drawn-width`, `blines-static-ringdown`, `blines-gcnr-saturated`) y `no-lung-comet-tails` acotada a
+  las líneas Z y E. La cadena de la presión al agua y los protocolos son la decisión 52.
+
+**Verificación.** `npm run check` (con `bLines.test.ts`: los contratos, la proyección de la huella frente a una incidencia
+oblicua, el tope de η, los pesos normalizados y las expresiones de la GLSL; `bLineDetector.test.ts`: el detector sobre cuadros
+sintéticos, una prueba por regla; y `bLinesTwin.test.ts`, lenta). `e2e/lineasB.spec.ts` con SwiftShader. Mutaciones comprobadas:
+la pérdida especular ignorada (falla «la pérdida especular»), la media en lugar de la mediana (falla «la mediana de la columna»),
+sin el valle, sin el origen en la pleura, sin la sombra, sin la pared somera, sin la regla hiperecoica, sin el %/10 y con el
+número de los confluentes por sus máximos (fallan sus pruebas
+sintéticas); una mutación de la GLSL sola (κ con π, sin `lungSlideMm`, la reirradiación sin el hash) la atrapan las expresiones
+de `bLines.test.ts` y la equivalencia de la e2e.

@@ -21,6 +21,8 @@ import { RECEIVER_GLSL, glslFloat } from '../receiver';
 import { HARMONIC_GLSL } from '../harmonic';
 import { STEERING_GLSL } from '../steering';
 import { M_SAMPLES } from '../mmode';
+import { SUBPLEURAL_GLSL } from '../../anatomy/organs/subpleural';
+import { B_LINES_GLSL } from '../bLines';
 
 export const VERT = /* glsl */ `#version 300 es
 precision highp float;
@@ -865,7 +867,14 @@ void main() {
   Warp wD = noWarp();
   if (curtain) wD = warpAt(pD);
   float cosI = curtain ? abs(dot(normalize(warpNormal(wD, wallInnerNormal(toMaterial(pD)))), dir0)) : 1.0;
-  float chi = pleuraCoherence(cosI);
+  // lus-sim (decisión 51): las trampas subpleurales que ve la línea (bLines.ts) reirradian bajo la pleura y le quitan a cada
+  // reflexión en ella la fracción del haz que entra (ρ); el punto material de la pleura antes del latido, una vez, para ellas y
+  // para el deslizamiento. Sobre la pleura solo cuentan donde llega su eco (IFACE_REACH): más arriba la línea pleural es 0
+  bool traps = curtain && r > D - ${IFACE_REACH_MM.toFixed(4)} && lungMayOpen();
+  bool needM = traps || (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR);
+  vec3 mD = needM ? lungPulseInverse(toMaterial(pD)) : vec3(0.0);
+  vec4 bl = traps ? bLineField(mD, dir0, D, r - D) : vec4(0.0, 0.0, 1.0, 0.0);
+  float chi = pleuraCoherence(cosI) * bl.z;
   float G = pleuraRoundTrip(tD, chi);
   vec3 ser = under ? pleuraSeriesDepths(r, D) : vec3(0.0);
   float gn = seriesPow(G, ser.x);
@@ -919,10 +928,12 @@ void main() {
     out2 = tissue * wTissue;
   }
   if (curtain) {
-    // El pulmón, con peso fAir: línea pleural y réplicas (líneas A), la serie (arriba) y el deslizamiento
+    // El pulmón, con peso fAir: línea pleural y réplicas (líneas A), la serie (arriba), el deslizamiento y, lus-sim (decisión
+    // 50), la reirradiación de las trampas (las líneas B)
     float k = aLineOrder(r, D);
-    air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);
-    if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingField(pD, r - D, 0.0) * tD;
+    air += vec2(uSeriesParts.w * seriesPow(G, k - 1.0) * bl.z * tD * pleuraSeriesEcho(cosI, k * D - r), 0.0);
+    if (under && slidingAmplitude(r - D) * tD * coupling > PLEURA_SERIES_FLOOR) air += uSeriesParts.z * slidingFieldAt(mD, r - D, 0.0) * tD;
+    air += bl.xy * tD;
     out2 += air * (fAir * coupling);
   }
   // Campo cercano: transitorio del transductor, anclado a la sonda (línea, r), no al tejido. Desde
@@ -1263,6 +1274,9 @@ precision highp int;
 ${ANATOMY_GLSL}
 ${BEAM_GLSL}
 uniform sampler2D uPoints;
+uniform float uSeed;
+uniform float uQueryTraps; // lus-sim (decisión 51): 1, o1 lleva las trampas de las líneas B en el punto (la pleura de una línea)
+${ELEV_SIGMA_GLSL}${LATERAL_PSF_GLSL}${SUBPLEURAL_GLSL}${B_LINES_GLSL}
 layout(location = 0) out vec4 o0;
 layout(location = 1) out vec4 o1;
 layout(location = 2) out vec4 o2;
@@ -1274,6 +1288,8 @@ void main() {
   vec3 v = c.tissue == T_BLOOD ? bloodVelocity(c) : vec3(0.0);
   o0 = vec4(float(c.tissue), float(c.vessel), c.bd, c.ifd);
   o1 = vec4(v, float(c.iface));
+  // el punto es la pleura de la línea que pasa por él desde el centro de curvatura, y w, la profundidad aparente τ
+  if (uQueryTraps > 0.5) o1 = bLineField(lungPulseInverse(m), normalize(p.xyz - uCurvC), length(p.xyz - uCurvC) - uCurvR, p.w);
   o2 = faceGradient(c, m);
   // lus-sim (decisión 32): el pulso pulmonar, el desplazamiento del punto del pulmón antes del latido, y la amplitud del instante
   o3 = vec4(lungPulseInverse(m) - m, uLungPulse);

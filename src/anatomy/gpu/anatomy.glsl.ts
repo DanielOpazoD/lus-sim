@@ -24,7 +24,9 @@
  *   tabla de los vasos del hilio desde HILUM_VESSEL_BASE (decisión 46, `organs/vessels.ts`): por vaso, su cabecera, su esfera
  *   envolvente y sus nodos;
  *   la rejilla del volumen del corazón de EchoTwin desde HEART_VOL_BASE (decisión 49, `organs/heart.ts`): su esfera envolvente, su
- *   origen con el lado del vóxel y sus tres ejes (el volumen, en `uHeartVol`)
+ *   origen con el lado del vóxel y sus tres ejes (el volumen, en `uHeartVol`);
+ *   tabla de la aireación subpleural desde SUBPLEURAL_TABLE_BASE (lus-sim, decisión 51, `organs/subpleural.ts`): un téxel por
+ *   nodo de la rejilla del paciente (`physiology/lungAeration.ts`) y uno de resumen (la menor fracción de gas)
  */
 import { BOWEL_BD_CAP_MM, DIAPHRAGM_THICKNESS_MM, LIVER_CAPSULE_MM, TISSUE_GLSL_NAME } from '../tissues';
 import { SPLEEN } from '../organs/spleen';
@@ -42,14 +44,14 @@ import { RESPIRATORY_INVERSE } from '../deformation';
 import { ORGAN_MODULES } from '../organs';
 import { RIB_TABLE_BASE } from '../organs/ribcage';
 import { HILUM_VESSELS_GLSL } from '../organs/vessels';
-import { HEART_VOL_BASE, HEART_VOL_TEXELS } from '../organs/heart';
+import { SUBPLEURAL_TABLE_BASE, SUBPLEURAL_TABLE_TEXELS } from '../organs/subpleural';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
 export const COMPRESSION_BASE = 0;
 if (RIB_TABLE_BASE < COMPRESSION_BASE + PROBE_COMPRESSION.nodes) throw new Error('la tabla costal pisa la de la compresión');
-export const SCENE_TEX_H = Math.ceil((HEART_VOL_BASE + HEART_VOL_TEXELS) / SCENE_TEX_W);
+export const SCENE_TEX_H = Math.ceil((SUBPLEURAL_TABLE_BASE + SUBPLEURAL_TABLE_TEXELS) / SCENE_TEX_W);
 export { MAX_RIBS } from './sceneUniforms';
 
 const TISSUE_DEFINES = Object.entries(TISSUE_GLSL_NAME)

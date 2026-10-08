@@ -306,7 +306,13 @@ export class Simulator {
     points: Float32Array,
     frame: ProbeFrame,
     allTubes = false,
-    opts: { normals?: boolean; lungPulse?: boolean; compression?: ProbeCompression; sample?: PhysiologySample } = {},
+    opts: {
+      normals?: boolean;
+      lungPulse?: boolean;
+      compression?: ProbeCompression;
+      sample?: PhysiologySample;
+      trapTauMm?: Float32Array;
+    } = {},
   ): GpuPointQuery {
     return this.renderer.queryPoints(
       points,

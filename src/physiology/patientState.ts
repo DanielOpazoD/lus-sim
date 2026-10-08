@@ -10,6 +10,8 @@
  * del tórax. Se quitan la hemodinámica derecha y el hígado (los lee la red venosa, que no se porta); el
  * estado pulmonar regional se añadirá como una parte separada (docs/UNIFICATION.md).
  */
+import { validateAeration, type LungAeration } from './lungAeration';
+
 /**
  * Ritmo: sinusal, o fibrilación auricular (RR irregular sin patrón, sin onda P
  * ni contracción auricular organizada; ondas f en el ECG). En FA
@@ -72,6 +74,14 @@ export interface PatientState {
      */
     chest?: ChestHabitus;
   };
+
+  // --- Pulmón ---
+  /**
+   * Aireación subpleural por región (lus-sim, decisión 51, `lungAeration.ts`): la fracción de gas bajo la pleura visceral en
+   * una rejilla sobre el tórax. De ella salen las trampas subpleurales y las líneas B; nunca un número de líneas ni un puntaje
+   * (guía §5). Sin ella, la aireación normal en todo el pulmón.
+   */
+  lung?: LungAeration;
 }
 
 /** Complexión y sexo del tórax (anatomy.md §2.4–2.6): el avatar, la variante delgada (IMC ≈ 18,5) y la obesa (≈ 32–35). */
@@ -119,4 +129,5 @@ export function validatePatient(p: PatientState): void {
   inRange(p.intraAbdominalPressureMmHg, 0, 40, 'intraAbdominalPressureMmHg');
   inRange(p.peepCmH2O, 0, 30, 'peepCmH2O');
   inRange(p.respiratoryRateMin, 4, 50, 'respiratoryRateMin');
+  if (p.lung) validateAeration(p.lung);
 }

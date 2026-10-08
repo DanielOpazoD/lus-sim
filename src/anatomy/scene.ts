@@ -1,6 +1,8 @@
 import { defineParameters } from '../core/evidence';
 import { smoothstep, type Vec3 } from '../core/vec3';
 import type { PatientState } from '../physiology/patientState';
+import type { LungAeration } from '../physiology/lungAeration';
+import { subpleuralTable } from './organs/subpleural';
 import {
   sdSpine,
   sdDiaphragm,
@@ -285,6 +287,12 @@ export class AnatomyScene {
   /** Los vasos del hilio del bazo y de los riñones (lus-sim, decisión 46: `organs/vessels.ts`), con su esfera envolvente. */
   readonly vessels: readonly HilumVessel[];
   readonly vesselBounds: ReadonlyArray<{ center: Vec3; r: number }>;
+  /**
+   * La aireación subpleural del paciente en la tabla de la textura de escena (lus-sim, decisión 51: `organs/subpleural.ts`), de
+   * la que salen las trampas de las líneas B. Cambia con el estado del paciente (`setLungAeration`): `version` sube en cada
+   * cambio y el renderizador vuelve a subir la tabla.
+   */
+  readonly subpleural: { table: Float32Array; version: number };
 
   constructor(patient: PatientState, ribOptions: RibCageOptions = {}) {
     const fat = patient.habitus.subcutaneousFatMm;
@@ -453,6 +461,13 @@ export class AnatomyScene {
     ];
     // el margen pasa del tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5 mm): fuera de la esfera la pared queda más lejos
     this.vesselBounds = this.vessels.map((v) => tubeBoundingSphere(v.tube, v.wallMm + VESSEL_BOUND_MARGIN_MM));
+    this.subpleural = { table: subpleuralTable(patient.lung), version: 0 };
+  }
+
+  /** Cambia la aireación subpleural (la del paciente, decisión 51); sin argumento, la normal. */
+  setLungAeration(lung: LungAeration | undefined): void {
+    this.subpleural.table = subpleuralTable(lung);
+    this.subpleural.version++;
   }
 
   /**
