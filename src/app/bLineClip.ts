@@ -4,7 +4,7 @@ import { DEFAULT_BMODE, displayLevelDb, type BModeSettings } from '../ultrasound
 import type { Simulator } from './simulator';
 
 /**
- * Un clip medido con el detector de líneas B (lus-sim, decisiones 51 y 51): los cuadros de la mirada 0 en una pose, su nivel
+ * Un clip medido con el detector de líneas B (lus-sim, decisiones 51 y 52): los cuadros de la mirada 0 en una pose, su nivel
  * mostrado con el recorte de la pantalla y el detector de `measure/bLines.ts`; el clip, su peor cuadro. Lo usan los ganchos de
  * prueba y el panel de insuficiencia cardiaca (separado del banco de la equivalencia, que lleva el gemelo TS de las trampas).
  */

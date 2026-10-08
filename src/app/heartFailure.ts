@@ -35,7 +35,8 @@ import type { Simulator } from './simulator';
  * el reloj único) y con los saltos explícitos de la interfaz («esperar 30 min»: `wait`), que no mueven la respiración.
  */
 export class HeartFailureModel {
-  input: HemodynamicInput = { control: { kind: 'pcwp', mmHg: 12 }, phenotype: 'hfpef', rapMmHg: 6 };
+  /** El mando vigente; null sin mando (pulmón normal): el agua no avanza hacia nada. */
+  input: HemodynamicInput | null = null;
   /** Agua de más por nodo (mL/kg) y su equilibrio. */
   excess: number[] = new Array<number>(SUBPLEURAL_NODES).fill(0);
   target: number[] = new Array<number>(SUBPLEURAL_NODES).fill(0);
@@ -94,7 +95,7 @@ export class HeartFailureModel {
 
   /** Avanza el agua `seconds` segundos (el reloj del simulador o un salto de la interfaz). */
   step(seconds: number): void {
-    if (seconds <= 0) return;
+    if (seconds <= 0 || !this.input) return;
     this.geometry();
     this.target = steadyExcess(this.input, this.depth, this.lung, this.calibration);
     this.excess = relaxExcess(this.excess, this.target, seconds);
@@ -107,8 +108,10 @@ export class HeartFailureModel {
     this.step(minutes * 60);
   }
 
-  /** Vuelve al pulmón normal (sin mando). */
+  /** Vuelve al pulmón normal (sin mando): también olvida el mando, para que «esperar» no lo resucite. */
   reset(): void {
+    this.input = null;
+    this.minutesSinceChange = 0;
     this.excess.fill(0);
     this.target.fill(0);
     const s = this.sim();

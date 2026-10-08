@@ -33,6 +33,8 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
   gas al pulmón subpleural: las líneas B salen de la física (51). Los protocolos (28 sitios, 8 zonas en puntaje y conteo, 6, 4 de
   Platz y 4 de estrés) son datos con reglas puras sobre lo que mide el detector en cada sitio. Panel diferido con el mapa del
   protocolo, lo medido por el alumno y la verdad del modelo, con sus cortes y fuentes.
+  Los reparos de las 6 zonas de Pivetta y de las 4 de Platz no están verificados en la base y el panel lo declara; una zona con un
+  sitio ilegible es parcial (cota inferior «≥») o no evaluable, y la banda clínica solo se da con el protocolo completo.
 - Las líneas B (51): la aireación subpleural del paciente por región abre trampas acústicas bajo la pleura (tabiques como
   puntos de una retícula sorteada y la inundación alveolar como campo medio) que reirradian a lo largo de la profundidad
   aparente y quitan reflexión especular a la serie de la pleura. Nacen en la línea pleural, llegan al fondo con la compensación

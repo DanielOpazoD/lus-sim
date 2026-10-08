@@ -134,7 +134,7 @@ export const HEMODYNAMICS = defineParameters('physiology.hemodynamics', {
     sources: ['picano-aguapulmonar-2016', 'cortellaro-cinetica-2017'],
     note:
       'Fracción del gradiente hidrostático que llega a la presión capilar efectiva [SUPUESTO]. Calibrada con la GPU real (decisión ' +
-      '50): con menos gradiente el agua se reparte más igual, todas las regiones cruzan el umbral de las trampas a la vez y la suma ' +
+      '52): con menos gradiente el agua se reparte más igual, todas las regiones cruzan el umbral de las trampas a la vez y la suma ' +
       'de 28 sitios salta de 0 a la saturación; con el gradiente entero el reparto es el más gradual. Sus anclas propias (25 % más de ' +
       'líneas B en supino que sentado, C-T31; los ápices que se aclaran antes, P-T21) quedan por medir',
   },

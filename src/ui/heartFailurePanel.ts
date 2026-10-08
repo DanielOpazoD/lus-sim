@@ -5,6 +5,7 @@ import {
   evaluateProtocol,
   protocolById,
   protocolSites,
+  SITE_CAP,
   siteKey,
   siteReadable,
   type Protocol,
@@ -59,6 +60,20 @@ const CSS = `
 .hf-totals .hf-head { color: var(--muted); font-size: 12px; }
 .hf-flags { margin: 0; padding-left: 18px; font-size: 12px; color: var(--muted); }
 `;
+
+/**
+ * El total del protocolo como lo lee el alumno: la banda clínica solo con el protocolo completo; con zonas sin medir, «(incompleto)»;
+ * con un sitio ilegible que pudo cambiar una zona, una cota inferior («≥») marcada como parcial.
+ */
+export function formatTotal(p: Protocol, r: ProtocolResult | null): string {
+  if (r === null) return '—';
+  const n = r.partialZones;
+  const state = n ? ` (parcial: ${n} zona${n > 1 ? 's' : ''} con un sitio ilegible)` : r.complete ? '' : ' (incompleto)';
+  return `${n ? '≥ ' : ''}${r.total}${p.value === 'positive' ? ' zonas +' : ''}${state}${r.band ? ` · ${r.band}` : ''}`;
+}
+
+/** Las zonas positivas por lado solo dicen algo en los esquemas de zonas, no en los 28 sitios ni en los 4 sitios de estrés. */
+export const showsSideCounts = (p: Protocol): boolean => p.id !== 'blue28' && p.id !== 'stress4';
 
 /** Color de una celda del mapa por su valor (0–10): del fondo al acento; sin medir, gris. */
 function cellColor(v: number | null): string {
@@ -281,8 +296,12 @@ export class HeartFailurePanel {
       return;
     }
     this.student.set(siteKey(m.site), m.observation);
+    // el conteo del detector puede pasar de 10 (un pulmón blanco en el sector completo): se muestra topado como en el mapa
+    const shown = Math.min(SITE_CAP, m.observation.count);
     this.hint.textContent = siteReadable(m.observation)
-      ? `Medido en ${this.siteName(m.site)}: ${m.observation.count} líneas B${m.observation.confluent ? ' (confluentes)' : ''}.`
+      ? `Medido en ${this.siteName(m.site)}: ${shown} líneas B${m.observation.count > SITE_CAP ? ` (tope de ${SITE_CAP})` : ''}${
+          m.observation.confluent ? ' (confluentes)' : ''
+        }.`
       : `En ${this.siteName(m.site)} la ganancia satura la pared como la pleura: no se puede contar. Baja la ganancia y mide de nuevo.`;
     this.render();
   }
@@ -321,19 +340,19 @@ export class HeartFailurePanel {
     const studentR = evaluateProtocol(p, this.student);
     const truthR = this.truth ? evaluateProtocol(p, this.truth) : null;
     this.mapHost.replaceChildren(this.map(sites));
-    const fmt = (r: ProtocolResult | null) =>
-      r === null
-        ? '—'
-        : `${r.total}${p.value === 'positive' ? ' zonas +' : ''}${r.complete ? '' : ' (incompleto)'}${r.band ? ` · ${r.band}` : ''}`;
     this.totals.replaceChildren();
     for (const [a, b, c] of [
       ['', 'Medido (alumno)', 'Modelo (pose ideal)'],
-      ['Total', fmt(studentR), fmt(truthR)],
-      [
-        'Zonas + der./izq.',
-        `${studentR.positive.right} / ${studentR.positive.left}`,
-        truthR ? `${truthR.positive.right} / ${truthR.positive.left}` : '—',
-      ],
+      ['Total', formatTotal(p, studentR), formatTotal(p, truthR)],
+      ...(showsSideCounts(p)
+        ? [
+            [
+              'Zonas + der./izq.',
+              `${studentR.positive.right} / ${studentR.positive.left}`,
+              truthR ? `${truthR.positive.right} / ${truthR.positive.left}` : '—',
+            ],
+          ]
+        : []),
     ]) {
       for (const [i, t] of [a, b, c].entries()) {
         const d = document.createElement('div');

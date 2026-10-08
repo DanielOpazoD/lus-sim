@@ -254,6 +254,24 @@ aquí lo estimado. El banco de calibración (`setHeartFailure` con `calibration`
 | `physiology.hemodynamics.gasPerEvlwi`                                                                              | ver la decisión 52 (0,013–0,05)           | Gas subpleural que quita cada mL/kg de agua de más: lineal [SUPUESTO].                                    | P-T1–T3 (la regresión de Mayr con el detector en los 28 sitios).                                                                       |
 | `physiology.hemodynamics.laHeightMm`, `physiology.hemodynamics.laDepthMm`                                          | 60 y −20 mm (30–90; −50–10)               | La aurícula izquierda en el marco del tronco, sin medida.                                                 | La anatomía del corazón cuando el modelo la tenga (EchoTwin).                                                                          |
 
+Supuestos de la cadena que no son parámetros del registro (decisión 52):
+
+- **El EVLWI global** (`globalEvlwi`) es la media del agua de más de los nodos de la rejilla pleural que son pulmón, con el mismo
+  peso en cada nodo: no pesa por la masa de pulmón de cada región ni por su tamaño, y es lo que traduce el EVLWI como mando a una
+  presión equivalente y el estado que muestra el panel.
+- **Qué nodos son pulmón** (`HeartFailureModel.geometry`): los de la rejilla desde 10 mm bajo el borde inferior del pulmón hasta 200 mm sobre
+  la cúpula superior de la escena [SUPUESTO]; ambos márgenes son del modelo, sin fuente, y cambian a qué nodos se promedia.
+- **El suelo de gas** de `aerationFromExcess` es 0,05 de fracción [SUPUESTO]: ninguna región pierde más gas que eso por el agua
+  de más (un pulmón completamente edematoso queda con la aireación de un suelo, no en cero). Es independiente de `gasPerEvlwi`.
+- **Los reparos de dos protocolos son del simulador, no de su fuente**: las 6 zonas de Pivetta (MC EIC 2 y 4, AM EIC 5 por lado)
+  no están en la base (que documenta otro reparto de 6 zonas, el de 2026, y de Pivetta solo el resumen) y las 4 zonas de Platz
+  (anterior superior y lateral basal del esquema de 8) tampoco (`docs/knowledge/clinical.md` §3.2 y §3.6 bis: «NO VERIFICADOS»).
+  El panel lo dice en la descripción de cada protocolo. Las reglas (≥ 3 líneas, difuso con ≥ 2 por lado, ≥ 7 de Platz) sí son de
+  su fuente.
+- **Una zona con un sitio ilegible** (conteo NaN por la ganancia saturada) no vale 0: es una cota inferior marcada «parcial», o
+  «no evaluable» si los sitios legibles no tienen líneas (el ilegible pudo ser el peor) o, en los protocolos de zonas positivas, si
+  no hay ninguno positivo. Con zonas parciales el total no tiene banda clínica.
+
 ## Autoría visual del navegador humano (decisión 25)
 
 Los perfiles de cabeza, cuello, hombros, brazos y terminación abdominal en `src/ui/thorax/humanTorso.ts`

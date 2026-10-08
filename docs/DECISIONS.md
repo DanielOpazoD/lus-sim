@@ -4947,8 +4947,14 @@ números distintos según la adquisición.
 - **Capa 5, los protocolos** (`src/lus/protocols.ts`, reglas puras sobre lo medido): 28 sitios (suma con tope de 10 por sitio,
   bandas de Picano, bandera > 15), 8 zonas en puntaje (positiva con ≥ 3 o coalescentes; difuso con ≥ 2 por lado, y la variante de
   ≥ 1 por lado) y en conteo (peor sitio de cada zona; banderas ≥ 3 y ≥ 6), 6 zonas de Pivetta, 4 zonas de Platz (≥ 7) y los 4 sitios
-  de estrés (bandas de Scali). Una zona con derrame es «no evaluable», y también la que no tiene ningún sitio legible: un clip con
-  la ganancia saturada da NaN (decisión 51), no 0, y la zona vale lo de sus sitios legibles. Cada sitio tiene su pose ideal (el centro de su espacio
+  de estrés (bandas de Scali). **Los reparos de las 6 zonas de Pivetta (MC EIC 2 y 4 y AM EIC 5) y de las 4 de Platz (anterior
+  superior y lateral basal del esquema de 8) no están verificados**: la base documenta otro reparto de 6 zonas (2026, §3.2), de
+  Pivetta solo tiene el resumen y los de Platz los marca «NO VERIFICADOS» (§3.6 bis); son una elección del simulador, y la
+  descripción de cada protocolo en el panel y la limitación `hf-protocol-sites` lo declaran. Una zona con derrame es «no
+  evaluable». Un clip con la ganancia saturada da NaN (decisión 51), no 0: una zona sin ningún sitio legible es «no evaluable», y
+  la que tiene un sitio ilegible junto a otros legibles es una cota inferior marcada **parcial** (el ilegible pudo ser el peor):
+  «no evaluable» si los legibles no tienen líneas (o, en las zonas positivas, ninguno es positivo), y sin banda clínica mientras el
+  protocolo tenga zonas parciales o sin medir (el total es entonces una cota inferior que el panel marca con «≥»). Cada sitio tiene su pose ideal (el centro de su espacio
   intercostal en su línea; longitudinal o paralela a las costillas según el protocolo).
 - **La medida** (`src/app/heartFailure.ts`): «Verdad del modelo» mide cada sitio en su pose ideal con la misma física y el mismo
   detector (un clip de 2–3 cuadros; la sonda vuelve a donde estaba); «Medir aquí» registra lo que adquirió el alumno en el sitio
@@ -4963,13 +4969,13 @@ números distintos según la adquisición.
 - **Calibración con la GPU real (Apple M4)**, el detector en los sitios en su pose ideal, supino, PAD 6 (`lineasb-hfgrid.mjs`,
   fuera del repo): la amortiguación de la gravedad g, el gas por mL/kg β y k por fenotipo. Con g = 1 (el gradiente entero: con
   menos, todas las regiones cruzan el umbral a la vez y la suma salta de 0 a la saturación) y β = 0,035, BL28 frente al EVLWI 10 /
-  15 / 20 mL/kg: 0 / 23 / 130 (Mayr: 14 / 25 / 36): coincide en 15; por debajo no hay líneas hasta ≈ 12 mL/kg (el umbral de las
-  trampas y el suelo del sano) y por encima satura antes. Suma de 8 zonas frente a la PCWP: FE preservada, 0 con 16 mmHg y 9 con 22; FE reducida, 0 con 22 y 25 con 28 (Imanishi: ≈ 0 hasta 18
+  15 / 20 mL/kg: 0 / 23 / 127 (Mayr: 14 / 25 / 36): coincide en 15; por debajo no hay líneas hasta ≈ 12 mL/kg (el umbral de las
+  trampas y el suelo del sano) y por encima satura antes. Suma de 8 zonas frente a la PCWP: FE preservada, 0 con 16 mmHg y 10 con 22; FE reducida, 0 con 22 y 25 con 28 (Imanishi: ≈ 0 hasta 18
   y ≈ 8 con 19–24 en la FE preservada; ≈ 1 hasta 24 y ≈ 24 con ≥ 25 en la reducida, con k = 2,4).
 - **Nada se pinta**: el mando cambia el agua y la aireación del paciente; el puntaje es el del detector sobre la imagen formada.
 - JS inicial 324,6 → 327,8 kB sobre main 4e1930a (la sección que abre el panel, ≈ 0,7 kB, y la frontera nueva entre chunks que
-  Rollup separa, ≈ 2,4 kB); dos chunks diferidos (`heartFailure` 17,8 kB, con el detector, y `heartFailurePanel` 9,9 kB); el total,
-  987,0 → 1017,8 kB (el inicial sigue en 330; el total, a 1025).
+  Rollup separa, ≈ 2,4 kB); dos chunks diferidos (`heartFailure` 18,3 kB, con el detector, y `heartFailurePanel` 10,1 kB); el total,
+  987,0 → 1018,7 kB (el inicial sigue en 330; el total, a 1025).
 - Pendiente (`hf-partial-calibration`): la calibración solo coincide con Mayr en 15 mL/kg; las cinéticas (P-T8, P-T21), la postura
   (C-T31), el ejercicio (P-T10), el sano (P-T31, C-T32) y las cohortes virtuales (P-T2, P-T9) están por medir; no hay variabilidad
   entre pacientes (capa 6) ni derrame en el modelo. Limitaciones: `hf-single-filling-pressure`, `hf-partial-calibration`,
@@ -4979,3 +4985,9 @@ números distintos según la adquisición.
 aireación y las reglas de cada protocolo) y `heartFailureModel.test.ts` (el mando sobre la escena: supino y sentado, la cinética,
 las poses de los sitios); `e2e/protocolosIC.spec.ts` con SwiftShader (bajo la bisagra la suma de 8 zonas es ≤ 1; con PCWP 30 y FE
 reducida, ≥ 6; el panel se carga, aplica el mando y dibuja el mapa).
+Revisión adversarial (08-10-2026): sus hallazgos se aplicaron con pruebas de frontera (cortes de Picano, bandas de estrés, banderas
+≥ 3, ≥ 6, > 15 y ≥ 7, positividad ≥ 3, confluentes, difuso ≥ 2, tope de 10 por sitio), los valores de la cadena fijados (g, β, k, la
+bisagra y las τ) y la banda solo con el protocolo completo, los sitios ilegibles (zona parcial) y «pulmón normal» que olvida el mando.
+Mutaciones comprobadas (aplicadas en una copia y revertidas, cada una hace fallar `heartFailure*.test.ts`): 55, entre ellas los
+cortes y banderas de cada protocolo ±1, la positividad y los confluentes, el tope, el gradiente 0,077, la amortiguación 0,5, la
+bisagra dura, β 0,02 y 0,05, k de la FE reducida 1,2, los pivotes, las τ y el suelo de gas.

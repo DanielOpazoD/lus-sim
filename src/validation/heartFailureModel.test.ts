@@ -89,6 +89,27 @@ describe('El mando hemodinámico lleva el agua a la aireación del paciente (dec
     expect(m.evlwi().now).toBeGreaterThan(9);
   });
 
+  it('«pulmón normal» olvida el mando: «esperar» después no lo resucita', () => {
+    const sim = fakeSim();
+    const m = new HeartFailureModel(() => sim);
+    m.setInput({ control: { kind: 'evlwi', mlKg: 17.3 }, phenotype: 'hfpef', rapMmHg: 6 }, true);
+    expect(m.evlwi().now).toBeCloseTo(17.3, 1);
+    m.reset();
+    expect(m.input).toBeNull();
+    m.wait(10);
+    expect(sim.patient.lung).toBeUndefined();
+    expect(m.evlwi().now).toBe(HEMODYNAMICS.params.evlwiNormal.value);
+    m.step(600);
+    expect(sim.patient.lung).toBeUndefined();
+    // un modelo recién creado, sin mando, tampoco inventa uno al esperar
+    const fresh = new HeartFailureModel(() => fakeSim());
+    fresh.wait(60);
+    expect(fresh.evlwi().now).toBe(HEMODYNAMICS.params.evlwiNormal.value);
+    // y un mando nuevo después del reinicio vuelve a funcionar
+    m.setInput({ control: { kind: 'pcwp', mmHg: 28 }, phenotype: 'hfpef', rapMmHg: 6 }, true);
+    expect(sim.patient.lung).toBeDefined();
+  });
+
   it('con el EVLWI como mando, el EVLWI global es el pedido', () => {
     const sim = fakeSim();
     const m = new HeartFailureModel(() => sim);

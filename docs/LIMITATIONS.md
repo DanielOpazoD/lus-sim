@@ -367,7 +367,11 @@ conservan su identificador (decisiones 10 y 11).
   cambia: minutos); al terminar la devuelve a donde estaba. Los cuadros quedan en el cine.
 - **Los sitios de los protocolos** (`hf-protocol-sites`, decisión 52): las zonas laterales basales se buscan en las axilares media y
   posterior en los EIC 5–6, con el paciente en la posición que tenga (supino o sentado); no hay decúbito lateral ni la sonda
-  sectorial de 18 cm de Platz y del EACVI (solo la convexa del preajuste).
+  sectorial de 18 cm de Platz y del EACVI (solo la convexa del preajuste). **Los reparos de dos protocolos no están verificados**:
+  las 6 zonas de Pivetta (MC EIC 2 y 4 y AM EIC 5 por lado) no constan en la base (`docs/knowledge/clinical.md` §3.2 documenta
+  otro reparto de 6 zonas, el de 2026, y Pivetta 2015 solo se leyó en su resumen) y los de las 4 zonas de Platz están marcados
+  «NO VERIFICADOS» (§3.6 bis: el artículo los define en una figura). Son una elección del simulador; las reglas de cada
+  protocolo (zona positiva, difuso, ≥ 7) sí son de su fuente. La descripción de cada protocolo en el panel lo declara.
 
 ## Sonda
 

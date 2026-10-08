@@ -70,10 +70,15 @@ export interface Protocol {
 
 export interface ZoneResult {
   zone: Zone;
-  /** null: sin medir; 'NE': no evaluable (derrame, o ningún sitio legible). */
+  /**
+   * null: sin medir; 'NE': no evaluable (derrame, o los sitios legibles no bastan: un sitio ilegible pudo ser el peor); un
+   * número con `partial`: cota inferior (el peor de los sitios legibles, y un sitio ilegible pudo ser peor).
+   */
   value: number | null | 'NE';
   /** Sitios medidos de la zona. */
   measured: number;
+  /** La zona tiene un sitio ilegible (conteo NaN) que pudo cambiar su valor: no es una medida completa. */
+  partial: boolean;
 }
 
 export interface ProtocolResult {
@@ -85,7 +90,11 @@ export interface ProtocolResult {
   positive: Record<Side, number>;
   /** Zonas medidas y evaluables por lado. */
   evaluable: Record<Side, number>;
+  /** Todas las zonas medidas y ninguna parcial (un sitio ilegible que pudo cambiarla). */
   complete: boolean;
+  /** Zonas con un sitio ilegible que pudo cambiar su valor: el total es entonces una cota inferior. */
+  partialZones: number;
+  /** La banda clínica del total: solo con el protocolo completo (con zonas sin medir o parciales no hay banda que dar). */
   band: string | null;
   flags: string[];
 }
@@ -222,7 +231,10 @@ export const PROTOCOLS: readonly Protocol[] = [
       },
     ],
     sources: ['pivetta-simeu-2015'],
-    description: 'Por lado, la medioclavicular en los EIC 2 y 4 y la axilar media en el EIC 5 (sin las basales del derrame).',
+    description:
+      'Por lado, la medioclavicular en los EIC 2 y 4 y la axilar media en el EIC 5 (sin las basales del derrame). Los reparos de ' +
+      'las zonas NO están verificados: la base documenta otro reparto de 6 zonas (2026: medioclavicular, axilar anterior y axilar ' +
+      'media) y Pivetta 2015 solo se leyó en su resumen; la regla (positiva con ≥ 3 líneas B, difuso con ≥ 2 por lado) es la del consenso.',
   },
   {
     id: 'zones4platz',
@@ -234,7 +246,10 @@ export const PROTOCOLS: readonly Protocol[] = [
     bands: [],
     flags: [{ label: 'Suma ≥ 7 al alta (tercil superior)', test: (r) => r.total >= 7, source: 'platz-alta-2019' }],
     sources: ['platz-alta-2019', 'gargani-eacvi-2023'],
-    description: 'Las mitades anterior superior y lateral basal del esquema de 8 zonas; el máximo de líneas en un espacio, sumado.',
+    description:
+      'Las zonas anterior superior y lateral basal del esquema de 8 zonas, con el máximo de líneas en un espacio, sumado. Los ' +
+      'reparos de las 4 zonas de Platz NO están verificados: el artículo los define en una figura que la base no tiene, y esta ' +
+      'elección es del simulador.',
   },
   {
     id: 'stress4',
@@ -274,21 +289,31 @@ export function protocolSites(p: Protocol): Site[] {
   return [...seen.values()];
 }
 
-/** Valor de una zona a partir de lo medido en sus sitios (el peor). */
 /** ¿Se pudo leer el sitio? (un clip saturado da NaN). */
 export const siteReadable = (o: SiteObservation): boolean => Number.isFinite(o.count);
 const sitePositive = (o: SiteObservation): boolean => siteReadable(o) && (o.count >= 3 || o.confluent);
 
+/** Valor de una zona a partir de lo medido en sus sitios (el peor; con sitios ilegibles, ver `ZoneResult.partial`). */
 function zoneValue(p: Protocol, z: Zone, obs: ReadonlyMap<string, SiteObservation>): ZoneResult {
   const seen = z.sites.map((s) => obs.get(siteKey(s))).filter((o): o is SiteObservation => !!o);
-  if (seen.length === 0) return { zone: z, value: null, measured: 0 };
-  if (seen.some((o) => o.effusion)) return { zone: z, value: 'NE', measured: seen.length };
-  // un sitio ilegible (conteo NaN) no cuenta como 0: la zona vale lo de sus sitios legibles, y si no tiene ninguno no es evaluable
+  if (seen.length === 0) return { zone: z, value: null, measured: 0, partial: false };
+  if (seen.some((o) => o.effusion)) return { zone: z, value: 'NE', measured: seen.length, partial: false };
+  // un sitio ilegible (conteo NaN) no cuenta como 0: pudo ser el peor de la zona
   const readable = seen.filter(siteReadable);
-  if (readable.length === 0) return { zone: z, value: 'NE', measured: seen.length };
+  const unreadable = seen.length - readable.length;
+  const done = (value: number | 'NE', partial: boolean): ZoneResult => ({ zone: z, value, measured: seen.length, partial });
+  if (readable.length === 0) return done('NE', true);
   const worst = Math.max(...readable.map((o) => Math.min(SITE_CAP, o.count)));
   const positive = readable.some(sitePositive);
-  return { zone: z, value: p.value === 'count' ? worst : positive ? 1 : 0, measured: seen.length };
+  if (p.value === 'positive') {
+    // una zona positiva lo es aunque otro sitio no se lea; una negativa con un sitio ilegible no se puede afirmar
+    if (positive) return done(1, false);
+    return unreadable ? done('NE', true) : done(0, false);
+  }
+  // el conteo: el tope no se supera aunque el ilegible sea el peor; sin líneas en los legibles no hay nada que sostener la zona;
+  // con algunas, el peor de los legibles es una cota inferior
+  if (unreadable === 0 || worst >= SITE_CAP) return done(worst, false);
+  return worst === 0 ? done('NE', true) : done(worst, true);
 }
 
 /** Aplica la regla del protocolo a lo medido en sus sitios (los que falten quedan «sin medir»). */
@@ -304,9 +329,11 @@ export function evaluateProtocol(p: Protocol, obs: ReadonlyMap<string, SiteObser
     const seen = r.zone.sites.map((s) => obs.get(siteKey(s))).filter((o): o is SiteObservation => !!o);
     if (seen.some(sitePositive)) positive[r.zone.side]++;
   }
-  const complete = zones.every((r) => r.value !== null);
-  const result: ProtocolResult = { protocol: p, zones, total, positive, evaluable, complete, band: null, flags: [] };
-  result.band = p.bands.find((b) => total <= b.upTo)?.label ?? null;
+  const partialZones = zones.filter((r) => r.partial).length;
+  const complete = partialZones === 0 && zones.every((r) => r.value !== null);
+  const result: ProtocolResult = { protocol: p, zones, total, positive, evaluable, complete, partialZones, band: null, flags: [] };
+  // la banda es del total completo: con zonas sin medir o parciales el total es una cota inferior y no cae en una banda
+  result.band = complete ? (p.bands.find((b) => total <= b.upTo)?.label ?? null) : null;
   result.flags = p.flags.filter((f) => f.test(result)).map((f) => f.label);
   return result;
 }

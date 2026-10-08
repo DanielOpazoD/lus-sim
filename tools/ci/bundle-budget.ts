@@ -80,10 +80,10 @@
 // mando hemodinámico y los protocolos (decisión 52), en chunks diferidos. La entrada y el inicial suben a 330 kB y el total a 1000.
 // 2026-10-08 (decisión 52): el mando hemodinámico y los protocolos de IC (el modelo de la presión al agua, las reglas de los
 // protocolos, el detector, el clip medido con él y el panel con su mapa) van en dos chunks diferidos que se piden al abrir el
-// panel (`heartFailure` 17,8 kB y `heartFailurePanel` 9,9 kB). Sobre main 4e1930a, el JS inicial pasa de 324,6 a 327,7 kB: la
+// panel (`heartFailure` 18,3 kB y `heartFailurePanel` 10,1 kB). Sobre main 4e1930a, el JS inicial pasa de 324,6 a 327,8 kB: la
 // sección de los ajustes que abre el panel (≈ 0,7 kB) y la frontera nueva entre chunks (Rollup separa en `transmission` lo que la
 // entrada comparte con el chunk diferido; cada enlace cruzado cuesta su import y su export: ≈ 2,4 kB). El total, de 987,0 a
-// 1017,8. El inicial no cambia (330 kB) y el total sube a 1025.
+// 1018,7. El inicial no cambia (330 kB) y el total sube a 1025.
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
