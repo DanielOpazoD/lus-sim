@@ -53,3 +53,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [47](DECISIONS.md#L4439) | Sin las tarjetas de los puntos BLUE: la sonda se explora libre sobre el tórax | vigente |
 | [48](DECISIONS.md#L4465) | Los brazos arriba en el maniquí y la sonda hasta la fosa supraclavicular, por encima del vértice | vigente |
 | [49](DECISIONS.md#L4550) | El corazón de EchoTwin en el tórax: fase 1, estático en telediástole, horneado en un volumen y en su propio chunk | vigente |
+| [50](DECISIONS.md#L4687) | La fosa supraclavicular creíble: la depresión, las capas del cuello y los vasos subclavios | vigente |

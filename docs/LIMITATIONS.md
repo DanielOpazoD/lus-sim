@@ -143,7 +143,8 @@ conservan su identificador (decisiones 10 y 11).
   costilla fuera de los tercios medial y medio). La forma de la curva (hasta 30 mm hacia dentro, sin esquina sobre la 1.ª
   costilla y con pendiente ≤ 1,5 mm por mm, decisión 44) es [SUPUESTO]. El músculo genérico sobre la cúpula, 23 mm por la fosa
   supraclavicular, cae en lo que suman los escalenos y el esternocleidomastoideo medidos a media altura del cuello (11–14 y
-  8–10 mm), pero sin sus fascias, los vasos subclavios ni el plexo braquial. Por detrás de la clavícula la pleura queda a
+  8–10 mm), pero sin sus fascias, los vasos subclavios ni el plexo braquial (desde la decisión 50, sobre la clavícula, las
+  capas del cuello y los vasos subclavios: `supraclavicular-fossa-model`, `subclavian-vessels-short`). Por detrás de la clavícula la pleura queda a
   18–27 mm de la piel en el tercio medial y el medio, por debajo de los ≈ 29 mm que se derivan de Berk y cols. (la piel, la vena
   subclavia y la pleura en el camino de la punción; antes de la decisión 44, 20–35). Como el tronco no se
   estrecha hacia la abertura superior (`thorax-cylindrical-cage`), la cúpula ocupa todo el ancho de la parrilla y no hay dos
@@ -151,9 +152,9 @@ conservan su identificador (decisiones 10 y 11).
   hombro (z ≤ 225 en todo φ desde la decisión 48; antes, 200). En el cuello, junto a la línea media (por delante de las articulaciones esternoclaviculares y
   delante de la columna) no hay pulmón sobre la escotadura yugular, pero más adentro las columnas radiales del vértice convergen
   y el centro del corte sigue siendo pulmón (no hay mediastino). El contacto de la sonda toma por pared rígida la del tórax, sin
-  lo que la cúpula le suma. Por la fosa supraclavicular la pleura queda 1,1 DE más honda que en Yadav (la pared de la columna es
-  la de delante, con el pectoral); en la variante obesa de mujer, dentro de 2 DE desde el tronco de la decisión 28 (37,7 mm
-  frente a ≤ 39,6; con el de 210 mm, 40,4). Ahí
+  lo que la cúpula le suma (desde la decisión 50, menos la depresión de la fosa, sin pasar de la pleura). Por la fosa
+  supraclavicular, desde la decisión 50, la pleura queda a la hondura de Yadav (`supraclavicular-fossa-model`: la depresión se
+  calibra con ella); antes, 1,1 DE más honda, con la pared de delante y su pectoral. Ahí
   el deslizamiento es nulo (`sliding-linear-height`). Desde la decisión 27, en el vértice y en lo que se ve por la fosa supraclavicular el deslizamiento es nulo,
   como lo da la base en el ápex: Lichtenstein 2017 lo describe «discreto» o «mínimo» en el punto BLUE superior y «habitualmente
   nulo» en el ápex (`physics.md` D4 y D5a; la decisión 27 lo citó al revés). Por debajo de la clavícula el cero sale de la
@@ -180,6 +181,30 @@ conservan su identificador (decisiones 10 y 11).
   esternón horizontal (2.º) o subiendo (3.º–7.º) (Gray): lo más bajo de la costilla ósea es su extremo anterior. Por eso el BLUE
   superior de la regla de las manos cae en el EIC1. Corregirlo mueve las costillas 2.ª–4.ª en la medioclavicular hasta ≈ 19 mm y,
   con ellas, las vistas de medida y los puntos BLUE: va en una decisión aparte con la recalibración (hoja de ruta).
+- **La fosa supraclavicular es un adelgazamiento de la pared** (`supraclavicular-fossa-model`, decisión 50): la piel sigue siendo la
+  del tronco cilíndrico; la depresión de la fosa se modela adelgazando la pared por encima del borde superior de la clavícula
+  (15 mm sobre el tercio medio, de 0 en el borde a su hondura en 8 mm), de modo que la pleura de la cúpula sube hacia la piel lo
+  que la piel real está más honda. La hondura no tiene fuente: se elige para que la sonda en la fosa, paralela a la clavícula, vea
+  la cúpula a la hondura media de Yadav y cols. (medido: 16,8 mm en el avatar frente a 16,4; delgado 12,4 frente a 13,4; obeso
+  24,7 frente a 23,6; mujer 23,9 frente a 16,4, +0,9 DE; mujer obesa 36,3 frente a 23,6, +1,6 DE, igual que sin la fosa). Como la
+  hondura se elige con Yadav, A-T24 es una calibración, no una prueba independiente. La mujer queda más honda: en la columna de la fosa
+  su cúpula suma 16,1 mm frente a 14,2 en el varón (su 1.ª costilla está más baja: la cúpula empieza en z 153,6 frente a 158,0),
+  y la línea central de la sonda, que se va hacia fuera, cruza la pared por donde es más gruesa. La grasa del
+  triángulo posterior no pasa de la hondura del plexo (Mistry y cols.), y sobre el tercio lateral de la clavícula (el trapecio y el
+  deltoides) la pared es la del tórax. Las capas del cuello son tres: la
+  grasa subcutánea, el esternocleidomastoideo por dentro del tercio medial (3,93 mm, Berk y cols.) o la grasa del triángulo
+  posterior por fuera, y el escaleno sobre la fascia de Sibson (un suelo de 3 mm en la fosa mayor [SUPUESTO]); el escaleno
+  anterior y el medio son la misma capa, sin el plexo braquial entre ellos (el modelo no tiene un tejido de nervio), sin el
+  omohioideo ni la vena yugular externa. Con la sonda longitudinal e inclinada 20° hacia los pies, la pleura queda a 24,5 mm (en
+  el avatar): el haz baja por la rampa de la depresión, donde la pared es más gruesa. Sobre el vértice (z 223,3), la sonda ve la
+  cúpula a 43,7 mm: la geometría del cilindro, no la depresión.
+- **Los vasos subclavios son tramos cortos y ciegos** (`subclavian-vessels-short`, decisión 50): la arteria subclavia, de 7 mm
+  [SUPUESTO; su origen mide 10,9 ± 2,5, Hosseinzadeh y cols.], va en arco sobre la clavícula del final de su tercio medial a su
+  mitad (Gray: la cima 1–3 cm sobre ella; en el modelo, 11 mm), apoyada en la pleura de la cúpula o, donde no hay cúpula, a la
+  hondura del plexo (Mistry y cols.); la vena, de 9,47 mm, sobre el tercio medial, con su cara de delante a 10,55 mm de la piel
+  (Berk y cols.). Las dos acaban ciegas en los dos extremos: el modelo no tiene el tronco braquiocefálico, la yugular interna ni la
+  axilar, y la arteria y la vena no pasan por detrás de la clavícula (en el cilindro no hay sitio entre ella y la pleura). En el
+  hábito delgado la arteria se estrecha lo que falte para caber entre la piel y la pleura. Sin Doppler ni pulso.
 - **La clavícula tiene una sola sección** (`clavicle-section-uniform`, decisión 27): un cilindro de 14 mm de diámetro (el del
   tercio medio, Yang) a lo largo de la piel del tronco, de la escotadura clavicular del manubrio (20 mm de la línea media) a 156
   mm de piel, con el eje 3 mm sobre la escotadura y subiendo 15 mm hasta el extremo acromial [SUPUESTO]. Sin las curvas en S,

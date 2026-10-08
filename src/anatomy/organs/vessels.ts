@@ -1,10 +1,11 @@
 import { defineParameters } from '../../core/evidence';
 import { add, normalize, scale, sub, type Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
-import type { Spine, Tube } from '../primitives';
+import type { Spine, Torso, Tube } from '../primitives';
 import { BOWEL_BD_CAP_MM, Tissue } from '../tissues';
 import { kidneyWorld, type Kidney } from './kidney';
 import { LUNG_BORDER_BASE, LUNG_BORDER_TEXELS } from './lungBorder';
+import { SUPRACLAVICULAR, wallPoint, type FossaClavicle } from './supraclavicular';
 
 /**
  * Los vasos del hilio del bazo y de los riñones (lus-sim, decisión 46; VExUS tiene los renales y una arteria esplénica desde el
@@ -95,7 +96,18 @@ export const HILUM_VESSELS = defineParameters('anatomy.hilumVessels', {
   },
 });
 
-export type HilumVesselId = 'splenicVein' | 'splenicArtery' | 'renalVeinRight' | 'renalArteryRight' | 'renalVeinLeft' | 'renalArteryLeft';
+export type HilumVesselId =
+  | 'splenicVein'
+  | 'splenicArtery'
+  | 'renalVeinRight'
+  | 'renalArteryRight'
+  | 'renalVeinLeft'
+  | 'renalArteryLeft'
+  // lus-sim (decisión 50): los vasos subclavios, en la misma tabla (`organs/supraclavicular.ts`)
+  | 'subclavianArteryRight'
+  | 'subclavianVeinRight'
+  | 'subclavianArteryLeft'
+  | 'subclavianVeinLeft';
 
 /** Un vaso del hilio: su tubo, el tejido y el grosor de su pared y la cara de su luz. */
 export interface HilumVessel {
@@ -218,6 +230,91 @@ export function buildHilumVessels(spleenHilum: Vec3, spleenInward: Vec3, kidneys
   return out;
 }
 
+/** Los vasos subclavios de la escena: la arteria y la vena de cada lado (derecho, izquierdo). */
+export type SubclavianVesselId = 'subclavianArteryRight' | 'subclavianVeinRight' | 'subclavianArteryLeft' | 'subclavianVeinLeft';
+
+/**
+ * La arteria y la vena subclavias de cada lado (lus-sim, decisión 50), tubos como los vasos del hilio (decisión 46), anecoicos y
+ * sin Doppler, en la pared sobre la clavícula. `totalAt(u, z)`: el grosor de la pared (la cara interna, la pleura de la cúpula, ya con
+ * la depresión de la fosa).
+ *  - La arteria, la tercera porción y la cima de su arco: sobre la pleura de la cúpula (a `subclavianArteryPleuraGapMm` de ella), de
+ *    detrás del esternocleidomastoideo a la fosa mayor, subiendo `subclavianArteryArchMm` sobre el borde de la clavícula en la mitad;
+ *    sus extremos acaban ciegos (el modelo no tiene el tronco braquiocefálico ni la arteria axilar, `subclavian-vessels-short`).
+ *  - La vena, sobre el tercio medial: por detrás del borde superior de la clavícula, a la hondura de Berk y cols., sin tocar el hueso.
+ */
+export function buildSubclavianVessels(
+  t: Pick<Torso, 'a' | 'b'>,
+  c: FossaClavicle,
+  totalAt: (u: number, z: number) => number,
+  skinAt: (u: number, z: number) => number,
+): Array<HilumVessel & { id: SubclavianVesselId }> {
+  const P = SUPRACLAVICULAR.params;
+  const H = HILUM_VESSELS.params;
+  const third = (c.u1 - c.u0) / 3;
+  const top = (au: number) => c.z0 + c.rise * Math.min(1, Math.max(0, (au - c.u0) / (c.u1 - c.u0))) + c.radius;
+  const ra = P.subclavianArteryRadiusMm.value;
+  const rv = P.subclavianVeinRadiusMm.value;
+  const out: Array<HilumVessel & { id: SubclavianVesselId }> = [];
+  for (const side of [-1, 1] as const) {
+    // la arteria: del final del tercio medial a la mitad de la clavícula (Gray), en arco sobre ella
+    const aNodes: Array<{ p: Vec3; r: number }> = [];
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const f = i / (n - 1);
+      const au = c.u0 + third * (0.75 + 0.75 * f);
+      let r = i === 0 || i === n - 1 ? 0.6 * ra : ra;
+      const wall = H.arteryWallMm.value;
+      // entera sobre el borde superior de la clavícula (la cruza por detrás: el modelo no tiene sitio entre ella y la pleura)
+      const z = top(au) + r + wall + 1 + P.subclavianArteryArchMm.value * Math.sin(Math.PI * f);
+      // sobre la pleura: la menor hondura de su cara interna alrededor del nodo (la cúpula y la depresión la inclinan)
+      const reach = r + wall + 2;
+      let floor = Infinity;
+      for (let du = -reach; du <= reach; du += 1)
+        for (let dz = -reach; dz <= reach; dz += 1) floor = Math.min(floor, totalAt(side * (au + du), z + dz));
+      // entre la piel y la pleura (con la grasa fina del hábito delgado, la fosa tiene 12 mm: la arteria se estrecha lo que falte)
+      const skin = skinAt(side * au, z) + 1.2;
+      r = Math.max(1.5, Math.min(r, 0.5 * (floor - P.subclavianArteryPleuraGapMm.value - skin) - wall));
+      // por fuera de la cúpula (sobre su techo, donde la pared es el cuello entero), a la hondura de la cara profunda del plexo
+      const d = Math.max(skin + r + wall, Math.min(floor - r - wall - P.subclavianArteryPleuraGapMm.value, P.plexusDepthMm.value));
+      aNodes.push({ p: wallPoint(side * au, z, d, t), r });
+    }
+    // la vena: sobre el tercio medial, su cara de delante a la hondura de Berk y por detrás del borde de la clavícula
+    const vNodes: Array<{ p: Vec3; r: number }> = [];
+    for (let i = 0; i < 4; i++) {
+      const f = i / 3;
+      const au = c.u0 + third * (0.15 + 0.3 * f);
+      // por encima del borde de la clavícula lo justo para no tocarla (su eje está 10 mm bajo la piel y la vena 15 bajo ella)
+      const z = top(au) + rv + 2.5;
+      const r = i === 0 || i === 3 ? 0.6 * rv : rv;
+      vNodes.push({ p: wallPoint(side * au, z, P.subclavianVeinDepthMm.value + rv, t), r });
+    }
+    const tube = (nodes: Array<{ p: Vec3; r: number }>): Tube => ({ kind: 'tube', nodes, apScale: 1 });
+    out.push(
+      {
+        id: side < 0 ? 'subclavianArteryRight' : 'subclavianArteryLeft',
+        tube: tube(aNodes),
+        wallTissue: Tissue.ArteryWall,
+        wallMm: H.arteryWallMm.value,
+        lumenInterface: Interface.ArteryLumen,
+      },
+      {
+        id: side < 0 ? 'subclavianVeinRight' : 'subclavianVeinLeft',
+        tube: tube(vNodes),
+        wallTissue: Tissue.VesselWallThin,
+        wallMm: H.veinWallMm.value,
+        lumenInterface: Interface.VeinLumen,
+      },
+    );
+  }
+  return out;
+}
+
+/**
+ * lus-sim (decisión 50): la pared mira los vasos subclavios desde este tanto bajo el borde superior de la clavícula más bajo
+ * (`ChestWall.fossaMinZ`): la vena baja por detrás del borde de la clavícula su radio y su pared, y la esfera envolvente su margen.
+ */
+export const SUBCLAVIAN_GATE_MM = 20;
+
 /** Margen de la esfera envolvente sobre la pared (mm): más que el tope de la distancia del «resto» (`BOWEL_BD_CAP_MM`, 5). */
 export const VESSEL_BOUND_MARGIN_MM = BOWEL_BD_CAP_MM + 1;
 
@@ -234,22 +331,26 @@ export function tubeBoundingSphere(t: Tube, marginMm: number): { center: Vec3; r
   return { center: c, r: r + marginMm };
 }
 
-/** Cuántos vasos tiene la escena (la GPU los recorre todos) y cuántos nodos admite cada uno. */
+/** Cuántos vasos del hilio tiene la escena (los primeros de la tabla; la GPU los recorre bajo el diafragma) y cuántos nodos admite cada uno. */
 export const HILUM_VESSEL_COUNT = 6;
+/** lus-sim (decisión 50): los vasos subclavios, tras los del hilio en la misma tabla (la GPU los recorre en la pared, sobre la clavícula). */
+export const SUBCLAVIAN_VESSEL_COUNT = 4;
+/** Todos los vasos de la tabla. */
+export const VESSEL_TABLE_COUNT = HILUM_VESSEL_COUNT + SUBCLAVIAN_VESSEL_COUNT;
 export const HILUM_VESSEL_MAX_NODES = 8;
 /** Téxeles por vaso en la textura de escena: la cabecera, la esfera envolvente y sus nodos. */
 export const HILUM_VESSEL_STRIDE = 2 + HILUM_VESSEL_MAX_NODES;
 /** Primer téxel de la tabla de los vasos (tras la de los bordes del pulmón). */
 export const HILUM_VESSEL_BASE = LUNG_BORDER_BASE + LUNG_BORDER_TEXELS;
-export const HILUM_VESSEL_TEXELS = HILUM_VESSEL_COUNT * HILUM_VESSEL_STRIDE;
+export const HILUM_VESSEL_TEXELS = VESSEL_TABLE_COUNT * HILUM_VESSEL_STRIDE;
 
 /**
  * La tabla de los vasos para la textura de escena (float32, como en la GPU): por vaso, (n.º de nodos, grosor de la pared, tejido de
  * la pared, cara de la luz), (centro y radio de la esfera envolvente) y sus nodos (x, y, z, r).
  */
 export function hilumVesselTable(vessels: readonly HilumVessel[], bounds: ReadonlyArray<{ center: Vec3; r: number }>): Float32Array {
-  if (vessels.length !== HILUM_VESSEL_COUNT)
-    throw new Error(`hilumVesselTable: ${vessels.length} vasos, la GPU espera ${HILUM_VESSEL_COUNT}`);
+  if (vessels.length !== VESSEL_TABLE_COUNT)
+    throw new Error(`hilumVesselTable: ${vessels.length} vasos, la GPU espera ${VESSEL_TABLE_COUNT}`);
   const out = new Float32Array(HILUM_VESSEL_TEXELS * 4);
   vessels.forEach((v, t) => {
     const n = v.tube.nodes.length;
@@ -270,6 +371,9 @@ export function hilumVesselTable(vessels: readonly HilumVessel[], bounds: Readon
 export const HILUM_VESSELS_GLSL = /* glsl */ `
 #define HV_BASE ${HILUM_VESSEL_BASE}
 #define HV_COUNT ${HILUM_VESSEL_COUNT}
+#define HV_SUBCLAVIAN ${SUBCLAVIAN_VESSEL_COUNT}
+#define HV_SUBCLAVIAN_GATE ${SUBCLAVIAN_GATE_MM.toFixed(4)}
+#define HV_BOUND_MARGIN ${VESSEL_BOUND_MARGIN_MM.toFixed(4)}
 #define HV_STRIDE ${HILUM_VESSEL_STRIDE}
 #define HV_MAX_NODES ${HILUM_VESSEL_MAX_NODES}
 float hvTubeQuery(vec3 p, int t, int count, out float rho, out vec3 tangent, out float rLoc, out vec3 n, out float kc) {
@@ -302,12 +406,17 @@ float hvTubeQuery(vec3 p, int t, int count, out float rho, out vec3 tangent, out
   }
   return best;
 }
-bool classifyTubes(vec3 m, inout Cls c, out float dOut) {
+// t0, t1: el tramo de la tabla (los del hilio, 0 a HV_COUNT; los subclavios, decisión 50, de HV_COUNT a HV_COUNT + HV_SUBCLAVIAN)
+bool classifyTubes(vec3 m, inout Cls c, out float dOut, int t0, int t1) {
   dOut = 1e3;
   int bestT = -1; float bestD = 1e9; float bRho = 0.0; vec3 bTan = vec3(0.0); float bR = 1.0; vec3 bN = vec3(0.0, 1.0, 0.0); float bKc = 1.0;
-  for (int t = 0; t < HV_COUNT; t++) {
+  for (int t = 0; t < HV_COUNT + HV_SUBCLAVIAN; t++) {
+    if (t < t0 || t >= t1) continue;
     vec4 bs = sceneTexel(HV_BASE + t * HV_STRIDE + 1);
-    if (distance(m, bs.xyz) > bs.w) continue;
+    // fuera de la esfera, su pared queda al menos a lo que la esfera tiene de margen sobre ella (decisión 50: en la pared, cuyas
+    // capas no tienen tope en su distancia)
+    float ds = distance(m, bs.xyz);
+    if (ds > bs.w) { dOut = min(dOut, ds - bs.w + HV_BOUND_MARGIN); continue; }
     vec4 h0 = sceneTexel(HV_BASE + t * HV_STRIDE);
     float rho; vec3 tg; float rl; vec3 nn; float kk;
     float sd = hvTubeQuery(m, t, int(h0.x + 0.5), rho, tg, rl, nn, kk);

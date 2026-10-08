@@ -56,6 +56,10 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
     'traube',
     'leftScapularBase',
     'leftKidney',
+    // (decisión 50) la fosa supraclavicular con la sonda paralela a la clavícula: la depresión, las capas del cuello y la
+    // arteria subclavia sobre la cúpula; y la vena subclavia sobre el tercio medial
+    'fossaTransverse',
+    'subclavianVein',
   ]);
   for (const r of sweep) expect(r.interiorAgreement, JSON.stringify(r)).toBeGreaterThanOrEqual(0.99);
   // Volumen: 50 000 puntos del tórax (z −100…180 mm). Lejos de interfaces (≥ 1 mm y la misma cara a ±0,02 mm) las dos
@@ -149,6 +153,9 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   // (decisión 46) la luz de los vasos del hilio: la vena y la arteria esplénicas en la base izquierda, las renales en la escapular
   expect(caps.byInterface.VeinLumen ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
   expect(caps.byInterface.ArteryLumen ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
+  // (decisión 50) y la de los subclavios por la fosa: la arteria en el tercio medio y la vena en el medial
+  expect(caps.byPose['fossaTransverse:ArteryLumen'] ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
+  expect(caps.byPose['subclavianVein:VeinLumen'] ?? 0, ctag).toBeGreaterThan(VESSEL_FACE_MIN);
   expect(caps.agreement, ctag).toBeGreaterThanOrEqual(0.999);
   expect(caps.distanceMaxErr, ctag).toBeLessThan(0.02);
   expect(caps.normalPoints, ctag).toBeGreaterThan(100);

@@ -5,6 +5,7 @@ import { torsoDepthGradient, torsoSkinPoint, type ChestWallLookup, type Torso, t
 import { thoraxLinePhi } from '../thoraxLines';
 import { RIBCAGE, RIB_TABLE_BASE, RIB_TABLE_TEXELS } from './ribcage';
 import { cupolaMm, cupolaRoofDepthMm } from './lungApex';
+import { fossaColumn, fossaHeight, neckLayers, type FossaClavicle } from './supraclavicular';
 import { wallArc, wallPerimeter } from './wall';
 
 /**
@@ -316,9 +317,11 @@ export const CHEST_WALL_COLS = 56;
 /**
  * Téxeles por columna: (W alta, W baja, z del reborde costal, peso inspiratorio), (piel, grasa, complejo, banda) altas y
  * las mismas bajas; todo en la métrica radial de la pared (mm). Y (lus-sim, cobertura torácica: la cúpula pleural,
- * `organs/lungApex.ts`) (zApex, zTop, 0, 0): desde zApex la pared engruesa hasta cerrarse sobre el vértice en zTop.
+ * `organs/lungApex.ts`) (zApex, zTop, 0, 0): desde zApex la pared engruesa hasta cerrarse sobre el vértice en zTop. Y (lus-sim,
+ * decisión 50: la fosa supraclavicular, `organs/supraclavicular.ts`) (z del borde superior de la clavícula, hondura de la
+ * depresión, peso del esternocleidomastoideo, peso del cuello).
  */
-export const CHEST_WALL_TEXELS_PER_COL = 4;
+export const CHEST_WALL_TEXELS_PER_COL = 5;
 export const CHEST_WALL_TEXELS = CHEST_WALL_COLS * CHEST_WALL_TEXELS_PER_COL;
 /** Téxel de la textura de escena donde empieza la tabla: tras la de la parrilla costal. */
 export const CHEST_WALL_BASE = RIB_TABLE_BASE + RIB_TABLE_TEXELS;
@@ -360,6 +363,11 @@ export interface ChestWall extends ChestWallLookup {
    * la cúpula pleural, `setChestWallApex`); 1e4 sin cúpula.
    */
   apexMinZ: number;
+  /**
+   * El borde superior de la clavícula más bajo de la tabla (mm): por encima, la fosa supraclavicular (lus-sim, decisión 50:
+   * `setChestWallFossa`) adelgaza la pared y cambia sus capas; 1e4 sin fosa.
+   */
+  fossaMinZ: number;
   /**
    * Cota superior del grosor de la pared en todo el tronco (mm, radial): la GLSL no lee la tabla para las muestras más
    * hondas que ella más lo que miran la cortina, el «resto» y el peso respiratorio (ahí el resultado no depende del grosor).
@@ -629,8 +637,9 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     table.set([hi.W, lo.W, -1e4, inspW(u) * metricAt(u, 0.5 * lo.W, t)], o);
     table.set(hi.v, o + 4);
     table.set(lo.v, o + 8);
-    // sin cúpula hasta que la pone `setChestWallApex`
+    // sin cúpula hasta que la pone `setChestWallApex`, ni fosa hasta `setChestWallFossa`
     table.set([1e4, 1e4, 0, 0], o + 12);
+    table.set([1e4, 0, 0, 0], o + 16);
   }
   let maxTotal = t.skinMm + t.fatMm + t.muscleMm;
   for (let j = 0; j < CHEST_WALL_COLS; j++) {
@@ -643,13 +652,16 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     zLow: 1e4 - 1,
     abdomen: [t.skinMm, t.fatMm, t.muscleMm, t.preperitonealMm],
     apexMinZ: 1e4,
+    fossaMinZ: 1e4,
     maxTotal,
     stations: st,
     habitus,
     layers: (u, z) => wallLayersAt(cw, u, z),
     total: (u, z) => wallTotalAt(cw, u, z),
     inspiration: (u, z, caudalMm) => chestWallInspiration(cw, u, z, caudalMm),
-    cupola: (u, z) => wallCupolaMm(cw, u, z),
+    // lo que el contacto no toma por pared rígida: la cúpula, menos la depresión de la fosa (decisión 50), nunca negativo (la
+    // pared rígida no pasa de la cara interna de la pared)
+    cupola: (u, z) => Math.max(0, wallCupolaMm(cw, u, z) - wallFossaMm(cw, u, z)),
   };
   return cw;
 }
@@ -713,6 +725,29 @@ export function setChestWallApex(cw: ChestWall, zApex: (u: number) => number, zT
   cw.apexMinZ = Math.fround(lo);
 }
 
+/**
+ * La fosa supraclavicular por columna (lus-sim, decisión 50; `organs/supraclavicular.ts`): con la clavícula de la parrilla, la
+ * altura de su borde superior, la hondura de la depresión y los pesos del esternocleidomastoideo y del cuello (`fossaColumn`). En la
+ * mujer, la depresión se lleva también la grasa de la mama sobre la clavícula.
+ */
+export function setChestWallFossa(cw: ChestWall, clavicle: FossaClavicle, t: Torso): void {
+  let lo = 1e4;
+  const st = cw.stations;
+  const female = cw.habitus.sex === 'female' ? CHEST_WALL.params.femaleAnteriorExtraMm.value : 0;
+  for (let j = 0; j < CHEST_WALL_COLS; j++) {
+    const u = j * CHEST_WALL_DU_MM;
+    const col = fossaColumn(u, clavicle);
+    // la mama no sube sobre la clavícula: su grasa (la de la tabla, radial) se va con la depresión, en todo el cuello
+    if (female > 0) {
+      const o = j * CHEST_WALL_TEXELS_PER_COL * 4;
+      col[1] += col[3] * female * (1 - smoothstep(st.anteriorAxillary, st.midaxillary, u)) * metricAt(u, 0.5 * cw.table[o], t);
+    }
+    cw.table.set(col, (j * CHEST_WALL_TEXELS_PER_COL + 4) * 4);
+    if (col[3] > 0) lo = Math.min(lo, col[0]);
+  }
+  cw.fossaMinZ = Math.fround(lo);
+}
+
 /** Semiancho (columnas) de la media móvil del reborde costal. */
 const MARGIN_SMOOTH_COLS = 3;
 
@@ -736,9 +771,28 @@ function weights(cw: ChestWall, z: number, margin: number): [number, number] {
   return [smoothstep(cw.zLow, cw.zHigh, z), 1 - smoothstep(margin - CHEST_WALL.params.abdomenBlendMm.value, margin, z)];
 }
 
-/** Grosor total de la pared (mm, métrica radial) en (u, z), con la cúpula pleural (gemelo GLSL con el mismo nombre). */
+/**
+ * Grosor total de la pared (mm, métrica radial) en (u, z), con la cúpula pleural y, desde la decisión 50, sin lo que adelgaza la
+ * depresión de la fosa supraclavicular (gemelo GLSL con el mismo nombre).
+ */
 export function wallTotalAt(cw: ChestWall, u: number, z: number): number {
-  return wallTotalOf(cw, wallColumnTexel(cw, u), z) + wallCupolaMm(cw, u, z);
+  return wallTotalOf(cw, wallColumnTexel(cw, u), z) + wallCupolaMm(cw, u, z) - wallFossaMm(cw, u, z);
+}
+
+/** El téxel de la fosa de la columna de |u| (lus-sim, decisión 50; `fossaColumn`), interpolado. */
+export function wallFossaColumn(cw: ChestWall, u: number): [number, number, number, number] {
+  const [j, f] = column(u);
+  return texelAt(cw, j, f, 4);
+}
+
+/**
+ * Lo que la depresión de la fosa supraclavicular adelgaza la pared (mm, radial) en (u, z) (lus-sim, decisión 50; gemelo GLSL con
+ * el mismo nombre): 0 bajo el borde superior de la clavícula de más abajo de la tabla.
+ */
+export function wallFossaMm(cw: ChestWall, u: number, z: number): number {
+  if (z <= cw.fossaMinZ) return 0;
+  const col = wallFossaColumn(cw, u);
+  return col[1] * fossaHeight(col, z);
 }
 
 /**
@@ -827,12 +881,18 @@ export function wallLayersAt(cw: ChestWall, u: number, z: number): WallLayersAt 
   const H = texelAt(cw, j, f, 1);
   const Lo = texelAt(cw, j, f, 2);
   const [hi, abd] = weights(cw, z, a[2]);
-  // la cúpula pleural (lus-sim, cobertura torácica): su grosor es músculo (las partes blandas del cuello)
-  const W = mix(a[1], a[0], hi) + wallCupolaMm(cw, u, z);
+  // la cúpula pleural (lus-sim, cobertura torácica): su grosor es músculo (las partes blandas del cuello); decisión 50: menos la
+  // depresión de la fosa supraclavicular
+  const W = mix(a[1], a[0], hi) + wallCupolaMm(cw, u, z) - wallFossaMm(cw, u, z);
   const skin = mix(Lo[0], H[0], hi);
-  const fat = mix(Lo[1], H[1], hi);
+  let fat = mix(Lo[1], H[1], hi);
   const pre = mix(Lo[2], H[2], hi);
-  const band = mix(Lo[3], H[3], hi);
+  let band = mix(Lo[3], H[3], hi);
+  // (decisión 50) sobre la clavícula, las capas del cuello: el esternocleidomastoideo y el escaleno, o la grasa de la fosa
+  if (z > cw.fossaMinZ) {
+    const col = wallFossaColumn(cw, u);
+    [fat, band] = neckLayers(col, fossaHeight(col, z), W, skin, fat, pre, band);
+  }
   const A = cw.abdomen;
   return {
     skin: mix(skin, A[0], abd),
@@ -898,7 +958,16 @@ float wallCupolaMm(float u, float z) {
   float f = cwColumn(u, j);
   return cupolaMm(cwTexel(j, f, 3).xy, z);
 }
-float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z) + wallCupolaMm(u, z); }
+// la fosa supraclavicular (lus-sim, decisión 50; organs/supraclavicular.ts): desde uCupola.y, el borde superior de la clavícula
+// más bajo de la tabla
+float wallFossaMm(float u, float z) {
+  if (z <= uCupola.y) return 0.0;
+  int j;
+  float f = cwColumn(u, j);
+  vec4 col = cwTexel(j, f, 4);
+  return col.y * fossaHeight(col, z);
+}
+float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z) + wallCupolaMm(u, z) - wallFossaMm(u, z); }
 float wallCupolaBd(float u, float z) {
   if (z <= uCupola.x) return 1e3;
   int j;
@@ -933,8 +1002,15 @@ vec4 wallLayersAt(float u, float z, out vec4 extra) {
   vec4 L = cwTexel(j, f, 2);
   float hi = smoothstep(uChestWall.y, uChestWall.x, z);
   float abd = 1.0 - smoothstep(a.z - CW_ABD_BLEND, a.z, z);
-  float W = mix(a.y, a.x, hi) + wallCupolaMm(u, z);
+  float W = mix(a.y, a.x, hi) + wallCupolaMm(u, z) - wallFossaMm(u, z);
   vec4 s = mix(L, H, hi);
+  // (decisión 50) sobre la clavícula, las capas del cuello
+  if (z > uCupola.y) {
+    vec4 col = cwTexel(j, f, 4);
+    vec2 nk = neckLayers(col, fossaHeight(col, z), W, s.x, s.y, s.z, s.w);
+    s.y = nk.x;
+    s.w = nk.y;
+  }
   extra = vec4(s.w, a.w * min(uChestWall.z * max(uResp.x, 0.0), CW_INSP_MM), abd, 0.0);
   return mix(vec4(s.x, s.y, W - s.x - s.y, s.z), uWall, abd);
 }

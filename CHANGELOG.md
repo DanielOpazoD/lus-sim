@@ -7,6 +7,14 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- La fosa supraclavicular creíble (50): sobre la clavícula, la pared se adelgaza lo que la piel de la fosa está más honda que la
+  del tronco cilíndrico, y sus capas son las del cuello (la grasa, el esternocleidomastoideo por dentro del tercio medial y el
+  escaleno sobre la fascia de Sibson, o la grasa del triángulo posterior en la fosa mayor). La arteria y la vena subclavias de cada
+  lado, tubos anecoicos como los vasos del hilio (en la misma tabla de la GPU, con su gemelo GLSL). La pleura de la cúpula por la
+  fosa, con la sonda paralela a la clavícula: 16,8 mm en el avatar (Yadav y cols.: 16,4 ± 8; antes, 24,6 con la misma sonda y
+  30,7 con la longitudinal de plano de la celda de cobertura); la mujer obesa no cambia (36,3). Nuevas limitaciones
+  `supraclavicular-fossa-model` y `subclavian-vessels-short`.
+
 - El corazón de EchoTwin (49), fase 1: el del caso normal (cuatro cavidades, paredes, válvulas con sus cuerdas, raíz aórtica,
   tronco pulmonar, venas cavas y pulmonares, pericardio), portado de `echotwin-tte@c15aec7` con procedencia, estático en
   telediástole, con su gemelo GLSL y sus parámetros en una textura. Su eje es el del caso (Engblom); su ápex, el de Gray (5.º EIC,

@@ -11,6 +11,7 @@ import * as ribcage from './ribcage';
 import * as spine from './spine';
 import * as spleen from './spleen';
 import * as stomach from './stomach';
+import * as supraclavicular from './supraclavicular';
 import * as wall from './wall';
 
 /**
@@ -40,6 +41,8 @@ export interface OrganModule {
 export const ORGAN_MODULES: readonly OrganModule[] = [
   // lus-sim (cobertura torácica): la cúpula pleural, que la pared torácica suma a su grosor
   { id: 'lungApex', exports: lungApex, glsl: lungApex.LUNG_APEX_GLSL },
+  // lus-sim (decisión 50): la fosa supraclavicular, que la pared torácica resta a su grosor y cuyas capas del cuello lee
+  { id: 'supraclavicular', exports: supraclavicular, glsl: supraclavicular.SUPRACLAVICULAR_GLSL },
   {
     id: 'chestWall',
     exports: chestWall,

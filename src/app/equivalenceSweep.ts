@@ -595,6 +595,24 @@ export function coveragePoses(scene: AnatomyScene): Array<{ id: string; pose: Pr
     { id: 'traube', pose: { ...flat, ...icsCenter(scene, 'midclavicular', 1, 7) } },
     { id: 'leftScapularBase', pose: { ...flat, ...icsCenter(scene, 'scapular', 1, 10) } },
     { id: 'leftKidney', pose: { ...flat, ...icsCenter(scene, 'scapular', 1, 11) } },
+    // lus-sim (decisión 50): la fosa supraclavicular con la sonda paralela a la clavícula (la de Yadav): la depresión, las capas
+    // del cuello y la arteria subclavia sobre la cúpula; y sobre el tercio medial de la clavícula, la vena subclavia
+    ...supraclavicularPoses(scene),
+  ];
+}
+
+/**
+ * lus-sim (decisión 50): la fosa supraclavicular derecha con la sonda transversal (paralela a la clavícula), sobre su tercio
+ * medio y sobre el medial: la arteria subclavia y la vena, con las capas del cuello y la cúpula debajo.
+ */
+export function supraclavicularPoses(scene: AnatomyScene): Array<{ id: string; pose: ProbePose }> {
+  const t = scene.torso;
+  const c = scene.ribCage.clavicle;
+  const across = { lift: 0, yaw: Math.PI / 2, rock: 0, tilt: 0 };
+  const top = scene.ribCage.sternum.zTop + 10;
+  return [
+    { id: 'fossaTransverse', pose: { ...across, phi: Math.PI - Math.acos(70 / t.a), z: top + 12.5 } },
+    { id: 'subclavianVein', pose: { ...across, phi: Math.PI - Math.acos(35 / t.a), z: c.z0 + c.radius + 8, tilt: 0.2 } },
   ];
 }
 
@@ -808,6 +826,8 @@ export interface CapsuleReport {
   /** Puntos de la cáscara de las cápsulas (según la CPU o la GPU), por cara. */
   points: number;
   byInterface: Record<string, number>;
+  /** (decisión 50) Los mismos puntos por plano y cara («fossaTransverse:ArteryLumen»). */
+  byPose: Record<string, number>;
   /** Acuerdo de la cara y error máximo de su distancia (mm) entre la CPU y la GPU. */
   agreement: number;
   distanceMaxErr: number;
@@ -856,9 +876,11 @@ export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): C
   const flat = { lift: 0, yaw: 0, tilt: 0 };
   const laa = icsCenter(scene, 'anteriorAxillary', -1, 9);
   const bases = coveragePoses(scene).filter((p) => ['rightBase', 'leftBase', 'leftKidney'].includes(p.id));
-  const poses = [...bases, { id: 'rightEdge', pose: { ...flat, ...laa, rock: -0.35 } }];
+  // (decisión 50) y los vasos subclavios por la fosa
+  const poses = [...bases, { id: 'rightEdge', pose: { ...flat, ...laa, rock: -0.35 } }, ...supraclavicularPoses(scene)];
   const tally = new FaceTally();
   const byInterface: Record<string, number> = {};
+  const byPose: Record<string, number> = {};
   let normalPoints = 0;
   let normalMin = 1;
   let worst = '';
@@ -891,6 +913,8 @@ export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): C
         const inBand = (face: number, d: number) => CAPS.has(face) && d >= SHELL_BAND_MM[0] && d <= SHELL_BAND_MM[1];
         if (!inBand(q.interface, q.interfaceDistance) && !inBand(gpu.iface[i], gpu.ifd[i])) return;
         byInterface[Interface[q.interface]] = (byInterface[Interface[q.interface]] ?? 0) + 1;
+        const pk = `${sp.id}:${Interface[q.interface]}`;
+        byPose[pk] = (byPose[pk] ?? 0) + 1;
         tally.add(q.interface, q.interfaceDistance, gpu.iface[i], gpu.ifd[i], `${sp.id} (${q32.map((x) => x.toFixed(2)).join(', ')})`);
         if (!inBand(q.interface, q.interfaceDistance) || gpu.iface[i] !== Number(q.interface) || !gpu.normal) return;
         const g = scene.faceGradient(q.material, instant);
@@ -909,6 +933,7 @@ export function capsuleEquivalence(sim: Simulator, lines = 48, stepMm = 0.05): C
   return {
     points: tally.points,
     byInterface,
+    byPose,
     agreement: tally.points ? tally.same / tally.points : 1,
     distanceMaxErr: tally.maxErr,
     normalPoints,

@@ -68,8 +68,9 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
     type: 'vec4',
     doc:
       'lus-sim (cobertura torácica): la cúpula pleural (organs/lungApex.ts; zApex y zTop por columna en la tabla de la pared): ' +
-      'la menor zApex (desde ella la pared puede pasar de su grosor máximo), 0, 0, 0',
-    value: (s) => [s.chestWall.apexMinZ, 0, 0, 0],
+      'la menor zApex (desde ella la pared puede pasar de su grosor máximo); decisión 50: el borde superior de la clavícula ' +
+      'más bajo de la tabla (desde él, la fosa supraclavicular), 0, 0',
+    value: (s) => [s.chestWall.apexMinZ, s.chestWall.fossaMinZ, 0, 0],
   },
   {
     name: 'uDomeR',

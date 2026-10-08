@@ -13,6 +13,8 @@ export const KNOWN_LIMITATIONS: ReadonlySet<string> = new Set([
   'rib-section-uniform',
   'apex-cupola-wall',
   'wall-cupola-transition',
+  'supraclavicular-fossa-model',
+  'subclavian-vessels-short',
   'clavicle-section-uniform',
   'anterior-rib-shape',
   'scapula-plate',

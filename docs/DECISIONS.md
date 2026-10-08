@@ -4683,3 +4683,108 @@ puntos frente a c15aec7): el horneado fallido sin atrapar, la lectura que paraba
 distancia del volumen que no es cota, la llegada que borraba el cine y la caché sin límite; corregidos, con `heartBake.test.ts`
 (por pasos, sin lecturas, la escena con el corazón solo con su volumen; el fallo lo saca, se informa una vez y no se recompila) y
 las pruebas de la distancia y de la caché en `cardiac.test.ts`.
+
+## 50. La fosa supraclavicular creíble: la depresión, las capas del cuello y los vasos subclavios
+
+**Fecha.** 2026-10-05.
+
+**Contexto.** Desde la decisión 48 la sonda llega a la fosa supraclavicular y por encima del vértice, pero lo que ve no es una fosa:
+la piel es la del tronco cilíndrico (`thorax-cylindrical-cage`), sin la depresión, y bajo ella está la pared del tórax de delante
+(la grasa, el pectoral y los intercostales) más el músculo genérico de la cúpula (`apex-cupola-wall`). Medido en `main` (el avatar):
+
+- la pleura de la cúpula por la fosa (a 70 mm de la línea media, 12,5 mm sobre el borde superior del tercio medial de la clavícula),
+  a 30,7 mm con la sonda longitudinal de plano y a 27 con 20° hacia los pies (A-T24), frente a los 16,4 ± 8 mm de Yadav y cols. con
+  el IMC del avatar (la profundidad del «corner pocket», 1,7 ± 0,8 cm en 100 voluntarios). A-T24 se cumplía solo a ± 2 DE;
+- sobre el vértice (z 223,3, transversal, 40° hacia los pies), 43,7–44,5 mm;
+- ni el esternocleidomastoideo, ni los escalenos, ni los vasos subclavios, ni el plexo braquial.
+
+**Opciones.**
+
+- **Deformar la piel del cilindro en la fosa** (una superficie con la depresión): la piel es la elipse del tronco en todo el código
+  (el contacto de la sonda, la compresión, el campo respiratorio, la GPU). Cambiarla es rehacer la sonda; se descarta.
+- **Mover hacia fuera la anatomía honda bajo la fosa** (la cúpula, la 1.ª costilla, la clavícula): rompe la parrilla y la clavícula,
+  que están ancladas a la piel por la radial. Se descarta.
+- **Elegida: adelgazar la pared sobre la clavícula** lo que la piel real está más honda que la del cilindro. La cara interna de la
+  pared (la pleura de la cúpula) sube hacia la piel; la anatomía honda no se mueve respecto de la clavícula; la sonda apoyada en la
+  fosa ve lo que vería apoyada en la piel real.
+
+**Decisión.**
+
+1. **La depresión** (`organs/supraclavicular.ts`, `anatomy.supraclavicular`; `wallFossaMm` en `organs/chestWall.ts`, con su gemelo
+   GLSL): por columna de |u|, un quinto téxel de la tabla de la pared (`fossaColumn`: el borde superior de la clavícula, la hondura,
+   el peso del esternocleidomastoideo y el del cuello) y, en altura, de 0 en el borde superior de la clavícula a su hondura entera
+   `fossaRiseMm` (8 mm) más arriba. Hondura de 15 mm sobre el tercio medio de la clavícula (la fosa mayor, Gray), con un paso de 15 mm
+   a cada lado; sin fuente para la hondura de la fosa (NO ENCONTRADO): se elige para que la pleura, con la sonda paralela a la
+   clavícula, quede a la media de Yadav y cols. En la mujer, la depresión se lleva también la grasa de la mama sobre la clavícula.
+   El techo de la cúpula (decisión 44) empieza en la pared sin la depresión: por encima, las capas del cuello.
+2. **Las capas del cuello** (`neckLayers`, en `wallLayersAt`): sobre la clavícula, bajo la grasa subcutánea, por dentro del tercio
+   medial el esternocleidomastoideo (3,93 mm sobre el tercio medial de la clavícula, Berk y cols.) y bajo él el escaleno, separados
+   por el plano de la pared (el músculo–intercostal del tórax); por fuera, en la fosa mayor, grasa (el triángulo posterior) hasta un
+   suelo de 3 mm de músculo [SUPUESTO] sobre la fascia de Sibson (el complejo pleural de la pared), sin pasar de la hondura del
+   plexo braquial (13,4 mm, Mistry y cols.: sobre el techo de la cúpula la pared es el cuello entero). Sobre el tercio lateral de la
+   clavícula (el trapecio y el deltoides), la pared del tórax.
+3. **Los vasos subclavios** (`buildSubclavianVessels` en `organs/vessels.ts`): la arteria y la vena de cada lado, tubos como los del
+   hilio (decisión 46) en la misma tabla de la GPU tras ellos (`VESSEL_TABLE_COUNT`, 10), anecoicos y sin Doppler. La arteria (7 mm
+   [SUPUESTO]; 10,9 ± 2,5 en su origen, Hosseinzadeh y cols.), en arco sobre la clavícula del final de su tercio medial a su mitad,
+   con la cima del eje 11 mm sobre ella (Gray: la línea de la subclavia sube 1–3 cm), sobre la pleura de la cúpula (a 1 mm) o, donde no
+   hay cúpula, a la hondura del plexo (13,4 mm, Mistry y cols.), y nunca contra la piel (en el hábito delgado se estrecha lo que
+   falte). La vena (9,47 mm, Berk y cols.), sobre el tercio medial, con su cara de delante a 10,55 mm de la piel (Berk y cols.), por
+   encima del borde de la clavícula. La pared los clasifica antes de sus capas (`classifyWall`, TS y GLSL), sin ganar al hueso, y su
+   distancia entra en la del hueso y de las capas; `classifyTubes` recorre un tramo de la tabla (los del hilio bajo el diafragma, los
+   subclavios en la pared) y, fuera de la esfera envolvente de un vaso, cuenta lo que la esfera tiene de margen sobre su pared.
+4. **El plexo braquial, no**: el modelo no tiene un tejido de nervio (sus troncos se ven como nódulos hipoecoicos); su hondura queda
+   en la de la arteria donde no hay cúpula.
+5. **La medida de A-T24** pasa a la de Yadav: la sonda en la fosa paralela a la clavícula, inclinada hacia los pies hasta 20° (la
+   menor hondura de la pleura entre 0°, 11° y 20°), a ± 1 DE de Yadav (la mujer obesa, a ± 2). La línea central de la sonda atraviesa
+   los vasos (`probeCenterContent`): la sangre de un vaso no es el corazón. Como la hondura de la depresión se elige con Yadav, A-T24
+   es una calibración, no una validación independiente; lo que la prueba guarda es que la calibración no se pierda en los hábitos.
+
+**Consecuencias.**
+
+| Pleura por la fosa (mm): transversal, la menor entre 0°, 11° y 20° | `main` | Esta decisión  | Yadav (media ± 1 DE) |
+| ------------------------------------------------------------------ | ------ | -------------- | -------------------- |
+| Avatar (varón, IMC 22,9)                                           | 24,6   | 16,8           | 16,4 ± 8             |
+| Delgado (IMC 18,5)                                                 | 21,1   | 12,4           | 13,4 ± 8             |
+| Obeso (IMC 33,5)                                                   | 30,9   | 24,7           | 23,6 ± 8             |
+| Mujer                                                              | 29,7   | 23,9 (+0,9 DE) | 16,4 ± 8             |
+| Mujer obesa                                                        | 36,3   | 36,3 (+1,6 DE) | 23,6 ± 8             |
+
+- En la mujer obesa no cambia: su menor hondura es la de 20° hacia los pies, cuyo haz llega a la cúpula por debajo de donde la pared
+  se adelgaza; de plano, con su grasa, la línea central sale de la cúpula por fuera, donde es más baja.
+- La celda de cobertura «fosa supraclavicular» ve la pleura a 16,8 mm (antes 30,7); la de «sobre el vértice», a 43,7 mm (la
+  geometría del cilindro: el haz baja 25 mm hasta la cúpula). Cobertura, 138/140 sin cambios.
+- La imagen con la GPU real (capturas `brazos-fosa-*`): transversal y 20° hacia los pies, la grasa, la arteria redonda y anecoica a
+  ≈ 1,5 cm y la pleura de la cúpula como una línea continua a ≈ 2,2 cm con sus líneas A; de plano, la cúpula en cuña con la pleura bajo
+  la arteria. Sobre el vértice siguen los dos tramos brillantes de la decisión 42 (`wall-cupola-transition`): uno a la derecha a
+  ≈ 6,5 cm y otro tenue a la izquierda; la depresión no los arregla ni los empeora (el haz entra rasante por el techo de la cúpula).
+- La pendiente de la pleura bajo la fosa: ≤ 1,95 mm por mm en el avatar y ≤ 2,35 en la mujer obesa (la decisión 44 la dejaba en ≤ 1,9
+  delante).
+- Equivalencia TS ↔ GLSL con la GPU real: los planos nuevos (la fosa transversal y la vena) con acuerdo interior 1; las caras de la luz
+  de los subclavios (455 puntos de la arteria y 145 de la vena en la fosa; 215 de la vena sobre el tercio medial) con acuerdo 1, error
+  de la distancia 0,00011 mm y la normal a cos ≥ 0,9999998.
+- El bundle: la entrada con el chunk compartido pasa de 309,5 a 315,4 kB (sobre el techo de 310) y el total de 971,8 a 977,7; la
+  entrada y el inicial suben a 320 kB y el total a 990 (`tools/ci/bundle-budget.ts`).
+- Costo por cuadro con la GPU real (M4, máquina cargada): en el BLUE superior 7,5–9,7 ms (en `main`, 6,9–9,5); en la fosa 9,5–12,1 ms
+  (en `main`, 7,5–9,1): los vasos en la pared.
+- **Lo que queda:** la piel real de la fosa (una superficie, no un adelgazamiento); el plexo braquial; los vasos completos (el tronco
+  braquiocefálico, la yugular, la axilar, el paso por detrás de la clavícula); la mujer, más honda que Yadav; y el techo de la cúpula
+  con su propia superficie (`wall-cupola-transition`).
+
+**Verificación.**
+
+- `supraclavicular.test.ts`: la depresión (nada bajo la clavícula, entera sobre el tercio medio, nada sobre el lateral ni detrás), la
+  pendiente de la pleura < 2,5 mm por mm en los seis hábitos, el contacto sin pared rígida negativa; las capas (el plano a un
+  esternocleidomastoideo bajo la grasa por dentro, la grasa hasta el suelo por fuera, la mama fuera del cuello); los vasos (el eje es
+  sangre y la pared lo rodea, sin hueso, pulmón, piel ni aire a 0,5 mm de su pared, en los seis hábitos; la vena a la hondura de Berk;
+  la arteria vista por la sonda transversal antes de la pleura) y la GLSL.
+- `anatomyTargets.test.ts` (A-T24 a ± 1 DE de Yadav en cinco hábitos, la mujer obesa a ± 2; con `main` fallan el avatar, 24,6 mm,
+  y la mujer, 29,7), `hilumVessels.test.ts` (sus comprobaciones generales cubren los diez vasos: no se cruzan; la distancia a la frontera respeta
+  su pared fuera del pulmón y del aire) y `coverage.test.ts`.
+- `e2e/imagen.spec.ts`: los planos `fossaTransverse` y `subclavianVein` en el barrido y las caras de la luz de los subclavios en las
+  cápsulas (`byPose`): en verde con la GPU real y con SwiftShader (3,1 min, en local).
+- Revisión adversarial de contexto limpio (05-10-2026): sin desacuerdos TS ↔ GLSL (el orden, la puerta de `uCupola.y`, la copia de
+  `Cls` y la distancia a la frontera en cada rama); la depresión no lleva el pulmón a través de la clavícula ni de la 1.ª costilla
+  (los puntos con pulmón bajo hueso bajan de 333 a 277 en el avatar). Aplicados sus hallazgos: la limitación vieja de la cúpula al
+  día; los números honestos (la mitad de la mejora del avatar es de la sonda transversal; la mujer obesa no cambia); la grasa del
+  cuello con el tope del plexo y fuera del tercio lateral; pruebas que fallan sin el cambio (la sonda apoyada en la fosa, la
+  arteria estrecha del hábito delgado) y el salto del aire y del pulmón solo junto a los subclavios en `hilumVessels.test.ts`.
