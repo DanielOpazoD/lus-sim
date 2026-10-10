@@ -17,7 +17,7 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 - El latido del corazón de EchoTwin (53): con el reloj único, el corazón late en la ventana cardiaca y en la paraesternal
   izquierda (el VI se vacía y engrosa su pared, la mitral abre y cierra) y el pulmón de alrededor late con la misma curva de
-  volumen del VI (eyección, llenado rápido, diástasis y onda A). Las tablas del latido de EchoTwin, portadas; cada latido del reloj
+  volumen del VI (eyección, llenado rápido, diástasis y onda A; sin la onda A en la FA). Las tablas del latido de EchoTwin, portadas; cada latido del reloj
   se lleva al de referencia por tramos. Cada vóxel del volumen guarda su línea de tiempo (su tejido en 16 fases y el cambio
   afinado a 1/256 de latido, cinco cambios): da lo que el clasificador de EchoTwin en el 98,7 % de las fases donde se mueve, y la
   CPU y la GPU coinciden en el 99,9–100 % en cinco fases. Con GPU se hornea en segundo plano (6–17 s con el M4) y no cuesta en

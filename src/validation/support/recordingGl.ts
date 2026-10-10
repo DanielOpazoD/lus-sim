@@ -18,7 +18,7 @@ import { fragmentOutputCount } from '../../ultrasound/gl';
 
 export function recordingGl(
   canvasSize: { width: number; height: number },
-  opts: { fail?: { frag: string; stage: 'compile' | 'link' } } = {},
+  opts: { fail?: { frag: string; stage: 'compile' | 'link' }; volumeOutOfMemory?: boolean } = {},
 ) {
   const K: Record<string, number> = {
     TEXTURE0: 0x84c0,
@@ -134,6 +134,12 @@ export function recordingGl(
     texImage2D: (_t: number, _l: number, internal: number, w: number, h: number) => {
       const tex = state.units.get(state.unit);
       if (tex) texInfo.set(tex, { internal, w, h });
+    },
+    // una GPU sin memoria para el volumen del corazón (RGBA16UI, mucho mayor que la textura de 1 × 1 × 1 con que arranca el
+    // renderizador) deja OUT_OF_MEMORY para `getError`, como WebGL
+    texImage3D: (_t: number, _l: number, internal: number, w: number, h: number, d: number) => {
+      if (opts.volumeOutOfMemory && internal === constant('RGBA16UI') && w * h * d > 1e6 && state.error === K.NO_ERROR)
+        state.error = constant('OUT_OF_MEMORY');
     },
     bindFramebuffer: (t: number, fbo: Obj | null) => {
       if (t !== K.READ_FRAMEBUFFER) state.fbo = fbo;

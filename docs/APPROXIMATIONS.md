@@ -131,10 +131,15 @@ isovolumétrica, llenado rápido, diástasis y onda A) en la fase del latido de 
 que llegue su chunk, la de la decisión 32 (`ventricle.ts`: dos cosenos alzados atados a los eventos mecánicos del latido de
 VExUS, sin la diástasis ni la contracción auricular). El máximo, en la telesístole, es el de White.
 
-La fase del latido (decisión 53, `src/physiology/cardiacBeat.ts`): cada latido del reloj (con su RR, su variabilidad y la FA) se
-lleva al latido de referencia de EchoTwin (el del caso, 65 lpm) por tramos, su sístole (de la R a la telesístole del reloj, el
-centro de la onda v) sobre la de referencia y su diástole sobre la de referencia, lineal dentro de cada tramo [SUPUESTO]: la
-forma del latido de referencia no cambia con la FC (el modelo de EchoTwin, construido a otra FC, la cambiaría). La línea de tiempo de cada
+La fase del latido (decisión 53, `src/physiology/cardiacBeat.ts`): cada latido del reloj (con su RR y su variabilidad; la FA, con su
+RR irregular) se lleva al latido de referencia de EchoTwin (el del caso, 65 lpm) por tramos, su sístole (de la R a la telesístole del
+reloj, el centro de la onda v) sobre la de referencia y su diástole sobre la de referencia, lineal dentro de cada tramo [SUPUESTO]:
+la forma del latido de referencia no cambia con la FC (el modelo de EchoTwin, construido a otra FC, la cambiaría). El mapeo lleva
+el RR, no la contracción auricular (la referencia es sinusal): un latido sin ella (`atrialAmplitude` 0, la FA) lee la curva sin la
+onda A (`withoutAtrialKick`, `echoTwinBeat.ts`) [SUPUESTO]: el VI llega a la R con el volumen de antes de la onda A y expulsa desde
+ahí hasta el mismo volumen sistólico final, así que su volumen sistólico es el sinusal menos el llenado de la onda A (≈ 26 % del
+sinusal), sin las poses de la válvula mitral reabriéndose; con una amplitud auricular entre 0 y 1 (sinusal con función
+disminuida) la onda A es la entera. La línea de tiempo de cada
 vóxel guarda cinco cambios de tejido (los tramos más cortos se funden) y lo que el corazón deja vacío al latir es grasa
 [SUPUESTO]: el pericardio y la grasa del mediastino, que en lus-sim no existen, en lugar del pulmón.
 

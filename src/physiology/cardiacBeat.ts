@@ -13,6 +13,11 @@ export interface BeatModel {
   readonly rrS: number;
   /** Fracción del volumen latido expulsada en la fase de referencia `phase` (0 en la telediástole, 1 en la telesístole). */
   ejectedFraction(phase: number): number;
+  /**
+   * La fase de referencia que lee el latido sin contracción auricular (`atrialAmplitude` 0: fibrilación auricular, o un paciente sin
+   * función auricular) cuando el reloj, ya llevado a la referencia, está en `phase`: la misma curva sin la onda A, continua.
+   */
+  withoutAtrialKick(phase: number): number;
 }
 
 let model: BeatModel | null = null;
@@ -25,8 +30,9 @@ export function registerBeatModel(m: BeatModel | null): void {
 /**
  * La fase del latido de referencia (en [0, 1)) del instante `t` del latido `beat` del reloj, por tramos: su sístole (de la R a la
  * telesístole del reloj, el centro de la onda v `tV`) sobre la de referencia, y su diástole sobre la de referencia; el reloj ya
- * acorta la sístole con √RR (`rhythm.ts`), y dentro de cada tramo la correspondencia es lineal [SUPUESTO]. Sin el latido de EchoTwin,
- * la fracción del RR.
+ * acorta la sístole con √RR (`rhythm.ts`), y dentro de cada tramo la correspondencia es lineal [SUPUESTO]. Esto lleva el RR (la
+ * FA lo da irregular), no la contracción auricular: un latido sin ella (`atrialAmplitude` 0) pasa además por `withoutAtrialKick`, que
+ * quita la onda A de la curva (corazón y pulmón la leen sin ella). Sin el latido de EchoTwin, la fracción del RR.
  */
 export function referencePhase(beat: Beat, t: number): number {
   const tau = Math.min(Math.max(t - beat.tR, 0), beat.rr);
@@ -36,7 +42,8 @@ export function referencePhase(beat: Beat, t: number): number {
   let tRef: number;
   if (tau <= es) tRef = es > 0 ? (tau * esRef) / es : esRef;
   else tRef = esRef + ((tau - es) * (model.rrS - esRef)) / (beat.rr - es);
-  const p = tRef / model.rrS;
+  const sinus = tRef / model.rrS;
+  const p = beat.atrialAmplitude === 0 ? model.withoutAtrialKick(sinus) : sinus;
   return p >= 1 ? 0 : p;
 }
 

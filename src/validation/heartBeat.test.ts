@@ -5,8 +5,10 @@ import { defaultPatient } from '../physiology/patientState';
 import { CARDIAC_BASE_SPHERE_CM, CARDIAC_BOX_CM, ET_TO_PALETTE, cardiacPoint, cardiacPoseAt } from '../anatomy/heart/cardiac';
 import { classifyHeart } from '../anatomy/heart/heartModel';
 import { Structure, makeSample } from '../anatomy/heart/tissue';
+import { Tissue } from '../anatomy/tissues';
 import { reduceChanges, voxelWords, windowDepths } from '../anatomy/heart/cardiacRuntime';
 import {
+  HEART_PALETTE,
   HEART_PHASES,
   HEART_TRANSITIONS,
   decodeHeartVoxel,
@@ -30,6 +32,8 @@ const runtime = heart.cardiac!;
 const cardiac = runtime.cardiac;
 const v = runtime.vol;
 const VOXEL_CM = v.voxelMm / 10;
+/** El índice de la grasa en la paleta del corazón: lo que el corazón deja vacío al latir. */
+const FAT_IDX = HEART_PALETTE.indexOf(Tissue.Fat) + 1;
 
 // mulberry32
 function rng(seed: number): () => number {
@@ -129,7 +133,7 @@ describe('las palabras del vóxel y su línea de tiempo', () => {
         for (let f = 0; f < HEART_PHASES; f += 16 + 7) {
           const a = analytic(i, j, k, f);
           const got = decodeHeartVoxel(w, f).idx;
-          if (got === a || (a === 0 && got === 1)) agree++;
+          if (a === 0 ? got === FAT_IDX : got === a) agree++;
         }
       }
       const total = n * Math.ceil(HEART_PHASES / 23);
@@ -137,6 +141,42 @@ describe('las palabras del vóxel y su línea de tiempo', () => {
       // una parte del corazón se mueve (su pared, sus válvulas)
       expect(moving / n).toBeGreaterThan(0.1);
       expect(agree / total).toBeGreaterThanOrEqual(0.985);
+    },
+  );
+
+  it(
+    'lo que el corazón deja vacío al latir es grasa, nunca nada (que caería en el pulmón): ninguna fase de un vóxel del corazón queda en 0',
+    { timeout: 600_000 },
+    () => {
+      expect(FAT_IDX).toBeGreaterThan(0);
+      const rnd = rng(29);
+      let vacated = 0;
+      let vacatedPhases = 0;
+      let fatPhases = 0;
+      for (let tries = 0; tries < 40000 && vacated < 12; tries++) {
+        const i = Math.floor(rnd() * v.dims[0]);
+        const j = Math.floor(rnd() * v.dims[1]);
+        const k = Math.floor(rnd() * v.dims[2]);
+        const w = voxelWords(cardiac, i, j, k, true);
+        // el vóxel que en alguna de las 16 fases gruesas es corazón y en otra el clasificador no da nada
+        const empty: number[] = [];
+        let some = false;
+        for (let f = 0; f < HEART_PHASES; f += 16) {
+          if (analytic(i, j, k, f) > 0) some = true;
+          else empty.push(f);
+        }
+        if (!some || empty.length === 0) continue;
+        vacated++;
+        // en toda la línea de tiempo del vóxel hay un tejido (nunca el 0)
+        for (let f = 0; f < HEART_PHASES; f++) expect(decodeHeartVoxel(w, f).idx).toBeGreaterThan(0);
+        // y donde el clasificador lo deja vacío, es grasa
+        for (const f of empty) {
+          vacatedPhases++;
+          if (decodeHeartVoxel(w, f).idx === FAT_IDX) fatPhases++;
+        }
+      }
+      expect(vacated).toBe(12);
+      expect(fatPhases / vacatedPhases).toBeGreaterThanOrEqual(0.9);
     },
   );
 

@@ -5013,9 +5013,18 @@ con 2, 3, 4 y 6 cambios por vóxel el error frente al clasificador es 3,5, 1,7, 
 
 - **El latido de referencia** (`physiology/heart/`, portado: `cycleModel.ts`, `timing.ts`, `outflow.ts`; el esquema y el caso se
   mudan aquí desde `anatomy/heart/`): las tablas del latido de EchoTwin del caso normal (65 lpm), las mismas que daban el estado
-  de telediástole de la fase 1, campo a campo. Cada latido del reloj (`rhythm.ts`, con su RR, su variabilidad y la FA) se lleva a
-  él por tramos (`cardiacBeat.ts`: su sístole, de la R al centro de la onda v, sobre la de referencia; su diástole sobre la de
-  referencia) [SUPUESTO]. `PhysiologySample.heartPhase` es esa fase; `cardiacEjection`, la fracción expulsada de su curva de
+  de telediástole de la fase 1, campo a campo. Cada latido del reloj (`rhythm.ts`, con su RR y su variabilidad; la FA, solo con su RR
+  irregular) se lleva a él por tramos (`cardiacBeat.ts`: su sístole, de la R al centro de la onda v, sobre la de referencia; su
+  diástole sobre la de referencia) [SUPUESTO]. Ese mapeo lleva el RR, no la contracción auricular: la referencia es sinusal y su
+  onda A estaba en cada latido de FA (en la fase 0,93 `atrialContraction` = 1 y la fracción expulsada bajaba de 0,216 a 0,034, el
+  llenado auricular del VI; revisión de la PR). Un latido sin contracción auricular (`atrialAmplitude` 0: la FA, o un paciente
+  sinusal sin función auricular) pasa por `withoutAtrialKick` (`echoTwinBeat.ts`): hasta el inicio de la onda A la fase es la
+  misma; de ahí al inicio de la eyección (la onda A y la contracción isovolumétrica) se queda en el inicio de la onda A (el VI
+  llega a la R con el volumen de antes de la onda A, fracción expulsada ≈ 0,26, y la mitral no se reabre); y la eyección recorre
+  la parte de la curva que va de esa fracción a la telesístole, en el mismo tiempo. Es la misma curva de EchoTwin sin la onda A y
+  continua en la fracción expulsada (el volumen del VI y el pulso pulmonar), y la fase que lee la geometría: `atrialContraction`
+  vale 0 en todo el latido y `laBooster` no se reduce. El volumen sistólico de un latido de FA es el del sinusal menos el llenado
+  de la onda A [SUPUESTO] (EchoTwin construye los suyos encadenados con el RR; aquí no). `PhysiologySample.heartPhase` es esa fase; `cardiacEjection`, la fracción expulsada de su curva de
   volumen (eyección, relajación isovolumétrica, llenado rápido, diástasis y onda A). Las tablas pesan ≈ 15 kB y van en el chunk del
   corazón: la aplicación registra su latido al cargarlo (`registerBeatModel`); antes, el pulso es el de la decisión 32
   (`ventricle.ts`).
@@ -5038,6 +5047,11 @@ con 2, 3, 4 y 6 cambios por vóxel el error frente al clasificador es 3,5, 1,7, 
 - **La fase del cuadro**: `uLungPulse` pasa de float a vec2 sin ranura nueva (x, la fracción expulsada; y, la fase fina del latido,
   0 sin latido); `heartVoxel` (TS y GLSL) lee el tejido de esa fase, sin arreglos locales en la GLSL (indexarlos en cada
   clasificación los llevaba a memoria). En la CPU, `SceneInstant.heartPhase` (`heartFinePhase` de la muestra), la misma.
+- **Fallos del horneado** (revisión de la PR): lo que el corazón deja al latir, grasa, tiene prueba (`heartBeat.test.ts`: ninguna
+  fase de un vóxel que en alguna es corazón queda en 0, y donde el clasificador no da nada es grasa; falla sin el relleno). El
+  volumen (RGBA16UI, 78 MB) es lo único grande: tras su `texImage3D` se lee `getError` (vaciados antes los errores que ya
+  hubiera) y, si la GPU no tiene memoria, el horneado falla como el de la fase 1 (se informa una vez, el corazón sale de la
+  escena, sin latido y sin reintentos; `heartBakeMemory.test.ts`).
 
 **Consecuencias.**
 
@@ -5063,4 +5077,6 @@ clasificador de EchoTwin en 16 fases (≥ 98,5 % en 300 vóxeles del corazón), 
 nada del corazón entra en la pared bajo la ventana y el saco queda en lo que no respira, y la fase del instante y la fracción
 expulsada son las de la curva de volumen. `heartBake.test.ts`: el latido se hornea capa a capa en el mismo volumen tras el de
 telediástole y entra en la escena al terminar; otra escena del mismo paciente lo toma del renderizador. `lungPulse.test.ts`: la
-fase de referencia por tramos y la fracción expulsada de EchoTwin. e2e: la equivalencia del latido en cinco fases.
+fase de referencia por tramos y la fracción expulsada de EchoTwin; sin contracción auricular (FA, o función auricular 0)
+`atrialContraction` es 0 en todo el latido, la fracción expulsada solo baja con el llenado rápido y se queda (en sinusal vuelve
+a 0 con la onda A) y es continua; las tres fallan sin `withoutAtrialKick`. e2e: la equivalencia del latido en cinco fases.

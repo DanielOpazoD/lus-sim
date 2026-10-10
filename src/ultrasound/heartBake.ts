@@ -27,6 +27,11 @@ export const HEART_BEAT_LAYERS = 1;
 /** Filas de parámetros (poses por fase fina, ≈ 2,6 ms cada una en la CPU) por paso del horneado del latido. */
 export const HEART_BEAT_ROWS = 16;
 
+/** Vacía los errores pendientes de `getError` (hasta 8: una GL perdida repite el suyo). */
+function drainErrors(gl: WebGL2RenderingContext): void {
+  for (let i = 0; i < 8; i++) if (gl.getError() === gl.NO_ERROR) return;
+}
+
 /** Un horneado en curso. */
 export interface HeartBakeJob {
   /** Un paso, sin bloquear: espera al enlace y a la valla del anterior o dibuja las capas siguientes; true con el volumen entero. Lanza si falla. */
@@ -47,7 +52,18 @@ export function startHeartBake(
   beat: { volume: WebGLTexture; k0: number; k1: number } | null = null,
 ): HeartBakeJob {
   const [nx, ny, nz] = c.vol.dims;
+  let pending: Error | null = null;
+  // el volumen es lo único grande (RGBA16UI, 8 bytes por vóxel: ≈ 78 MB): una GPU sin memoria para él lo dice con un error de GL en
+  // su `texImage3D`, que se atribuye al volumen tras vaciar los errores que ya hubiera (acotado: una GL perdida los repite)
+  if (!beat) drainErrors(gl);
   const volume = beat ? beat.volume : texture3d(gl, nx, ny, nz, gl.RGBA16UI, gl.RGBA_INTEGER, gl.UNSIGNED_SHORT, null);
+  if (!beat) {
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR)
+      pending = new Error(
+        `heartBake: no se pudo reservar el volumen del corazón (${nx}×${ny}×${nz}, ${((nx * ny * nz * 8) / 2 ** 20).toFixed(0)} MB; error de GL 0x${err.toString(16)})`,
+      );
+  }
   const rows = beat ? HEART_PHASES : 1;
   const params = createTexture(gl, c.paramTexels, rows, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
   let rowsDone = 1;
@@ -58,11 +74,11 @@ export function startHeartBake(
   let sync: WebGLSync | null = null;
   let next = beat ? beat.k0 : 0;
   const last = beat ? beat.k1 : nz;
-  let pending: Error | null = null;
   try {
     gl.bindTexture(gl.TEXTURE_2D, params);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, c.paramTexels, 1, gl.RGBA, gl.FLOAT, c.params);
-    link = linkLater(gl, VERT, beat ? c.beatFragment : c.bakeFragment, beat ? 'heartBeat' : 'heartBake');
+    // sin volumen no se compila nada: el primer paso lanza
+    if (!pending) link = linkLater(gl, VERT, beat ? c.beatFragment : c.bakeFragment, beat ? 'heartBeat' : 'heartBake');
   } catch (e) {
     pending = e instanceof Error ? e : new Error(`heartBake: ${String(e)}`);
   }

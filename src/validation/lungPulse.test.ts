@@ -12,6 +12,7 @@ import { START_POINTS } from '../app/startPoints';
 import { PhysiologyEngine } from '../physiology/engine';
 import { defaultPatient, type ChestHabitus, type PatientState } from '../physiology/patientState';
 import { ejectedFraction, referenceBeat } from '../physiology/echoTwinBeat';
+import { cycleStateAt } from '../physiology/heart/cycleModel';
 import { referencePhase } from '../physiology/cardiacBeat';
 
 /**
@@ -286,5 +287,65 @@ describe('el latido del reloj único: la fracción expulsada de la curva de volu
     const rr = 60 / defaultPatient().heartRateBpm;
     expect(peaks.length).toBeGreaterThanOrEqual(5);
     for (let i = 1; i < peaks.length; i++) expect(peaks[i] - peaks[i - 1]).toBeCloseTo(rr, 2);
+  });
+});
+
+describe('sin contracción auricular (FA, decisión 53) el latido no tiene onda A: ni en el volumen, ni en la geometría, ni en el pulso pulmonar', () => {
+  /** Los latidos completos de un motor, con su fracción expulsada y el estado cinemático que lee la geometría en cada paso. */
+  function beats(patient: Partial<ReturnType<typeof defaultPatient>>) {
+    const e = new PhysiologyEngine({ ...defaultPatient(), respiratoryPattern: 'apnea-expiratory', ...patient });
+    const ref = referenceBeat();
+    const out = new Map<number, { t: number; ejection: number; atrial: number; hold: number; rr: number }[]>();
+    for (let i = 0; i < Math.round(10 / e.clock.dt); i++) {
+      const s = e.step();
+      const st = cycleStateAt(ref, s.heartPhase);
+      const list = out.get(s.beatIndex) ?? [];
+      list.push({ t: s.t - s.lastR, ejection: s.cardiacEjection, atrial: st.atrialContraction, hold: st.atrialHold, rr: s.rr });
+      out.set(s.beatIndex, list);
+    }
+    // sin el primero ni el último, que quedan cortados por la ventana
+    return [...out.values()].slice(1, -1);
+  }
+
+  /** La mayor BAJADA de la fracción expulsada en la diástole, después de su máximo (el llenado que añade la onda A). */
+  function lateFill(b: { ejection: number }[]): number {
+    const peak = b.reduce((m, x, i) => (x.ejection > b[m].ejection ? i : m), 0);
+    return b[peak].ejection - Math.min(...b.slice(peak).map((x) => x.ejection));
+  }
+
+  it('en FA, la contracción auricular de la geometría es 0 en todo el latido; en sinusal llega a 1', () => {
+    const af = beats({ rhythm: 'atrial-fibrillation' });
+    expect(af.length).toBeGreaterThan(6);
+    for (const b of af)
+      for (const x of b) {
+        expect(x.atrial).toBeCloseTo(0, 9);
+        expect(x.hold).toBe(0);
+      }
+    const sinus = beats({});
+    expect(Math.max(...sinus.flatMap((b) => b.map((x) => x.atrial)))).toBeGreaterThan(0.95);
+  });
+
+  it('en FA, después de la telesístole la fracción expulsada solo baja con el llenado rápido y se queda (sin el llenado de la onda A); en sinusal vuelve a 0', () => {
+    for (const b of beats({ rhythm: 'atrial-fibrillation' })) {
+      const peak = b.reduce((m, x, i) => (x.ejection > b[m].ejection ? i : m), 0);
+      for (let i = peak + 1; i < b.length; i++) expect(b[i].ejection).toBeLessThanOrEqual(b[i - 1].ejection + 1e-9);
+      // el VI llega a la R siguiente con el volumen de antes de la onda A (≈ 0,26 de la fracción expulsada), no en la telediástole
+      expect(b[b.length - 1].ejection).toBeGreaterThan(0.2);
+    }
+    for (const b of beats({ rhythm: 'sinus', rrVariability: 0 })) {
+      expect(b[b.length - 1].ejection).toBeLessThan(0.05);
+      // la onda A llena más de lo que baja el resto de la diástole tardía
+      expect(lateFill(b)).toBeGreaterThan(0.95);
+    }
+  });
+
+  it('en FA la fracción expulsada es continua (a cada paso, también al empezar el latido y al acabar la eyección)', () => {
+    const jumps = beats({ rhythm: 'atrial-fibrillation' }).flatMap((b) => b.slice(1).map((x, i) => Math.abs(x.ejection - b[i].ejection)));
+    // el mismo orden que el sinusal (< 0,05 por paso de 4 ms), no el salto de 0,26 de pasar de la onda A a la eyección
+    expect(Math.max(...jumps)).toBeLessThan(0.05);
+  });
+
+  it('un paciente sinusal sin función auricular tampoco tiene onda A', () => {
+    for (const b of beats({ atrialFunction: 0, rrVariability: 0 })) for (const x of b) expect(x.atrial).toBeCloseTo(0, 9);
   });
 });
