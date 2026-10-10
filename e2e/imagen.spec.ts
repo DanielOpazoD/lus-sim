@@ -80,9 +80,10 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   for (const t of ['RenalCortex', 'PerirenalFat', 'Fluid', 'Psoas', 'QuadratusLumborum'])
     expect(vol.byTissue[t] ?? 0, `${t}: ${vtag}`).toBeGreaterThan(20);
   expect(vol.byTissue.Cartilage ?? 0, vtag).toBeGreaterThan(20);
-  // (decisión 49) el corazón de EchoTwin: sangre de sus cavidades y vasos (917 con GPU real) y miocardio (290)
-  expect(vol.byTissue.Blood ?? 0, vtag).toBeGreaterThan(400);
-  expect(vol.byTissue.Myocardium ?? 0, vtag).toBeGreaterThan(150);
+  // (decisión 49) el corazón de EchoTwin: sangre de sus cavidades y vasos y miocardio lejos de su frontera (957 y 290 en la fase 1; con
+  // el latido, 457 y 130 con GPU real: lo que se mueve no tiene distancia, y la del vóxel va en medios mm)
+  expect(vol.byTissue.Blood ?? 0, vtag).toBeGreaterThan(300);
+  expect(vol.byTissue.Myocardium ?? 0, vtag).toBeGreaterThan(80);
   expect(vol.interfacePoints, vtag).toBeGreaterThan(3000);
   expect(vol.interfaceAgreement, vtag).toBe(1);
   // GPU real (M4): 2·10⁻⁵ mm; SwiftShader, 0,014 mm (en VExUS, la cara del diafragma): una décima del eco
@@ -267,6 +268,35 @@ test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, 
   for (const [id, q] of Object.entries(insp.pleura.depthQuantaByPose))
     expect(q, `${id}: ${itag}`).toBeLessThanOrEqual((id === 'supraclavicular' ? 2 : 1) + 1e-3);
   expect(insp.pleura.edgeMaxErrMm, itag).toBeLessThan(0.1);
+  expect(errors).toEqual([]);
+});
+
+test('el latido (fase 2 del corazón): la GPU y la TS coinciden en cinco fases y el corazón se mueve', async ({ page }) => {
+  // con SwiftShader la aplicación no hornea el latido (tardaría de 16 a 80 veces el de telediástole): la prueba hornea 6 capas en la
+  // ventana; con GPU ya late entero
+  test.setTimeout(900_000);
+  const errors = await openBench(page);
+  const beat = await page.evaluate(() => {
+    const hooks = window.__lusTest!;
+    const sim = hooks.sim();
+    const t = sim.scene.torso;
+    const w = sim.scene.heart.window;
+    hooks.setPose({ phi: Math.acos(47.5 / t.a), z: w.z, lift: 0, yaw: 0, rock: 0, tilt: 0 });
+    return hooks.heartBeat(6);
+  });
+  console.log(`CORAZON latido: capas ${beat.k0}–${beat.k1} en ${(beat.ms / 1000).toFixed(1)} s`);
+  const r = await page.evaluate(() => window.__lusTest!.heartBeatEquivalence([0.02, 0.2, 0.44, 0.65, 0.92], 1500));
+  const tag = JSON.stringify(r);
+  console.log(
+    `CORAZON latido: ${r.points} puntos, ${r.moving} cambian; ${r.phases.map((p) => `${p.phase}: ${p.agreement.toFixed(4)} (${p.heart})`).join(', ')}`,
+  );
+  expect(r.points, tag).toBeGreaterThan(1000);
+  for (const p of r.phases) {
+    expect(p.agreement, tag).toBeGreaterThanOrEqual(0.995);
+    expect(p.heart, tag).toBeGreaterThan(300);
+  }
+  // el corazón late: muchos puntos cambian de tejido entre fases
+  expect(r.moving, tag).toBeGreaterThan(100);
   expect(errors).toEqual([]);
 });
 

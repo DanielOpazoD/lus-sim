@@ -4991,3 +4991,92 @@ bisagra y las τ) y la banda solo con el protocolo completo, los sitios ilegible
 Mutaciones comprobadas (aplicadas en una copia y revertidas, cada una hace fallar `heartFailure*.test.ts`): 55, entre ellas los
 cortes y banderas de cada protocolo ±1, la positividad y los confluentes, el tope, el gradiente 0,077, la amortiguación 0,5, la
 bisagra dura, β 0,02 y 0,05, k de la FE reducida 1,2, los pivotes, las τ y el suelo de gas.
+
+## 53. El latido del corazón de EchoTwin: una línea de tiempo por vóxel y el reloj único
+
+**Fecha.** 2026-10-05.
+
+**Contexto.** La fase 1 (decisión 49) puso el corazón de EchoTwin en el tórax, quieto en telediástole y horneado en un volumen de
+vóxeles de 0,7 mm (206 × 198 × 238). Daniel pidió seguir: que lata con el reloj único (`core/clock.ts`), sin congelar la página y
+con el pulso pulmonar de la misma curva de volumen, para que corazón y pulmón latan juntos. Medido en EchoTwin (c15aec7, 32 fases,
+rejilla de 2 mm): la pose de una fase cuesta 2,6 ms en la CPU; a lo largo del latido cambia de tejido el 13 % de los vóxeles de
+la caja (el 56 % de los del corazón). Hornear el volumen de telediástole cuesta ≈ 0,25 s con GPU y 17–48 s con SwiftShader (CI).
+
+**Opciones.** (a) Una serie de volúmenes por fase (N × 9,7 M vóxeles, 78–155 MB con 8–16 fases), y la imagen salta de fase en
+fase; (b) hornear en cada cuadro solo la losa que corta el sector (≈ 0,35 M vóxeles, ≈ 9 ms por horneado con el M4, en cada
+cambio de fase y de sonda: no cabe en un cuadro de ≈ 8 ms); (c) una línea de tiempo por vóxel: su tejido en telediástole y las
+fases en que cambia, en un solo volumen, y la imagen lee el tejido de la fase del cuadro. Para (c), cuántos cambios guardar:
+con 2, 3, 4 y 6 cambios por vóxel el error frente al clasificador es 3,5, 1,7, 0,47 y 0,08 % de vóxel·fase del corazón
+(EchoTwin, 32 fases). Para el pulso pulmonar: seguir con la curva de la decisión 32 o tomar la del corazón.
+
+**Decisión.** (c), con la curva de volumen de EchoTwin para el corazón y para el pulmón.
+
+- **El latido de referencia** (`physiology/heart/`, portado: `cycleModel.ts`, `timing.ts`, `outflow.ts`; el esquema y el caso se
+  mudan aquí desde `anatomy/heart/`): las tablas del latido de EchoTwin del caso normal (65 lpm), las mismas que daban el estado
+  de telediástole de la fase 1, campo a campo. Cada latido del reloj (`rhythm.ts`, con su RR y su variabilidad; la FA, solo con su RR
+  irregular) se lleva a él por tramos (`cardiacBeat.ts`: su sístole, de la R al centro de la onda v, sobre la de referencia; su
+  diástole sobre la de referencia) [SUPUESTO]. Ese mapeo lleva el RR, no la contracción auricular: la referencia es sinusal y su
+  onda A estaba en cada latido de FA (en la fase 0,93 `atrialContraction` = 1 y la fracción expulsada bajaba de 0,216 a 0,034, el
+  llenado auricular del VI; revisión de la PR). Un latido sin contracción auricular (`atrialAmplitude` 0: la FA, o un paciente
+  sinusal sin función auricular) pasa por `withoutAtrialKick` (`echoTwinBeat.ts`): hasta el inicio de la onda A la fase es la
+  misma; de ahí al inicio de la eyección (la onda A y la contracción isovolumétrica) se queda en el inicio de la onda A (el VI
+  llega a la R con el volumen de antes de la onda A, fracción expulsada ≈ 0,26, y la mitral no se reabre); y la eyección recorre
+  la parte de la curva que va de esa fracción a la telesístole, en el mismo tiempo. Es la misma curva de EchoTwin sin la onda A y
+  continua en la fracción expulsada (el volumen del VI y el pulso pulmonar), y la fase que lee la geometría: `atrialContraction`
+  vale 0 en todo el latido y `laBooster` no se reduce. El volumen sistólico de un latido de FA es el del sinusal menos el llenado
+  de la onda A [SUPUESTO] (EchoTwin construye los suyos encadenados con el RR; aquí no). `PhysiologySample.heartPhase` es esa fase; `cardiacEjection`, la fracción expulsada de su curva de
+  volumen (eyección, relajación isovolumétrica, llenado rápido, diástasis y onda A). Las tablas pesan ≈ 15 kB y van en el chunk del
+  corazón: la aplicación registra su latido al cargarlo (`registerBeatModel`); antes, el pulso es el de la decisión 32
+  (`ventricle.ts`).
+- **La línea de tiempo** (`heart/cardiacRuntime.ts`, `voxelWords` y su gemela GLSL en `bakeFragment`): el clasificador de EchoTwin
+  en el centro del vóxel en 16 fases gruesas del latido (cada 16 de las 256 finas, una pose por fase fina, `cardiacPoseAt`) y, entre
+  dos gruesas distintas, la fase fina del cambio por bisección (4 pasos); se guardan 5 cambios (`reduceChanges`: el tramo más corto
+  se funde con el anterior). Lo que el corazón deja al latir (corazón en alguna fase, nada en otra) es grasa [SUPUESTO]: sin ella,
+  bajo la ventana en la telesístole quedaban ≈ 6 mm de pulmón entre el tapón y el pericardio, que se retira ≈ 17 mm. Cada vóxel son
+  64 bits (RGBA16UI, `packHeartVoxel`): el tejido en telediástole en 3 bits (`HEART_PALETTE`, los 7 que da el clasificador), su
+  distancia en medios mm (3 bits, con cambios 0), el número de cambios y 5 × (fase 8 bits, tejido 3). El volumen pasa de 19 a 78 MB.
+- **El horneado del latido** (`ultrasound/heartBake.ts`): tras el de telediástole (que ahora escribe el mismo formato sin cambios),
+  en el mismo volumen, una capa por paso tras la valla del anterior, después de subir las 256 filas de parámetros (16 por paso), con
+  su propio programa: un solo sitio llama al clasificador (un bucle con las fases gruesas y las bisecciones; cada llamada más se
+  inlinea entera). El de telediástole sigue sin bucle: SwiftShader desenrolla los bucles y con el del latido su JIT no acababa (los
+  ganchos de la e2e no llegaron en 5 min). Mientras la escena no tiene el latido (`Heart.beat`), la imagen lee la fase 0, que es su tejido en telediástole; al
+  terminar, `Simulator.beatSceneHeart` lo pone en la escena (la CPU y la GPU a la vez) y las escenas nuevas del mismo paciente lo
+  toman del renderizador (`heartBeatLayers`). Sin GPU (`softwareGl`: SwiftShader, llvmpipe) no se hornea: tardaría de 16 a 80
+  veces el de telediástole, y el corazón queda quieto. No por el tiempo del de telediástole: con GPU, la primera vez que el
+  navegador compila su programa tardó 3,6 s.
+- **La fase del cuadro**: `uLungPulse` pasa de float a vec2 sin ranura nueva (x, la fracción expulsada; y, la fase fina del latido,
+  0 sin latido); `heartVoxel` (TS y GLSL) lee el tejido de esa fase, sin arreglos locales en la GLSL (indexarlos en cada
+  clasificación los llevaba a memoria). En la CPU, `SceneInstant.heartPhase` (`heartFinePhase` de la muestra), la misma.
+- **Fallos del horneado** (revisión de la PR): lo que el corazón deja al latir, grasa, tiene prueba (`heartBeat.test.ts`: ninguna
+  fase de un vóxel que en alguna es corazón queda en 0, y donde el clasificador no da nada es grasa; falla sin el relleno). El
+  volumen (RGBA16UI, 78 MB) es lo único grande: tras su `texImage3D` se lee `getError` (vaciados antes los errores que ya
+  hubiera) y, si la GPU no tiene memoria, el horneado falla como el de la fase 1 (se informa una vez, el corazón sale de la
+  escena, sin latido y sin reintentos; `heartBakeMemory.test.ts`).
+
+**Consecuencias.**
+
+- El corazón late en la ventana cardiaca y en la paraesternal izquierda (capturas con GPU real en la PR: telediástole, eyección,
+  telesístole, llenado rápido y onda A): el VI se vacía y engrosa su pared, la mitral abre y cierra, el anillo baja hacia el ápex.
+- Con GPU real (M4, Metal): el horneado de telediástole, 0,36–0,46 s (2,6–3,6 s la primera vez que el navegador compila su
+  programa, con una tarea larga de ≈ 10 s en el hilo: la compilación de Metal; la fase 1 tenía la suya de 6,5 s); el del latido,
+  6–17 s en segundo plano (con la máquina a carga 7–40). El cuadro de la ventana con el latido y sin él (el mismo volumen en la
+  fase 0), alternando en la misma página, es el mismo: 15,5 frente a 15,5 ms y 14,6 frente a 16,4 ms (carga ≈ 25); en la medida
+  de arranque, 7,5–7,6 ms (main 8,0–12,5). Con la máquina a carga ≈ 10: el cuadro de la ventana en cinco fases del latido, 6,7–7,1 ms; con y sin latido, 6,85 frente a 6,90 ms; el horneado del latido, 4,1 s.
+- Equivalencia del latido (`heartBeatEquivalence`, e2e): en 1500 centros de vóxel del corazón, en 5 fases, la CPU y la GPU dan el
+  mismo tejido en el 99,93–100 % (GPU real); 690 de los 1500 cambian de tejido entre fases. En el CI (SwiftShader, sin el programa del
+  latido) la prueba sube 6 capas de la ventana con las palabras de la gemela TS (`writeHeartLayers`): comprueba la lectura y la fase
+  en la GLSL; el horneado GLSL frente a la gemela, con GPU real. La línea de tiempo frente al clasificador analítico, en 600 vóxeles que se mueven y 64 fases: 98,7 %.
+- La equivalencia de volumen cuenta menos sangre y miocardio lejos de su frontera (457 y 130 con el latido, 957 y 290 en la fase
+  1): lo que se mueve no tiene distancia y la del vóxel va en medios mm.
+- Bundle (sobre main a0f49d9): la entrada, de 327,8 a 331,4 kB (presupuesto 330 → 335); el chunk del corazón, de 106,4 a
+  120,2 kB (con su límite, 140); el total, de 1018,7 a 1036,2 (1025 → 1040).
+- `heart-simplified` al día: late en una línea de tiempo por vóxel (lo que pierde y cuánto), sin GPU no late.
+
+**Verificación.** `heartBeat.test.ts`: el empaquetado de las palabras, la fusión de tramos, la línea de tiempo frente al
+clasificador de EchoTwin en 16 fases (≥ 98,5 % en 300 vóxeles del corazón), sin latido el vóxel de telediástole, en seis fases
+nada del corazón entra en la pared bajo la ventana y el saco queda en lo que no respira, y la fase del instante y la fracción
+expulsada son las de la curva de volumen. `heartBake.test.ts`: el latido se hornea capa a capa en el mismo volumen tras el de
+telediástole y entra en la escena al terminar; otra escena del mismo paciente lo toma del renderizador. `lungPulse.test.ts`: la
+fase de referencia por tramos y la fracción expulsada de EchoTwin; sin contracción auricular (FA, o función auricular 0)
+`atrialContraction` es 0 en todo el latido, la fracción expulsada solo baja con el llenado rápido y se queda (en sinusal vuelve
+a 0 con la onda A) y es continua; las tres fallan sin `withoutAtrialKick`. e2e: la equivalencia del latido en cinco fases.

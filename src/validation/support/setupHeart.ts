@@ -2,6 +2,8 @@ import { registerCardiac } from '../../anatomy/organs/heart';
 import { attachEchoTwinHeart } from '../../anatomy/heart/cardiacRuntime';
 import { registerHeartBaker } from '../../ultrasound/renderer';
 import { startHeartBake } from '../../ultrasound/heartBake';
+import { registerBeatModel } from '../../physiology/cardiacBeat';
+import { echoTwinBeatModel } from '../../physiology/echoTwinBeat';
 
 /**
  * Las pruebas tienen el corazón de EchoTwin desde el principio (decisión 49): la aplicación lo carga en su propio chunk después
@@ -9,3 +11,4 @@ import { startHeartBake } from '../../ultrasound/heartBake';
  */
 registerCardiac(attachEchoTwinHeart);
 registerHeartBaker(startHeartBake);
+registerBeatModel(echoTwinBeatModel());

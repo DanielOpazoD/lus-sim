@@ -1,4 +1,4 @@
-import type { CycleState } from './cycleModel';
+import type { CycleState } from '../../physiology/heart/cycleModel';
 import { Structure } from './tissue';
 import { sdRoundCone, smin } from './sdf';
 import {

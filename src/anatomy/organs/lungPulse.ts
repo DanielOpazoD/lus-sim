@@ -125,7 +125,7 @@ export function lungPulseInverse(h: Heart, t: Torso, p: Vec3, ejection: number, 
 }
 
 /**
- * Gemelo GLSL (va tras el corazón: usa `heartSd`, `heartLocal`, los `uHeart*` y `torsoNormal`). `uLungPulse` = e(t), la
+ * Gemelo GLSL (va tras el corazón: usa `heartSd`, `heartLocal`, los `uHeart*` y `torsoNormal`). `uLungPulse.x` = e(t), la
  * fracción expulsada del instante. El bucle de la inversa es corto y barato a propósito (una distancia al elipsoide y su
  * normal por paso); fuera del alcance del corazón no entra.
  */
@@ -136,7 +136,7 @@ export const LUNG_PULSE_GLSL = /* glsl */ `
 #define LP_STEPS ${LUNG_PULSE_INVERSE.steps}
 vec3 lungPulseShift(vec3 x) {
   float d = heartSd(x);
-  if (uLungPulse <= 0.0 || d >= LP_REACH) return vec3(0.0);
+  if (uLungPulse.x <= 0.0 || d >= LP_REACH) return vec3(0.0);
   vec3 r = vec3(uHeartE1.w, uHeartE2.w, uHeartE3.w);
   vec3 g = heartLocal(x) / (r * r);
   float L = length(g);
@@ -144,10 +144,10 @@ vec3 lungPulseShift(vec3 x) {
   vec3 nc = (g.x * uHeartE1.xyz + g.y * uHeartE2.xyz + g.z * uHeartE3.xyz) / L;
   float A = mix(LP_LV, LP_RV, clamp(g.z / L, 0.0, 1.0));
   vec3 n = torsoNormal(x);
-  return -uLungPulse * A * (1.0 - smoothstep(0.0, LP_REACH, max(d, 0.0))) * (nc - dot(nc, n) * n);
+  return -uLungPulse.x * A * (1.0 - smoothstep(0.0, LP_REACH, max(d, 0.0))) * (nc - dot(nc, n) * n);
 }
 vec3 lungPulseInverse(vec3 p) {
-  if (uLungPulse <= 0.0 || heartSd(p) >= LP_REACH + uLungPulse * max(LP_LV, LP_RV)) return p;
+  if (uLungPulse.x <= 0.0 || heartSd(p) >= LP_REACH + uLungPulse.x * max(LP_LV, LP_RV)) return p;
   vec3 x = p;
   for (int i = 0; i < LP_STEPS; i++) x = p - lungPulseShift(x);
   return x;

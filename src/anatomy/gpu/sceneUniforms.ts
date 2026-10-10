@@ -2,6 +2,7 @@ import type { ProbeCompression } from '../compression';
 import { CHEST_WALL } from '../organs/chestWall';
 import { LUNG_CURTAIN } from '../organs/lungCurtain';
 import { LUNG_BORDER } from '../organs/lungBorder';
+import { heartFinePhase } from '../organs/heart';
 import { MAX_RIBS, RIBS_PER_SIDE } from '../organs/ribcage';
 import type { AnatomyScene } from '../scene';
 import type { PhysiologySample } from '../../physiology/engine';
@@ -174,11 +175,13 @@ export const SCENE_UNIFORMS: readonly UniformSpec[] = [
   },
   {
     name: 'uLungPulse',
-    type: 'float',
+    type: 'vec2',
     doc:
       'pulso pulmonar (decisión 32, organs/lungPulse.ts): la fracción del volumen latido expulsada en el instante (0 en la ' +
-      'telediástole, 1 en la telesístole), que escala el campo del latido',
-    value: (_s, c) => [c.sample.cardiacEjection],
+      'telediástole, 1 en la telesístole), que escala el campo del latido; y (fase 2 del corazón, en la misma ranura) la fase ' +
+      'fina del latido (0–255; 0 mientras la escena no tiene el latido) que lee el volumen del corazón (heartVoxel): la misma ' +
+      'curva mueve el corazón y el pulmón',
+    value: (s, c) => [c.sample.cardiacEjection, s.heart.beat ? heartFinePhase(c.sample.heartPhase) : 0],
   },
   {
     name: 'uCompC',

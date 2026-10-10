@@ -1292,6 +1292,6 @@ void main() {
   if (uQueryTraps > 0.5) o1 = bLineField(lungPulseInverse(m), normalize(p.xyz - uCurvC), length(p.xyz - uCurvC) - uCurvR, p.w);
   o2 = faceGradient(c, m);
   // lus-sim (decisión 32): el pulso pulmonar, el desplazamiento del punto del pulmón antes del latido, y la amplitud del instante
-  o3 = vec4(lungPulseInverse(m) - m, uLungPulse);
+  o3 = vec4(lungPulseInverse(m) - m, uLungPulse.x);
 }
 `;

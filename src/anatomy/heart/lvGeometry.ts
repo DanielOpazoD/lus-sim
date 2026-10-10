@@ -1,4 +1,4 @@
-import type { AnatomyConfig } from './schema';
+import type { AnatomyConfig } from '../../physiology/heart/schema';
 import { aha17FromCode, lvSegmentCode } from './lvSegments';
 import { RV_GROOVE_ANTERIOR_RAD, RV_GROOVE_INFERIOR_RAD } from './anchors';
 import { MITRAL_CENTRE_X } from './heartFrame';

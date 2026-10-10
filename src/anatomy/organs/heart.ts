@@ -189,8 +189,80 @@ export interface CardiacVolume {
   dims: [number, number, number];
   /** Esfera que contiene la rejilla (mm): fuera de ella el volumen no se lee. */
   sphere: { c: Vec3; r: number };
-  /** El vóxel (i, j, k): `código | décimas << 8` (código: el tejido de lus-sim + 1, o 0 fuera del corazón). */
-  voxel(i: number, j: number, k: number): number;
+  /**
+   * Las cuatro palabras de 16 bits del vóxel (i, j, k) (`HEART_VOXEL_BITS`): su tejido en telediástole y, con `beat`, la línea de
+   * tiempo de su latido (hasta `HEART_TRANSITIONS` cambios de tejido en la fase fina, `HEART_PHASES`). Sin `beat`, sin cambios.
+   */
+  voxel(i: number, j: number, k: number, beat: boolean): HeartVoxelWords;
+}
+
+/** Las cuatro palabras de 16 bits de un vóxel del volumen del corazón (RGBA16UI). */
+export type HeartVoxelWords = readonly [number, number, number, number];
+
+/**
+ * Las fases finas del latido (fase 2 del corazón): la fase de referencia en [0, 1) en 256 pasos (3,6 ms a 65 lpm). Las poses del
+ * corazón se toman en ellas; la línea de tiempo de cada vóxel guarda en cuál cambia de tejido.
+ */
+export const HEART_PHASES = 256;
+/** Cambios de tejido que guarda la línea de tiempo de un vóxel (los tramos más cortos se funden con el anterior). */
+export const HEART_TRANSITIONS = 5;
+/** La fase fina (0–255) de la fase de referencia `phase` en [0, 1) (`PhysiologySample.heartPhase`): la misma en TS y en la GPU. */
+export function heartFinePhase(phase: number): number {
+  return Math.min(HEART_PHASES - 1, Math.max(0, Math.floor(phase * HEART_PHASES)));
+}
+
+/**
+ * Los tejidos de lus-sim que da el clasificador del corazón de EchoTwin (`ET_TO_LUS_TISSUE` de `heart/cardiac.ts`: sus tejidos del
+ * tórax no salen de él), en un índice de 3 bits: el 0 es «nada del corazón» y el índice i + 1, `HEART_PALETTE[i]`.
+ */
+export const HEART_PALETTE: readonly Tissue[] = [
+  Tissue.Fat,
+  Tissue.Blood,
+  Tissue.Myocardium,
+  Tissue.ArteryWall,
+  Tissue.LigamentumVenosum,
+  Tissue.Fluid,
+  Tissue.Bone,
+];
+
+/**
+ * Las palabras de un vóxel (RGBA16UI), una tira de 64 bits: el índice en telediástole (3 bits), su distancia en medios mm (3 bits,
+ * hasta 3,5), el número de cambios (3 bits) y los cambios, 11 bits cada uno (la fase fina, 8, y el índice del tejido desde ella, 3),
+ * en orden de fase. Con cinco cambios el error de la línea de tiempo frente al clasificador es ≈ 0,2 % de vóxel·fase (con 4, 0,47 %;
+ * con 6, 0,08 %: medido en EchoTwin con 32 fases).
+ */
+export const HEART_VOXEL_BITS = 'base 3 | dq 3 | n 3 | 5 × (fase 8 | índice 3)';
+
+/** Empaqueta un vóxel: índice en telediástole, distancia en medios mm, y los cambios (fase fina, índice) en orden de fase. */
+export function packHeartVoxel(base: number, dq: number, changes: readonly (readonly [number, number])[]): HeartVoxelWords {
+  const t = [0, 0, 0, 0, 0];
+  changes.forEach(([f, idx], i) => (t[i] = f | (idx << 8)));
+  return [
+    (base | (dq << 3) | (changes.length << 6) | ((t[0] & 127) << 9)) & 0xffff,
+    ((t[0] >> 7) | (t[1] << 4) | ((t[2] & 1) << 15)) & 0xffff,
+    ((t[2] >> 1) | ((t[3] & 63) << 10)) & 0xffff,
+    ((t[3] >> 6) | (t[4] << 5)) & 0xffff,
+  ];
+}
+
+/** Los cambios de las palabras de un vóxel (11 bits cada uno: la fase fina y el índice). */
+function heartVoxelChanges(w: HeartVoxelWords): number[] {
+  return [
+    (w[0] >> 9) | ((w[1] & 15) << 7),
+    (w[1] >> 4) & 2047,
+    (w[1] >> 15) | ((w[2] & 1023) << 1),
+    (w[2] >> 10) | ((w[3] & 31) << 6),
+    (w[3] >> 5) & 2047,
+  ];
+}
+
+/** El índice del tejido de un vóxel en la fase fina `phase` y su distancia en medios mm (gemelo GLSL en `heartVoxel`). */
+export function decodeHeartVoxel(w: HeartVoxelWords, phase: number): { idx: number; dq: number } {
+  let idx = w[0] & 7;
+  const n = (w[0] >> 6) & 7;
+  const t = heartVoxelChanges(w);
+  for (let i = 0; i < n; i++) if ((t[i] & 255) <= phase) idx = t[i] >> 8;
+  return { idx, dq: (w[0] >> 3) & 7 };
 }
 
 /** El corazón de EchoTwin en su sitio, con lo que la GPU necesita para hornear su volumen (decisión 49). */
@@ -200,10 +272,14 @@ export interface CardiacRuntime {
   vol: CardiacVolume;
   /** Textura de parámetros del modelo (RGBA32F, `paramTexels` téxeles) y retícula de ruido de su pared (R8, 128³). */
   params: Float32Array;
+  /** La fila de parámetros en la fase fina f (0–255): la del latido (`et_row` del horneado); la 0 es `params`. */
+  paramsAt(f: number): Float32Array;
   paramTexels: number;
   noise: Uint8Array;
   /** El programa que hornea una capa del volumen (`uLayer`), con la GLSL de EchoTwin. */
   bakeFragment: string;
+  /** El que hornea la línea de tiempo del latido de una capa (fase 2 del corazón). */
+  beatFragment: string;
   /** Ápex del saco pericárdico en lus-sim (mm). */
   apexMm: Vec3;
 }
@@ -227,6 +303,12 @@ export interface Heart {
   cardiac: CardiacRuntime | null;
   /** Esfera de la base del corazón de EchoTwin (centro y radio, mm): con el elipsoide, lo que no respira (`heartStillWeight`). */
   base: { c: Vec3; r: number };
+  /**
+   * Las capas k de la rejilla (k0 ≤ k < k1) cuyo volumen lleva la línea de tiempo del latido (fase 2 del corazón): null hasta que
+   * el renderizador la hornea; fuera de ellas, el corazón en telediástole. La aplicación la hornea entera; las pruebas, a veces unas
+   * capas.
+   */
+  beat: { k0: number; k1: number } | null;
 }
 
 /** Lo que coloca el corazón de EchoTwin en el de la escena (`heart/cardiacRuntime.ts`, `attachEchoTwinHeart`). */
@@ -265,6 +347,7 @@ export function cardiacFailed(c: CardiacRuntime): boolean {
 /** El corazón `h` sin el de EchoTwin: la escena de antes de que llegue su chunk. */
 function detachCardiac(h: Heart): void {
   h.cardiac = null;
+  h.beat = null;
   h.plugDepthMm = 0;
   h.base = { c: h.center, r: 0 };
 }
@@ -346,6 +429,7 @@ export function buildHeart(t: Torso, cage: RibCage): Heart {
     apex,
     cardiac: null,
     base: { c: center, r: 0 },
+    beat: null,
   };
   if (registered) attachCardiac(h, t, cage, registered);
   return h;
@@ -359,7 +443,7 @@ export function buildHeart(t: Torso, cage: RibCage): Heart {
  * vasos de fuera: su exceso llega a 19 mm). Fuera de la rejilla, la de la rejilla; fuera de su esfera, la de la esfera. Sin el
  * corazón, nada a 1 m.
  */
-export function heartVoxel(h: Heart, m: Vec3): { tissue: Tissue | -1; d: number } {
+export function heartVoxel(h: Heart, m: Vec3, phase = 0): { tissue: Tissue | -1; d: number } {
   const v = h.cardiac?.vol;
   if (!v) return { tissue: -1, d: 1e3 };
   const ds = Math.hypot(m[0] - v.sphere.c[0], m[1] - v.sphere.c[1], m[2] - v.sphere.c[2]) - v.sphere.r;
@@ -369,10 +453,11 @@ export function heartVoxel(h: Heart, m: Vec3): { tissue: Tissue | -1; d: number 
   const e = [0, 1, 2].map((a) => Math.max(-q[a], q[a] - v.dims[a]));
   if (Math.max(e[0], e[1], e[2]) >= 0)
     return { tissue: -1, d: Math.hypot(Math.max(e[0], 0), Math.max(e[1], 0), Math.max(e[2], 0)) * v.voxelMm };
-  const w = v.voxel(Math.floor(q[0]), Math.floor(q[1]), Math.floor(q[2]));
-  const code = w & 255;
-  const d = Math.min(HEART_VOXEL_BD_CAP_MM, Math.max(0, (w >> 8) * 0.1 - 2 * VOXEL_HALF_DIAGONAL * v.voxelMm));
-  return code > 0 ? { tissue: code - 1, d } : { tissue: -1, d };
+  const k = Math.floor(q[2]);
+  const beat = h.beat !== null && k >= h.beat.k0 && k < h.beat.k1;
+  const { idx, dq } = decodeHeartVoxel(v.voxel(Math.floor(q[0]), Math.floor(q[1]), k, beat), phase);
+  const d = Math.min(HEART_VOXEL_BD_CAP_MM, Math.max(0, dq * 0.5 - 2 * VOXEL_HALF_DIAGONAL * v.voxelMm));
+  return idx > 0 ? { tissue: HEART_PALETTE[idx - 1], d } : { tissue: -1, d };
 }
 /** Semidiagonal del vóxel en lados: la distancia del centro a una esquina. */
 const VOXEL_HALF_DIAGONAL = Math.sqrt(3) / 2;
@@ -444,8 +529,8 @@ export interface HeartQuery {
  * de EchoTwin (su volumen, `heartVoxel`); si no, el tapón de la ventana y la franja, de grasa. No mira la cúpula: la escena solo lo
  * acepta sobre ella.
  */
-export function heartQuery(h: Heart, m: Vec3, insideWallMm: number, u: number): HeartQuery {
-  const c = heartVoxel(h, m);
+export function heartQuery(h: Heart, m: Vec3, insideWallMm: number, u: number, phase = 0): HeartQuery {
+  const c = heartVoxel(h, m, phase);
   if (c.tissue !== -1) return { tissue: c.tissue, d: c.d, clear: 0 };
   // el tapón, su franja y la pleura solo cuentan a menos de su fondo (más hondo, el arco no hace falta: la GPU no lo calcula)
   if (insideWallMm >= h.plugDepthMm) return { tissue: -1, d: 0, clear: c.d };
@@ -510,6 +595,7 @@ export const HEART_GLSL = /* glsl */ `
 #define HEART_VOL_BASE ${HEART_VOL_BASE}
 #define HEART_VOXEL_HALF_DIAG ${VOXEL_HALF_DIAGONAL.toFixed(8)}
 #define HEART_VOXEL_BD_CAP ${HEART_VOXEL_BD_CAP_MM.toFixed(4)}
+const int HEART_PALETTE[${HEART_PALETTE.length}] = int[${HEART_PALETTE.length}](${HEART_PALETTE.join(', ')});
 float heartEllipsoidSd(vec3 q, vec3 r) {
   vec3 k = q / r;
   float k1 = length(k);
@@ -538,8 +624,25 @@ int heartVoxel(vec3 m, out float d) {
   vec3 e = max(-q, q - dims);
   if (max(e.x, max(e.y, e.z)) >= 0.0) { d = length(max(e, 0.0)) * o.w; return -1; }
   uvec4 w = texelFetch(uHeartVol, ivec3(floor(q)), 0);
-  d = min(HEART_VOXEL_BD_CAP, max(0.0, float(w.g) * 0.1 - 2.0 * HEART_VOXEL_HALF_DIAG * o.w));
-  return int(w.r) - 1;
+  // la línea de tiempo del vóxel en la fase fina del instante (uLungPulse.y; sin latido, sin cambios: su tejido en telediástole)
+  // (sin arreglo local: indexarlo en el bucle lo llevaba a memoria en cada clasificación)
+  uint idx = w.r & 7u;
+  uint n = (w.r >> 6) & 7u;
+  if (n > 0u) {
+    uint ph = uint(uLungPulse.y);
+    uint t0 = (w.r >> 9) | ((w.g & 15u) << 7);
+    uint t1 = (w.g >> 4) & 2047u;
+    uint t2 = (w.g >> 15) | ((w.b & 1023u) << 1);
+    uint t3 = (w.b >> 10) | ((w.a & 31u) << 6);
+    uint t4 = (w.a >> 5) & 2047u;
+    if ((t0 & 255u) <= ph) idx = t0 >> 8;
+    if (n > 1u && (t1 & 255u) <= ph) idx = t1 >> 8;
+    if (n > 2u && (t2 & 255u) <= ph) idx = t2 >> 8;
+    if (n > 3u && (t3 & 255u) <= ph) idx = t3 >> 8;
+    if (n > 4u && (t4 & 255u) <= ph) idx = t4 >> 8;
+  }
+  d = min(HEART_VOXEL_BD_CAP, max(0.0, float((w.r >> 3) & 7u) * 0.5 - 2.0 * HEART_VOXEL_HALF_DIAG * o.w));
+  return idx > 0u ? HEART_PALETTE[idx - 1u] : -1;
 }
 // tejido del corazón (el de EchoTwin o la grasa del tapón y de la franja) o −1; dentro, d (mm); fuera, clear (mm)
 int heartQuery(vec3 m, float insideWall, float u, out float d, out float clear) {

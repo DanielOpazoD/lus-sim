@@ -1,4 +1,4 @@
-import type { AnatomyConfig, PhysiologyConfig } from './schema';
+import type { AnatomyConfig, PhysiologyConfig } from '../../physiology/heart/schema';
 import { Structure, Tissue, type TissueSample } from './tissue';
 import { lvCavityRadius, lvRadialOffsetFactor } from './lvShape';
 import { noiseLattice } from './core/noise';

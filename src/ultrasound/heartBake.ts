@@ -1,4 +1,4 @@
-import type { CardiacRuntime } from '../anatomy/organs/heart';
+import { HEART_PHASES, type CardiacRuntime } from '../anatomy/organs/heart';
 import { GLProgram, createTexture, drawFullscreen, linkError, shader, texture3d } from './gl';
 import { VERT } from './shaders/passes.glsl';
 
@@ -7,9 +7,14 @@ import { VERT } from './shaders/passes.glsl';
  * (`app/session.ts`) y lo registra en el renderizador (`registerHeartBaker`), que lo lleva paso a paso (`bakeHeart`).
  *
  * El programa (la GLSL de EchoTwin, `bakeFragment`) se enlaza en los hilos del navegador (`linkLater`) y dibuja
- * `HEART_BAKE_LAYERS` capas de la rejilla por paso, cada paso tras la valla del anterior, en una textura RG8UI 3D nueva con lo que su
- * clasificador dice en el centro de cada vóxel; los parámetros del modelo (RGBA32F) y la retícula de su pared (R8 3D) solo los usa
+ * capas de la rejilla por paso, cada paso tras la valla del anterior, en una textura RGBA16UI 3D con las palabras de cada vóxel
+ * (`packHeartVoxel`); los parámetros del modelo (RGBA32F, una fila por fase fina) y la retícula de su pared (R8 3D) solo los usa
  * este programa. Ninguna lectura: con SwiftShader un `readPixels` final paraba la página ≈ 46 s.
+ *
+ * Dos horneados (fase 2 del corazón): el de telediástole, en una textura nueva (`HEART_BAKE_LAYERS` capas por paso, una evaluación
+ * por vóxel), y el del latido, que reescribe en la misma textura las capas que se le piden con su línea de tiempo
+ * (`HEART_BEAT_LAYERS` por paso: de 16 a 80 evaluaciones por vóxel) tras subir las 256 filas de parámetros, unas pocas por paso.
+ * Mientras el latido no entra en la escena la imagen lee la fase 0, que en las capas reescritas es su tejido en telediástole.
  */
 
 /**
@@ -17,6 +22,15 @@ import { VERT } from './shaders/passes.glsl';
  * (carga ≈ 15–20; de una vez, 46 s): entre paso y paso la imagen dibuja sus cuadros, de ≈ 0,6 s con SwiftShader.
  */
 export const HEART_BAKE_LAYERS = 30;
+/** Capas por paso del horneado del latido: una (de 16 a 80 evaluaciones del clasificador por vóxel). */
+export const HEART_BEAT_LAYERS = 1;
+/** Filas de parámetros (poses por fase fina, ≈ 2,6 ms cada una en la CPU) por paso del horneado del latido. */
+export const HEART_BEAT_ROWS = 16;
+
+/** Vacía los errores pendientes de `getError` (hasta 8: una GL perdida repite el suyo). */
+function drainErrors(gl: WebGL2RenderingContext): void {
+  for (let i = 0; i < 8; i++) if (gl.getError() === gl.NO_ERROR) return;
+}
 
 /** Un horneado en curso. */
 export interface HeartBakeJob {
@@ -28,22 +42,43 @@ export interface HeartBakeJob {
   release(dropVolume: boolean): void;
 }
 
-/** Empieza a hornear el volumen de `c` (lo que se crea aquí ya no lanza: los errores llegan en `step`). */
-export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): HeartBakeJob {
+/**
+ * Empieza a hornear el volumen de `c` (lo que se crea aquí ya no lanza: los errores llegan en `step`): sin `beat`, el de
+ * telediástole en una textura nueva; con `beat`, la línea de tiempo de las capas k0 ≤ k < k1 en la textura `beat.volume`.
+ */
+export function startHeartBake(
+  gl: WebGL2RenderingContext,
+  c: CardiacRuntime,
+  beat: { volume: WebGLTexture; k0: number; k1: number } | null = null,
+): HeartBakeJob {
   const [nx, ny, nz] = c.vol.dims;
-  const volume = texture3d(gl, nx, ny, nz, gl.RG8UI, gl.RG_INTEGER, gl.UNSIGNED_BYTE, null);
-  const params = createTexture(gl, c.paramTexels, 1, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+  let pending: Error | null = null;
+  // el volumen es lo único grande (RGBA16UI, 8 bytes por vóxel: ≈ 78 MB): una GPU sin memoria para él lo dice con un error de GL en
+  // su `texImage3D`, que se atribuye al volumen tras vaciar los errores que ya hubiera (acotado: una GL perdida los repite)
+  if (!beat) drainErrors(gl);
+  const volume = beat ? beat.volume : texture3d(gl, nx, ny, nz, gl.RGBA16UI, gl.RGBA_INTEGER, gl.UNSIGNED_SHORT, null);
+  if (!beat) {
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR)
+      pending = new Error(
+        `heartBake: no se pudo reservar el volumen del corazón (${nx}×${ny}×${nz}, ${((nx * ny * nz * 8) / 2 ** 20).toFixed(0)} MB; error de GL 0x${err.toString(16)})`,
+      );
+  }
+  const rows = beat ? HEART_PHASES : 1;
+  const params = createTexture(gl, c.paramTexels, rows, gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+  let rowsDone = 1;
   const noise = texture3d(gl, 128, 128, 128, gl.R8, gl.RED, gl.UNSIGNED_BYTE, c.noise);
   const fbo = gl.createFramebuffer();
   let link: ReturnType<typeof linkLater> | null = null;
   let program: GLProgram | null = null;
   let sync: WebGLSync | null = null;
-  let next = 0;
-  let pending: Error | null = null;
+  let next = beat ? beat.k0 : 0;
+  const last = beat ? beat.k1 : nz;
   try {
     gl.bindTexture(gl.TEXTURE_2D, params);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, c.paramTexels, 1, gl.RGBA, gl.FLOAT, c.params);
-    link = linkLater(gl, VERT, c.bakeFragment, 'heartBake');
+    // sin volumen no se compila nada: el primer paso lanza
+    if (!pending) link = linkLater(gl, VERT, beat ? c.beatFragment : c.bakeFragment, beat ? 'heartBeat' : 'heartBake');
   } catch (e) {
     pending = e instanceof Error ? e : new Error(`heartBake: ${String(e)}`);
   }
@@ -58,13 +93,20 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
         gl.deleteSync(sync);
         sync = null;
       }
+      if (rowsDone < rows) {
+        gl.bindTexture(gl.TEXTURE_2D, params);
+        const end = Math.min(rows, rowsDone + HEART_BEAT_ROWS);
+        for (let f = rowsDone; f < end; f++) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, f, c.paramTexels, 1, gl.RGBA, gl.FLOAT, c.paramsAt(f));
+        rowsDone = end;
+        return false;
+      }
       if (!program) {
         if (!link!.ready()) return false;
         const l = link!;
         link = null;
         program = l.finish();
       }
-      if (next >= nz) return true;
+      if (next >= last) return true;
       program.use();
       program.tex('uHeartTex', 0, params);
       gl.activeTexture(gl.TEXTURE1);
@@ -73,10 +115,11 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
       gl.viewport(0, 0, nx, ny);
       gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
-      const end = Math.min(nz, next + HEART_BAKE_LAYERS);
+      const end = Math.min(last, next + (beat ? HEART_BEAT_LAYERS : HEART_BAKE_LAYERS));
       for (let k = next; k < end; k++) {
         gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, volume, 0, k);
-        if (k === 0 && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('heartBake: FBO incompleto');
+        if (k === (beat ? beat.k0 : 0) && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE)
+          throw new Error('heartBake: FBO incompleto');
         program.i('uLayer', k);
         drawFullscreen(gl);
       }
@@ -94,7 +137,7 @@ export function startHeartBake(gl: WebGL2RenderingContext, c: CardiacRuntime): H
       gl.deleteFramebuffer(fbo);
       gl.deleteTexture(params);
       gl.deleteTexture(noise);
-      if (dropVolume) gl.deleteTexture(volume);
+      if (dropVolume && !beat) gl.deleteTexture(volume);
     },
   };
 }

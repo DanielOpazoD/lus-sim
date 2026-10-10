@@ -2,14 +2,15 @@ import type { CardiacCase } from './schema';
 
 /**
  * Caso 1 de EchoTwin — adulto normal, ventana excelente, sinusal 65 lpm (lus-sim, decisión 49; adaptado de EchoTwin,
- * `src/cases/normal-excellent.ts`, origen y commit en docs/PROVENANCE.md). Solo la anatomía y la fisiología que el corazón
- * lee, con los valores por omisión que ponía Zod ya escritos (`septalFlattening`, `prolapse`, `pulmonaryArtery`,
- * `tamponade`, `myocardialBackscatterDb`); el resto del caso (ritmo, hemodinámica, ventana, vistas, objetivos) es de la
- * ecocardiografía y no se porta. Paciente sintético: sin datos reales.
+ * `src/cases/normal-excellent.ts`, origen y commit en docs/PROVENANCE.md). Solo el ritmo, la anatomía, la fisiología y la
+ * hemodinámica que el corazón y su latido leen, con los valores por omisión que ponía Zod ya escritos (`septalFlattening`,
+ * `prolapse`, `pulmonaryArtery`, `tamponade`, `myocardialBackscatterDb`, `lvotPeakGradientMmHg`); el resto del caso (ventana,
+ * vistas, objetivos) es de la ecocardiografía y no se porta. Paciente sintético: sin datos reales.
  */
 export const normalExcellentCase: CardiacCase = {
   id: 'normal-excellent-window',
   seed: 101,
+  rhythm: { type: 'sinus', heartRateBpm: 65, rrVariabilityPct: 2, pvcProbability: 0 },
   anatomy: {
     lv: {
       eddCm: 4.8,
@@ -68,5 +69,15 @@ export const normalExcellentCase: CardiacCase = {
     ePrimeLateralCmps: 14,
     sPrimeTricuspidCmps: 13,
     contractility: 1,
+  },
+  hemodynamics: {
+    systolicBpMmHg: 120,
+    diastolicBpMmHg: 75,
+    rapMmHg: 3,
+    paspMmHg: 25,
+    avEffectiveAreaCm2: 3.0,
+    trPresent: true,
+    lvotPeakGradientMmHg: 0,
+    regurgitation: {},
   },
 };

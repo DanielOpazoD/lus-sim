@@ -12,3 +12,4 @@ docs/reference-bank/reference-stats.json
 # corazón portado de EchoTwin (decisión 49): conserva el formato de su origen (docs/PROVENANCE.md); el puente propio sí se formatea
 src/anatomy/heart/**
 !src/anatomy/heart/cardiac.ts
+src/physiology/heart/**

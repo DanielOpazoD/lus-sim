@@ -84,14 +84,38 @@ conservan su identificador (decisiones 10 y 11).
   serrato o el dorsal, sin el plano pectoral mayor/menor ni fascias entre ellos) y la banda intercostal como músculo; las
   texturas, retrodispersiones y rugosidades de sus caras son [ESTIMADO] de VExUS. Bajo el reborde costal, la pared de tres
   músculos del abdomen de VExUS.
-- **El corazón es el de EchoTwin, estático en telediástole** (`heart-simplified`, decisiones 18 y 49): el del caso normal de
+- **El corazón es el de EchoTwin, con su latido** (`heart-simplified`, decisiones 18, 49 y 53): el del caso normal de
   EchoTwin (`echotwin-tte@c15aec7`, sus cuatro cavidades, paredes, válvulas, raíz aórtica, tronco pulmonar, venas y pericardio),
   con el eje de Engblom, su ápex donde lo pone Gray (5.º EIC, ≈ 8 cm de la línea media, por dentro de la pleura: la língula) y su
   pericardio contra la pleura en la ventana cardiaca (regla de Latham: 5 cm centrado a 47,5 mm de la línea media en el 5.º EIC),
   con un tapón de grasa de hasta ≈ 10,8 mm donde el corazón se aleja de la pared bajo el disco. Lo que falta:
-  - **No late** (la fase 2, con el reloj único y el pulso pulmonar del mismo volumen): está en el comienzo del QRS de su latido
-    de 65 lpm; su latido solo mueve el pulmón de alrededor (el pulso pulmonar, decisión 32, que sigue a la cara del elipsoide de
-    la decisión 18, no a la del corazón) y no el corazón en la ventana, ni el borde del pulmón ni el de la ventana.
+  - **Late en una línea de tiempo por vóxel** (decisión 53): el clasificador de EchoTwin en 16 fases de su latido, con el cambio
+    de tejido afinado a 1/256 de latido y cinco cambios por vóxel; en lo que se mueve, el vóxel da lo que el clasificador en
+    su centro en el 98,7 % de las fases (medido en 600 vóxeles y 64 fases), y pierde los cambios más cortos que 1/16 de latido
+    (la pared que va y vuelve en el llenado rápido). Lo que el corazón deja al latir es grasa (en la telesístole, ≈ 17 mm bajo
+    la ventana entre el tapón y el pericardio). El latido es el de referencia (65 lpm) llevado a cada latido del reloj por
+    tramos: con otra FC cambia la duración de cada tramo, no la forma. El pulso pulmonar sigue a la cara del elipsoide de la
+    decisión 18 (con la curva de volumen del corazón), no a la del corazón; el borde del pulmón y la ventana no se mueven.
+  - **El latido sin contracción auricular (FA) es la curva de EchoTwin sin la onda A, no un latido de FA de EchoTwin**
+    (decisión 53): la línea de tiempo horneada es la del latido sinusal, así que la pose sale de la de la fase donde se alcanza
+    la fracción expulsada, y al empezar la eyección salta de la pose del inicio de la onda A a la de esa fase (la válvula
+    aórtica ya abierta, la mitral cerrada): un cuadro por latido; la fracción expulsada y el pulso pulmonar son continuos. Con una
+    amplitud auricular entre 0 y 1 la onda A es la entera. Al pasar de sinusal a FA, o al revés, el cambio entra con la R siguiente
+    y la fracción expulsada salta ≈ 0,26 una vez.
+  - **El pulso pulmonar da un salto único al llegar el chunk del corazón**: hasta entonces sigue la curva de la decisión 32
+    (`ventricle.ts`), y al registrar el latido de EchoTwin pasa a la de su volumen del VI; la diferencia entre las dos curvas es
+    de hasta 0,60 de la fracción expulsada (a 0,74 s, a 65 lpm). Ocurre una vez por sesión, al cargarse el chunk (después del primer cuadro).
+  - **El volumen es mixto mientras se hornea el latido** (decisión 53): el horneado reescribe el volumen capa a capa, y las capas
+    que ya tienen su línea de tiempo llevan distancia a la frontera 0 en los vóxeles que se mueven (la frontera se mueve), las
+    demás la de telediástole. La imagen lee la fase 0 hasta que el latido entra en la escena, y entonces todas tienen su línea de
+    tiempo; durante esos 6–17 s la distancia a la frontera que lee la imagen es la mezcla de las dos.
+  - **El volumen del corazón (RGBA16UI, 78 MB) se reserva también sin latido**: con GL por software (SwiftShader), donde el latido
+    nunca se hornea, bastarían 19 MB (RG8UI, como en la fase 1), pero las pruebas de la e2e escriben capas con las palabras
+    completas (`writeHeartLayers`) y comparten el formato. Si la GPU no tiene memoria para el volumen, el horneado falla y el
+    corazón sale de la escena (se informa una vez).
+  - **Sin GPU no late**: con GL por software (SwiftShader) el horneado del latido tardaría de 16 a 80 veces el de telediástole (17
+    a 48 s en el CI): el corazón queda en telediástole. Con GPU, el latido se hornea en segundo plano (6–17 s con el M4) y
+    late cuando termina; hasta entonces, quieto.
   - **No respira**: el elipsoide con su tapón y una esfera que cubre la base (78 mm de radio, rampa de 50 mm [SUPUESTO]) no se
     mueven con el campo respiratorio; el pulmón junto a la base tampoco. La ventana no se achica al inspirar.
   - **La cúpula de lus-sim lo corta**: ≈ 70 mL de lo que EchoTwin pone bajo el corazón (la cara inferior de los ventrículos y la
