@@ -242,10 +242,10 @@ la salida actual no protege nada.
 - **La medida** (`src/measure/lungPulse.ts`, `lungPulseMeasure.test.ts`): F-T10, `rowLagCorrelation` (la correlación por fila
   con retardo) y `decorrelationOnsetMm` (la primera profundidad donde baja de 0,5 y se queda) sobre una franja sintética con la
   pared quieta y la arena que se desliza: la pared a 1, la arena bajo 0,5 y el inicio en la primera fila que se mueve.
-- **La e2e** (`e2e/orilla.spec.ts`, banco `seashore`): en el PLAPS con respiración tranquila, 5 columnas por cuadro, paso mediano
-  ≤ 12 ms, la pared correlaciona más que el pulmón y la decorrelación empieza 1–3 mm bajo la pleura de A0 (F-T10 pide ±1 mm:
-  la guarda fija el estado y falla cuando se cumpla); en apnea, la estratósfera. En `mmode.spec.ts`, en vivo, al menos dos
-  columnas por cuadro.
+- **La e2e** (`e2e/orilla.spec.ts`, banco `seashore`): en el PLAPS con respiración tranquila, 24 cuadros a 1/8 s (120 columnas,
+  lo que el CI con SwiftShader paga), 5 columnas por cuadro, paso mediano ≤ 30 ms, la pared correlaciona más que el pulmón y la
+  decorrelación empieza 1–3 mm bajo la pleura de A0 (F-T10 pide ±1 mm: la guarda fija el estado y falla cuando se cumpla). La
+  estratósfera en apnea, en `pulso.spec.ts`. En `mmode.spec.ts`, en vivo, al menos dos columnas por cuadro.
 
 ## Banco de fidelidad (decisión 21)
 

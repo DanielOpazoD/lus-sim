@@ -28,30 +28,27 @@ async function boot(page: Page): Promise<string[]> {
 test('modo M a la cadencia del reloj: 5 columnas por cuadro y la orilla de mar empieza bajo la pleura (F-T10, estado)', async ({
   page,
 }) => {
-  test.setTimeout(420_000);
+  // en el CI (SwiftShader, 4 núcleos) cada cuadro del banco con sus 4 columnas cuesta ≥ 7 s: 60 cuadros pasaron de 7 min; 24 cuadros
+  // a 1/8 s (3 s de franja, 120 columnas) bastan para la cuenta con 1 s de retardo. La estratósfera en apnea la cubre `pulso.spec.ts`.
+  test.setTimeout(600_000);
   const errors = await boot(page);
   const t0 = Date.now();
-  const r = await page.evaluate(() => window.__lusTest!.seashore({ site: 'plaps', respiration: 'quiet', seconds: 3, lagS: 1 }));
+  const r = await page.evaluate(() =>
+    window.__lusTest!.seashore({ site: 'plaps', respiration: 'quiet', seconds: 3, frameIntervalS: 1 / 8, lagS: 1 }),
+  );
   console.log(`ORILLA plaps tranquila: ${((Date.now() - t0) / 1000).toFixed(1)} s ${JSON.stringify(r)}`);
   const tag = JSON.stringify(r);
-  expect(r.frames, tag).toBe(60);
+  expect(r.frames, tag).toBe(24);
   expect(r.columns, tag).toBe(5 * r.frames);
-  expect(r.medianStepS, tag).toBeLessThanOrEqual(0.012);
-  expect(r.columnsPerSecond, tag).toBeGreaterThan(90);
+  // 31 pasos del reloj por cuadro, 4 registrados: columnas cada ≈ 25 ms
+  expect(r.medianStepS, tag).toBeLessThanOrEqual(0.03);
+  expect(r.columnsPerSecond, tag).toBeGreaterThan(36);
   // con 1 s de retardo, la pared (que respira bajo la sonda) correlaciona bastante más que el pulmón que se desliza (GPU
-  // real: 0,73 frente a 0,27)
+  // real: 0,73 frente a 0,27 con 300 columnas)
   expect(r.wallCorrelation, tag).toBeGreaterThan(0.6);
   expect(r.lungCorrelation, tag).toBeLessThan(r.wallCorrelation - 0.3);
   // F-T10: la decorrelación empieza bajo la pleura, hoy 1–3 mm por debajo (GPU real: 1,22; la meta, ±1 mm, aún no se cumple)
   expect(r.onsetMinusPleuraMm, tag).toBeGreaterThan(1);
   expect(r.onsetMinusPleuraMm, tag).toBeLessThan(3);
-  // en apnea, la misma cuenta no encuentra arena (F-T11 a la cadencia del reloj): la estratósfera
-  const t1 = Date.now();
-  const a = await page.evaluate(() => window.__lusTest!.seashore({ site: 'plaps', respiration: 'apnea-expiratory', seconds: 3, lagS: 1 }));
-  console.log(`ORILLA plaps apnea: ${((Date.now() - t1) / 1000).toFixed(1)} s ${JSON.stringify(a)}`);
-  const tagA = JSON.stringify(a);
-  expect(a.lungCorrelation, tagA).toBeGreaterThanOrEqual(0.95);
-  expect(a.wallCorrelation, tagA).toBeGreaterThanOrEqual(0.95);
-  expect(Number.isFinite(a.onsetMm), tagA).toBe(false);
   expect(errors).toEqual([]);
 });
