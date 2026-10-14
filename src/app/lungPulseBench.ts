@@ -4,7 +4,7 @@ import { wallArc } from '../anatomy/organs/wall';
 import { torsoSkinPoint } from '../anatomy/primitives';
 import { Tissue } from '../anatomy/tissues';
 import type { Vec3 } from '../core/vec3';
-import { bandCorrelation, bandRows, bandSpectrum } from '../measure/lungPulse';
+import { bandCorrelation, bandRows, bandSpectrum, decorrelationOnsetMm, rowLagCorrelation } from '../measure/lungPulse';
 import type { RespiratoryPattern } from '../physiology/patientState';
 import { pointOnLine, type ProbePose } from '../probe/probe';
 import type { Simulator } from './simulator';
@@ -12,7 +12,7 @@ import { measurementViewPose, type MeasurementViewId } from './measurementViews'
 
 /**
  * El pulso pulmonar en la imagen (lus-sim, decisión 32; metas A-T16, S3 y F-T11): el modo M de la línea central, como lo
- * registra la interfaz (`renderer.mStrip`, la línea de la envolvente mostrada a la cadencia de B), a intervalos fijos del
+ * registra la interfaz (`renderer.mStrip`, la línea de la envolvente mostrada, aquí a la cadencia de los cuadros), a intervalos fijos del
  * reloj único, medido en la banda bajo la línea pleural con `src/measure/lungPulse.ts`. Y el gemelo: el pulso de la GLSL
  * (`queryPoints`) frente al de TS en el pulmón junto al corazón.
  */
@@ -72,7 +72,8 @@ export function lungPulseMMode(sim: Simulator, opts: LungPulseOptions): LungPuls
     const n = Math.round(seconds / dt);
     for (let i = 0; i < n; i++) {
       sim.advance(dt);
-      sim.render({ mline: 0 });
+      // a la cadencia de los cuadros (decisión 54): el espectro cuenta con columnas a intervalos iguales
+      sim.render({ mline: 0, mSubsteps: false });
     }
     const strip = sim.renderer.readMStrip();
     const h2 = sim.renderer.readPleuraHits();
@@ -141,4 +142,99 @@ export function lungPulseEquivalence(sim: Simulator): LungPulseEquivalence {
     maxDiffMm = Math.max(maxDiffMm, Math.hypot(gpu[i * 3] - cpu[0], gpu[i * 3 + 1] - cpu[1], gpu[i * 3 + 2] - cpu[2]));
   });
   return { points: pts.length, maxShiftMm, maxDiffMm };
+}
+
+export interface SeashoreOptions {
+  site: LungPulseSite;
+  respiration: RespiratoryPattern;
+  /** Segundos de franja (3 por omisión), intervalo de los cuadros (1/20 s por omisión) y retardo de la correlación (0,5 s). */
+  seconds?: number;
+  frameIntervalS?: number;
+  lagS?: number;
+}
+
+export interface SeashoreReport {
+  site: LungPulseSite;
+  respiration: RespiratoryPattern;
+  /** Fase respiratoria (0–1) de la primera columna: el inicio de la inspiración. */
+  phase0: number;
+  /** Profundidad de la pleura en la línea central (mm, A0). */
+  pleuraMm: number;
+  /** Columnas de la franja, cuadros dibujados y columnas por segundo de franja. */
+  columns: number;
+  frames: number;
+  columnsPerSecond: number;
+  /** Mediana del paso entre columnas (s). */
+  medianStepS: number;
+  /** F-T10: profundidad a la que empieza la decorrelación temporal (mm; NaN si no empieza) y su distancia a la pleura. */
+  onsetMm: number;
+  onsetMinusPleuraMm: number;
+  /** Correlación media con el retardo en la pared (2–7 mm sobre la pleura) y bajo la pleura (1–6 mm). */
+  wallCorrelation: number;
+  lungCorrelation: number;
+}
+
+/**
+ * La orilla de mar en el modo M como lo registra la interfaz (decisión 54, meta F-T10): la franja de la línea central a la
+ * cadencia del reloj (las columnas intermedias de cada cuadro), con la respiración pedida, y sobre ella la profundidad a
+ * la que empieza la decorrelación temporal frente a la pleura de A0.
+ */
+export function seashoreMMode(sim: Simulator, opts: SeashoreOptions): SeashoreReport {
+  const seconds = opts.seconds ?? 3;
+  const dt = opts.frameIntervalS ?? 1 / 20;
+  const lagS = opts.lagS ?? 0.5;
+  const pattern = sim.patient.respiratoryPattern;
+  try {
+    sim.patient.respiratoryPattern = opts.respiration;
+    sim.setPose(poseOf(sim, opts.site));
+    sim.advance(1);
+    // la franja empieza al inicio de la inspiración: la fase respiratoria la fija el tiempo del reloj, que al llegar aquí
+    // depende de lo que tardó el arranque; sin esto, el inicio de la decorrelación cambiaba de una corrida a otra (en el CI,
+    // 2,3 mm por encima de la pleura con la pared en pleno movimiento, 1,7 por debajo en la corrida anterior)
+    for (let k = 0, prev = sim.sample.resp.phase; k < 5000; k++) {
+      sim.advance(0.004);
+      const phase = sim.sample.resp.phase;
+      if (phase < prev) break;
+      prev = phase;
+    }
+    const phase0 = sim.sample.resp.phase;
+    sim.render({ mline: 0 });
+    sim.renderer.mStrip.clear();
+    const n = Math.round(seconds / dt);
+    for (let i = 0; i < n; i++) {
+      sim.advance(dt);
+      sim.render({ mline: 0 });
+    }
+    const strip = sim.renderer.readMStrip();
+    const h2 = sim.renderer.readPleuraHits();
+    const lines = h2.length / 4;
+    const a = h2[(lines / 2 - 1) * 4];
+    const b = h2[(lines / 2) * 4];
+    if (!(a > 0 && b > 0)) throw new Error(`orilla de mar en ${opts.site}: sin pleura en la línea central`);
+    const pleuraMm = 0.5 * (a + b);
+    const corr = rowLagCorrelation(strip.columns, strip.times, lagS);
+    const onsetMm = decorrelationOnsetMm(corr, strip.depthMm);
+    const mean = (rows: number[]) => rows.reduce((acc, r) => acc + corr[r], 0) / rows.length;
+    const steps = strip.times
+      .slice(1)
+      .map((t, i) => t - strip.times[i])
+      .sort((x, y) => x - y);
+    const span = strip.times[strip.times.length - 1] - strip.times[0];
+    return {
+      site: opts.site,
+      respiration: opts.respiration,
+      phase0,
+      pleuraMm,
+      columns: strip.columns.length,
+      frames: n,
+      columnsPerSecond: span > 0 ? (strip.columns.length - 1) / span : 0,
+      medianStepS: steps.length ? steps[Math.floor(steps.length / 2)] : Number.NaN,
+      onsetMm,
+      onsetMinusPleuraMm: onsetMm - pleuraMm,
+      wallCorrelation: mean(bandRows(pleuraMm, -7, -2, strip.samples, strip.depthMm)),
+      lungCorrelation: mean(bandRows(pleuraMm, 1, 6, strip.samples, strip.depthMm)),
+    };
+  } finally {
+    sim.patient.respiratoryPattern = pattern;
+  }
 }

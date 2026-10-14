@@ -186,6 +186,12 @@ export interface FrameInputs {
   seed: number;
   /** Modo M (decisión 80): ángulo de la línea M, que el cuadro copia a la franja; sin él, nada. */
   mline?: number;
+  /**
+   * Modo M a la cadencia del reloj (decisión 54): los instantes de la fisiología entre el cuadro anterior y este (t < el de
+   * `sample`, en orden). Para cada uno, las pasadas B–K se repiten solo en la banda de la línea M y la franja recibe su
+   * columna; la transmisión (A0–A) es la del cuadro. Sin `mline`, se ignoran.
+   */
+  mSamples?: readonly PhysiologySample[];
 }
 
 /**
@@ -371,6 +377,10 @@ export class UltrasoundRenderer {
   private readonly k2: number;
   /** Ancla del medio de dispersores (decisión 55): fija con la sonda, se renueva con giros grandes. */
   private readonly speckleAnchor = new ElevationAnchor();
+  /** El ancla del moteado de este cuadro (decisión 54): una por cuadro, compartida por B y por las columnas M. */
+  private frameAnchor: ReturnType<ElevationAnchor['update']> | null = null;
+  /** Fracción de cuadro del paso intermedio que se dibuja (0 en las pasadas del cuadro): sal del ruido del receptor. */
+  private substepSalt = 0;
   private lastAnchorWeight = 1;
   /** Peso del fundido del ancla en el último cuadro (1 fuera del fundido). Solo pruebas. */
   get speckleAnchorWeight(): number {
@@ -951,13 +961,58 @@ export class UltrasoundRenderer {
     // los destinos de prueba se crean antes de las pasadas: crear una textura cambia la de la unidad activa,
     // que la pasada ya habría dejado puesta para sus repeticiones
     const rep = repeat === undefined ? null : { ...repeat, targets: this.ensureRepeatTargets(repeat.pass) };
+    // el ancla del moteado avanza una vez por cuadro (su fundido cuenta cuadros): las columnas M del cuadro la comparten
+    this.frameAnchor = this.speckleAnchor.update(inputs.frame.face, inputs.frame.elevation);
+    this.lastAnchorWeight = this.frameAnchor.w;
     for (const pass of FRAME_PASSES) {
+      // decisión 54: con la transmisión del cuadro ya dibujada, las columnas M de los instantes intermedios, antes de que
+      // las pasadas del cuadro dejen las texturas con su instante
+      if (pass.id === 'rawField') this.mSubsteps(inputs);
       this.timer.begin(pass.id);
       this.passes[pass.id](inputs);
       if (rep !== null && rep.pass === pass.id) this.drawRepeats(pass.id, rep.targets, rep.times);
       this.timer.end();
     }
     this.afterFrame(inputs);
+  }
+
+  /**
+   * Modo M a la cadencia del reloj (decisión 54): para cada instante intermedio del cuadro, las pasadas B, C, D y K solo en
+   * la banda de líneas que la línea M necesita (su PSF lateral llega a ± `CLUTTER.lateralMaxLines`), con la escena de ese
+   * instante y la transmisión del cuadro (la pared se mueve < 0,1 mm en 16 ms: menos que una muestra axial), y la copia de
+   * su columna a la franja. Las texturas quedan escritas en la banda con el último instante; las pasadas del cuadro, que
+   * siguen, las vuelven a escribir enteras.
+   */
+  private mSubsteps(inputs: FrameInputs): void {
+    const theta = inputs.mline;
+    const samples = inputs.mSamples;
+    if (theta === undefined || !samples || samples.length === 0) return;
+    const gl = this.gl;
+    const u = mLineU(theta, inputs.transducer.halfSector);
+    const center = Math.round(u * (this.lines - 1));
+    const R = CLUTTER.lateralMaxLines;
+    const x0 = Math.max(0, center - R);
+    const x1 = Math.min(this.lines - 1, center + R);
+    gl.enable(gl.SCISSOR_TEST);
+    try {
+      samples.forEach((sample, k) => {
+        if (!(sample.t < inputs.sample.t)) return;
+        this.substepSalt = (k + 1) / (samples.length + 1);
+        const at: FrameInputs = { ...inputs, sample };
+        gl.scissor(x0, 0, x1 - x0 + 1, FINE_DEPTH);
+        this.passRawField(at);
+        this.passAxial(at);
+        gl.scissor(center, 0, 1, FINE_DEPTH);
+        this.passLateral(at);
+        this.passCompound(at);
+        gl.disable(gl.SCISSOR_TEST);
+        this.mCapture(at, theta);
+        gl.enable(gl.SCISSOR_TEST);
+      });
+    } finally {
+      this.substepSalt = 0;
+      gl.disable(gl.SCISSOR_TEST);
+    }
   }
 
   /**
@@ -1039,6 +1094,11 @@ export class UltrasoundRenderer {
   }
 
   /** Cuadros del cine guardados (decisión 80). */
+  /** Cuadros dibujados desde el arranque (solo lectura; la e2e de la cadencia del modo M, decisión 54). */
+  get framesDrawn(): number {
+    return this.frameCount;
+  }
+
   get cineCount(): number {
     return this.cine.count;
   }
@@ -1383,9 +1443,9 @@ export class UltrasoundRenderer {
     p.f('uNoise', RECEIVER_NOISE * noiseGain(inputs.bmode.harmonic));
     p.f('uTransientGain', transientGain(inputs.bmode.harmonic));
     p.v2('uHarmonicNear', ...harmonicNearUniform(inputs.bmode.harmonic));
-    p.f('uFrame', this.frameCount);
-    const an = this.speckleAnchor.update(inputs.frame.face, inputs.frame.elevation);
-    this.lastAnchorWeight = an.w;
+    // el ruido del receptor es nuevo en cada columna M del cuadro (decisión 54): la sal del paso intermedio
+    p.f('uFrame', this.frameCount + this.substepSalt);
+    const an = this.frameAnchor ?? this.speckleAnchor.update(inputs.frame.face, inputs.frame.elevation);
     p.v3('uAnchorE0', an.a.e);
     p.v3('uAnchorP0', an.a.p);
     p.v3('uAnchorE1', an.b.e);

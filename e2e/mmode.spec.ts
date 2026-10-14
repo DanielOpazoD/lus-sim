@@ -35,7 +35,28 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   });
   await page.getByRole('button', { name: 'Modo B + M', exact: true }).click();
   await acquired(page);
-  await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia de B. Congela para revisar con el cine.');
+  await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia del reloj. Congela para revisar con el cine.');
+  // decisión 54: entre dos cuadros la franja recibe las columnas de los pasos del reloj que caben en el tiempo del cuadro
+  // (`mSubstepBudget`): con GPU real (≥ 15 cuadros/s), al menos una más por cuadro; con SwiftShader, una por cuadro
+  // (se cuenta hasta tener 3 cuadros o 1,5 s con GPU real; con SwiftShader un cuadro B + M tarda segundos)
+  const cadence = await page.evaluate(
+    () =>
+      new Promise<{ frames: number; columns: number }>((resolve) => {
+        const s = window.__lusTest!.sim();
+        const f0 = s.renderer.framesDrawn;
+        const c0 = s.renderer.mStrip.count;
+        const t0 = performance.now();
+        const done = () => resolve({ frames: s.renderer.framesDrawn - f0, columns: s.renderer.mStrip.count - c0 });
+        const tick = () => {
+          const frames = s.renderer.framesDrawn - f0;
+          if ((frames >= 3 && performance.now() - t0 >= 1500) || performance.now() - t0 >= 90_000) done();
+          else setTimeout(tick, 100);
+        };
+        tick();
+      }),
+  );
+  expect(cadence.frames, JSON.stringify(cadence)).toBeGreaterThan(0);
+  expect(cadence.columns, JSON.stringify(cadence)).toBeGreaterThanOrEqual(cadence.frames * (cadence.frames >= 20 ? 2 : 1));
   await expect(page.locator('.mmode-fine')).not.toHaveAttribute('open');
   expect(await page.evaluate(() => ({ pose: window.__lusTest!.sim().pose, bmode: window.__lusTest!.sim().bmode }))).toEqual(initial);
   await page.locator('#freeze').click();
@@ -117,7 +138,7 @@ test('M móvil: seleccionar una línea no mueve la sonda; teclado, equipo y resp
     await expect(page.locator('#mmode-status')).toHaveText('Toca el sector para colocar la línea; Escape cancela.');
     await page.locator('#sector-wrap').press('Escape');
     await expect(page.locator('#mmode-place')).toBeFocused();
-    await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia de B. Congela para revisar con el cine.');
+    await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia del reloj. Congela para revisar con el cine.');
     await page.locator('#mmode-place').click();
     // Coordenada obtenida del marco real, no de una imagen o geometría paralela.
     const point = await page.evaluate(() => {

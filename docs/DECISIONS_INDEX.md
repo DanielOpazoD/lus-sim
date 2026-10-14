@@ -57,3 +57,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [51](DECISIONS.md#L4792) | Las líneas B emergen de las trampas subpleurales que abre el agua, y un detector las cuenta sobre la señal | vigente |
 | [52](DECISIONS.md#L4922) | Los protocolos de insuficiencia cardiaca con un mando hemodinámico: de la presión de llenado al agua, a la aireación y al puntaje medido | vigente |
 | [53](DECISIONS.md#L4995) | El latido del corazón de EchoTwin: una línea de tiempo por vóxel y el reloj único | vigente |
+| [54](DECISIONS.md#L5084) | El modo M a la cadencia del reloj: las columnas de los pasos entre cuadros, con las pasadas B–K en la banda de la línea M | vigente |

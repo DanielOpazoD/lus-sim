@@ -58,6 +58,63 @@ export function bandCorrelation(columns: readonly MColumn[], times: readonly num
   return min;
 }
 
+/**
+ * La orilla de mar (F-T10, decisión 54): por fila de la franja, la correlación de Pearson media entre pares de columnas
+ * separadas `lagS` (± medio paso de la franja) en el tiempo del gris de esa fila frente al de las filas vecinas (± `halfRows`,
+ * para que una fila sola, casi plana, no decida). Fila 0 = la cara. Sobre la pared, que no se mueve respecto de la sonda,
+ * la correlación es alta («líneas»); bajo la pleura, que se desliza, cae («arena»). Mide la señal, no el modelo: la misma
+ * cuenta sirve para el modo M de un clip real.
+ */
+export function rowLagCorrelation(columns: readonly MColumn[], times: readonly number[], lagS: number, halfRows = 2): number[] {
+  if (columns.length !== times.length) throw new RangeError('rowLagCorrelation: columnas e instantes de largo distinto');
+  if (columns.length < 2) throw new RangeError('rowLagCorrelation: menos de 2 columnas');
+  if (!(lagS > 0)) throw new RangeError('rowLagCorrelation: retardo no positivo');
+  const samples = columns[0].length;
+  // pares (i, j): j la primera columna a ≥ lagS de i
+  const pairs: [number, number][] = [];
+  let j = 0;
+  for (let i = 0; i < columns.length; i++) {
+    while (j < columns.length && times[j] - times[i] < lagS - 1e-9) j++;
+    if (j >= columns.length) break;
+    pairs.push([i, j]);
+  }
+  if (pairs.length === 0) throw new RangeError('rowLagCorrelation: la franja dura menos que el retardo');
+  const out = new Array<number>(samples).fill(0);
+  for (let r = 0; r < samples; r++) {
+    const r0 = Math.max(0, r - halfRows);
+    const r1 = Math.min(samples - 1, r + halfRows);
+    let acc = 0;
+    for (const [i, k] of pairs) {
+      const a: number[] = [];
+      const b: number[] = [];
+      for (let q = r0; q <= r1; q++) {
+        a.push(columns[i][q]);
+        b.push(columns[k][q]);
+      }
+      acc += pearson(a, b);
+    }
+    out[r] = acc / pairs.length;
+  }
+  return out;
+}
+
+/**
+ * Profundidad (mm) a la que empieza la decorrelación temporal (F-T10): la primera fila, desde la cara, cuya correlación
+ * (`rowLagCorrelation`) baja de `threshold` y se queda por debajo en las `run` filas siguientes; NaN si ninguna. Las filas
+ * por encima de `fromMm` (el transitorio de la cara) no cuentan.
+ */
+export function decorrelationOnsetMm(rowCorr: readonly number[], depthMm: number, threshold = 0.5, run = 3, fromMm = 2): number {
+  const n = rowCorr.length;
+  for (let r = 0; r + run <= n; r++) {
+    const d = ((r + 0.5) / n) * depthMm;
+    if (d < fromMm) continue;
+    let ok = true;
+    for (let k = 0; k < run && ok; k++) ok = rowCorr[r + k] < threshold;
+    if (ok) return d;
+  }
+  return Number.NaN;
+}
+
 export interface BandSpectrum {
   /** Frecuencias (Hz) de 1/T a la de Nyquist. */
   hz: number[];

@@ -55,7 +55,10 @@ Objetivos: O1, O3.
 - Modo M desde las mismas líneas del modo B y el mismo reloj: orilla de mar, código de barras,
   sinusoide. Cada columna se forma en su instante (tiempo por columna en la GPU), no desde una caché
   por fase cardíaca como en EchoTwin; partir del modo M de VExUS (su decisión 80, ya en el origen fijado:
-  decisión 11).
+  decisión 11). **Hecho en parte (decisión 54)**: la franja va a la cadencia del reloj (los pasos de 4 ms entre
+  cuadros, hasta 4 por cuadro, con las pasadas B–K en la banda de la línea M) y la orilla de mar se mide sobre la señal
+  (`seashore`, F-T10: la decorrelación empieza 1,2 mm bajo la pleura de A0 en el PLAPS; la meta pide ±1 mm). Pendiente:
+  la arena de la neblina (débil, `display-uncalibrated`) y la pared que respira bajo la sonda en la respiración profunda.
 - ts2glsl para la física escalar propia (decisión 8); desviaciones declaradas con línea base frente al
   banco de referencia.
 - Sonda lineal de alta frecuencia; preajuste pulmonar (foco en la pleura, armónicos y composición

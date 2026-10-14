@@ -44,6 +44,9 @@ import { fidelityBench, type FidelityBenchOptions, type FidelityBenchReport } fr
 import {
   lungPulseEquivalence,
   lungPulseMMode,
+  seashoreMMode,
+  type SeashoreOptions,
+  type SeashoreReport,
   type LungPulseEquivalence,
   type LungPulseOptions,
   type LungPulseReport,
@@ -128,6 +131,8 @@ export interface TestHooks {
    * intervalos fijos del reloj, medido en la banda bajo la pleura (S3 y F-T11). Ver `LungPulseReport`.
    */
   lungPulse: (opts: LungPulseOptions) => LungPulseReport;
+  /** La orilla de mar en el modo M a la cadencia del reloj (decisión 54, F-T10). */
+  seashore: (opts: SeashoreOptions) => SeashoreReport;
   /** Gemelo TS ↔ GLSL del pulso pulmonar en el pulmón junto al corazón, en la telesístole. */
   lungPulseEquivalence: () => LungPulseEquivalence;
   /**
@@ -505,6 +510,7 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       }
     },
     lungPulse: (opts) => withCompound(getSim(), dispatch, false, () => lungPulseMMode(getSim(), opts)),
+    seashore: (opts) => withCompound(getSim(), dispatch, false, () => seashoreMMode(getSim(), opts)),
     setLungGas: (gas) => setLungGas(getSim(), gas),
     bLineEquivalence: () => withCompound(getSim(), dispatch, false, () => bLineEquivalence(getSim())),
     bLineClip: (opts) => {

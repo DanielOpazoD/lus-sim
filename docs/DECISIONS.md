@@ -5080,3 +5080,78 @@ telediástole y entra en la escena al terminar; otra escena del mismo paciente l
 fase de referencia por tramos y la fracción expulsada de EchoTwin; sin contracción auricular (FA, o función auricular 0)
 `atrialContraction` es 0 en todo el latido, la fracción expulsada solo baja con el llenado rápido y se queda (en sinusal vuelve
 a 0 con la onda A) y es continua; las tres fallan sin `withoutAtrialKick`. e2e: la equivalencia del latido en cinco fases.
+
+## 54. El modo M a la cadencia del reloj: las columnas de los pasos entre cuadros, con las pasadas B–K en la banda de la línea M
+
+**Fecha.** 2026-10-14.
+
+**Contexto.** Auditoría de expertos del 2026-10-14 (objetivos O3 y O1; fase 2 de la hoja de ruta): la franja M copiaba una
+columna por cuadro del modo B (decisión 80 de VExUS, origen fijado en la decisión 11), así que su cadencia era la de los
+cuadros (≈ 60/s con GPU real, 2–10/s con SwiftShader) y cada columna cubría 3–4 píxeles del barrido de 4 s. La orilla de
+mar y la estratósfera (F-T10 y F-T11, `docs/knowledge/physics.md` §2.5) tenían la textura temporal del bucle de dibujo, no
+la del reloj único, y F-T10 no se medía. El reloj de la fisiología ya da un paso cada 4 ms (`SimulationClock`, 250 Hz) y
+guarda sus muestras (`PhysiologyEngine.samples`): los instantes intermedios existen, pero nadie los dibujaba.
+
+**Opciones.** (a) Un paso de M dedicado por instante con la cadena entera (A0–K) en el sector completo: ≈ 1 cuadro por
+columna, 5 cuadros por cuadro. (b) Las pasadas B–K solo en la banda de la línea M, con la transmisión (A0–A) del cuadro:
+la línea M necesita sus ± `CLUTTER.lateralMaxLines` (40) vecinas para la PSF lateral y el pedestal de lóbulos laterales
+(81 de 192 líneas); la pared se mueve < 0,1 mm en 16 ms (la excursión del campo respiratorio, ≈ 5 mm en ≈ 2 s), menos que una
+muestra axial (0,12 mm), así que la transmisión del cuadro sirve a sus instantes intermedios. (c) Interpolar columnas en
+la franja: dibuja lo que el reloj no calculó; se rechaza por la regla de la guía (nada se pinta).
+
+**Decisión.** (b), `src/ultrasound/renderer.ts` (`mSubsteps`), `src/ultrasound/mmode.ts` (`mSubstepSamples`,
+`M_SUBSTEPS_MAX`, `M_COLUMNS`), `src/app/simulator.ts` (`RenderMeasureOptions.mSubsteps`, `lastRenderT`).
+
+- `Simulator.render` entrega al renderizador, con la línea M, las muestras de la fisiología entre el cuadro anterior y este
+  (`FrameInputs.mSamples`): como mucho `M_SUBSTEPS_MAX` = 4 por cuadro, repartidas por igual (a 60 cuadros/s, los 4 pasos
+  de cada cuadro: 250 columnas/s, la cadencia del reloj; con menos cuadros, 5 columnas por cuadro). El tope es de presupuesto,
+  no un número físico: ningún número nuevo con fuente.
+- En `render`, tras A0–A y antes de la B del cuadro, para cada instante: B, C en la banda [línea M ± 40] con tijera
+  (`gl.scissor`), D y K en la sola línea M, la copia de su columna a la franja (`mCapture`) con el instante de la muestra, y
+  la escena de ese instante (`setSceneUniforms` evalúa los uniforms de la anatomía por muestra). Las pasadas del cuadro, que
+  siguen, vuelven a escribir las texturas enteras: el cine, la composición y la pantalla no ven los pasos intermedios.
+- El ancla del moteado (`ElevationAnchor.update`, con un fundido que cuenta cuadros) se evalúa una vez por cuadro
+  (`frameAnchor`) y la comparten la B del cuadro y las de los pasos. El ruido del receptor es nuevo en cada columna
+  (`substepSalt` en `uFrame`).
+- El anillo de la franja pasa de 2048 a 4096 columnas (2 MB en R8): 16 s a 250 columnas/s, más que el barrido de 8 s.
+- El bucle principal pasa el presupuesto del cuadro real (`mSubstepBudget`): el tope con ≥ 15 cuadros/s, 2 hasta 5 cuadros/s y
+  ninguna columna intermedia con menos (SwiftShader en el CI, 0,3–3 s por cuadro: con los pasos cada cuadro B + M costaba 2,6
+  veces más, la e2e del modo M móvil pasaba su plazo de 15 s para el texto del estado y el fragmento, los 25 min). Los bancos
+  (`seashore`) piden su tope y los que cuentan columnas a intervalos iguales (`lungPulseMMode`: el espectro del pulso),
+  `mSubsteps: false`.
+- La medida de la orilla de mar sobre la señal (`src/measure/lungPulse.ts`): `rowLagCorrelation`, la correlación de Pearson
+  por fila (± 2 filas vecinas) entre columnas separadas un retardo; `decorrelationOnsetMm`, la primera profundidad desde la
+  cara donde baja de 0,5 y se queda 3 filas. El banco `seashoreMMode` (`lungPulseBench.ts`, gancho `seashore`) la aplica a la
+  franja de la línea central a la cadencia del reloj frente a la pleura de A0.
+
+**Consecuencias.**
+
+- La franja tiene una columna por píxel o más en los dos barridos (4 y 8 s) con GPU real; la textura temporal bajo la
+  pleura es la del reloj.
+- Costo con GPU real (M4, Metal, el preajuste, 12 cm): 60 → 44 cuadros/s con la línea M (≈ +36 % de cuadro). Con SwiftShader
+  son 4 columnas más por cuadro con el mismo costo relativo. Si pesa en una GPU débil, el tope `M_SUBSTEPS_MAX` es el mando.
+- Lo medido (GPU real, `seashore`, 3 s a 20 cuadros/s = 300 columnas, paso mediano 8 ms):
+  - PLAPS, respiración tranquila, retardo 1 s: la pared (2–7 mm sobre la pleura) correlaciona 0,73 y el pulmón (1–6 mm bajo
+    ella) 0,27; la decorrelación empieza 1,22 mm bajo la pleura de A0 (con 0,5 s de retardo: 0,88 / 0,55 y 1,45 mm). F-T10
+    pide ±1 mm: **aún no se cumple**. Lo que falta: la línea pleural, que no se desliza, ocupa el primer milímetro, y la arena de
+    la neblina es débil (la neblina del simulador queda 9–13 dB bajo la pared, decisiones 38 y 41, `display-uncalibrated`): en
+    la franja dominan bajo la pleura las réplicas quietas de la pared, no la arena.
+  - BLUE superior y BLUE inferior, tranquila, 0,5 s: 0,93 / 0,78 y 0,93 / 0,72; el inicio, 6,5 y 4,5 mm bajo la pleura. El
+    deslizamiento anterior es menor (D8) y la arena, más débil aún.
+  - BLUE superior, respiración profunda, 0,5 s: la pared también se decorrela (0,39): la pared viva (decisión 39) mueve la
+    pared bajo la sonda más que las ± 2 filas de la medida (0,23 mm por fila). En un paciente real el ecografista sigue la
+    pared con la sonda; el simulador no lo modela.
+  - PLAPS en apnea espiratoria: 0,98 / 0,99 y sin inicio: la estratósfera (F-T11, a la cadencia del reloj).
+  - Con SwiftShader (el CI): PLAPS tranquila a 1 s, 0,74 / 0,39 y el inicio 1,72 mm bajo la pleura; apnea, 0,99 / 0,99 sin
+    inicio. La e2e tarda 3,7 min (56 s por banco de 60 cuadros).
+- El texto de la ayuda del modo M y `docs/MMODE.md` dejan de decir «a la cadencia de B».
+
+**Verificación.** `mSubsteps.test.ts` (las muestras entre cuadros, el tope, el orden, la capacidad del anillo);
+`lungPulseMeasure.test.ts` (la correlación por fila y el inicio de la decorrelación sobre una franja sintética con la pared
+quieta y la arena que se desliza; las guardas); `mModeAcquisition.test.ts` y `lungPulseMeasure.test.ts` siguen.
+e2e: `mmode.spec.ts`, al menos dos columnas por cuadro en vivo; `orilla.spec.ts`, el banco en el PLAPS (la franja empieza al
+inicio de la inspiración, `phase0`: la fase la fija el reloj y el arranque la movía de una corrida a otra) con 24 cuadros a 1/8 s
+(120 columnas; en el CI con SwiftShader cada cuadro con sus 4 columnas cuesta ≥ 7 s y 60 cuadros pasaron de 7 min): 5 columnas
+por cuadro, paso mediano ≤ 30 ms, pared > 0,6 y pulmón < pared − 0,3 (GPU real: 0,82–0,85 / 0,32), el inicio 1–3 mm bajo la
+pleura (1,33–1,35, igual de una corrida a otra; la guarda del estado: falla cuando F-T10 se cumpla, para registrarlo). La estratósfera en apnea la cubre `pulso.spec.ts`. Sin los pasos intermedios
+(`mSubsteps: false`) la e2e falla en el número de columnas (comprobado al escribirla).

@@ -8,7 +8,7 @@ conservan su identificador (decisiones 10 y 11).
 ## Estado del proyecto
 
 - **Adquisición normal, alcance docente inicial** (`normal-acquisition-only`, decisión 23): modo B con un adulto
-  sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a cadencia de B y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
+  sintético, navegador torácico 3D y cine con pose y respiración históricas. Con línea M a la cadencia del reloj (decisión 54: hasta 250 columnas/s, no la frecuencia de repetición de pulsos de un ecógrafo) y calibre manual (`docs/MMODE.md`, `docs/REVIEW.md`);
   sin casos patológicos ni modo docente/examen. Los puntos de partida (desde la decisión 42, los cuatro de la regla de las manos
   —BLUE superior, BLUE inferior, frénico y PLAPS— y los tres paravertebrales, en los dos hemitórax) se sitúan con las manos del
   avatar promedio: no siguen a las variantes de hábito, sexo o edad, son el sitio donde empezar y no una garantía de obtener la
