@@ -126,6 +126,11 @@ export class MModeView {
     );
   }
 
+  /** El estado al congelar o reanudar, en el acto: con la GPU por software el cuadro siguiente puede tardar segundos. */
+  refresh(): void {
+    if (this.enabled) this.syncStatus();
+  }
+
   private locked(): boolean {
     return this.getSim().frozen || this.lost;
   }

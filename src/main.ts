@@ -232,6 +232,10 @@ const cine = bindCine({
 store.subscribe((st, prev) => {
   if (st.frozen !== prev.frozen) {
     sim().frozen = st.frozen;
+    // en el acto, sin esperar al cuadro siguiente (con la GPU por software tarda segundos): el estado del modo M y los mandos
+    // del navegador
+    mMode.refresh();
+    navigator3D?.sync();
     app.classList.toggle('frozen', st.frozen);
     setPressed(freezeBtn, st.frozen);
     liveChip.textContent = st.frozen ? 'Congelada' : 'En vivo';
