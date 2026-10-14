@@ -38,13 +38,21 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia del reloj. Congela para revisar con el cine.');
   // decisión 54: entre dos cuadros la franja recibe las columnas de los pasos del reloj que caben en el tiempo del cuadro
   // (`mSubstepBudget`): con GPU real (≥ 15 cuadros/s), al menos una más por cuadro; con SwiftShader, una por cuadro
+  // (se cuenta hasta tener 3 cuadros o 1,5 s con GPU real; con SwiftShader un cuadro B + M tarda segundos)
   const cadence = await page.evaluate(
     () =>
       new Promise<{ frames: number; columns: number }>((resolve) => {
         const s = window.__lusTest!.sim();
         const f0 = s.renderer.framesDrawn;
         const c0 = s.renderer.mStrip.count;
-        setTimeout(() => resolve({ frames: s.renderer.framesDrawn - f0, columns: s.renderer.mStrip.count - c0 }), 1500);
+        const t0 = performance.now();
+        const done = () => resolve({ frames: s.renderer.framesDrawn - f0, columns: s.renderer.mStrip.count - c0 });
+        const tick = () => {
+          const frames = s.renderer.framesDrawn - f0;
+          if ((frames >= 3 && performance.now() - t0 >= 1500) || performance.now() - t0 >= 90_000) done();
+          else setTimeout(tick, 100);
+        };
+        tick();
       }),
   );
   expect(cadence.frames, JSON.stringify(cadence)).toBeGreaterThan(0);
