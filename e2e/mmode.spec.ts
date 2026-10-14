@@ -36,7 +36,8 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
   await page.getByRole('button', { name: 'Modo B + M', exact: true }).click();
   await acquired(page);
   await expect(page.locator('#mmode-status')).toHaveText('M a la cadencia del reloj. Congela para revisar con el cine.');
-  // decisión 54: entre dos cuadros la franja recibe las columnas de los pasos del reloj (al menos una más por cuadro)
+  // decisión 54: entre dos cuadros la franja recibe las columnas de los pasos del reloj que caben en el tiempo del cuadro
+  // (`mSubstepBudget`): con GPU real (≥ 15 cuadros/s), al menos una más por cuadro; con SwiftShader, una por cuadro
   const cadence = await page.evaluate(
     () =>
       new Promise<{ frames: number; columns: number }>((resolve) => {
@@ -47,7 +48,7 @@ test('B + M: señal visible, B restaurado, reloj congelado y cine sin historia i
       }),
   );
   expect(cadence.frames, JSON.stringify(cadence)).toBeGreaterThan(0);
-  expect(cadence.columns, JSON.stringify(cadence)).toBeGreaterThanOrEqual(2 * cadence.frames);
+  expect(cadence.columns, JSON.stringify(cadence)).toBeGreaterThanOrEqual(cadence.frames * (cadence.frames >= 20 ? 2 : 1));
   await expect(page.locator('.mmode-fine')).not.toHaveAttribute('open');
   expect(await page.evaluate(() => ({ pose: window.__lusTest!.sim().pose, bmode: window.__lusTest!.sim().bmode }))).toEqual(initial);
   await page.locator('#freeze').click();

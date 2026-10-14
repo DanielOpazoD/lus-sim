@@ -17,6 +17,18 @@ export const M_COLUMNS = 4096;
 export const M_SUBSTEPS_MAX = 4;
 
 /**
+ * Columnas intermedias que caben en un cuadro según lo que tarda el cuadro real (s; decisión 54): el tope con ≥ 15 cuadros/s
+ * (GPU real), 2 hasta 5 cuadros/s y ninguna con menos (SwiftShader en el CI: 0,3–3 s por cuadro; con los pasos, cada cuadro
+ * B + M costaba 2,6 veces más y la e2e del modo M móvil pasaba su plazo). Los bancos no pasan por aquí: piden su tope.
+ */
+export function mSubstepBudget(frameSeconds: number): number {
+  if (!(frameSeconds > 0)) return M_SUBSTEPS_MAX;
+  if (frameSeconds <= 1 / 15) return M_SUBSTEPS_MAX;
+  if (frameSeconds <= 1 / 5) return Math.min(2, M_SUBSTEPS_MAX);
+  return 0;
+}
+
+/**
  * Instantes del reloj que la franja registra entre dos cuadros (decisión 54): de las muestras de la fisiología con
  * `tPrev` < t < `tNow` (las de los pasos del reloj dados en este cuadro), como mucho `max`, repartidas por igual (la última
  * de cada tramo), y en orden. La del propio cuadro (`tNow`) la registra el cuadro.

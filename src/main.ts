@@ -1,4 +1,5 @@
 import { registerDevtools } from './app/devtools';
+import { mSubstepBudget } from './ultrasound/mmode';
 import { buildDiagnostics, buildLabel, diagnosticsFileName, gpuInfo } from './app/diagnostics';
 import { BmodeFrameRate } from './app/frameRate';
 import { ErrorBudget } from './app/errorBudget';
@@ -281,7 +282,8 @@ function frame(now: number, dt: number): void {
   // con SwiftShader, los cuadros entre sus pasos lo alargaban tanto que en el CI los ganchos no llegaban en 120 s
   const baking = s.renderer.heartBaking;
   if (!gpu.lost && !baking) {
-    s.render({ mline: mMode.prepare(s) });
+    // decisión 54: las columnas M intermedias que caben en lo que tarda el cuadro real
+    s.render({ mline: mMode.prepare(s), mSubsteps: mSubstepBudget(dt) });
     // un cuadro del modo B solo si se dibujó (con la imagen congelada `render` no dibuja)
     if (s.frozen) bmodeRate.reset();
     else bmodeRate.frame(now);

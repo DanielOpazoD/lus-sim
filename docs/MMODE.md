@@ -44,7 +44,8 @@ un mínimo de 240 píxeles CSS al mostrar M: es jerarquía visual, no resolució
 
 El registro va a la cadencia del reloj único (decisión 54): además de la columna de cada cuadro, las de hasta cuatro
 pasos del reloj (4 ms) entre cuadros, con las pasadas B–K repetidas solo en la banda de la línea M y la transmisión del
-cuadro. A 60 cuadros por segundo son 250 columnas por segundo; con menos cuadros, 5 por cuadro. **No es una adquisición
+cuadro. A 60 cuadros por segundo son 250 columnas por segundo; entre 5 y 15 cuadros por segundo, 3 por cuadro; con menos (la
+GPU por software), una por cuadro (`mSubstepBudget`). **No es una adquisición
 M dedicada con la frecuencia de repetición de pulsos de un ecógrafo** (centenares a miles de líneas por segundo): no debe
 usarse para enseñar esa frecuencia. El eje utiliza tiempo de simulación, cuyo avance ya estaba acotado por el bucle
 principal.

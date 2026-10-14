@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { M_COLUMNS, M_SUBSTEPS_MAX, mSubstepSamples } from '../ultrasound/mmode';
+import { M_COLUMNS, M_SUBSTEPS_MAX, mSubstepBudget, mSubstepSamples } from '../ultrasound/mmode';
 
 /**
  * Las columnas M de los pasos del reloj entre dos cuadros (decisión 54): cuáles de las muestras de la fisiología se
@@ -27,5 +27,12 @@ describe('mSubstepSamples', () => {
   });
   it('el anillo guarda al menos 8 s a la cadencia máxima (el barrido más largo de la interfaz)', () => {
     expect(M_COLUMNS).toBeGreaterThanOrEqual(8 * 60 * (M_SUBSTEPS_MAX + 1));
+  });
+  it('el presupuesto por tiempo de cuadro: el tope con GPU real, 2 con cuadros lentos, 0 con SwiftShader', () => {
+    expect(mSubstepBudget(1 / 60)).toBe(M_SUBSTEPS_MAX);
+    expect(mSubstepBudget(1 / 15)).toBe(M_SUBSTEPS_MAX);
+    expect(mSubstepBudget(1 / 10)).toBe(2);
+    expect(mSubstepBudget(0.5)).toBe(0);
+    expect(mSubstepBudget(0)).toBe(M_SUBSTEPS_MAX);
   });
 });

@@ -51,9 +51,10 @@ export interface RenderMeasureOptions {
   mline?: number;
   /**
    * Modo M a la cadencia del reloj (decisión 54; sí por omisión): la franja recibe además las columnas de los pasos del reloj
-   * entre el cuadro anterior y este. `false` deja la franja a la cadencia de los cuadros (bancos que cuentan columnas).
+   * entre el cuadro anterior y este, hasta `M_SUBSTEPS_MAX` o el número dado (el bucle pasa `mSubstepBudget` del tiempo real
+   * de cuadro). `false` o 0 dejan la franja a la cadencia de los cuadros (bancos que cuentan columnas).
    */
-  mSubsteps?: boolean;
+  mSubsteps?: boolean | number;
 }
 
 /** El equipo en su preajuste (el pulmonar, `DEFAULT_BMODE`). */
@@ -318,7 +319,12 @@ export class Simulator {
     const now = this.sample.t;
     const mSamples =
       measure?.mline !== undefined && measure.mSubsteps !== false && Number.isFinite(this.lastRenderT)
-        ? mSubstepSamples(this.physiology.samples, this.lastRenderT, now)
+        ? mSubstepSamples(
+            this.physiology.samples,
+            this.lastRenderT,
+            now,
+            typeof measure.mSubsteps === 'number' ? measure.mSubsteps : undefined,
+          )
         : undefined;
     this.lastRenderT = now;
     this.renderer.render(

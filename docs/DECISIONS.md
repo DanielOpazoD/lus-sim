@@ -5114,7 +5114,11 @@ la franja: dibuja lo que el reloj no calculó; se rechaza por la regla de la gu�
   (`frameAnchor`) y la comparten la B del cuadro y las de los pasos. El ruido del receptor es nuevo en cada columna
   (`substepSalt` en `uFrame`).
 - El anillo de la franja pasa de 2048 a 4096 columnas (2 MB en R8): 16 s a 250 columnas/s, más que el barrido de 8 s.
-- Los bancos que cuentan columnas a intervalos iguales (`lungPulseMMode`: el espectro del pulso) piden `mSubsteps: false`.
+- El bucle principal pasa el presupuesto del cuadro real (`mSubstepBudget`): el tope con ≥ 15 cuadros/s, 2 hasta 5 cuadros/s y
+  ninguna columna intermedia con menos (SwiftShader en el CI, 0,3–3 s por cuadro: con los pasos cada cuadro B + M costaba 2,6
+  veces más, la e2e del modo M móvil pasaba su plazo de 15 s para el texto del estado y el fragmento, los 25 min). Los bancos
+  (`seashore`) piden su tope y los que cuentan columnas a intervalos iguales (`lungPulseMMode`: el espectro del pulso),
+  `mSubsteps: false`.
 - La medida de la orilla de mar sobre la señal (`src/measure/lungPulse.ts`): `rowLagCorrelation`, la correlación de Pearson
   por fila (± 2 filas vecinas) entre columnas separadas un retardo; `decorrelationOnsetMm`, la primera profundidad desde la
   cara donde baja de 0,5 y se queda 3 filas. El banco `seashoreMMode` (`lungPulseBench.ts`, gancho `seashore`) la aplica a la
