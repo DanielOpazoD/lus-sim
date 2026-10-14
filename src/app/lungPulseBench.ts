@@ -156,6 +156,8 @@ export interface SeashoreOptions {
 export interface SeashoreReport {
   site: LungPulseSite;
   respiration: RespiratoryPattern;
+  /** Fase respiratoria (0–1) de la primera columna: el inicio de la inspiración. */
+  phase0: number;
   /** Profundidad de la pleura en la línea central (mm, A0). */
   pleuraMm: number;
   /** Columnas de la franja, cuadros dibujados y columnas por segundo de franja. */
@@ -186,6 +188,16 @@ export function seashoreMMode(sim: Simulator, opts: SeashoreOptions): SeashoreRe
     sim.patient.respiratoryPattern = opts.respiration;
     sim.setPose(poseOf(sim, opts.site));
     sim.advance(1);
+    // la franja empieza al inicio de la inspiración: la fase respiratoria la fija el tiempo del reloj, que al llegar aquí
+    // depende de lo que tardó el arranque; sin esto, el inicio de la decorrelación cambiaba de una corrida a otra (en el CI,
+    // 2,3 mm por encima de la pleura con la pared en pleno movimiento, 1,7 por debajo en la corrida anterior)
+    for (let k = 0, prev = sim.sample.resp.phase; k < 5000; k++) {
+      sim.advance(0.004);
+      const phase = sim.sample.resp.phase;
+      if (phase < prev) break;
+      prev = phase;
+    }
+    const phase0 = sim.sample.resp.phase;
     sim.render({ mline: 0 });
     sim.renderer.mStrip.clear();
     const n = Math.round(seconds / dt);
@@ -211,6 +223,7 @@ export function seashoreMMode(sim: Simulator, opts: SeashoreOptions): SeashoreRe
     return {
       site: opts.site,
       respiration: opts.respiration,
+      phase0,
       pleuraMm,
       columns: strip.columns.length,
       frames: n,

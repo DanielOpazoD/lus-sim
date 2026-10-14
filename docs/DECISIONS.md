@@ -5149,8 +5149,9 @@ la franja: dibuja lo que el reloj no calculó; se rechaza por la regla de la gu�
 **Verificación.** `mSubsteps.test.ts` (las muestras entre cuadros, el tope, el orden, la capacidad del anillo);
 `lungPulseMeasure.test.ts` (la correlación por fila y el inicio de la decorrelación sobre una franja sintética con la pared
 quieta y la arena que se desliza; las guardas); `mModeAcquisition.test.ts` y `lungPulseMeasure.test.ts` siguen.
-e2e: `mmode.spec.ts`, al menos dos columnas por cuadro en vivo; `orilla.spec.ts`, el banco en el PLAPS con 24 cuadros a 1/8 s
+e2e: `mmode.spec.ts`, al menos dos columnas por cuadro en vivo; `orilla.spec.ts`, el banco en el PLAPS (la franja empieza al
+inicio de la inspiración, `phase0`: la fase la fija el reloj y el arranque la movía de una corrida a otra) con 24 cuadros a 1/8 s
 (120 columnas; en el CI con SwiftShader cada cuadro con sus 4 columnas cuesta ≥ 7 s y 60 cuadros pasaron de 7 min): 5 columnas
-por cuadro, paso mediano ≤ 30 ms, pared > 0,6 y pulmón < pared − 0,3 (GPU real: 0,73 / 0,38), el inicio 1–3 mm bajo la pleura
-(1,73; la guarda del estado: falla cuando F-T10 se cumpla, para registrarlo). La estratósfera en apnea la cubre `pulso.spec.ts`. Sin los pasos intermedios
+por cuadro, paso mediano ≤ 30 ms, pared > 0,6 y pulmón < pared − 0,3 (GPU real: 0,82–0,85 / 0,32), el inicio 1–3 mm bajo la
+pleura (1,33–1,35, igual de una corrida a otra; la guarda del estado: falla cuando F-T10 se cumpla, para registrarlo). La estratósfera en apnea la cubre `pulso.spec.ts`. Sin los pasos intermedios
 (`mSubsteps: false`) la e2e falla en el número de columnas (comprobado al escribirla).
