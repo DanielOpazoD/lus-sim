@@ -5138,6 +5138,8 @@ la franja: dibuja lo que el reloj no calculó; se rechaza por la regla de la gu�
     pared bajo la sonda más que las ± 2 filas de la medida (0,23 mm por fila). En un paciente real el ecografista sigue la
     pared con la sonda; el simulador no lo modela.
   - PLAPS en apnea espiratoria: 0,98 / 0,99 y sin inicio: la estratósfera (F-T11, a la cadencia del reloj).
+  - Con SwiftShader (el CI): PLAPS tranquila a 1 s, 0,74 / 0,39 y el inicio 1,72 mm bajo la pleura; apnea, 0,99 / 0,99 sin
+    inicio. La e2e tarda 3,7 min (56 s por banco de 60 cuadros).
 - El texto de la ayuda del modo M y `docs/MMODE.md` dejan de decir «a la cadencia de B».
 
 **Verificación.** `mSubsteps.test.ts` (las muestras entre cuadros, el tope, el orden, la capacidad del anillo);
