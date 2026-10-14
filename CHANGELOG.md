@@ -7,6 +7,13 @@ de cada decisión están en `docs/DECISIONS.md` (número entre paréntesis).
 
 ### Añadido
 
+- El modo M a la cadencia del reloj (54): entre dos cuadros la franja recibe las columnas de los pasos del reloj único (4 ms;
+  hasta 4 por cuadro), con las pasadas B–K repetidas solo en la banda de la línea M y la transmisión del cuadro: 250
+  columnas/s a 60 cuadros/s (antes, una por cuadro). La orilla de mar se mide sobre la señal (`rowLagCorrelation`,
+  `decorrelationOnsetMm`, el banco `seashore`): en el PLAPS con respiración tranquila la decorrelación empieza 1,2 mm bajo
+  la pleura (F-T10 pide ±1 mm: aún no se cumple, la e2e fija el estado) y en apnea no empieza (estratósfera). Cuesta ≈ 36 %
+  del cuadro con la GPU real (60 → 44 cuadros/s con M).
+
 - La fosa supraclavicular creíble (50): sobre la clavícula, la pared se adelgaza lo que la piel de la fosa está más honda que la
   del tronco cilíndrico, y sus capas son las del cuello (la grasa, el esternocleidomastoideo por dentro del tercio medial y el
   escaleno sobre la fascia de Sibson, o la grasa del triángulo posterior en la fosa mayor). La arteria y la vena subclavias de cada

@@ -56,7 +56,8 @@ export class MModeView {
         <label for="mmode-line">Ángulo de línea M</label>
         <output id="mmode-angle" for="mmode-line">0°</output>
         <input id="mmode-line" type="range" min="-100" max="100" step="1" value="0" />
-        <p id="mmode-note" class="note">Muestreo a la cadencia del modo B, sin persistencia temporal.
+        <p id="mmode-note" class="note">Columnas a la cadencia del reloj único (hasta 250 por segundo: la del cuadro y las de
+          sus pasos intermedios), sin persistencia temporal.
           Mover la sonda, cambiar la línea o el equipo inicia otra franja. Los huecos no se interpolan.</p>
       </details>`;
     host.after(this.pane);
@@ -152,7 +153,7 @@ export class MModeView {
     if (lost) message = 'GPU no disponible. La recuperación iniciará otra franja.';
     else if (this.placing) message = 'Toca el sector para colocar la línea; Escape cancela.';
     else if (sim.frozen) message = valid ? 'Imagen congelada. Revisa B y M con el cine.' : 'Sin datos M para este cuadro del cine.';
-    else if (valid) message = 'M a la cadencia de B. Congela para revisar con el cine.';
+    else if (valid) message = 'M a la cadencia del reloj. Congela para revisar con el cine.';
     if (this.status.textContent !== message) this.status.textContent = message;
   }
 

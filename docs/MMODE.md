@@ -15,7 +15,7 @@ no el paciente ni el cine. Apagar y reactivar M inicia otro registro.
 
 La ayuda distingue selección, adquisición viva, imagen congelada, ausencia de historia y
 pérdida de GPU. El ajuste fino y la explicación técnica permanecen plegados al inicio;
-la ayuda viva sigue indicando que M se muestrea a la cadencia de B. La imagen B conserva
+la ayuda viva indica que M va a la cadencia del reloj (decisión 54). La imagen B conserva
 un mínimo de 240 píxeles CSS al mostrar M: es jerarquía visual, no resolución acústica.
 
 ## Decisiones de implementación
@@ -42,9 +42,12 @@ un mínimo de 240 píxeles CSS al mostrar M: es jerarquía visual, no resolució
 
 ## Límites que siguen abiertos
 
-El registro se muestrea a la cadencia de B: **no es una adquisición M dedicada de alta
-frecuencia**. El eje utiliza tiempo de simulación, cuyo avance ya estaba acotado por el bucle
-principal. No debe usarse para enseñar una frecuencia de adquisición equivalente a un ecógrafo real.
+El registro va a la cadencia del reloj único (decisión 54): además de la columna de cada cuadro, las de hasta cuatro
+pasos del reloj (4 ms) entre cuadros, con las pasadas B–K repetidas solo en la banda de la línea M y la transmisión del
+cuadro. A 60 cuadros por segundo son 250 columnas por segundo; con menos cuadros, 5 por cuadro. **No es una adquisición
+M dedicada con la frecuencia de repetición de pulsos de un ecógrafo** (centenares a miles de líneas por segundo): no debe
+usarse para enseñar esa frecuencia. El eje utiliza tiempo de simulación, cuyo avance ya estaba acotado por el bucle
+principal.
 
 Cada columna usa la envolvente y el mapa de grises del cuadro, antes de la persistencia temporal.
 Con persistencia activada, B puede estar suavizado y M no. No se añade una segunda persistencia

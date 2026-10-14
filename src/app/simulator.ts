@@ -28,6 +28,7 @@ import {
   type GpuPointQuery,
   type PassRepeat,
 } from '../ultrasound/renderer';
+import { mSubstepSamples } from '../ultrasound/mmode';
 
 /** Misma pose, campo a campo (el contacto se reutiliza con la sonda quieta). */
 function samePose(a: ProbePose, b: ProbePose): boolean {
@@ -48,6 +49,11 @@ export interface EquipmentSettings {
 export interface RenderMeasureOptions {
   repeat?: PassRepeat;
   mline?: number;
+  /**
+   * Modo M a la cadencia del reloj (decisión 54; sí por omisión): la franja recibe además las columnas de los pasos del reloj
+   * entre el cuadro anterior y este. `false` deja la franja a la cadencia de los cuadros (bancos que cuentan columnas).
+   */
+  mSubsteps?: boolean;
 }
 
 /** El equipo en su preajuste (el pulmonar, `DEFAULT_BMODE`). */
@@ -94,6 +100,8 @@ export class Simulator {
   private lastFrame: ProbeFrame;
   /** Contacto de la sonda del cuadro (decisión 63): el marco efectivo (hundido), la compresión y el acoplamiento. */
   private lastContact: ProbeContact;
+  /** Instante del último cuadro dibujado (decisión 54): las columnas M intermedias son las de (este, ahora). */
+  private lastRenderT = Number.NaN;
   private contactPose: ProbePose;
   /** El contacto de la pose, sin la mano del operador (se reutiliza con la sonda quieta). */
   private poseContact: ProbeContact;
@@ -307,6 +315,12 @@ export class Simulator {
   /** Dibuja B y, si se pide, registra su línea M; solo `repeat` es exclusivo del banco de medida. */
   render(measure?: RenderMeasureOptions): void {
     if (this.frozen) return;
+    const now = this.sample.t;
+    const mSamples =
+      measure?.mline !== undefined && measure.mSubsteps !== false && Number.isFinite(this.lastRenderT)
+        ? mSubstepSamples(this.physiology.samples, this.lastRenderT, now)
+        : undefined;
+    this.lastRenderT = now;
     this.renderer.render(
       {
         sample: this.sample,
@@ -320,6 +334,7 @@ export class Simulator {
         bmode: this.bmode,
         seed: this.patient.seed,
         mline: measure?.mline,
+        mSamples,
       },
       measure?.repeat,
     );

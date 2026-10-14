@@ -6,8 +6,30 @@
 
 /** Filas de una columna (de la cara a la profundidad del sector): 0,35 mm a 18 cm. */
 export const M_SAMPLES = 512;
-/** Columnas del anillo de la franja: 34 s a 60 cuadros por segundo (1 MB en R8). */
-export const M_COLUMNS = 2048;
+/** Columnas del anillo de la franja: 16 s a la cadencia del reloj (250 columnas/s; 2 MB en R8). */
+export const M_COLUMNS = 4096;
+/**
+ * Columnas de la franja por cuadro además de la del propio cuadro (decisión 54): los instantes del reloj único (pasos de
+ * 4 ms) entre el cuadro anterior y este, hasta este tope. Con 60 cuadros por segundo caben los 4 pasos de cada cuadro
+ * (la franja a 250 columnas/s, la cadencia del reloj); con menos cuadros, la cadencia baja a 5 × cuadros/s. Tope de
+ * presupuesto, no un número físico: cada columna extra cuesta ≈ 0,4 pasadas B–K sobre la banda de la línea M.
+ */
+export const M_SUBSTEPS_MAX = 4;
+
+/**
+ * Instantes del reloj que la franja registra entre dos cuadros (decisión 54): de las muestras de la fisiología con
+ * `tPrev` < t < `tNow` (las de los pasos del reloj dados en este cuadro), como mucho `max`, repartidas por igual (la última
+ * de cada tramo), y en orden. La del propio cuadro (`tNow`) la registra el cuadro.
+ */
+export function mSubstepSamples<T extends { t: number }>(samples: readonly T[], tPrev: number, tNow: number, max = M_SUBSTEPS_MAX): T[] {
+  if (!(max >= 1) || !(tNow > tPrev)) return [];
+  const between: T[] = [];
+  for (const s of samples) if (s.t > tPrev && s.t < tNow) between.push(s);
+  if (between.length <= max) return between;
+  const out: T[] = [];
+  for (let k = 1; k <= max; k++) out.push(between[Math.ceil((k * between.length) / (max + 1)) - 1]);
+  return out.filter((s, i) => i === 0 || s !== out[i - 1]);
+}
 /**
  * Hueco máximo entre dos columnas seguidas (s): el bucle avanza como mucho 0,25 s por cuadro. Un hueco mayor (el reloj
  * avanzado sin dibujar) se queda en negro en vez de rellenarse con la columna siguiente.

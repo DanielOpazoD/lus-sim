@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandCorrelation, bandRows, bandSpectrum } from '../measure/lungPulse';
+import { bandCorrelation, bandRows, bandSpectrum, decorrelationOnsetMm, rowLagCorrelation } from '../measure/lungPulse';
 import { PLEURA_GLSL } from '../ultrasound/pleura';
 import { FRAG_QUERY, FRAG_RAWFIELD } from '../ultrasound/shaders/passes.glsl';
 
@@ -93,5 +93,46 @@ describe('el latido en la GLSL (decisión 32)', () => {
     );
     expect(FRAG_RAWFIELD).toContain('vec3 mD = needM ? lungPulseInverse(toMaterial(pD)) : vec3(0.0);');
     expect(FRAG_QUERY).toContain('o3 = vec4(lungPulseInverse(m) - m, uLungPulse.x);');
+  });
+});
+
+/**
+ * La orilla de mar (F-T10, decisión 54): en una franja sintética con la pared quieta (filas 0–39) y la arena que se desliza
+ * (filas 40–99), la correlación por fila con retardo es alta arriba y baja abajo, y la decorrelación empieza en la primera
+ * fila de la arena.
+ */
+describe('rowLagCorrelation y decorrelationOnsetMm', () => {
+  const tex = texture(400, 11);
+  const seashore = (n: number, dt: number) => {
+    const columns: number[][] = [];
+    const times: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = i * dt;
+      const s = Math.round(20 * Math.sin((2 * Math.PI * t) / 4));
+      columns.push(Array.from({ length: 100 }, (_, r) => (r < 40 ? tex[r] : tex[(r + s + 200) % 400])));
+      times.push(t);
+    }
+    return { columns, times };
+  };
+  it('la pared correlaciona y la arena no; el inicio cae en la primera fila que se mueve', () => {
+    const { columns, times } = seashore(200, 0.02);
+    const corr = rowLagCorrelation(columns, times, 0.5);
+    expect(corr).toHaveLength(100);
+    for (let r = 0; r < 36; r++) expect(corr[r]).toBeCloseTo(1, 6);
+    const lung = corr.slice(45).reduce((a, b) => a + b, 0) / 55;
+    expect(lung).toBeLessThan(0.5);
+    // 100 filas en 50 mm: la fila 40 está a 20,25 mm; las vecinas (±2) empiezan a mezclar arena desde la 38
+    const onset = decorrelationOnsetMm(corr, 50);
+    expect(onset).toBeGreaterThanOrEqual(19);
+    expect(onset).toBeLessThanOrEqual(21);
+  });
+  it('una franja quieta no empieza a decorrelar (NaN) y las guardas avisan', () => {
+    const columns = Array.from({ length: 50 }, () => tex.slice(0, 100));
+    const times = columns.map((_, i) => i * 0.02);
+    const corr = rowLagCorrelation(columns, times, 0.5);
+    expect(Number.isNaN(decorrelationOnsetMm(corr, 50))).toBe(true);
+    expect(() => rowLagCorrelation(columns, times.slice(1), 0.5)).toThrow(/largo distinto/);
+    expect(() => rowLagCorrelation(columns, times, 0)).toThrow(/retardo/);
+    expect(() => rowLagCorrelation(columns, times, 5)).toThrow(/dura menos/);
   });
 });
