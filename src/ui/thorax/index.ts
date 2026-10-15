@@ -19,7 +19,7 @@ import type { AnatomyScene } from '../../anatomy/scene';
 import { thoraxLinePhi } from '../../anatomy/thoraxLines';
 import type { Simulator } from '../../app/simulator';
 import { clamp } from '../../core/vec3';
-import type { ProbePose, Transducer } from '../../probe/probe';
+import type { PatientPosition, ProbePose, Transducer } from '../../probe/probe';
 import { clavicleMesh, nudgePose, patientToView, probeViewAxes, ribMesh, scapulaMesh, sectorMesh, type MeshData } from './geometry';
 import { bindThoraxInput } from './input';
 import { HumanTorso } from './humanTorso';
@@ -28,6 +28,7 @@ import { ConvexProbe } from './convexProbe';
 export interface ThoraxNavigatorOptions {
   getSim: () => Simulator;
   setPose: (pose: ProbePose) => void;
+  setPosition: (position: PatientPosition) => void;
   onError: (error: unknown) => void;
 }
 
@@ -41,6 +42,12 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
   toolbar.className = 'thorax-toolbar';
   const views = document.createElement('div');
   views.className = 'thorax-views';
+  views.setAttribute('role', 'group');
+  views.setAttribute('aria-label', 'Vistas del tórax');
+  const position = document.createElement('div');
+  position.className = 'thorax-position';
+  position.setAttribute('role', 'group');
+  position.setAttribute('aria-label', 'Posición del paciente');
   const viewport = document.createElement('div');
   viewport.className = 'thorax-viewport';
   const canvas = document.createElement('canvas');
@@ -63,7 +70,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
   const help = document.createElement('p');
   help.className = 'thorax-help';
   help.textContent = moveHelp();
-  root.append(toolbar, views, viewport, caption, tools, fine, help);
+  root.append(toolbar, position, views, viewport, caption, tools, fine, help);
 
   // Si falla WebGL no se deja un panel parcial; la raíz conserva su alternativa de navegación.
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -137,7 +144,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
     const sitting = (options.getSim().patient.position ?? 'supine') === 'sitting';
     return sitting
       ? 'Arrastra la sonda, también por la espalda. Para girar el tórax, arrastra el fondo o usa Alt. Paciente sentado.'
-      : 'Arrastra la sonda. Para girar el tórax, arrastra el fondo o usa Alt. Paciente en supino: para la espalda, siéntalo (Ajustes → Paciente).';
+      : 'Arrastra la sonda. Para girar el tórax, arrastra el fondo o usa Alt. Para explorar el dorso, elige Sentado sobre el modelo.';
   }
   function setMode(next: 'move' | 'orient'): void {
     mode = next;
@@ -157,19 +164,28 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
     camera.updateMatrixWorld();
     dirty = true;
   }
-  const chooseView = (angle: number) => {
+  const chooseView = (angle: number, height = 0.1) => {
     azimuth = angle;
-    elevation = 0.1;
+    elevation = height;
     updateCamera();
   };
   button(views, 'Anterior', () => chooseView(Math.PI / 2));
-  const lateralButton = button(views, 'Lateral', () =>
-    chooseView(Math.cos(options.getSim().displayedAcquisition.pose.phi) < 0 ? Math.PI : 0),
-  );
-  button(views, 'Posterior', () => chooseView(-Math.PI / 2));
+  button(views, 'Lateral D', () => chooseView(Math.PI)).title = 'Lateral derecho del paciente';
+  button(views, 'Lateral I', () => chooseView(0)).title = 'Lateral izquierdo del paciente';
+  button(views, 'Posterior', () => chooseView(-Math.PI / 2)).title = 'Ver el dorso; para explorarlo, elige Sentado';
+  button(views, 'Supraclavicular', () => chooseView(Math.PI / 2, 0.65)).title =
+    'Vista superior de las clavículas; gira la cámara sin mover la sonda';
+  const positionButtons = (['supine', 'sitting'] as const).map((value) => {
+    const b = button(position, value === 'supine' ? 'Supino' : 'Sentado', () => {
+      if (!options.getSim().frozen) options.setPosition(value);
+    });
+    b.title = value === 'supine' ? 'Paciente tumbado: acceso anterior y lateral' : 'Paciente sentado: acceso también al dorso';
+    poseButtons.push(b);
+    return { b, value };
+  });
   const centerButton = button(viewport, 'Centrar modelo', () => chooseView(Math.PI / 2 + 0.55));
   centerButton.className = 'thorax-center';
-  const ribButton = button(tools, 'Costillas', () => {
+  const ribButton = button(tools, 'Huesos', () => {
     if (!ribs.children.length) buildRibs(options.getSim().scene);
     ribs.visible = !ribs.visible;
     skinMaterial.transparent = ribs.visible;
@@ -390,6 +406,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
             replaceGeometry(sector.geometry, sectorMesh(frame, sim.transducer, depth));
           }
           for (const b of poseButtons) b.disabled = sim.frozen;
+          for (const { b, value } of positionButtons) b.setAttribute('aria-pressed', String(acquisition.position === value));
           dirty = true;
         }
         const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -421,10 +438,9 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
         caption.textContent = unavailable
           ? sitting
             ? 'Zona no explorable: cuello, brazos o fuera del alcance del modelo.'
-            : 'Zona no explorable en supino: para la espalda, sienta al paciente (Ajustes → Paciente).'
+            : 'Zona no explorable en supino: elige Sentado sobre el modelo para explorar el dorso.'
           : `${side < 0 ? 'Derecho' : 'Izquierdo'} · ${region} · ${sitting ? 'sentado' : 'supino'}${sim.frozen ? ` · cuadro congelado ${acquisition.sample.t.toFixed(1)} s` : ''}${ribs.visible ? ' · huesos en reposo' : ''}`;
         if (mode === 'move') help.textContent = moveHelp();
-        lateralButton.title = `Ver lateral ${side < 0 ? 'derecha' : 'izquierda'} del paciente`;
         renderer.render(scene, camera);
         renders++;
         // Observación de pruebas; no comandos ni un segundo estado editable.
@@ -438,6 +454,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
             cableUpdates: String(instrument!.updates),
             warpedVertices: String(human!.warpedVertices),
             frameFace: acquisition.frame.face.join(','),
+            cameraPosition: camera.position.toArray().join(','),
           });
         }
         host.dataset.ready = 'true';
