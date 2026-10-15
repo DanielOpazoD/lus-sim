@@ -106,6 +106,7 @@ function requestNavigator(): void {
         navigator3D = createThoraxNavigator(host, {
           getSim: sim,
           setPose: setPoseManual,
+          setPosition: setPatientPosition,
           onError: (error) => errorLog.report('ui', error),
         });
         navigator3D.sync();

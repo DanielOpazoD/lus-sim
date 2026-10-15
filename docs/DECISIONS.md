@@ -1647,6 +1647,22 @@ y 820 KiB totales. La medición en GPU de usuario y la revisión visual humana s
   ganancia y verifica por separado el reinicio al cambiar profundidad. La inspección visual manual no se declara realizada cuando
   el navegador de la sesión está bloqueado. No se modifican shaders ni parámetros clínicos.
 
+### Seguimiento: accesos regionales visibles (2026-10-15)
+
+Las vistas del navegador distinguen ambos laterales del paciente y añaden una vista superior
+«Supraclavicular». Solo cambian la cámara, también con el cine congelado: no mueven la sonda,
+no cambian la postura y no eligen una ventana ecográfica. «Supino» / «Sentado» quedan junto al
+modelo y llaman al mismo controlador que los ajustes; congelados muestran la postura del cuadro
+y no permiten cambiarla. En supino, el aviso dorsal señala ese control visible. «Huesos» explicita
+que la guía ósea incluye clavículas y escápulas, no solo costillas. Se conserva la exploración
+libre de la decisión 47, sin reintroducir tarjetas BLUE ni fabricar una adquisición óptima.
+
+La geometría acústica y la malla no cambian: `thorax-cylindrical-cage` y la falta de validación
+supraclavicular siguen vigentes. La nueva vista superior no es una corrección anatómica del cuello.
+Las E2E comprueban seis posiciones de cámara distintas sin alterar el modo B congelado ni
+reconstruir mallas, el acceso dorsal con el control visible, la conservación de la pose al sentar,
+el límite de la cama al volver a supino y el bloqueo de postura al congelar.
+
 ## 24. Calibración acotada del contraste del pulmón normal convexo (C3b-A)
 
 **Fecha.** 2026-09-28.

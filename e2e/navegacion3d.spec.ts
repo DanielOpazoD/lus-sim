@@ -133,17 +133,17 @@ test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre',
   await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.45);
   await twoFrames(page);
   expect(await pose(page)).toEqual(supine);
-  await expect(caption).toContainText('sienta al paciente');
+  await expect(caption).toContainText('elige Sentado');
 
-  // Sentado desde los ajustes: el mismo arrastre recorre la espalda y cruza la línea media
-  await page.locator('#settings-toggle').click();
-  await page.getByRole('button', { name: 'Sentado', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  // Sentado desde el propio navegador: no cambia la pose anterior ni abre los ajustes.
+  await navigator.getByRole('button', { name: 'Sentado', exact: true }).click();
+  await expect(navigator.getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#acquisition-settings')).toBeHidden();
+  expect(await pose(page)).toEqual(supine);
   expect(await page.evaluate(() => window.__lusTest!.sim().patient.position)).toBe('sitting');
   // el pie y la ayuda cambian con la posición, sin mover la sonda (el aviso de supino ya no vale)
   await expect(caption).toContainText('sentado');
-  await expect(caption).not.toContainText('sienta al paciente');
+  await expect(caption).not.toContainText('elige Sentado');
   await expect(navigator).toContainText('también por la espalda');
   box = await canvasBox(page);
   // (medido con la GPU real a 1440 × 900: de −0,30π, por la línea media, a 1,36π, a z ≈ 50 mm)
@@ -166,15 +166,17 @@ test('navegador 3D (decisión 33): la espalda se explora sentado, con arrastre',
   const atBasal = await pose(page);
   await page.locator('#settings-toggle').click();
   await page.getByRole('button', { name: 'Restablecer paciente', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#acquisition-settings').getByRole('button', { name: 'Sentado', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
   expect(await page.evaluate(() => window.__lusTest!.sim().patient.position)).toBe('sitting');
   expect((await pose(page)).phi).toBeCloseTo(atBasal.phi, 8);
 
   // Volver a supino deja la sonda en el borde de la cama (1,2π), no en la espalda
-  await page.locator('#settings-toggle').click();
-  await page.getByRole('button', { name: 'Supino', exact: true }).click();
-  await page.getByRole('button', { name: 'Cerrar ajustes' }).click();
+  await navigator.getByRole('button', { name: 'Supino', exact: true }).click();
+  await expect(navigator.getByRole('button', { name: 'Supino', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await pose(page)).phi).toBeCloseTo(1.2 * Math.PI, 8);
   expect(errors).toEqual([]);
 });

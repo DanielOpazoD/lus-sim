@@ -25,6 +25,8 @@ test('humano procedural: vistas, presupuesto, contacto histórico y cámara sin 
   await page.locator('#freeze').click();
   await settle(page);
   const nav = page.locator('#thorax-navigator');
+  await expect(nav.getByRole('button', { name: 'Supino', exact: true })).toBeDisabled();
+  await expect(nav.getByRole('button', { name: 'Sentado', exact: true })).toBeDisabled();
   const initial = await stats(page);
   expect(Number(initial.triangles)).toBeLessThanOrEqual(18_000);
   expect(Number(initial.calls)).toBeLessThanOrEqual(16);
@@ -33,10 +35,12 @@ test('humano procedural: vistas, presupuesto, contacto histórico y cámara sin 
   expect(initial.frameFace).toBe(frame.frame.face.join(','));
   const b = await page.locator('#gl').screenshot();
   await page.screenshot({ path: info.outputPath('mmode-human-desktop.png') });
-  for (const view of ['Anterior', 'Lateral', 'Posterior', 'Centrar modelo']) {
+  const cameraPositions = new Set<string>();
+  for (const view of ['Anterior', 'Lateral D', 'Lateral I', 'Posterior', 'Supraclavicular', 'Centrar modelo']) {
     await nav.getByRole('button', { name: view, exact: true }).click();
     await settle(page);
     const now = await stats(page);
+    cameraPositions.add(now.cameraPosition!);
     expect(now.bodyUpdates).toBe(initial.bodyUpdates);
     expect(now.cableUpdates).toBe(initial.cableUpdates);
     expect(now.geometries).toBe(initial.geometries);
@@ -48,12 +52,13 @@ test('humano procedural: vistas, presupuesto, contacto histórico y cámara sin 
   await settle(page);
   await settle(page);
   expect((await stats(page)).renders).toBe(idle.renders);
-  await nav.getByRole('button', { name: 'Costillas', exact: true }).click();
+  expect(cameraPositions.size).toBe(6);
+  await nav.getByRole('button', { name: 'Huesos', exact: true }).click();
   await settle(page);
   expect(Number((await stats(page)).triangles)).toBeLessThanOrEqual(50_000);
   expect(Number((await stats(page)).calls)).toBeLessThanOrEqual(44);
   await page.locator('.thorax-canvas').screenshot({ path: info.outputPath('mmode-human-ribs.png') });
-  await nav.getByRole('button', { name: 'Costillas', exact: true }).click();
+  await nav.getByRole('button', { name: 'Huesos', exact: true }).click();
   // Cualquier nueva adquisición mantiene el contrato del marco efectivo mostrado.
   await page.locator('#freeze').click();
   await nav.locator('.thorax-fine > summary').click();
@@ -169,7 +174,7 @@ test('brazos arriba (decisión 48): la sonda sube por la axilar media hasta la a
   };
   // la axila derecha, de frente (la vista lateral del lado de la sonda): un arrastre de la 5.ª costilla a 2 mm del tope por la
   // axilar media (la cámara cambia al pulsar la vista; el rayo del clic la usa sin esperar un cuadro)
-  await nav.getByRole('button', { name: 'Lateral', exact: true }).click();
+  await nav.getByRole('button', { name: 'Lateral D', exact: true }).click();
   const from = await screenOf(Math.PI, [-torso.a, 0, 60]);
   const to = await screenOf(Math.PI, [-torso.a, 0, 223]);
   await page.mouse.move(from.x, from.y);
