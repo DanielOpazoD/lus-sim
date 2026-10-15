@@ -49,6 +49,13 @@
     "node": ">=22"
   },
   "dependencies": {
+    "flo-poly": "7.0.1",
     "three": "0.186.1"
+  },
+  "overrides": {
+    "flo-poly": {
+      "big-float-ts": "4.0.1",
+      "double-double": "3.0.2"
+    }
   }
 }

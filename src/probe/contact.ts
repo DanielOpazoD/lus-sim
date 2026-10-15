@@ -7,7 +7,8 @@ import {
   type ProbeCompression,
 } from '../anatomy/compression';
 import { wallArc, wallTotalMm } from '../anatomy/organs/wall';
-import { torsoDepth, torsoDepthGradient, type Torso } from '../anatomy/primitives';
+import type { Torso } from '../anatomy/primitives';
+import { torsoSkinSurface, type SkinSurface } from '../anatomy/skinSurface';
 import { length, smoothstep, type Vec3 } from '../core/vec3';
 import { probeFrame, skinSoftness, type ProbeFrame, type ProbePose, type Transducer } from './probe';
 
@@ -66,8 +67,8 @@ const WALL_FADE_MAX_MM = 20;
 const PRESS_ITERATIONS = 8;
 
 /** Hueco con signo (mm) del punto q a la piel sin deformar, por la normal de la piel (< 0: dentro). */
-function skinGap(q: Vec3, t: Torso): number {
-  return torsoDepth(q, t) / Math.max(1e-6, length(torsoDepthGradient(q, t)));
+function skinGap(q: Vec3, skin: SkinSurface): number {
+  return skin.depth(q) / Math.max(1e-6, length(skin.gradient(q)));
 }
 
 /** Primer cruce (mm a lo largo de la línea) del nivel `w` de profundidad radial en [r0, r1], o null. */
@@ -91,26 +92,6 @@ function firstCrossing(depthAt: (r: number) => number, w: number, r0: number, r1
   return null;
 }
 
-/**
- * Primer punto de la línea E + dir·r (r ∈ [r0, r1]) dentro de la piel: la elipse del tronco (ρ = 1, donde
- * `torsoDepth` = 0), analítica. null si la línea no entra.
- */
-function skinEntry(E: Vec3, dir: Vec3, t: Torso, r0: number, r1: number): number | null {
-  const ia = 1 / (t.a * t.a);
-  const ib = 1 / (t.b * t.b);
-  const A = dir[0] * dir[0] * ia + dir[1] * dir[1] * ib;
-  const B = 2 * (E[0] * dir[0] * ia + E[1] * dir[1] * ib);
-  const C = E[0] * E[0] * ia + E[1] * E[1] * ib - 1;
-  if (A < 1e-12) return C <= 0 ? r0 : null;
-  const disc = B * B - 4 * A * C;
-  if (disc < 0) return null;
-  const q = Math.sqrt(disc);
-  const enter = (-B - q) / (2 * A);
-  const exit = (-B + q) / (2 * A);
-  if (exit < r0 || enter > r1) return null;
-  return Math.max(enter, r0);
-}
-
 /** La geometría de un nodo en el tronco rígido, a lo largo de su línea desde el elemento. */
 interface NodeGeometry {
   /** Distancia a la piel (mm; < 0 la cara la hunde); null si la línea no la cruza. */
@@ -132,7 +113,7 @@ interface FaceGeometry {
   penetration: number;
 }
 
-function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso): FaceGeometry {
+function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso, skin: SkinSurface): FaceGeometry {
   const n = PROBE_COMPRESSION.nodes;
   const R = tr.curvatureRadius;
   const halfElev = tr.elevationMm / 2;
@@ -151,20 +132,20 @@ function measureFace(frame: ProbeFrame, tr: Transducer, t: Torso): FaceGeometry 
     ];
     const E: Vec3 = [C[0] + dir[0] * R, C[1] + dir[1] * R, C[2] + dir[2] * R];
     const gapE = Math.max(
-      skinGap([E[0] + el[0] * halfElev, E[1] + el[1] * halfElev, E[2] + el[2] * halfElev], t),
-      skinGap([E[0] - el[0] * halfElev, E[1] - el[1] * halfElev, E[2] - el[2] * halfElev], t),
+      skinGap([E[0] + el[0] * halfElev, E[1] + el[1] * halfElev, E[2] + el[2] * halfElev], skin),
+      skinGap([E[0] - el[0] * halfElev, E[1] - el[1] * halfElev, E[2] - el[2] * halfElev], skin),
     );
-    penetration = Math.max(penetration, -skinGap(E, t));
+    penetration = Math.max(penetration, -skinGap(E, skin));
     const at = (r: number): Vec3 => [E[0] + dir[0] * r, E[1] + dir[1] * r, E[2] + dir[2] * r];
     // lus-sim (decisión 17): la pared por región, con el grosor de donde la línea entra en la piel (la cara interna de la
     // pared bajo el elemento, paralela a la piel a esa profundidad radial, como en VExUS con su grosor fijo)
-    const rs = skinEntry(E, dir, t, -60, 200);
+    const rs = skin.entry(E, dir, -60, 200);
     // lus-sim (cobertura torácica): sobre la cúpula pleural, la pared rígida que busca el contacto es la del tórax; las partes
     // blandas del cuello que la engruesan se aplastan bajo la cara (sin esto, la cúpula de 200 mm no dejaba acoplar la sonda en
     // la fosa supraclavicular)
     const pW = rs === null ? E : at(rs);
     const W = wallTotalMm(pW, t) - (t.chestWall?.cupola?.(wallArc(pW, t), pW[2]) ?? 0);
-    const depthAt = (r: number): number => -torsoDepth(at(r), t) - W;
+    const depthAt = (r: number): number => -skin.depth(at(r)) - W;
     // a lo largo de la línea la pared mide al menos ~W: la búsqueda de su cara interna empieza cerca
     const near = rs === null ? 0 : rs + 0.9 * W;
     const rW =
@@ -224,7 +205,8 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
   };
   const shortfall = (g: FaceGeometry): number => Math.max(...g.nodes.map((n) => nodeShortfall(n)));
   // δ: el menor que hace apoyar toda la cara, con el tope de la presión
-  const rigid = measureFace(frameAt(0), tr, t);
+  const skin = torsoSkinSurface(t);
+  const rigid = measureFace(frameAt(0), tr, t, skin);
   const capacity = CONTACT.pressMm + CONTACT.pressSoftMm * skinSoftness(pose);
   const maxIndent = Math.max(0, capacity - Math.max(0, rigid.penetration));
   let q0 = shortfall(rigid);
@@ -232,7 +214,7 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
   let needed = 0;
   if (q0 > 0) {
     let hi = maxIndent;
-    let q1 = hi > 0 ? shortfall(measureFace(frameAt(hi), tr, t)) : q0;
+    let q1 = hi > 0 ? shortfall(measureFace(frameAt(hi), tr, t, skin)) : q0;
     if (q1 > 0 || !Number.isFinite(q0)) {
       indent = hi;
       needed = q1 > 0 ? Infinity : hi;
@@ -242,7 +224,7 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
       let side = 0;
       for (let i = 0; i < PRESS_ITERATIONS && hi - lo > 0.05; i++) {
         const x = Math.min(hi - 0.01, Math.max(lo + 0.01, (lo * q1 - hi * q0) / (q1 - q0)));
-        const qx = shortfall(measureFace(frameAt(x), tr, t));
+        const qx = shortfall(measureFace(frameAt(x), tr, t, skin));
         if (qx > 0) {
           lo = x;
           q0 = qx;
@@ -262,7 +244,7 @@ export function probeContact(pose: ProbePose, tr: Transducer, t: Torso): ProbeCo
   // al levantar la sonda el operador deja de apretar; lo que apriete el usuario, encima
   indent = indent * (1 - smoothstep(0, CONTACT.releaseMm, pose.lift)) + press;
   const frame = frameAt(indent);
-  const face = measureFace(frame, tr, t);
+  const face = measureFace(frame, tr, t, skin);
   // la pared bajo el centro de la cara (el resumen y la placa)
   const center = face.nodes[face.nodes.length >> 1];
   const W = center.W;

@@ -5285,3 +5285,53 @@ dominio y paridad; el cero axial queda canónico, no se exige el signo negativo 
 shader de prueba se sustituyen las derivadas nulas por derivadas sintéticas; **no activa perfiles
 en el paciente** ni sustituye la regresión E2E del build minificado. Los umbrales son numéricos,
 no antropométricos ni clínicos; la suite de imagen verifica además los consumidores productivos.
+
+## 59. Contacto por superficie común en identidad y aislamiento axial exacto, aún inactivo
+
+**Fecha.** 2026-10-15.
+**Contexto.** O2/O6: el contacto mantenía su propia cuadrática de piel y consultaba directamente la
+profundidad cilíndrica. Cambiar el cuello sin compartir esas consultas produciría una piel visual
+distinta de la que acopla la sonda. Un perfil axial puede tener varios cruces, tangencias o dos raíces
+muy próximas; buscar un mínimo local o avanzar con un paso mínimo no certifica la primera entrada.
+**Opciones.** No activar el perfil solo en contacto, ni estrechar globalmente los tejidos.
+Se descarta un borrador de sphere tracing con paso mínimo, contador máximo y minimización áurea:
+podía saltar una cuerda estrecha, confundir agotamiento con ausencia de contacto, rechazar el eje
+y aceptar una distancia exterior pequeña como tangencia. La bisección por signos sola pierde raíces
+pares. No se usa una tolerancia de distancia para decidir si el rayo toca la piel.
+**Decisión.** `SkinSurface` reúne profundidad, gradiente y primera entrada. `probeContact` crea un
+único proveedor `torsoSkinSurface` por resolución y lo usa para entrada, hueco normal y búsqueda
+de la cara interna de la pared. La cuadrática productiva conserva literalmente sus operaciones,
+guardas y convenciones: el paciente sigue cilíndrico. No cambia la presión, el gel, los espesores
+ni la búsqueda heredada de la cara interna; esta última no es el aislamiento de la piel.
+
+El proveedor experimental separado `axialSkinSurface` usa esa misma cuadrática en identidad.
+En perfiles variables resuelve ρ²−1 = 0 por los tres tramos del perfil (inferior constante,
+Hermite y superior constante). Multiplica por factores estrictamente positivos para obtener
+X²B² + Y²A² − A²B², de grado ≤12. `exactPolynomial` representa exactamente los valores binarios
+de entrada y sus operaciones con enteros y exponentes diádicos; los cortes por z y los extremos
+de bisección son racionales. Las cadenas de Sturm aíslan la primera raíz, también múltiple,
+después de retirar el factor común con la derivada; `null` exige ausencia de raíz y de interior
+inicial, no agotar iteraciones. El eje se clasifica directamente con la ecuación implícita, sin
+consultar la profundidad singular. La precisión final es técnica: intervalo de desplazamiento
+≤1e−6 mm más redondeo float64, no una tolerancia de acoplamiento.
+
+El álgebra entera y Sturm usan [FloPoly 7.0.1](https://github.com/FlorisSteenkamp/FloPoly/tree/v7.0.1),
+MIT; sus dependencias transitivas quedan fijadas mediante overrides a big-float-ts 4.0.1 y
+double-double 3.0.2. No se importan este proveedor ni su solver desde la ruta productiva de contacto.
+No hay parámetros anatómicos/físicos nuevos, atlas añadido ni modificación de las fuentes de 56–58.
+**Consecuencias.** Ningún cambio anatómico visible ni corrección del cuello en este paso. La
+certificación de raíces corresponde al proveedor variable, no a la cuadrática legada en identidad.
+Faltan capas, huesos, órganos, malla, composición fisiológica y registro anatómico comunes. También
+falta rendimiento: 16 rayos oblicuos de prueba costaron localmente 5,1 ms de media y 7,8 ms máximo
+por rayo; no es una medida del contacto completo ni justifica activar el perfil en tiempo real.
+La precisión no elimina incertidumbre anatómica. El centro del intervalo aislado puede estar a
+cualquier lado de la frontera. Se actualiza la procedencia de `contact.ts`; la extracción del
+contrato queda propuesta para retorno a VExUS, sin modificar el repositorio hermano.
+**Verificación.** `skinSurface.test.ts`: 100 000 rayos contra la cuadrática previa, consumo de una
+sola superficie y control negativo que impide acoplar cuando el proveedor devuelve `null`.
+Pruebas variables de tangencia exacta, mínimo positivo de 1e−10 mm, cuerda menor de 0,001 mm,
+uniones, núcleo, rayos estacionarios, escala y desplazamiento simultáneos, y entradas inválidas.
+La tangencia desplazada se pierde si se sustituye por la elipse fija: control negativo explícito.
+`exactPolynomial.test.ts` cubre raíces múltiples y próximas, extremos racionales y un mínimo
+positivo subnormal. Las suites de compresión y la E2E completa protegen el comportamiento productivo;
+ninguna de estas pruebas valida la anatomía cervical ni su rendimiento interactivo.

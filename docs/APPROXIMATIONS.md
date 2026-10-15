@@ -37,6 +37,26 @@ su entorno se conservan por compatibilidad; no son límites geométricos ni vali
 del proveedor axial fuera de su chart. Los consumidores costales y de pared ya conservan las
 tres componentes, pero el arco y el contacto siguen siendo cilíndricos.
 
+La decisión 59 conecta el contacto a `SkinSurface`: entrada, hueco normal y profundidad de pared.
+El proveedor productivo conserva exactamente la cuadrática y las convenciones cilíndricas anteriores,
+incluida la guarda de dirección transversal casi nula; no se le atribuye certificación exacta.
+El proveedor axial separado sigue inactivo. En perfiles variables, el primer cero de ρ²−1 se aísla
+por tramos con coeficientes diádicos exactos, cadenas de Sturm y extremos racionales; se eliminan
+multiplicidades antes del conteo. No hay paso mínimo ni umbral radial que convierta un mínimo
+positivo en contacto. El centro del intervalo aislado aproxima la raíz: su anchura equivale a
+≤1e−6 mm de desplazamiento, más el redondeo final a float64; no se garantiza que ese centro quede
+dentro de la piel, especialmente en una tangencia. Esta es precisión técnica, no grosor de gel
+ni precisión anatómica. La ecuación exacta usa los valores binarios de los parámetros, no elimina
+su incertidumbre anatómica ni el redondeo de la evaluación float32.
+
+La entrada axial limita el origen físico, dirección, intervalo y extremos en z mediante el dominio
+de 56–57. Admite el eje para clasificar entrada/interior sin consultar el chart radial singular;
+`depth` y `gradient` mantienen sus restricciones de 57. Un rayo inválido lanza error, no devuelve
+`null`. El aislamiento exacto todavía no tiene presupuesto interactivo: una medición local de
+16 rayos oblicuos en un perfil de prueba dio 5,1 ms de media y 7,8 ms máximo por rayo, no por cuadro.
+Antes de activar el cuello faltan optimización y medición del contacto completo, además de capas,
+órganos, respiración, compresión y malla comunes. No se extrapola esa medición a GPU o equipos de alumnos.
+
 La parrilla costal del adulto promedio (decisión 16, `src/anatomy/organs/ribcage.ts`) y las líneas del tórax
 (`src/anatomy/thoraxLines.ts`): lo que la base documenta (el alto costal, los espacios intercostales de Kim y de Seong,
 los niveles vertebrales y la línea de Treves de Gray, la oblicuidad de Robinson) va con su evidencia en el código; aquí,

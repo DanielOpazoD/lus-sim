@@ -412,3 +412,20 @@ bloqueo a la llamada nativa o al transporte de la evaluación. Se conservan los 
 
 El build controla entrada inicial y módulo 3D diferido por separado y también la suma. Estas pruebas
 no establecen rendimiento en GPU física ni certifican fidelidad anatómica o visual del modelo.
+
+## Superficie de contacto común (decisión 59)
+
+`skinSurface.test.ts` congela la cuadrática previa como oráculo: 100 000 rayos deterministas,
+cuatro secciones y direcciones degeneradas, tanto para el proveedor productivo como para el axial
+identidad. Comprueba que `probeContact` consume una única superficie en entrada, hueco y profundidad
+de pared; si el proveedor niega la entrada, no puede quedar una cuadrática oculta que acople la sonda.
+El proveedor variable se prueba aparte: tangencias, mínimos positivos de 1e−10 mm, cuerdas menores
+que 0,001 mm, núcleo/eje, uniones en ambos sentidos, intervalos nulos y perfiles con escala y centro
+variables. En el caso de tangencia desplazada, la elipse fija no encuentra entrada: control negativo.
+No son perfiles humanos ni activan el contorno cervical.
+
+`exactPolynomial.test.ts` protege signos exactos, extremos racionales no diádicos, raíces múltiples
+y próximas, y un mínimo positivo de `Number.MIN_VALUE`; una distancia pequeña no equivale a cero.
+La tolerancia del intervalo de raíz no es una tolerancia de contacto ni exige que el punto aproximado
+quede dentro. Las pruebas de compresión y la E2E completa protegen la integración productiva en
+identidad. No se infiere rendimiento interactivo del proveedor variable a partir de estas pruebas.
