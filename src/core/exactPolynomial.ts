@@ -90,9 +90,16 @@ function midpoint(a: Rational, b: Rational): Rational {
 }
 
 export function rationalToNumber(a: Rational): number {
+  if (a.d === 0n) throw new Error('exactPolynomial: denominador cero');
   const n = a.n < 0n ? -a.n : a.n;
-  const shift = BigInt(Math.max(0, Math.max(n.toString(2).length, a.d.toString(2).length) - 1020));
-  return ((a.n < 0n ? -1 : 1) * Number(n >> shift)) / Number(a.d >> shift);
+  const d = a.d < 0n ? -a.d : a.d;
+  const ns = Math.max(0, n.toString(2).length - 53);
+  const ds = Math.max(0, d.toString(2).length - 53);
+  const exponent = ns - ds;
+  const scale = Math.max(-1022, Math.min(1023, exponent));
+  const ratio = Number(n >> BigInt(ns)) / Number(d >> BigInt(ds));
+  const sign = (a.n < 0n ? -1 : 1) * (a.d < 0n ? -1 : 1);
+  return sign * (ratio * 2 ** (exponent - scale)) * 2 ** scale;
 }
 
 function signAt(p: readonly bigint[], x: Rational): number {

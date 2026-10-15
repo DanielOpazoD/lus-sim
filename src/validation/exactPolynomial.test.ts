@@ -6,6 +6,7 @@ import {
   exactPolynomial,
   firstNonpositive,
   rationalFromNumber,
+  rationalToNumber,
   divideRational,
 } from '../core/exactPolynomial';
 
@@ -14,6 +15,29 @@ const first = (polynomial: ReturnType<typeof p>, lo = 0, hi = 4) =>
   firstNonpositive(polynomial, rationalFromNumber(lo), rationalFromNumber(hi), 1e-8);
 
 describe('primer cero por Sturm y coeficientes diádicos exactos', () => {
+  it('convierte racionales a float64 sin perder extremos finitos ni subnormales', () => {
+    for (const value of [
+      Number.MIN_VALUE,
+      Number.MIN_VALUE * 10,
+      2 ** -1022,
+      1e-250,
+      1e-100,
+      Number.EPSILON,
+      1 / 3,
+      Math.PI,
+      512,
+      1e100,
+      2 ** 1023,
+      Number.MAX_VALUE,
+    ]) {
+      for (const sign of [-1, 1]) expect(rationalToNumber(rationalFromNumber(sign * value))).toBe(sign * value);
+    }
+    expect(rationalToNumber(rationalFromNumber(0))).toBe(0);
+    expect(rationalToNumber({ n: 7n << 1200n, d: 3n << 1200n })).toBe(7 / 3);
+    expect(rationalToNumber({ n: 1n, d: -3n })).toBe(-1 / 3);
+    expect(() => rationalToNumber({ n: 1n, d: 0n })).toThrow();
+  });
+
   it('conserva signos de constantes y el inicio interior', () => {
     expect(first(p([]))).toBe(0);
     expect(first(p([0]))).toBe(0);
