@@ -1636,7 +1636,7 @@ export class UltrasoundRenderer {
     points: Float32Array,
     inputs: FrameInputs,
     _allTubes = false,
-    opts: { normals?: boolean; lungPulse?: boolean; trapTauMm?: Float32Array } = {},
+    opts: { normals?: boolean; wallNormal?: boolean; lungPulse?: boolean; trapTauMm?: Float32Array } = {},
   ): GpuPointQuery {
     const gl = this.gl;
     const n = Math.floor(points.length / 3);
@@ -1655,6 +1655,7 @@ export class UltrasoundRenderer {
     this.setSceneUniforms(this.pQuery, inputs);
     this.setBeamUniforms(this.pQuery, inputs);
     this.pQuery.tex('uPoints', 0, pts);
+    this.pQuery.f('uQueryWallNormal', opts.wallNormal ? 1 : 0);
     // lus-sim (decisión 51): las trampas de las líneas B en vez de la velocidad (o1), con el haz y la lente del equipo
     this.pQuery.f('uQueryTraps', tau ? 1 : 0);
     this.pQuery.f('uSeed', (inputs.seed % 1000) / 7.0);

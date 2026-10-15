@@ -1,6 +1,7 @@
 import type { Vec3 } from '../../core/vec3';
 import { Interface } from '../interfaces';
 import { torsoDepth, torsoDepthGradient, type Torso, type WallLayersAt } from '../primitives';
+import { cupolaMm, cupolaSideMm } from './lungApex';
 
 /**
  * Pared torácica y abdominal en capas (decisión 62) como módulo de órgano (decisión 46): la geometría de
@@ -139,11 +140,12 @@ export function wallTotalMm(m: Vec3, t: Torso): number {
  * Normal exterior (unitaria) de la cara interna de la pared, la pleura parietal, en el punto MATERIAL m: −∇ de la
  * profundidad bajo ella, −torsoDepth − W(u, z) (lus-sim, decisión 17: con la pared por región la pleura se inclina
  * respecto de la piel, hasta ≈ 10° en la subida hacia la axila; sin pared torácica, la normal radial de VExUS). Analítica en
- * ∇torsoDepth y en ∇u (la tangente de la elipse del punto sobre ρ, la escala del rayo) y con diferencias centrales de
+ * ∇torsoDepth y en ∇u (el gradiente del arco en las columnas radiales) y con diferencias centrales de
  * `WALL_NORMAL_STEP_MM` en la tabla (u y z): una sola `wallArc` por punto, que la pasada B la evalúa en cada muestra.
- * Gemelo GLSL con el mismo nombre.
+ * La cúpula (55) usa la ladera continua y el techo zTop(u), no la derivada del salto de cierre. Gemelo GLSL.
  */
 export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
+  if (Math.hypot(m[0], m[1]) < 1e-6) return [0, 1, 0];
   const g = torsoDepthGradient(m, t);
   let nx = g[0];
   let ny = g[1];
@@ -151,16 +153,25 @@ export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
   if (t.chestWall) {
     const u = wallArc(m, t);
     const h = WALL_NORMAL_STEP_MM;
-    const dWdu = (t.chestWall.total(u + h, m[2]) - t.chestWall.total(u - h, m[2])) / (2 * h);
-    const dWdz = (t.chestWall.total(u, m[2] + h) - t.chestWall.total(u, m[2] - h)) / (2 * h);
-    const tau = Math.atan2(m[0] / t.a, m[1] / t.b);
-    const tx = t.a * Math.cos(tau);
-    const ty = -t.b * Math.sin(tau);
-    const tl = Math.hypot(tx, ty);
-    const rho = Math.hypot(m[0] / t.a, m[1] / t.b);
-    nx += (dWdu * tx) / (tl * rho);
-    ny += (dWdu * ty) / (tl * rho);
+    const side = (u: number, z: number): number => {
+      const a = t.chestWall!.cupolaSection?.(u);
+      return t.chestWall!.total(u, z) + (a ? cupolaSideMm(a[0], a[1], z) - cupolaMm(a[0], a[1], z) : 0);
+    };
+    const dWdu = (side(u + h, m[2]) - side(u - h, m[2])) / (2 * h);
+    const dWdz = (side(u, m[2] + h) - side(u, m[2] - h)) / (2 * h);
+    const du = wallArcGradient(m, t);
+    nx += dWdu * du[0];
+    ny += dWdu * du[1];
     nz = dWdz;
+    const a = t.chestWall.cupolaSection?.(u);
+    if (a && m[2] > a[0]) {
+      const dzdu = (t.chestWall.cupolaSection!(u + h)[1] - t.chestWall.cupolaSection!(u - h)[1]) / (2 * h);
+      const roof: Vec3 = [-dzdu * du[0], -dzdu * du[1], 1];
+      const lr = Math.hypot(...roof);
+      const ds = (torsoDepth(m, t) + side(u, m[2])) / Math.hypot(nx, ny, nz);
+      // La cara activa de la intersección ladera ∩ techo, también justo por debajo de zTop.
+      if ((m[2] - a[1]) / lr > ds) return [roof[0] / lr, roof[1] / lr, roof[2] / lr];
+    }
   }
   const l = Math.hypot(nx, ny, nz);
   return [nx / l, ny / l, nz / l];
@@ -217,6 +228,23 @@ export function wallArc(m: Vec3, t: Pick<Torso, 'a' | 'b'>): number {
       ((e * e) / 64) * Math.sin(4 * tau) +
       ((e * e * e) / 384) * Math.sin(6 * tau))
   );
+}
+
+/** Gradiente del arco de la elipse: las columnas siguen radiales, no normales a la piel. */
+export function wallArcGradient(m: Vec3, t: Pick<Torso, 'a' | 'b'>): Vec3 {
+  const tau = Math.atan2(m[0] / t.a, m[1] / t.b);
+  const rho = Math.max(1e-6, Math.hypot(m[0] / t.a, m[1] / t.b));
+  const a2 = t.a * t.a,
+    b2 = t.b * t.b;
+  const e = (a2 - b2) / (a2 + b2);
+  const d =
+    Math.sqrt(0.5 * (a2 + b2)) *
+    (1 -
+      (e * e) / 16 +
+      Math.cos(2 * tau) * (e / 2 + (3 * e * e * e) / 64) -
+      ((e * e) / 16) * Math.cos(4 * tau) +
+      ((e * e * e) / 64) * Math.cos(6 * tau));
+  return [(d * Math.cos(tau)) / (t.a * rho), (-d * Math.sin(tau)) / (t.b * rho), 0];
 }
 
 /**
@@ -437,15 +465,26 @@ float wallTotalMm(vec3 m) { return wallTotalAt(wallArc(m), m.z); }
 // ∇torsoDepth y ∇u y con diferencias de la tabla en u y z. Gemelo: wallInnerNormal
 vec3 wallInnerNormal(vec3 m) {
   float r = length(m.xy);
-  float rho = length(m.xy / uTorso.xy);
+  if (r < 1e-6) return vec3(0.0, 1.0, 0.0);
+  float rho = max(1e-6, length(m.xy / uTorso.xy));
   vec2 g = r < 1e-6 ? vec2(0.0, 1.0) : m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy);
   float u = wallArc(m);
   float h = WALL_NORMAL_STEP;
-  float dWdu = (wallTotalAt(u + h, m.z) - wallTotalAt(u - h, m.z)) / (2.0 * h);
-  float dWdz = (wallTotalAt(u, m.z + h) - wallTotalAt(u, m.z - h)) / (2.0 * h);
+  float dWdu = (wallSideTotalAt(u + h, m.z) - wallSideTotalAt(u - h, m.z)) / (2.0 * h);
+  float dWdz = (wallSideTotalAt(u, m.z + h) - wallSideTotalAt(u, m.z - h)) / (2.0 * h);
   float tau = atan(m.x / uTorso.x, m.y / uTorso.y);
-  vec2 tg = vec2(uTorso.x * cos(tau), -uTorso.y * sin(tau));
-  vec3 n = vec3(g + dWdu * tg / (length(tg) * rho), dWdz);
+  vec2 ab2 = uTorso.xy * uTorso.xy;
+  float e = (ab2.x - ab2.y) / (ab2.x + ab2.y);
+  float duDt = sqrt(0.5 * (ab2.x + ab2.y)) * (1.0 - e*e/16.0 + cos(2.0*tau)*(e/2.0 + 3.0*e*e*e/64.0) - e*e/16.0*cos(4.0*tau) + e*e*e/64.0*cos(6.0*tau));
+  vec2 du = duDt * vec2(cos(tau), -sin(tau)) / (uTorso.xy * rho);
+  vec3 n = vec3(g + dWdu * du, dWdz);
+  vec2 a = m.z > uCupola.x ? wallCupolaSection(u) : vec2(1e4);
+  if (m.z > a.x) {
+    float dzdu = (wallCupolaSection(u + h).y - wallCupolaSection(u - h).y) / (2.0 * h);
+    vec3 roof = vec3(-dzdu * du, 1.0);
+    float ds = (torsoDepth(m) + wallSideTotalAt(u, m.z)) / length(n);
+    if ((m.z - a.y) / length(roof) > ds) return normalize(roof);
+  }
   return normalize(n);
 }
 `;

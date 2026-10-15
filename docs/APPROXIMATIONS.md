@@ -1,5 +1,12 @@
 # Aproximaciones y parámetros pendientes de calibración
 
+La normal acústica de la cúpula (decisión 55) selecciona la cara activa entre techo y ladera con
+distancias locales de primer orden (función implícita dividida por la norma de su gradiente).
+No son distancias euclidianas exactas lejos de la frontera y no suavizan la arista de unión.
+La regresión geométrica compara normales con diferencias numéricas; la validación anatómica de la
+forma del vértice y del estrechamiento cervical sigue pendiente (`apex-cupola-wall`). Sin parámetros
+anatómicos nuevos: las alturas y pendientes conservan sus fuentes y supuestos anteriores.
+
 Todo parámetro con evidencia `estimado` o `extrapolacion` (`src/core/evidence.ts`) figura aquí por su
 identificador completo entre acentos graves (`conjunto.parámetro`), con el motivo y el plan para
 calibrarlo; `src/validation/evidence.test.ts` lo exige. La regla de la guía (§1) es no inventar valores

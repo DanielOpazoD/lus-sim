@@ -93,7 +93,12 @@ export function cupolaMm(zApex: number, zTop: number, z: number): number {
   if (z <= zApex) return 0;
   const span = Math.max(zTop - zApex, 1e-3);
   if (z >= zApex + span) return CUPOLA_CAP_MM;
-  const h = (z - zApex) / span;
+  return cupolaSideMm(zApex, zTop, z);
+}
+
+/** Ladera sin el salto de cierre: prolongada sobre el techo solo para evaluar su normal (decisión 55). */
+export function cupolaSideMm(zApex: number, zTop: number, z: number): number {
+  const h = Math.max(0, (z - zApex) / Math.max(zTop - zApex, 1e-3));
   return cupolaRoofDepthMm(zApex, zTop) * h * h;
 }
 
@@ -102,12 +107,15 @@ export const LUNG_APEX_GLSL = /* glsl */ `
 #define CUPOLA_SLOPE ${LUNG_APEX.params.cupolaMaxSlope.value.toFixed(4)}
 #define CUPOLA_CAP ${CUPOLA_CAP_MM.toFixed(4)}
 float cupolaRoofDepthMm(vec2 a) { return min(CUPOLA_RC, 0.5 * CUPOLA_SLOPE * max(a.y - a.x, 1e-3)); }
+float cupolaSideMm(vec2 a, float z) {
+  float h = max(0.0, (z - a.x) / max(a.y - a.x, 1e-3));
+  return cupolaRoofDepthMm(a) * h * h;
+}
 float cupolaMm(vec2 a, float z) {
   if (z <= a.x) return 0.0;
   float span = max(a.y - a.x, 1e-3);
   if (z >= a.x + span) return CUPOLA_CAP;
-  float h = (z - a.x) / span;
-  return cupolaRoofDepthMm(a) * h * h;
+  return cupolaSideMm(a, z);
 }
 `;
 

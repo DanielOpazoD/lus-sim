@@ -5080,3 +5080,38 @@ telediástole y entra en la escena al terminar; otra escena del mismo paciente l
 fase de referencia por tramos y la fracción expulsada de EchoTwin; sin contracción auricular (FA, o función auricular 0)
 `atrialContraction` es 0 en todo el latido, la fracción expulsada solo baja con el llenado rápido y se queda (en sinusal vuelve
 a 0 con la onda A) y es continua; las tres fallan sin `withoutAtrialKick`. e2e: la equivalencia del latido en cinco fases.
+
+## 55. La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre
+
+**Fecha.** 2026-10-15.
+**Contexto.** O1/O2/O3. `cupolaMm` cierra el pulmón con un salto de grosor al llegar a `zTop(u)`.
+Derivar ese salto para la incidencia acústica confunde la frontera geométrica con el valor centinela.
+Además, la tangente a una elipse no es el gradiente de su arco cuando sus columnas siguen radios.
+Con esa aproximación, la normal del techo inclinado difería de su gradiente numérico (producto escalar
+0,99619 en u = −42 mm). La decisión 54 pertenece al PR separado del modo M; no se renumera.
+
+**Opciones.** Apagar ecos en la ventana supraclavicular rompería la cadena causal. Imponer una normal
+vertical ignora la variación de `zTop` alrededor del tórax. Cambiar la forma o el ancho del vértice
+sin una nueva referencia morfométrica tampoco corresponde a esta corrección.
+
+**Decisión.** `cupolaSideMm` prolonga la ladera sin el cierre, solo para el cálculo de normales;
+`ChestWallLookup.cupolaSection` expone sus alturas. `wallInnerNormal` compara las distancias locales
+normalizadas a la ladera (`torsoDepth + Wside`) y al techo (`z − zTop(u)`) y elige la cara activa
+de su intersección. Usa el gradiente analítico de la misma serie que define `wallArc`, no la tangente
+de la elipse. TS y GLSL hacen lo mismo. En el eje radial, donde el arco no tiene normal única,
+se devuelve la dirección de respaldo (0,1,0). No cambia la clasificación de tejido, las alturas,
+los parámetros anatómicos ni el mecanismo de ecos; no introduce constantes clínicas.
+
+**Consecuencias.** La incidencia del eco pleural usa una normal coherente en ambos lados del techo,
+sin el pico artificial de la diferencia del centinela. La distancia de cada cara es una aproximación
+local de primer orden: no elimina la arista techo/ladera ni sustituye la cúpula por una segmentación
+de TC. Continúan `apex-cupola-wall` y `thorax-cylindrical-cage`: todavía faltan estrechamiento cervical,
+mediastino y concordancia completa con el maniquí 3D. No se declara resuelto el marco supraclavicular
+ni se modifica el conteo de líneas B.
+
+**Verificación.** `cupolaNormal.test.ts`: gradiente del arco en distintas elipses, ladera frente al
+gradiente de la frontera, techo horizontal e inclinado, compatibilidad sin pared regional y eje finito.
+Al desactivar la selección del techo fallan las dos guardas del techo (producto escalar 0,84614 en
+u = −42 mm). `cupolaNormals`, en `e2e/imagen.spec.ts`, compara 395 puntos materiales en TS y GPU
+(pared, ladera, ambos lados del techo y eje), con error vectorial < 0,002. Las demás guardas de imagen,
+profundidad y cobertura mantienen sus umbrales.

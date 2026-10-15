@@ -1276,6 +1276,7 @@ ${BEAM_GLSL}
 uniform sampler2D uPoints;
 uniform float uSeed;
 uniform float uQueryTraps; // lus-sim (decisión 51): 1, o1 lleva las trampas de las líneas B en el punto (la pleura de una línea)
+uniform float uQueryWallNormal; // 55: normal acústica de la pared en coordenadas MATERIALES (solo pruebas)
 ${ELEV_SIGMA_GLSL}${LATERAL_PSF_GLSL}${SUBPLEURAL_GLSL}${B_LINES_GLSL}
 layout(location = 0) out vec4 o0;
 layout(location = 1) out vec4 o1;
@@ -1291,6 +1292,7 @@ void main() {
   // el punto es la pleura de la línea que pasa por él desde el centro de curvatura, y w, la profundidad aparente τ
   if (uQueryTraps > 0.5) o1 = bLineField(lungPulseInverse(m), normalize(p.xyz - uCurvC), length(p.xyz - uCurvC) - uCurvR, p.w);
   o2 = faceGradient(c, m);
+  if (uQueryWallNormal > 0.5) o2 = vec4(wallInnerNormal(p.xyz), 1.0);
   // lus-sim (decisión 32): el pulso pulmonar, el desplazamiento del punto del pulmón antes del latido, y la amplitud del instante
   o3 = vec4(lungPulseInverse(m) - m, uLungPulse.x);
 }
