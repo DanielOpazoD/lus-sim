@@ -977,10 +977,6 @@ vec2 wallCupolaSection(float u) {
   float f = cwColumn(u, j);
   return cwTexel(j, f, 3).xy;
 }
-float wallSideTotalAt(float u, float z) {
-  if (z <= uCupola.x) return wallTotalAt(u, z);
-  return wallTotalOf(wallColumnTexel(u), z) + cupolaSideMm(wallCupolaSection(u), z) - wallFossaMm(u, z);
-}
 float wallCupolaBd(float u, float z) {
   if (z <= uCupola.x) return 1e3;
   int j;

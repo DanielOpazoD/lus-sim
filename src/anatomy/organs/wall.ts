@@ -136,6 +136,14 @@ export function wallTotalMm(m: Vec3, t: Torso): number {
   return t.chestWall ? t.chestWall.total(wallArc(m, t), m[2]) : t.skinMm + t.fatMm + t.muscleMm;
 }
 
+/** Espesor para la normal de la ladera: prolongación continua sin el centinela de cierre. */
+export function wallSideTotalAt(t: Torso, u: number, z: number): number {
+  const cw = t.chestWall;
+  if (!cw) return t.skinMm + t.fatMm + t.muscleMm;
+  const a = cw.cupolaSection?.(u);
+  return cw.total(u, z) + (a ? cupolaSideMm(a[0], a[1], z) - cupolaMm(a[0], a[1], z) : 0);
+}
+
 /**
  * Normal exterior (unitaria) de la cara interna de la pared, la pleura parietal, en el punto MATERIAL m: −∇ de la
  * profundidad bajo ella, −torsoDepth − W(u, z) (lus-sim, decisión 17: con la pared por región la pleura se inclina
@@ -153,10 +161,7 @@ export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
   if (t.chestWall) {
     const u = wallArc(m, t);
     const h = WALL_NORMAL_STEP_MM;
-    const side = (u: number, z: number): number => {
-      const a = t.chestWall!.cupolaSection?.(u);
-      return t.chestWall!.total(u, z) + (a ? cupolaSideMm(a[0], a[1], z) - cupolaMm(a[0], a[1], z) : 0);
-    };
+    const side = (u: number, z: number): number => wallSideTotalAt(t, u, z);
     const dWdu = (side(u + h, m[2]) - side(u - h, m[2])) / (2 * h);
     const dWdz = (side(u, m[2] + h) - side(u, m[2] - h)) / (2 * h);
     const du = wallArcGradient(m, t);
@@ -461,6 +466,10 @@ float wallFaceSd(vec3 m, int face) {
 }
 // Espesor total de la pared bajo el punto MATERIAL m (lus-sim, decisión 17). Gemelo: wallTotalMm
 float wallTotalMm(vec3 m) { return wallTotalAt(wallArc(m), m.z); }
+float wallSideTotalAt(float u, float z) {
+  if (z <= uCupola.x) return wallTotalAt(u, z);
+  return wallTotalOf(wallColumnTexel(u), z) + cupolaSideMm(wallCupolaSection(u), z) - wallFossaMm(u, z);
+}
 // Normal exterior de la cara interna de la pared (la pleura parietal): −∇ de la profundidad bajo ella, analítica en
 // ∇torsoDepth y ∇u y con diferencias de la tabla en u y z. Gemelo: wallInnerNormal
 vec3 wallInnerNormal(vec3 m) {

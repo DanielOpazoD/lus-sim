@@ -5081,6 +5081,14 @@ fase de referencia por tramos y la fracción expulsada de EchoTwin; sin contracc
 `atrialContraction` es 0 en todo el latido, la fracción expulsada solo baja con el llenado rápido y se queda (en sinusal vuelve
 a 0 con la onda A) y es continua; las tres fallan sin `withoutAtrialKick`. e2e: la equivalencia del latido en cinco fases.
 
+## 54. Modo M a la cadencia del reloj único [Estado: pendiente de integración del PR 76]
+
+**Fecha.** 2026-10-14.
+**Contexto.** Número reservado a la decisión del [PR 76](https://github.com/DanielOpazoD/lus-sim/pull/76),
+todavía abierto al redactar esta entrada. La implementación y su decisión completa están en esa rama;
+esta reserva mantiene la numeración estable del trabajo anatómico independiente (55), no declara el
+modo M de alta cadencia integrado en `main`. Al integrar aquel PR, conservar su texto completo aquí.
+
 ## 55. La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre
 
 **Fecha.** 2026-10-15.
