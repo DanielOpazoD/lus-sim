@@ -22,6 +22,15 @@ no una forma cervical validada. `AXIAL_REST_NUMERICS` delimita únicamente el c�
 no proporciones humanas ni variación poblacional. Antes de activarlo se requieren medidas anatómicas,
 contacto y dimensiones físicas finales verificadas; conservar topología no conserva espesores.
 
+El proveedor de superficie física (decisión 57) también está inactivo. Sus secciones elípticas
+C¹, radios, razón de semiejes y chart regular son un dominio de cálculo, no antropometría cervical.
+La profundidad radial no es distancia normal ni euclídea; la etiqueta angular no es arco físico;
+no hay curvatura continua en las uniones. El núcleo axial queda fuera del chart, sin clasificación
+de tejidos ni sustituto silencioso para la singularidad. La aproximación polinómica cos/sin GLSL
+solo controla precisión numérica; no añade una aproximación anatómica al paciente productivo.
+Faltan registro anatómico, reconstrucción de capas/órganos y contacto, composición con respiración
+y compresión, cotas de dominio y malla compartida antes de activar cualquier perfil.
+
 La parrilla costal del adulto promedio (decisión 16, `src/anatomy/organs/ribcage.ts`) y las líneas del tórax
 (`src/anatomy/thoraxLines.ts`): lo que la base documenta (el alto costal, los espacios intercostales de Kim y de Seong,
 los niveles vertebrales y la línea de Treves de Gray, la oblicuidad de Robinson) va con su evidencia en el código; aquí,

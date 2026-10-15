@@ -60,3 +60,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [54](DECISIONS.md#L5084) | Modo M a la cadencia del reloj único | pendiente de integración del PR 76 |
 | [55](DECISIONS.md#L5092) | La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre | vigente |
 | [56](DECISIONS.md#L5132) | Contrato invertible de reposo antes de activar el contorno cervical | vigente |
+| [57](DECISIONS.md#L5178) | Superficie axial física compartida, antes de reconstruir capas y contacto | vigente |
