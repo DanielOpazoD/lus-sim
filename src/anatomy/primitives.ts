@@ -1,4 +1,5 @@
 import type { Vec3 } from '../core/vec3';
+import { ellipticRadialDepth, ellipticRadialGradient } from './ellipticMetric';
 
 /**
  * Primitivas implícitas declarativas. La misma lista se evalúa en TypeScript
@@ -366,9 +367,8 @@ export function torsoDepth(p: Vec3, t: Torso): number {
   const u = p[0] / t.a;
   const v = p[1] / t.b;
   const rho = Math.sqrt(u * u + v * v);
-  // Escala local aproximada de la elipse en esa dirección
-  const localR = rho > 0 ? Math.hypot(p[0], p[1]) / rho : Math.min(t.a, t.b);
-  return (rho - 1) * localR;
+  // Convención histórica del campo cilíndrico en el eje; no es el límite de la profundidad radial.
+  return rho > 0 ? ellipticRadialDepth(Math.hypot(p[0], p[1]), rho) : (rho - 1) * Math.min(t.a, t.b);
 }
 
 /**
@@ -380,9 +380,7 @@ export function torsoDepthGradient(p: Vec3, t: Torso): Vec3 {
   const r = Math.hypot(p[0], p[1]);
   if (r < 1e-6) return [0, 1, 0];
   const rho = Math.hypot(p[0] / t.a, p[1] / t.b);
-  const k = 1 - 1 / rho;
-  const c = r / (rho * rho * rho);
-  return [(p[0] / r) * k + (c * p[0]) / (t.a * t.a), (p[1] / r) * k + (c * p[1]) / (t.b * t.b), 0];
+  return ellipticRadialGradient(p[0], p[1], r, rho, { a: t.a, b: t.b, da: 0, db: 0, dx: 0, dy: 0 });
 }
 
 /** Normal exterior aproximada de la piel en el punto. */

@@ -61,3 +61,4 @@ Generado por `npm run docs:index` — no editar a mano.
 | [55](DECISIONS.md#L5099) | La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre | vigente |
 | [56](DECISIONS.md#L5139) | Contrato invertible de reposo antes de activar el contorno cervical | vigente |
 | [57](DECISIONS.md#L5185) | Superficie axial física compartida, antes de reconstruir capas y contacto | vigente |
+| [58](DECISIONS.md#L5242) | Métrica radial común en el paciente cilíndrico, antes de activar el perfil axial | vigente |

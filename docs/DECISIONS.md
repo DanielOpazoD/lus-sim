@@ -5238,3 +5238,50 @@ traslaciones extremas, escalas y radios límite, ρ mínimo y transiciones junto
 La envolvente exige posición y arco angular local <0,005 mm, derivadas <0,02 y ángulo <0,0001 rad
 en frontera; en perfiles moderados, <0,001 mm, <0,001 y <0,00001 rad respectivamente.
 Son guardas numéricas de casos sintéticos, no validación clínica ni demostración exhaustiva del dominio.
+
+## 58. Métrica radial común en el paciente cilíndrico, antes de activar el perfil axial
+
+**Fecha.** 2026-10-15.
+**Contexto.** La superficie de 57 y el paciente repetían la profundidad y su gradiente en TS/GLSL.
+Además, `ribMetric` descartaba la tercera componente y `wallInnerNormal` sustituía la axial por
+la variación del grosor de pared. Esto es inocuo con una sección constante, pero perdería términos
+geométricos al integrar un contorno variable. Mueve O2/O6/O7: preparar una única geometría sin
+cambiar todavía la anatomía ni suponer que el cuello ya está corregido.
+
+**Opciones.** Reemplazar directamente `torsoDepth` por el proveedor validado de 57 rompería las
+consultas actuales del núcleo (ρ<0,25) y fuera de su dominio. Añadir un perfil opcional al paciente
+antes de adaptar contacto, órganos y malla permitiría dos anatomías incompatibles. Ambas se descartan.
+
+**Decisión.** `anatomy/ellipticMetric.ts` reúne el álgebra radial regular, d=(ρ−1)r/ρ y su gradiente
+físico completo, con radios y derivadas de radios/centros. El proveedor de 57 mantiene todas sus
+validaciones y delega solo esta álgebra. Las primitivas productivas TS y la GLSL ensamblada consumen
+el mismo núcleo con derivadas nulas: **identidad exclusivamente**, sin nuevos uniforms de perfil,
+parámetros anatómicos, reloj, malla o dependencia del mapa axial en producción.
+
+La norma costal usa las tres componentes. La normal de pared conserva ∇d+Wᵤ∇u+W_z e_z y la del
+techo, e_z−z′top∇u. El arco productivo aún es cilíndrico, por tanto ∂u/∂z sigue siendo cero; no se
+afirma que las coordenadas de pared o el contacto variable estén implementados.
+
+**Consecuencias.** No cambia la forma visible ni los espesores del paciente. Se preservan las
+convenciones históricas del campo cilíndrico en el eje (−min(a,b) para profundidad y [0,1,0] para
+el gradiente cuando r<10⁻⁶ mm), y la guarda ρ≥10⁻⁶ de la normal de pared GLSL. **No son un límite
+matemático ni se trasladan al proveedor axial validado**. Este sigue rechazando el núcleo. La
+identidad devuelve z=+0 sin evaluar productos axiales nulos que podrían dar 0·∞ en coordenadas
+extremas del campo legado; una coordenada NaN no se convierte en profundidad interior finita.
+
+El kernel es álgebra interna, no una nueva API de superficie con dominio ampliado ni un clasificador.
+La parte variable de 56–57 sigue inactiva. Quedan contacto de primer cruce, arcos y capas físicas,
+órganos, dominio/cotas, respiración, compresión y malla compartida antes de activar un cuello.
+Se ofrece el núcleo y la conservación de componentes a VExUS como mejora reutilizable, sin modificar
+su repositorio ni importar una anatomía cervical no verificada.
+
+**Verificación.** `validation/ellipticMetric.test.ts` contrasta la identidad contra las fórmulas
+anteriores en 3360 puntos (incluido el núcleo), el gradiente físico contra diferencias centrales
+independientes y los consumidores de pared/costilla con una componente axial sintética no nula.
+Conserva NaN y un caso de coordenadas extremas legado. Las pruebas de 57 siguen protegiendo su
+dominio y paridad; el cero axial queda canónico, no se exige el signo negativo de cero.
+`e2e/ellipticMetric.spec.ts` compila la anatomía GLSL ensamblada mediante transform feedback:
+1440 puntos, profundidad, gradiente y norma costal contra diferencias independientes. Solo en ese
+shader de prueba se sustituyen las derivadas nulas por derivadas sintéticas; **no activa perfiles
+en el paciente** ni sustituye la regresión E2E del build minificado. Los umbrales son numéricos,
+no antropométricos ni clínicos; la suite de imagen verifica además los consumidores productivos.

@@ -35,7 +35,7 @@ conservan su identificador (decisiones 10 y 11).
   Una vista que dibuje la escena en un marco dextrógiro debe espejarla (VExUS lo hace en su navegador 3D);
   la conversión a EchoTwin es deuda de la unión.
 - **La parrilla forra un tronco cilíndrico** (`thorax-cylindrical-cage`, decisión 16): el tronco es el cilindro elíptico
-  (el contrato de reposo y su proveedor de superficie, decisiones 56–57, siguen inactivos y no corrigen esta limitación)
+  (el perfil variable de 56–57 sigue inactivo; 58 comparte solo la métrica en identidad y no corrige esta limitación)
   de VExUS a todas las alturas (320 × 210 mm de piel en VExUS; en lus-sim, desde la decisión 28, 320 × 226: la profundidad del
   tórax de ANSUR II en los varones de IMC 18,5–25), así que la parrilla no se estrecha hacia la abertura superior (Gray:
   10 × 5 cm): las costillas 1.ª–3.ª son tan anchas como las bajas, la 1.ª y el 1.er espacio intercostal corren bajo la

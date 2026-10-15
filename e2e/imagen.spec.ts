@@ -538,36 +538,36 @@ test('F-T08 en el BLUE inferior de la regla de las manos: la línea pleural asom
   expect(errors).toEqual([]);
 });
 
-test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo la costilla, ni línea pleural ni líneas A en la pantalla', async ({
-  page,
-}) => {
-  // Meta F-T08 (`docs/knowledge/physics.md` §3.3): bajo la costilla no hay línea pleural ni líneas A, y la intensidad
-  // media de la sombra es ≥ 20 dB menor que la del eco pleural intercostal (su primera parte, la pleura 5 ± 1 mm bajo la
-  // superficie costal, es geometría: `src/validation/anatomyTargets.test.ts`). Se mide en la envolvente de la GPU, línea a
-  // línea (`ribShadow`), con la sombra clasificada con los datos de la pasada A: las líneas que cruzan hueso antes de la
-  // pleura, la sombra completa (todas las tomas de sus conos de apertura cruzan hueso) y las líneas libres (ninguna toma
-  // cruza hueso), cuyo eco pleural es la referencia. Lo que se ve se juzga en la pantalla, con el nivel del equipo del
-  // cuadro (`displayLevelDb`) y el negro de 8 bits de la curva de grises (`blackLevelDb`, −69,7 dB con 70 de rango).
-  //
-  // La penumbra es física (decisión 20): una línea bajo el borde de la costilla ve la pleura vecina por las tomas de su
-  // cono de emisión que pasan junto a la costilla o por su borde redondo, que es fino (el semiancho del cono en la
-  // profundidad de la costilla, `coneHalfLines`), y por el lóbulo principal de su PSF lateral (2,5σ, `mainLobeLines`). El
-  // núcleo de la sombra son las líneas de la sombra completa más allá de esa penumbra (25–36 por punto de partida). Medido
-  // con GPU real (Apple M4) y con SwiftShader, en apnea espiratoria, con la parrilla del paso C1 y la pared por región del C2,
-  // relativo al eco pleural intercostal (ciclo 2, 27-09-2026):
-  //  - la línea pleural intercostal, sin saturar con el preajuste (consenso: Demi 2023): −0,9…−8,6 dB en la pantalla
-  //    (antes, con 0 dB de ganancia, +12,4…+20,1 dB: saturada);
-  //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −38,0…−42,9 dB (−27,0 la sombra parcial del
-  //    borde del sector del BLUE inferior; F-T08 pide −20);
-  //  - la pleura a más de −40 dB solo dentro de la penumbra, a 6–8 líneas de su límite;
-  //  - en el núcleo, la línea pleural a −68,7…−86,1 dB y en la pantalla a −71,1…−88,5 dB: negro (antes de la decisión 20,
-  //    −40,6…−62,7 dB y −21,9…−43,4 en la pantalla, gris de 57 a 137); la ventana, ≥ 67,7 dB más oscura que la de las
-  //    líneas libres;
-  //  - la línea A de orden 2 en toda la sombra completa, −100,4…−114,9 dB en la pantalla (antes, tenue en 14–18 líneas por
-  //    punto: el pedestal de lóbulos laterales de la pasada D la traía de los espacios vecinos).
-  test.setTimeout(300_000);
-  const errors = await openBench(page);
-  for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
+for (const startPoint of ['blueUpper', 'blueLower', 'plaps'] as const) {
+  test(`sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra de la apertura; bajo la costilla, ni línea pleural ni líneas A en la pantalla (${startPoint})`, async ({
+    page,
+  }) => {
+    // Meta F-T08 (`docs/knowledge/physics.md` §3.3): bajo la costilla no hay línea pleural ni líneas A, y la intensidad
+    // media de la sombra es ≥ 20 dB menor que la del eco pleural intercostal (su primera parte, la pleura 5 ± 1 mm bajo la
+    // superficie costal, es geometría: `src/validation/anatomyTargets.test.ts`). Se mide en la envolvente de la GPU, línea a
+    // línea (`ribShadow`), con la sombra clasificada con los datos de la pasada A: las líneas que cruzan hueso antes de la
+    // pleura, la sombra completa (todas las tomas de sus conos de apertura cruzan hueso) y las líneas libres (ninguna toma
+    // cruza hueso), cuyo eco pleural es la referencia. Lo que se ve se juzga en la pantalla, con el nivel del equipo del
+    // cuadro (`displayLevelDb`) y el negro de 8 bits de la curva de grises (`blackLevelDb`, −69,7 dB con 70 de rango).
+    //
+    // La penumbra es física (decisión 20): una línea bajo el borde de la costilla ve la pleura vecina por las tomas de su
+    // cono de emisión que pasan junto a la costilla o por su borde redondo, que es fino (el semiancho del cono en la
+    // profundidad de la costilla, `coneHalfLines`), y por el lóbulo principal de su PSF lateral (2,5σ, `mainLobeLines`). El
+    // núcleo de la sombra son las líneas de la sombra completa más allá de esa penumbra (25–36 por punto de partida). Medido
+    // con GPU real (Apple M4) y con SwiftShader, en apnea espiratoria, con la parrilla del paso C1 y la pared por región del C2,
+    // relativo al eco pleural intercostal (ciclo 2, 27-09-2026):
+    //  - la línea pleural intercostal, sin saturar con el preajuste (consenso: Demi 2023): −0,9…−8,6 dB en la pantalla
+    //    (antes, con 0 dB de ganancia, +12,4…+20,1 dB: saturada);
+    //  - la intensidad media de cada sombra en la ventana D − 1 … 2·D + 1 mm, −38,0…−42,9 dB (−27,0 la sombra parcial del
+    //    borde del sector del BLUE inferior; F-T08 pide −20);
+    //  - la pleura a más de −40 dB solo dentro de la penumbra, a 6–8 líneas de su límite;
+    //  - en el núcleo, la línea pleural a −68,7…−86,1 dB y en la pantalla a −71,1…−88,5 dB: negro (antes de la decisión 20,
+    //    −40,6…−62,7 dB y −21,9…−43,4 en la pantalla, gris de 57 a 137); la ventana, ≥ 67,7 dB más oscura que la de las
+    //    líneas libres;
+    //  - la línea A de orden 2 en toda la sombra completa, −100,4…−114,9 dB en la pantalla (antes, tenue en 14–18 líneas por
+    //    punto: el pedestal de lóbulos laterales de la pasada D la traía de los espacios vecinos).
+    test.setTimeout(300_000);
+    const errors = await openBench(page);
     const s = await page.evaluate((id) => window.__lusTest!.ribShadow({ startPoint: id, respiration: 'apnea-expiratory' }), startPoint);
     const ref = s.intercostalPleuraDb;
     const bone = s.lines.filter((x) => x.bone);
@@ -631,6 +631,6 @@ test('sombra costal en la envolvente de la GPU (F-T08): oscura, con la penumbra 
     expect(d.samples, dtag).toBeGreaterThan(3000);
     expect(d.maxDiffDb, dtag).toBeLessThan(0.01);
     expect(d.shadowedSamples, dtag).toBeGreaterThan(20);
-  }
-  expect(errors).toEqual([]);
-});
+    expect(errors).toEqual([]);
+  });
+}

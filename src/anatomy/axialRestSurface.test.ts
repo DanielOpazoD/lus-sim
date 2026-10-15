@@ -75,7 +75,7 @@ describe('superficie axial de reposo físico (sin activar)', () => {
       expect(() => axialSurfacePhi(p, s)).toThrow('chart regular');
       expect(() => axialSurfacePhiGradient(p, s)).toThrow('chart regular');
     }
-    expect(axialSurfaceDepthGradient([8, 0, 0], s)).toEqual([1, 0, -0]);
+    expect(axialSurfaceDepthGradient([8, 0, 0], s)).toEqual([1, 0, 0]);
     for (const phi of [NaN, Infinity, -Infinity, 1e30, Math.PI + 1e-6, -Math.PI - 1e-6]) {
       expect(() => axialSurfaceSkinPoint(phi, 0, s)).toThrow('ángulo');
       expect(() => axialSurfaceSkinTangents(phi, 0, s)).toThrow('ángulo');

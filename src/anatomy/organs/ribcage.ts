@@ -1262,7 +1262,7 @@ export function setRibPosteriorEnds(cage: RibCage, t: Torso, x: number): void {
  */
 export function ribMetric(m: Vec3, t: Torso): number {
   const g = torsoDepthGradient(m, t);
-  return Math.hypot(g[0], g[1]);
+  return Math.hypot(g[0], g[1], g[2]);
 }
 
 /**
@@ -1483,7 +1483,7 @@ float ribMetric(vec3 m) {
   float r = length(m.xy);
   if (r < 1e-6) return 1.0;
   float rho = length(m.xy / uTorso.xy);
-  return length(m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy));
+  return length(ellipticRadialGradient(m.xy, r, rho, torsoMetric()));
 }
 float pleuraNormalDepth(vec3 m, float d, float wall) { return (wall - d) / ribMetric(m); }
 // la clavícula (lus-sim, cobertura torácica): uClavicle = (u0, u1, z0, subida), uClavicleR = (radio, profundidad del eje, 0, 0)

@@ -1,4 +1,5 @@
 import type { Vec3 } from '../core/vec3';
+import { ELLIPTIC_METRIC_GLSL, ellipticRadialDepth, ellipticRadialGradient } from './ellipticMetric';
 import {
   AXIAL_REST_MAP_GLSL,
   AXIAL_REST_NUMERICS,
@@ -74,17 +75,13 @@ function checkPhi(phi: number): void {
 /** Profundidad radial física en mm, solo en el chart regular; NO distancia euclídea ni d(F⁻¹(p)). */
 export function axialSurfaceDepth(p: Vec3, surface: AxialRestSurface): number {
   const q = query(p, surface);
-  return q.r - q.r / q.rho;
+  return ellipticRadialDepth(q.r, q.rho);
 }
 
 /** ∇d en el reposo físico: incluye escala y desplazamiento axiales, sin normalizar. */
 export function axialSurfaceDepthGradient(p: Vec3, surface: AxialRestSurface): Vec3 {
   const { s, x, y, r, rho } = query(p, surface);
-  const k = 1 - 1 / rho;
-  const c = r / (rho * rho * rho);
-  const gx = (x / r) * k + (c * x) / (s.a * s.a);
-  const gy = (y / r) * k + (c * y) / (s.b * s.b);
-  return [gx, gy, -s.dx * gx - s.dy * gy - c * ((x * x * s.da) / s.a ** 3 + (y * y * s.db) / s.b ** 3)];
+  return ellipticRadialGradient(x, y, r, rho, s);
 }
 
 /** Etiqueta angular de referencia, en radianes; no longitud ni distancia física sobre la piel. */
@@ -119,6 +116,7 @@ export function axialSurfaceSkinTangents(phi: number, z: number, surface: AxialR
 /** Incluye el contrato axial; el llamador debe garantizar el mismo dominio TS antes del despacho GLSL. */
 export const AXIAL_REST_SURFACE_GLSL =
   AXIAL_REST_MAP_GLSL +
+  ELLIPTIC_METRIC_GLSL +
   /* glsl */ `
 struct AxialRestSurface { vec2 radius; AxialRestMap map; };
 struct AxialSurfaceSection { vec2 radius; vec2 center; vec2 dRadius; vec2 dCenter; };
@@ -131,16 +129,14 @@ float axialSurfaceDepth(vec3 p, AxialRestSurface surface) {
   vec2 xy = p.xy - s.center;
   float rho = length(xy / s.radius);
   float r = length(xy);
-  return r - r / rho;
+  return ellipticRadialDepth(r, rho);
 }
 vec3 axialSurfaceDepthGradient(vec3 p, AxialRestSurface surface) {
   AxialSurfaceSection s = axialSurfaceSection(p.z, surface);
   vec2 xy = p.xy - s.center;
   float r = length(xy);
   float rho = length(xy / s.radius);
-  float c = r / (rho * rho * rho);
-  vec2 g = xy / r * (1.0 - 1.0 / rho) + c * xy / (s.radius * s.radius);
-  return vec3(g, -dot(s.dCenter, g) - c * dot(xy * xy * s.dRadius, 1.0 / (s.radius * s.radius * s.radius)));
+  return ellipticRadialGradient(xy, r, rho, EllipticMetric(s.radius, s.dRadius, s.dCenter));
 }
 float axialSurfacePhi(vec3 p, AxialRestSurface surface) {
   AxialSurfaceSection s = axialSurfaceSection(p.z, surface);
