@@ -5146,7 +5146,17 @@ No se activa una deformación para obtener una profundidad ecográfica elegida d
 axial C¹ desde identidad a escala XY positiva y traslación, conservando z, con inversa analítica.
 Transporta tangentes con J y gradientes con J⁻ᵀ, sin normalizarlos. La cota de norma inversa usa
 √(||J⁻¹||₁·||J⁻¹||∞), solo dentro del dominio material XY declarado. No convierte un campo implícito
-en distancia euclídea ni reemplaza las cotas de otros mapas. Los datos se validan también en float32.
+en distancia euclídea ni reemplaza las cotas de otros mapas.
+
+La revisión encontró que representabilidad no equivale a buen condicionamiento: escala 1e−8 y
+traslación 3 pierden la coordenada 1 en float32; una transición [100,100,00001] se reduce a pocos ULP;
+un intervalo 1e−37 desborda productos del Jacobiano. El constructor los rechaza mediante un dominio
+**numérico, no anatómico** (`AXIAL_REST_NUMERICS`): coordenadas materiales y extremos de z dentro de
+±512 mm, tramo ≥32 mm, escalas [0,25;4], traslaciones ≤128 mm y componentes de tangentes/gradientes
+de entrada ≤8. TS valida puntos y vectores; el llamador GLSL debe hacerlo antes del despacho.
+La inversa admite puntos físicos en la imagen del dominio material, no un cubo físico de ±512 mm.
+La envolvente de pruebas exige error de coordenadas/ida-vuelta <0,005 mm y de derivadas <0,02;
+no se prometen precisión ni buen condicionamiento fuera de ese dominio. No son umbrales clínicos.
 
 **Consecuencias.** Este primer contrato **no está activado ni importado por la escena**; no cambia el
 paciente, la imagen, el contacto, el reloj ni el maniquí. Los perfiles de prueba son sintéticos, no
@@ -5160,5 +5170,7 @@ determinante positivo, gradientes y tangentes frente a diferencias independiente
 magnitud y cota inversa en perfiles sintéticos bilaterales, e inputs degenerados incluso en float32.
 `e2e/axialRestMap.spec.ts` ejecuta el gemelo GLSL con transform feedback en WebGL2 sobre los mismos
 perfiles, sin confundir la prueba del núcleo geométrico con una validación ecográfica del cuello.
+Además de los 324 puntos moderados, 2916 puntos en las esquinas del dominio, uniones y transiciones
+extremas comprueban ida/vuelta GPU→GPU y valores TS/GLSL; las guardas del rango moderado no se relajan.
 Mutaciones comprobadas: omitir el término Z del transporte hace fallar la prueba independiente TS;
 omitirlo solo en GLSL hace fallar la comparación WebGL2. Se restauraron ambos términos.

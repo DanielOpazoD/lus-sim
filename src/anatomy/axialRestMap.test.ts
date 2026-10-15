@@ -34,8 +34,13 @@ describe('mapa axial de reposo (contrato, todavía sin activar en el paciente)',
     expect(() => createAxialRestMap({ ...identity, zStart: -3e38, zEnd: 3e38 })).toThrow();
     expect(() => createAxialRestMap({ ...identity, zStart: 0, zEnd: 1e-39 })).toThrow();
     expect(Object.isFrozen(identity)).toBe(true);
-    const tiny = createAxialRestMap({ ...identity, scaleX: 1e-20 });
-    expect(axialRestSection(90, tiny).scaleX).toBe(tiny.scaleX);
+    // Contraejemplos de la revisión: pérdida de coordenadas, transición de pocas ULP y Jacobiano infinito.
+    expect(() => createAxialRestMap({ ...identity, scaleX: 1e-8, shiftX: 3 })).toThrow();
+    expect(() => createAxialRestMap({ ...identity, scaleX: 1e-20, shiftX: 3 })).toThrow();
+    expect(() => createAxialRestMap({ ...identity, zStart: 100, zEnd: 100.00001, scaleX: 0.3 })).toThrow();
+    expect(() => createAxialRestMap({ ...identity, zStart: 0, zEnd: 1e-37, shiftX: 30 })).toThrow();
+    for (const invalid of [{ scaleX: 0.249 }, { scaleY: 4.001 }, { shiftX: 129 }, { shiftY: -129 }, { zStart: -513 }, { zEnd: 513 }])
+      expect(() => createAxialRestMap({ ...identity, ...invalid })).toThrow();
   });
 
   it('es identidad exacta abajo y afín arriba; invierte bilateralmente sin perder z', () => {
@@ -46,7 +51,8 @@ describe('mapa axial de reposo (contrato, todavía sin activar en el paciente)',
             const m: Vec3 = [x, y, z];
             const p = axialRestForward(m, map);
             near(axialRestInverse(p, map), m);
-            near(axialRestForward(axialRestInverse(m, map), map), m);
+            const q: Vec3 = [x / 2, y / 2, z];
+            near(axialRestForward(axialRestInverse(q, map), map), q);
             if (z <= map.zStart || map === identity) expect(p).toEqual(m);
             if (z >= map.zEnd) near(p, [map.scaleX * x + map.shiftX, map.scaleY * y + map.shiftY, z]);
             const s = axialRestSection(z, map);
@@ -111,9 +117,26 @@ describe('mapa axial de reposo (contrato, todavía sin activar en el paciente)',
         }
       }
     }
-    for (const r of [-1, Infinity, NaN]) {
+    for (const r of [-1, 513, Infinity, NaN]) {
       expect(() => axialRestInverseBound(identity, r, 110)).toThrow();
       expect(() => axialRestInverseBound(identity, 160, r)).toThrow();
+    }
+  });
+
+  it('exige también el dominio declarado para puntos y vectores, no solo para los parámetros', () => {
+    for (const value of [513, -513, NaN, Infinity]) {
+      for (const axis of [0, 1, 2]) {
+        const m: Vec3 = [0, 0, 20];
+        m[axis] = value;
+        expect(() => axialRestForward(m, identity)).toThrow();
+        expect(() => axialRestInverse(m, identity)).toThrow();
+        expect(() => axialRestTangent(m, [1, 2, 3], identity)).toThrow();
+        expect(() => axialRestGradient(m, [1, 2, 3], identity)).toThrow();
+      }
+    }
+    for (const value of [8.001, -8.001, NaN, Infinity]) {
+      expect(() => axialRestTangent([0, 0, 20], [value, 0, 0], identity)).toThrow();
+      expect(() => axialRestGradient([0, 0, 20], [0, value, 0], identity)).toThrow();
     }
   });
 
