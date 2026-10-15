@@ -17,6 +17,11 @@ conserva sus propias etiquetas en comentario y su tabla de aproximaciones en el 
 
 ## Anatomía
 
+El contrato axial de reposo (decisión 56) está inactivo: su transición C¹ es una familia matemática,
+no una forma cervical validada. `AXIAL_REST_NUMERICS` delimita únicamente el cálculo float32 probado,
+no proporciones humanas ni variación poblacional. Antes de activarlo se requieren medidas anatómicas,
+contacto y dimensiones físicas finales verificadas; conservar topología no conserva espesores.
+
 La parrilla costal del adulto promedio (decisión 16, `src/anatomy/organs/ribcage.ts`) y las líneas del tórax
 (`src/anatomy/thoraxLines.ts`): lo que la base documenta (el alto costal, los espacios intercostales de Kim y de Seong,
 los niveles vertebrales y la línea de Treves de Gray, la oblicuidad de Robinson) va con su evidencia en el código; aquí,

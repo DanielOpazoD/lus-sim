@@ -5128,3 +5128,49 @@ Al desactivar la selección del techo fallan las dos guardas del techo (producto
 u = −42 mm). `cupolaNormals`, en `e2e/imagen.spec.ts`, compara más de 1000 puntos materiales en TS y GPU
 (pared, ladera, ambos lados del techo y de cada nodo, eje), con error vectorial < 0,002. Las demás guardas de imagen,
 profundidad y cobertura mantienen sus umbrales.
+
+## 56. Contrato invertible de reposo antes de activar el contorno cervical
+
+**Fecha.** 2026-10-15.
+**Contexto.** O1/O2/O6. La superficie escaneable sigue siendo cilíndrica. Cambiar solo su malla deja
+contacto, huesos y acústica describiendo pacientes distintos; sustituir los semiejes por funciones de
+altura sin transportar gradientes invalida normales y cotas de descarte. La revisión de BodyParts3D
+es preparatoria, no una validación poblacional: su versión 4.0 advierte errores de mapeo pulmón/hígado
+y modificaciones del esqueleto para acomodar vísceras [@bodyparts3d-release4].
+
+**Opciones.** Reescribir por separado cada superficie aumenta el riesgo de discrepancias. Deformar
+globalmente el cilindro conserva su topología, pero puede adelgazar corticales y vasos sin evidencia.
+No se activa una deformación para obtener una profundidad ecográfica elegida de antemano.
+
+**Decisión.** `src/anatomy/axialRestMap.ts` establece primero un contrato puro TS/GLSL: transición
+axial C¹ desde identidad a escala XY positiva y traslación, conservando z, con inversa analítica.
+Transporta tangentes con J y gradientes con J⁻ᵀ, sin normalizarlos. La cota de norma inversa usa
+√(||J⁻¹||₁·||J⁻¹||∞), solo dentro del dominio material XY declarado. No convierte un campo implícito
+en distancia euclídea ni reemplaza las cotas de otros mapas.
+
+La revisión encontró que representabilidad no equivale a buen condicionamiento: escala 1e−8 y
+traslación 3 pierden la coordenada 1 en float32; una transición [100,100,00001] se reduce a pocos ULP;
+un intervalo 1e−37 desborda productos del Jacobiano. El constructor los rechaza mediante un dominio
+**numérico, no anatómico** (`AXIAL_REST_NUMERICS`): coordenadas materiales y extremos de z dentro de
+±512 mm, tramo ≥32 mm, escalas [0,25;4], traslaciones ≤128 mm y componentes de tangentes/gradientes
+de entrada ≤8. TS valida puntos y vectores; el llamador GLSL debe hacerlo antes del despacho.
+La inversa admite puntos físicos en la imagen del dominio material, no un cubo físico de ±512 mm.
+La envolvente de pruebas exige error de coordenadas/ida-vuelta <0,005 mm y de derivadas <0,02;
+no se prometen precisión ni buen condicionamiento fuera de ese dominio. No son umbrales clínicos.
+
+**Consecuencias.** Este primer contrato **no está activado ni importado por la escena**; no cambia el
+paciente, la imagen, el contacto, el reloj ni el maniquí. Los perfiles de prueba son sintéticos, no
+parámetros anatómicos. Siguen vigentes `thorax-cylindrical-cage` y `supraclavicular-fossa-model`.
+La activación requiere registro anatómico, dimensiones físicas finales, primer cruce de contacto,
+composición reposo/respiración/compresión, gradientes y cotas completas, y la misma transformación
+en las mallas. No se incorporan mallas del atlas al repositorio ni al bundle.
+
+**Verificación.** `src/anatomy/axialRestMap.test.ts`: inversa, identidad inferior, uniones C¹,
+determinante positivo, gradientes y tangentes frente a diferencias independientes, ortogonalidad,
+magnitud y cota inversa en perfiles sintéticos bilaterales, e inputs degenerados incluso en float32.
+`e2e/axialRestMap.spec.ts` ejecuta el gemelo GLSL con transform feedback en WebGL2 sobre los mismos
+perfiles, sin confundir la prueba del núcleo geométrico con una validación ecográfica del cuello.
+Además de los 324 puntos moderados, 2916 puntos en las esquinas del dominio, uniones y transiciones
+extremas comprueban ida/vuelta GPU→GPU y valores TS/GLSL; las guardas del rango moderado no se relajan.
+Mutaciones comprobadas: omitir el término Z del transporte hace fallar la prueba independiente TS;
+omitirlo solo en GLSL hace fallar la comparación WebGL2. Se restauraron ambos términos.
