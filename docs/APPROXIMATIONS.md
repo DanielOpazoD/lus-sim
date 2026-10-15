@@ -3,6 +3,8 @@
 La normal acústica de la cúpula (decisión 55) selecciona la cara activa entre techo y ladera con
 distancias locales de primer orden (función implícita dividida por la norma de su gradiente).
 No son distancias euclidianas exactas lejos de la frontera y no suavizan la arista de unión.
+La pendiente del techo es la del segmento tabulado: en los nodos no es única y se elige la del
+segmento hacia mayor |u|; en el eje, la pendiente simétrica (cero).
 La regresión geométrica compara normales con diferencias numéricas; la validación anatómica de la
 forma del vértice y del estrechamiento cervical sigue pendiente (`apex-cupola-wall`). Sin parámetros
 anatómicos nuevos: las alturas y pendientes conservan sus fuentes y supuestos anteriores.

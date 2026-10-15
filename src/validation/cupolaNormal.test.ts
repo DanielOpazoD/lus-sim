@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { cupolaMm, cupolaRoofDepthMm } from '../anatomy/organs/lungApex';
-import { wallCupolaSection } from '../anatomy/organs/chestWall';
+import { CHEST_WALL_DU_MM, wallCupolaSection } from '../anatomy/organs/chestWall';
 import { wallPoint } from '../anatomy/organs/supraclavicular';
-import { wallArc, wallArcGradient, wallInnerNormal } from '../anatomy/organs/wall';
+import { wallArc, wallArcGradient, wallInnerNormal, wallPerimeter, wallSideTotalAt } from '../anatomy/organs/wall';
 import { torsoDepth, torsoDepthGradient, type Torso } from '../anatomy/primitives';
 import { AnatomyScene } from '../anatomy/scene';
 import type { Vec3 } from '../core/vec3';
@@ -37,6 +37,13 @@ describe('normal de la cúpula: techo y ladera, no el salto de cierre (55)', () 
               gradient((q) => wallArc(q, { a, b }), p),
             ),
           ).toBeCloseTo(1, 9);
+          for (let i = 0; i < 3; i++) {
+            const lo: Vec3 = [...p],
+              hi: Vec3 = [...p];
+            lo[i] -= 0.001;
+            hi[i] += 0.001;
+            expect(wallArcGradient(p, { a, b })[i]).toBeCloseTo((wallArc(hi, { a, b }) - wallArc(lo, { a, b })) / 0.002, 6);
+          }
         }
   });
 
@@ -59,7 +66,7 @@ describe('normal de la cúpula: techo y ladera, no el salto de cierre (55)', () 
       chestWall: {
         ...scene.chestWall,
         total: (_u, z) => 15 + cupolaMm(150, 190, z),
-        cupolaSection: () => [150, 190],
+        cupolaSection: () => [150, 190, 0],
       },
     };
     for (const dz of [-1, -0.1, 0, 0.1, 1]) {
@@ -80,6 +87,51 @@ describe('normal de la cúpula: techo y ladera, no el salto de cierre (55)', () 
         const expected = gradient((q) => q[2] - wallCupolaSection(scene.chestWall, wallArc(q, t))[1], p);
         expect(dot(wallInnerNormal(p, t), expected), `u=${side * u}`).toBeGreaterThan(0.9999);
       }
+  });
+
+  it('el techo sigue su segmento a ambos lados de cada nodo, sin promediar pendientes vecinas', () => {
+    const t = scene.torso;
+    for (let node = CHEST_WALL_DU_MM; node < wallPerimeter(t) / 2 - 1; node += CHEST_WALL_DU_MM)
+      for (const delta of [-0.4, -0.1, 0.1, 0.4])
+        for (const side of [-1, 1]) {
+          const u = side * (node + delta);
+          const [, zt] = wallCupolaSection(scene.chestWall, u);
+          const p = wallPoint(u, zt, wallSideTotalAt(t, u, zt) + 2, t);
+          const expected = gradient((q) => q[2] - wallCupolaSection(scene.chestWall, wallArc(q, t))[1], p);
+          expect(dot(wallInnerNormal(p, t), expected), `u=${u}`).toBeGreaterThan(0.9999);
+        }
+  });
+
+  it('compara distancias normalizadas para elegir la cara próxima a la arista', () => {
+    const t: Torso = {
+      ...scene.torso,
+      a: 100,
+      b: 100,
+      chestWall: {
+        ...scene.chestWall,
+        total: (_u, z) => 15 + cupolaMm(150, 190, z),
+        cupolaSection: () => [150, 190, 0],
+      },
+    };
+    const z = 189;
+    const w = wallSideTotalAt(t, 80, z);
+    const p = wallPoint(80, z, w + 1.3, t);
+    // Sin normalizar: -1 (techo) > -1,3 (ladera). Distancia local de ladera: -1,3/√(1+1,4625²) ≈ -0,734.
+    const expected = gradient((q) => torsoDepth(q, t) + wallSideTotalAt(t, wallArc(q, t), q[2]), p);
+    expect(dot(wallInnerNormal(p, t), expected)).toBeGreaterThan(0.9999);
+    expect(dot(wallInnerNormal(p, t), [0, 0, 1])).toBeLessThan(0.9);
+  });
+
+  it('en el nodo elige el segmento hacia mayor |u|; eje y tabla saturada tienen pendiente cero', () => {
+    const cw = scene.chestWall;
+    for (const side of [-1, 1]) {
+      const u = side * 40;
+      const a = wallCupolaSection(cw, u);
+      const b = wallCupolaSection(cw, u + side * 0.1);
+      expect(a[2]).toBeCloseTo((b[1] - a[1]) / (side * 0.1), 9);
+      expect(wallCupolaSection(cw, side * 1e5)[2]).toBe(0);
+    }
+    expect(wallCupolaSection(cw, 0)[2]).toBe(0);
   });
 
   it('conserva la normal de la pared sin cúpula y es finita en el eje', () => {

@@ -5103,7 +5103,11 @@ vertical ignora la variación de `zTop` alrededor del tórax. Cambiar la forma o
 sin una nueva referencia morfométrica tampoco corresponde a esta corrección.
 
 **Decisión.** `cupolaSideMm` prolonga la ladera sin el cierre, solo para el cálculo de normales;
-`ChestWallLookup.cupolaSection` expone sus alturas. `wallInnerNormal` compara las distancias locales
+`ChestWallLookup.cupolaSection` expone sus alturas y la pendiente del segmento de interpolación del techo.
+No promedia las pendientes de columnas vecinas: cerca de u = 40,1 mm esa diferencia central desviaba
+la normal 27,44°. En un nodo exacto el gradiente no es único: se usa el segmento hacia mayor |u|;
+en u = 0, la pendiente simétrica, y fuera de la tabla saturada, cero.
+`wallInnerNormal` compara las distancias locales
 normalizadas a la ladera (`torsoDepth + Wside`) y al techo (`z − zTop(u)`) y elige la cara activa
 de su intersección. Usa el gradiente analítico de la misma serie que define `wallArc`, no la tangente
 de la elipse. TS y GLSL hacen lo mismo. En el eje radial, donde el arco no tiene normal única,
@@ -5118,8 +5122,9 @@ mediastino y concordancia completa con el maniquí 3D. No se declara resuelto el
 ni se modifica el conteo de líneas B.
 
 **Verificación.** `cupolaNormal.test.ts`: gradiente del arco en distintas elipses, ladera frente al
-gradiente de la frontera, techo horizontal e inclinado, compatibilidad sin pared regional y eje finito.
+gradiente de la frontera, techo horizontal e inclinado, ambos lados de cada nodo (±0,1 y ±0,4 mm),
+competencia de las distancias normalizadas cerca de la arista, compatibilidad sin pared regional y eje finito.
 Al desactivar la selección del techo fallan las dos guardas del techo (producto escalar 0,84614 en
-u = −42 mm). `cupolaNormals`, en `e2e/imagen.spec.ts`, compara 395 puntos materiales en TS y GPU
-(pared, ladera, ambos lados del techo y eje), con error vectorial < 0,002. Las demás guardas de imagen,
+u = −42 mm). `cupolaNormals`, en `e2e/imagen.spec.ts`, compara más de 1000 puntos materiales en TS y GPU
+(pared, ladera, ambos lados del techo y de cada nodo, eje), con error vectorial < 0,002. Las demás guardas de imagen,
 profundidad y cobertura mantienen sus umbrales.

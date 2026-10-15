@@ -170,7 +170,7 @@ export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
     nz = dWdz;
     const a = t.chestWall.cupolaSection?.(u);
     if (a && m[2] > a[0]) {
-      const dzdu = (t.chestWall.cupolaSection!(u + h)[1] - t.chestWall.cupolaSection!(u - h)[1]) / (2 * h);
+      const dzdu = a[2];
       const roof: Vec3 = [-dzdu * du[0], -dzdu * du[1], 1];
       const lr = Math.hypot(...roof);
       const ds = (torsoDepth(m, t) + side(u, m[2])) / Math.hypot(nx, ny, nz);
@@ -468,7 +468,7 @@ float wallFaceSd(vec3 m, int face) {
 float wallTotalMm(vec3 m) { return wallTotalAt(wallArc(m), m.z); }
 float wallSideTotalAt(float u, float z) {
   if (z <= uCupola.x) return wallTotalAt(u, z);
-  return wallTotalOf(wallColumnTexel(u), z) + cupolaSideMm(wallCupolaSection(u), z) - wallFossaMm(u, z);
+  return wallTotalOf(wallColumnTexel(u), z) + cupolaSideMm(wallCupolaSection(u).xy, z) - wallFossaMm(u, z);
 }
 // Normal exterior de la cara interna de la pared (la pleura parietal): −∇ de la profundidad bajo ella, analítica en
 // ∇torsoDepth y ∇u y con diferencias de la tabla en u y z. Gemelo: wallInnerNormal
@@ -487,9 +487,9 @@ vec3 wallInnerNormal(vec3 m) {
   float duDt = sqrt(0.5 * (ab2.x + ab2.y)) * (1.0 - e*e/16.0 + cos(2.0*tau)*(e/2.0 + 3.0*e*e*e/64.0) - e*e/16.0*cos(4.0*tau) + e*e*e/64.0*cos(6.0*tau));
   vec2 du = duDt * vec2(cos(tau), -sin(tau)) / (uTorso.xy * rho);
   vec3 n = vec3(g + dWdu * du, dWdz);
-  vec2 a = m.z > uCupola.x ? wallCupolaSection(u) : vec2(1e4);
+  vec3 a = m.z > uCupola.x ? wallCupolaSection(u) : vec3(1e4, 1e4, 0.0);
   if (m.z > a.x) {
-    float dzdu = (wallCupolaSection(u + h).y - wallCupolaSection(u - h).y) / (2.0 * h);
+    float dzdu = a.z;
     vec3 roof = vec3(-dzdu * du, 1.0);
     float ds = (torsoDepth(m) + wallSideTotalAt(u, m.z)) / length(n);
     if ((m.z - a.y) / length(roof) > ds) return normalize(roof);
