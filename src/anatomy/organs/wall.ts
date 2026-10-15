@@ -157,7 +157,7 @@ export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
   const g = torsoDepthGradient(m, t);
   let nx = g[0];
   let ny = g[1];
-  let nz = 0;
+  let nz = g[2];
   if (t.chestWall) {
     const u = wallArc(m, t);
     const h = WALL_NORMAL_STEP_MM;
@@ -167,11 +167,11 @@ export function wallInnerNormal(m: Vec3, t: Torso): Vec3 {
     const du = wallArcGradient(m, t);
     nx += dWdu * du[0];
     ny += dWdu * du[1];
-    nz = dWdz;
+    nz += dWdu * du[2] + dWdz;
     const a = t.chestWall.cupolaSection?.(u);
     if (a && m[2] > a[0]) {
       const dzdu = a[2];
-      const roof: Vec3 = [-dzdu * du[0], -dzdu * du[1], 1];
+      const roof: Vec3 = [-dzdu * du[0], -dzdu * du[1], 1 - dzdu * du[2]];
       const lr = Math.hypot(...roof);
       const ds = (torsoDepth(m, t) + side(u, m[2])) / Math.hypot(nx, ny, nz);
       // La cara activa de la intersección ladera ∩ techo, también justo por debajo de zTop.
@@ -476,7 +476,7 @@ vec3 wallInnerNormal(vec3 m) {
   float r = length(m.xy);
   if (r < 1e-6) return vec3(0.0, 1.0, 0.0);
   float rho = max(1e-6, length(m.xy / uTorso.xy));
-  vec2 g = r < 1e-6 ? vec2(0.0, 1.0) : m.xy / r * (1.0 - 1.0 / rho) + r / (rho * rho * rho) * m.xy / (uTorso.xy * uTorso.xy);
+  vec3 g = ellipticRadialGradient(m.xy, r, rho, torsoMetric());
   float u = wallArc(m);
   float h = WALL_NORMAL_STEP;
   float dWdu = (wallSideTotalAt(u + h, m.z) - wallSideTotalAt(u - h, m.z)) / (2.0 * h);
@@ -485,12 +485,12 @@ vec3 wallInnerNormal(vec3 m) {
   vec2 ab2 = uTorso.xy * uTorso.xy;
   float e = (ab2.x - ab2.y) / (ab2.x + ab2.y);
   float duDt = sqrt(0.5 * (ab2.x + ab2.y)) * (1.0 - e*e/16.0 + cos(2.0*tau)*(e/2.0 + 3.0*e*e*e/64.0) - e*e/16.0*cos(4.0*tau) + e*e*e/64.0*cos(6.0*tau));
-  vec2 du = duDt * vec2(cos(tau), -sin(tau)) / (uTorso.xy * rho);
-  vec3 n = vec3(g + dWdu * du, dWdz);
+  vec3 du = vec3(duDt * vec2(cos(tau), -sin(tau)) / (uTorso.xy * rho), 0.0);
+  vec3 n = g + dWdu * du + vec3(0.0, 0.0, dWdz);
   vec3 a = m.z > uCupola.x ? wallCupolaSection(u) : vec3(1e4, 1e4, 0.0);
   if (m.z > a.x) {
     float dzdu = a.z;
-    vec3 roof = vec3(-dzdu * du, 1.0);
+    vec3 roof = vec3(0.0, 0.0, 1.0) - dzdu * du;
     float ds = (torsoDepth(m) + wallSideTotalAt(u, m.z)) / length(n);
     if ((m.z - a.y) / length(roof) > ds) return normalize(roof);
   }

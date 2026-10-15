@@ -46,6 +46,7 @@ import { RIB_TABLE_BASE } from '../organs/ribcage';
 import { HILUM_VESSELS_GLSL } from '../organs/vessels';
 import { SUBPLEURAL_TABLE_BASE, SUBPLEURAL_TABLE_TEXELS } from '../organs/subpleural';
 import { MAX_RIBS, SCENE_UNIFORMS_GLSL } from './sceneUniforms';
+import { ELLIPTIC_METRIC_GLSL } from '../ellipticMetric';
 
 export const SCENE_TEX_W = 256;
 /** Primer téxel de la tabla de compresión de la sonda (decisión 63): sin tubos, el primero de la textura. */
@@ -99,12 +100,15 @@ struct Cls {
 
 vec4 sceneTexel(int i) { return texelFetch(uSceneTex, ivec2(i % SCENE_TEX_W, i / SCENE_TEX_W), 0); }
 
+${ELLIPTIC_METRIC_GLSL}
+// Identidad: ningún perfil axial ni nuevos datos anatómicos están habilitados en la escena.
+EllipticMetric torsoMetric() { return EllipticMetric(uTorso.xy, vec2(0.0), vec2(0.0)); }
+
 float torsoDepth(vec3 p) {
   float u = p.x / uTorso.x;
   float v = p.y / uTorso.y;
   float rho = sqrt(u * u + v * v);
-  float localR = rho > 0.0 ? length(p.xy) / rho : min(uTorso.x, uTorso.y);
-  return (rho - 1.0) * localR;
+  return rho > 0.0 ? ellipticRadialDepth(length(p.xy), rho) : (rho - 1.0) * min(uTorso.x, uTorso.y);
 }
 
 vec3 torsoNormal(vec3 p) {

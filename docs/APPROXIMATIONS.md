@@ -31,6 +31,12 @@ solo controla precisión numérica; no añade una aproximación anatómica al pa
 Faltan registro anatómico, reconstrucción de capas/órganos y contacto, composición con respiración
 y compresión, cotas de dominio y malla compartida antes de activar cualquier perfil.
 
+La decisión 58 comparte únicamente el álgebra radial y su gradiente con el paciente productivo
+en identidad. No activa el perfil variable. Las convenciones del campo cilíndrico en el eje y
+su entorno se conservan por compatibilidad; no son límites geométricos ni validación numérica
+del proveedor axial fuera de su chart. Los consumidores costales y de pared ya conservan las
+tres componentes, pero el arco y el contacto siguen siendo cilíndricos.
+
 La parrilla costal del adulto promedio (decisión 16, `src/anatomy/organs/ribcage.ts`) y las líneas del tórax
 (`src/anatomy/thoraxLines.ts`): lo que la base documenta (el alto costal, los espacios intercostales de Kim y de Seong,
 los niveles vertebrales y la línea de Treves de Gray, la oblicuidad de Robinson) va con su evidencia en el código; aquí,
