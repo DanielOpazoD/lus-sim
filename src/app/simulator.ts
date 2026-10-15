@@ -354,6 +354,7 @@ export class Simulator {
     allTubes = false,
     opts: {
       normals?: boolean;
+      wallNormal?: boolean;
       lungPulse?: boolean;
       compression?: ProbeCompression;
       sample?: PhysiologySample;

@@ -161,6 +161,10 @@ conservan su identificador (decisiones 10 y 11).
   Gray lo pone en la 6.ª articulación condroesternal, queda ≈ 15 mm más bajo. Hacia arriba, desde la decisión 27, el vértice
   es la cúpula pleural (`apex-cupola-wall`).
 - **La cúpula pleural es la pared que se cierra** (`apex-cupola-wall`, decisión 27): sobre la piel fija del tronco cilíndrico,
+  la normal acústica distingue techo y ladera (decisión 55), pero su selección usa distancias locales de primer orden;
+  permanece la arista entre ambas superficies. Corregir la normal no estrecha el cuello ni valida por sí solo la imagen
+  supraclavicular contra ecografía real. En el eje radial la normal no es única y se usa (0,1,0) como respaldo numérico.
+  En la geometría,
   por encima de la 1.ª costilla de cada columna las partes blandas del cuello y del hombro engruesan la pared (músculo genérico,
   sin escalenos, esternocleidomastoideo, vasos subclavios ni plexo braquial) y su cara interna, la pleura cervical, se curva hacia
   dentro hasta el techo de la cúpula (25 mm sobre el borde superior del tercio medial de la clavícula, Gray; 5 mm sobre la 1.ª

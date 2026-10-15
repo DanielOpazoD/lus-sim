@@ -58,6 +58,9 @@ import { heartBeatEquivalence, type HeartBeatEquivalenceReport } from './heartBe
 import { softwareGl } from './simulator';
 import { START_POINTS, type StartPoint } from './startPoints';
 import { measurementViewPose, type MeasurementViewId } from './measurementViews';
+import { wallInnerNormal, wallPerimeter, wallSideTotalAt } from '../anatomy/organs/wall';
+import { CHEST_WALL_DU_MM, wallCupolaSection } from '../anatomy/organs/chestWall';
+import { wallPoint } from '../anatomy/organs/supraclavicular';
 
 /**
  * Ganchos de prueba estables (e2e). Se cargan con `import()` dinámico solo en desarrollo o
@@ -165,6 +168,8 @@ export interface TestHooks {
    * plano a 0,02–0,4 mm de la cara que dibujan según la CPU. Ver `WallNormalStats`.
    */
   wallNormals: (opts: { startPoint: MeasurementViewId }) => WallNormalStats;
+  /** Normal acústica de la pared, ladera y techo en puntos materiales: TS ↔ GLSL (55). */
+  cupolaNormals: () => { points: number; maxError: number };
   /**
    * Coste medio de `n` cuadros de imagen en tiempo de pared (ms), sincronizado con la GPU al
    * principio y al final: compara versiones del renderizador en la misma máquina. Lanza (en vez de devolver
@@ -547,6 +552,33 @@ export function createTestHooks(getSim: () => Simulator, dispatch: (cmd: Equipme
       const sim = getSim();
       goToView(sim, opts.startPoint);
       return wallNormalStats(sim);
+    },
+    cupolaNormals: () => {
+      const sim = getSim();
+      const points: number[] = [];
+      for (const side of [-1, 1])
+        for (const u of [42, 65, 85, 105, 205, 235, 280.2]) {
+          const [za, zt] = wallCupolaSection(sim.scene.chestWall, side * u);
+          for (const z of [0, za - 1, za + 0.4 * (zt - za), zt - 1, zt - 0.1, zt + 0.1, zt + 1])
+            for (const depth of [15, 35, 65, 90]) points.push(...wallPoint(side * u, z, depth, sim.scene.torso));
+        }
+      for (let node = CHEST_WALL_DU_MM; node < wallPerimeter(sim.scene.torso) / 2 - 1; node += CHEST_WALL_DU_MM)
+        for (const delta of [-0.4, -0.1, 0.1, 0.4])
+          for (const side of [-1, 1]) {
+            const u = side * (node + delta);
+            const [, zt] = wallCupolaSection(sim.scene.chestWall, u);
+            const depth = wallSideTotalAt(sim.scene.torso, u, zt) + 2;
+            for (const z of [zt - 0.1, zt + 0.1]) points.push(...wallPoint(u, z, depth, sim.scene.torso));
+          }
+      for (const z of [0, 180, 220]) points.push(0, 0, z);
+      const pts = new Float32Array(points);
+      const gpu = sim.gpuQuery(pts, sim.frame, false, { normals: true, wallNormal: true }).normal!;
+      let maxError = 0;
+      for (let i = 0; i < pts.length; i += 3) {
+        const cpu = wallInnerNormal([pts[i], pts[i + 1], pts[i + 2]], sim.scene.torso);
+        maxError = Math.max(maxError, Math.hypot(...cpu.map((x, j) => x - gpu[i + j])));
+      }
+      return { points: pts.length / 3, maxError };
     },
     frameCostMs: (n, opts) => {
       const measure = frameMeasureOptions(opts);

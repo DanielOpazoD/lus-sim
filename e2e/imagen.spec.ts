@@ -33,6 +33,10 @@ async function openBench(page: Page): Promise<string[]> {
 test('la anatomía GLSL del tórax coincide con la TypeScript: planos, volumen, caras, pleura, normales y transmisión', async ({ page }) => {
   test.setTimeout(600_000);
   const errors = await openBench(page);
+  const normals = await page.evaluate(() => window.__lusTest!.cupolaNormals());
+  expect(normals.points).toBeGreaterThan(1000);
+  // < 0,12° entre normales unitarias: redondeo float32 y diferencias centrales de la tabla.
+  expect(normals.maxError, JSON.stringify(normals)).toBeLessThan(0.002);
   // Planos de los tres puntos de partida (la rejilla de VExUS, 48 × 72 hasta 16 cm): acuerdo lejos de bordes
   const sweep = await page.evaluate(() => window.__lusTest!.equivalenceSweep());
   // y (cobertura torácica) la fosa supraclavicular, la clavícula en la LMC y la axila alta sobre la 1.ª costilla

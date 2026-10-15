@@ -161,6 +161,8 @@ export interface ChestWallLookup {
    * partes blandas del cuello y del hombro, que el contacto de la sonda no trata como pared rígida.
    */
   cupola?(u: number, z: number): number;
+  /** Inicio de la ladera, techo y pendiente del techo en el segmento de interpolación que contiene u. */
+  cupolaSection?(u: number): [number, number, number];
 }
 
 /** Los bordes del pulmón que lee la cúpula (u: arco de la piel con signo). */

@@ -662,6 +662,7 @@ export function buildChestWall(t: Torso, habitus: ChestHabitus, complexMm: numbe
     // lo que el contacto no toma por pared rígida: la cúpula, menos la depresión de la fosa (decisión 50), nunca negativo (la
     // pared rígida no pasa de la cara interna de la pared)
     cupola: (u, z) => Math.max(0, wallCupolaMm(cw, u, z) - wallFossaMm(cw, u, z)),
+    cupolaSection: (u) => wallCupolaSection(cw, u),
   };
   return cw;
 }
@@ -820,10 +821,16 @@ export function wallCupolaRoofBd(cw: ChestWall, u: number, z: number, rho: numbe
   return Math.hypot(Math.max(0, z - a[1]), Math.max(0, cupolaRoofDepthMm(a[0], a[1]) - rho));
 }
 
-/**
- * Lo que la cúpula pleural engruesa la pared (mm, radial) en (u, z) (lus-sim, cobertura torácica; gemelo GLSL con el mismo
- * nombre): las partes blandas del cuello y del hombro entre la piel y la pleura cervical.
- */
+/** Alturas y pendiente del techo (gemelo GLSL). En un nodo, segmento hacia mayor |u|; en el eje, pendiente simétrica. */
+export function wallCupolaSection(cw: ChestWall, u: number): [number, number, number] {
+  const [j, f] = column(u);
+  const a = texelAt(cw, j, f, 3);
+  const i = (j * CHEST_WALL_TEXELS_PER_COL + 3) * 4 + 1;
+  const slope = (cw.table[i + CHEST_WALL_TEXELS_PER_COL * 4] - cw.table[i]) / CHEST_WALL_DU_MM;
+  return [a[0], a[1], Math.abs(u) / CHEST_WALL_DU_MM >= CHEST_WALL_COLS - 1 - 1e-4 ? 0 : Math.sign(u) * slope];
+}
+
+/** Grosor radial que la cúpula añade a la pared en (u, z), con su cierre por encima del techo. */
 export function wallCupolaMm(cw: ChestWall, u: number, z: number): number {
   if (z <= cw.apexMinZ) return 0;
   const [j, f] = column(u);
@@ -968,6 +975,15 @@ float wallFossaMm(float u, float z) {
   return col.y * fossaHeight(col, z);
 }
 float wallTotalAt(float u, float z) { return wallTotalOf(wallColumnTexel(u), z) + wallCupolaMm(u, z) - wallFossaMm(u, z); }
+vec3 wallCupolaSection(float u) {
+  int j;
+  float f = cwColumn(u, j);
+  int i = CW_BASE + j * ${CHEST_WALL_TEXELS_PER_COL} + 3;
+  vec2 a = sceneTexel(i).xy;
+  vec2 b = sceneTexel(i + ${CHEST_WALL_TEXELS_PER_COL}).xy;
+  float slope = abs(u) / CW_DU >= float(CW_COLS - 1) - 1e-4 ? 0.0 : sign(u) * (b.y - a.y) / CW_DU;
+  return vec3(mix(a, b, f), slope);
+}
 float wallCupolaBd(float u, float z) {
   if (z <= uCupola.x) return 1e3;
   int j;
