@@ -5128,3 +5128,37 @@ Al desactivar la selección del techo fallan las dos guardas del techo (producto
 u = −42 mm). `cupolaNormals`, en `e2e/imagen.spec.ts`, compara más de 1000 puntos materiales en TS y GPU
 (pared, ladera, ambos lados del techo y de cada nodo, eje), con error vectorial < 0,002. Las demás guardas de imagen,
 profundidad y cobertura mantienen sus umbrales.
+
+## 56. Contrato invertible de reposo antes de activar el contorno cervical
+
+**Fecha.** 2026-10-15.
+**Contexto.** O1/O2/O6. La superficie escaneable sigue siendo cilíndrica. Cambiar solo su malla deja
+contacto, huesos y acústica describiendo pacientes distintos; sustituir los semiejes por funciones de
+altura sin transportar gradientes invalida normales y cotas de descarte. La revisión de BodyParts3D
+es preparatoria, no una validación poblacional: su versión 4.0 advierte errores de mapeo pulmón/hígado
+y modificaciones del esqueleto para acomodar vísceras [@bodyparts3d-release4].
+
+**Opciones.** Reescribir por separado cada superficie aumenta el riesgo de discrepancias. Deformar
+globalmente el cilindro conserva su topología, pero puede adelgazar corticales y vasos sin evidencia.
+No se activa una deformación para obtener una profundidad ecográfica elegida de antemano.
+
+**Decisión.** `src/anatomy/axialRestMap.ts` establece primero un contrato puro TS/GLSL: transición
+axial C¹ desde identidad a escala XY positiva y traslación, conservando z, con inversa analítica.
+Transporta tangentes con J y gradientes con J⁻ᵀ, sin normalizarlos. La cota de norma inversa usa
+√(||J⁻¹||₁·||J⁻¹||∞), solo dentro del dominio material XY declarado. No convierte un campo implícito
+en distancia euclídea ni reemplaza las cotas de otros mapas. Los datos se validan también en float32.
+
+**Consecuencias.** Este primer contrato **no está activado ni importado por la escena**; no cambia el
+paciente, la imagen, el contacto, el reloj ni el maniquí. Los perfiles de prueba son sintéticos, no
+parámetros anatómicos. Siguen vigentes `thorax-cylindrical-cage` y `supraclavicular-fossa-model`.
+La activación requiere registro anatómico, dimensiones físicas finales, primer cruce de contacto,
+composición reposo/respiración/compresión, gradientes y cotas completas, y la misma transformación
+en las mallas. No se incorporan mallas del atlas al repositorio ni al bundle.
+
+**Verificación.** `src/anatomy/axialRestMap.test.ts`: inversa, identidad inferior, uniones C¹,
+determinante positivo, gradientes y tangentes frente a diferencias independientes, ortogonalidad,
+magnitud y cota inversa en perfiles sintéticos bilaterales, e inputs degenerados incluso en float32.
+`e2e/axialRestMap.spec.ts` ejecuta el gemelo GLSL con transform feedback en WebGL2 sobre los mismos
+perfiles, sin confundir la prueba del núcleo geométrico con una validación ecográfica del cuello.
+Mutaciones comprobadas: omitir el término Z del transporte hace fallar la prueba independiente TS;
+omitirlo solo en GLSL hace fallar la comparación WebGL2. Se restauraron ambos términos.

@@ -5,6 +5,8 @@ completo o solo el resumen. Los documentos citan con `[@clave]`; el código, en 
 `defineParameters` (`src/core/evidence.ts`). `src/validation/docs.test.ts` exige que toda cita exista
 aquí y que cada entrada sea localizable.
 
+- `bodyparts3d-release4` — DBCLS/NBDC. BodyParts3D 4.0, Release Notes (2013). https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/release_4.0_e.html. Acceso: documento oficial completo. Advierte errores de mapeo pulmón/hígado y modificaciones del esqueleto; no representa una anatomía canónica ni validación poblacional. Referencia preparatoria del contorno cervical, sin importar sus mallas al simulador.
+
 - `agricola-estres-2006` — Agricola E, Picano E, Oppizzi M, Pisani M, Meris A, Fragasso G, Margonato A. Assessment of stress-induced pulmonary interstitial edema by chest ultrasound during exercise echocardiography and its correlation with left ventricular function. _J Am Soc Echocardiogr_. 2006;19(4):457-63. DOI: 10.1016/j.echo.2005.11.013 · PMID: 16581487. Acceso: R.
 - `agricola-evlw-2005` — Agricola E, Bove T, Oppizzi M, Marino G, Zangrillo A, Margonato A, Picano E. "Ultrasound comet-tail images": a marker of pulmonary edema: a comparative study with wedge pressure and extravascular lung water. _Chest_. 2005;127(5):1690-5. DOI: 10.1378/chest.127.5.1690 · PMID: 15888847. Acceso: R (texto completo: 403).
 - `aipocuscop-ultrai-2026` — AI-POCUS-COP. _ultrai-lung-ultrasound_ (dataset en Hugging Face, acceso restringido). https://huggingface.co/datasets/AI-POCUS-COP/ultrai-lung-ultrasound. Acceso: Ficha vía API de Hugging Face (sin licencia declarada; contenido no accesible).
