@@ -38,6 +38,19 @@ describe('primer cero por Sturm y coeficientes diádicos exactos', () => {
     expect(() => rationalToNumber({ n: 1n, d: 0n })).toThrow();
   });
 
+  it('redondea al par sin doble redondeo junto a overflow y subnormales', () => {
+    const large = { n: ((1n << 52n) + 1n) << 1084n, d: (((1n << 52n) + 1n) << 60n) + (1n << 60n) - 1n };
+    expect(rationalToNumber(large)).toBe(Number.MAX_VALUE - 2 ** 971);
+    expect(firstNonpositive(p([-1]), large, large, 1e-8)).toBe(Number.MAX_VALUE - 2 ** 971);
+    expect(rationalToNumber({ n: (1n << 53n) + 1n, d: 1n << 53n })).toBe(1);
+    expect(rationalToNumber({ n: (1n << 53n) + 3n, d: 1n << 53n })).toBe(1 + 2 ** -51);
+    expect(rationalToNumber({ n: 1n, d: 1n << 1075n })).toBe(0);
+    expect(rationalToNumber({ n: 3n, d: 1n << 1076n })).toBe(Number.MIN_VALUE);
+    expect(rationalToNumber({ n: 3n, d: 1n << 1075n })).toBe(2 * Number.MIN_VALUE);
+    expect(rationalToNumber({ n: 1n, d: 1n << 2000n })).toBe(0);
+    expect(rationalToNumber({ n: 1n << 2000n, d: 1n })).toBe(Infinity);
+  });
+
   it('conserva signos de constantes y el inicio interior', () => {
     expect(first(p([]))).toBe(0);
     expect(first(p([0]))).toBe(0);

@@ -93,13 +93,19 @@ export function rationalToNumber(a: Rational): number {
   if (a.d === 0n) throw new Error('exactPolynomial: denominador cero');
   const n = a.n < 0n ? -a.n : a.n;
   const d = a.d < 0n ? -a.d : a.d;
-  const ns = Math.max(0, n.toString(2).length - 53);
-  const ds = Math.max(0, d.toString(2).length - 53);
-  const exponent = ns - ds;
-  const scale = Math.max(-1022, Math.min(1023, exponent));
-  const ratio = Number(n >> BigInt(ns)) / Number(d >> BigInt(ds));
+  if (n === 0n) return 0;
   const sign = (a.n < 0n ? -1 : 1) * (a.d < 0n ? -1 : 1);
-  return sign * (ratio * 2 ** (exponent - scale)) * 2 ** scale;
+  let exponent = n.toString(2).length - d.toString(2).length;
+  if (exponent >= 0 ? n < d << BigInt(exponent) : n << BigInt(-exponent) < d) exponent--;
+  if (exponent > 1023) return sign * Infinity;
+  if (exponent < -1075) return sign * 0;
+  const scale = Math.max(-1074, exponent - 52);
+  const numerator = scale < 0 ? n << BigInt(-scale) : n;
+  const denominator = scale > 0 ? d << BigInt(scale) : d;
+  let mantissa = numerator / denominator;
+  const remainder = 2n * (numerator % denominator);
+  if (remainder > denominator || (remainder === denominator && (mantissa & 1n) !== 0n)) mantissa++;
+  return sign * Number(mantissa) * 2 ** scale;
 }
 
 function signAt(p: readonly bigint[], x: Rational): number {
