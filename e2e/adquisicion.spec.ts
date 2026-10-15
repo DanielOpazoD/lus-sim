@@ -69,6 +69,8 @@ test('adquisición compacta: profundidad exacta, foco limitado y foco de teclado
   await expect(probe).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#live-chip')).toHaveText('En vivo');
   await expect(page.getByLabel('Contacto', { exact: true })).toBeVisible();
+  // Un tooltip bajo el puntero consume Escape antes que el diálogo (WCAG 1.4.13).
+  await page.mouse.move(0, 0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#acquisition-settings')).toBeHidden();
   await expect(page.locator('#settings-toggle')).toBeFocused();
