@@ -17,7 +17,7 @@ la salida actual no protege nada.
 
 ## La e2e en el CI
 
-- **Las ventanas del banco, cada una en su trabajo; el resto, en siete fragmentos** (`.github/workflows/ci.yml`; 03-10-2026).
+- **Las ventanas del banco, cada una en su trabajo; el resto, en nueve fragmentos** (`.github/workflows/ci.yml`; 03-10-2026).
   Playwright reparte `--shard` por cuenta y en orden, sin mirar cuánto dura cada prueba: cada prueba nueva movía las tres
   ventanas del banco de fidelidad (4–6 min cada una en el CI) hasta juntarlas en un fragmento de 15 min (CI87, CI99, #45,
   #49), y la solución de añadir un fragmento duraba hasta la prueba siguiente. Ahora cada ventana corre sola, elegida por
@@ -40,6 +40,13 @@ la salida actual no protege nada.
   cambiar semillas, relajar tolerancias ni ampliar plazos. No se añaden trabajadores concurrentes al mismo corredor.
   Históricamente, dos trabajadores compartiendo CPU con SwiftShader empeoraron la duración (13,6 min frente a 8,5 min
   sumando cada prueba aislada); se conserva un trabajador por fragmento.
+- **La sombra costal F-T08, una prueba por ventana** (15-10-2026). BLUE superior, BLUE inferior y PLAPS conservan
+  las mismas aserciones de sombra, penumbra, línea pleural, líneas A y paridad lateral; cada una abre su propio paciente.
+  El caso conjunto agotó sus 300 s dos veces en el CI de #81 y el reintento consumió el plazo del fragmento. La comparación
+  aislada con SwiftShader local pasó tanto en la base como en HEAD (1,2 y 1,1 min respectivamente): no reprodujo allí
+  un empeoramiento del renderizado, pero tampoco demuestra equivalencia de rendimiento entre corredores. Separar las
+  ventanas permite repartirlas sin omitir ninguna, cambiar tolerancias ni ampliar el límite de 300 s por prueba o el
+  de 25 min por corredor. El objetivo de fluidez requiere medir cuadros sincronizados, no inferir FPS del tiempo de la e2e.
 - **Los plazos se miden con un trabajador.** Un plazo nuevo se justifica con lo medido en el CI, no en local. Los corredores
   no son iguales (AMD EPYC 7763, 9V45 y 9V74; Intel Xeon 8370C, 8573C y 6973P, con 4 vCPU): la misma prueba tarda hasta 2,5
   veces más en uno que en otro, y el margen se mide en el lento.
