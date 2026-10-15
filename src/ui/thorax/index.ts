@@ -332,14 +332,7 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
         const { pose } = acquisition;
         // el marco de la pose, sin lo que la mano del operador movió la sonda (decisión 39: décimas de milímetro que cambian en
         // cada cuadro): un paciente quieto con la sonda quieta no redibuja el navegador
-        const d = acquisition.operatorMm ?? [0, 0, 0];
-        const back = (p: readonly number[]): [number, number, number] => [p[0] - d[0], p[1] - d[1], p[2] - d[2]];
-        const frame = {
-          ...acquisition.frame,
-          face: back(acquisition.frame.face),
-          curvatureCenter: back(acquisition.frame.curvatureCenter),
-          skinPoint: back(acquisition.frame.skinPoint),
-        };
+        const frame = human!.update(acquisition, sim.transducer);
         const depth = sim.displayed.bmode.depthMm;
         const state = [
           pose.phi,
@@ -381,7 +374,6 @@ export function createThoraxNavigator(host: HTMLElement, options: ThoraxNavigato
             probe.matrix.makeBasis(new Vector3(...axes.x), new Vector3(...axes.y), new Vector3(...axes.z));
             probe.matrix.setPosition(new Vector3(...patientToView(frame.face)));
             probe.matrixWorldNeedsUpdate = true;
-            human!.update(acquisition, sim.transducer);
             instrument!.updateCable(frame);
           }
           const nextPlane = `${nextPose}|${depth}`;

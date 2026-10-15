@@ -152,7 +152,8 @@ export class HumanTorso {
     }));
   }
 
-  update(acquisition: AcquisitionState, transducer: Transducer): void {
+  /** Contacto canónico validado: no reconstruirlo restando dos traslaciones float64. */
+  update(acquisition: AcquisitionState, transducer: Transducer): ProbeFrame {
     const p = acquisition.pose;
     const key = [p.phi, p.z, p.lift, p.yaw, p.rock, p.tilt, transducer.curvatureRadius, transducer.halfSector, transducer.elevationMm].join(
       '|',
@@ -162,16 +163,22 @@ export class HumanTorso {
     // el marco mostrado es el de la pose trasladado lo que movió la sonda la mano del operador (decisión 39): se deshace
     const d = acquisition.operatorMm ?? [0, 0, 0];
     const f = acquisition.frame;
+    const back = (p: Vec3): Vec3 => [p[0] - d[0], p[1] - d[1], p[2] - d[2]];
     const shown = {
-      face: [f.face[0] - d[0], f.face[1] - d[1], f.face[2] - d[2]] as Vec3,
-      axial: f.axial,
-      lateral: f.lateral,
-      elevation: f.elevation,
+      ...f,
+      face: back(f.face),
+      curvatureCenter: back(f.curvatureCenter),
+      skinPoint: back(f.skinPoint),
     };
-    if (!expected || (['face', 'axial', 'lateral', 'elevation'] as const).some((axis) => dist(expected[axis], shown[axis]) > 1e-5))
+    if (
+      !expected ||
+      (['face', 'axial', 'lateral', 'elevation', 'curvatureCenter', 'skinPoint', 'skinNormal'] as const).some(
+        (axis) => !(dist(expected[axis], shown[axis]) <= 1e-5),
+      )
+    )
       throw new Error('Navegador: contacto distinto al cuadro mostrado');
     this.acquisition = acquisition;
-    if (!contact) return;
+    if (!contact) return expected;
     this.poseKey = key;
     this.expectedFrame = expected;
     this.deformation.compression = contact;
@@ -196,6 +203,7 @@ export class HumanTorso {
     }
     this.smoothSeams();
     this.updates++;
+    return expected;
   }
 
   private smoothSeams(): void {

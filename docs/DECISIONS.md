@@ -3453,6 +3453,13 @@ frente a 0,46–0,72 s en el banco.
     tranquila y 1,07 mm en la profunda, y la cara «muestrea» esos milímetros bajo la piel (`operator-hand-rigid`).
   - **Lo que se guarda.** La adquisición guarda la traslación (`operatorMm`). El navegador 3D dibuja la sonda de la pose, sin
     ella, y así un paciente quieto con la sonda quieta no se redibuja (`humanNavigator.spec.ts` lo comprueba en vivo).
+    Para ello usa el contacto canónico que `HumanTorso.update` ya calcula y valida contra el cuadro, no la resta de la
+    traslación como clave de caché: `(x + d) - d` puede diferir de `x` en un ulp. Esa cancelación float64 reconstruía cable y
+    sector sin movimiento de pose (CI del PR #80: 1 → 3 actualizaciones); se reprodujo también sobre su base, sin el nuevo
+    proveedor axial. La validación de cara, ejes, centro de curvatura, punto y normal de piel se ejecuta incluso con pose en
+    caché y rechaza datos no finitos. Se conserva su tolerancia numérica de 1e−5, el contacto solo se recalcula al cambiar la
+    pose o la geometría de sonda, y no se altera la adquisición ni se desactiva el operador. Regresión determinista: 512
+    traslaciones con pérdida de un ulp, cambio real de pose, vuelta al historial y rechazo de marcos incoherentes.
 - **El temblor de la mano.** El pico de resonancia del temblor postural está en 7–11 Hz, ≈ 8 Hz de media
   ([@lakie-temblor-2012]); con la carga de una sonda baja algo. La amplitud: 16, 2 y 24 µm rms por eje (30 µm el vector) en
   la punta de un instrumento sostenido en el aire ([@singh-temblor-2002], cirugía de retina). Con la sonda apoyada en el
