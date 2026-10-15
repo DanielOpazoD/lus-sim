@@ -8,6 +8,7 @@ import { dist, dot, sub, type Vec3 } from '../core/vec3';
 import { defaultPatient } from '../physiology/patientState';
 import { PhysiologyEngine } from '../physiology/engine';
 import { probeContact } from '../probe/contact';
+import { translateContact } from '../probe/operator';
 import { CONVEX_C35, defaultPose, pointOnLine } from '../probe/probe';
 import { HumanTorso, humanTorsoMeshes, raisedArmNodes } from '../ui/thorax/humanTorso';
 import { ConvexProbe, convexHousingMesh, convexLensMesh, convexMarkerLocal, cablePath } from '../ui/thorax/convexProbe';
@@ -153,14 +154,45 @@ describe('Maniquí procedural: geometría real, contacto e historial', () => {
     human.dispose();
     mat.dispose();
   });
+  it('devuelve el contacto canónico estable aunque retirar el movimiento pierda un ulp; conserva cambios e historial', () => {
+    const mat = new MeshStandardMaterial();
+    const human = new HumanTorso(scene, mat, mat);
+    const source = acquisition();
+    const saved = structuredClone(source);
+    const contact = probeContact(source.pose, tr, scene.torso);
+    const reference = human.update(source, tr);
+    expect(reference).toEqual(contact.frame);
+    let roundoff = 0;
+    for (let i = 0; i < 512; i++) {
+      const d = (i - 256) / 256 + 2 ** -47;
+      const operatorMm: Vec3 = [d, d, d];
+      const frame = translateContact(contact, operatorMm).frame;
+      if (frame.face.some((x, k) => x - operatorMm[k] !== contact.frame.face[k])) roundoff++;
+      expect(human.update({ ...source, frame, operatorMm }, tr)).toBe(reference);
+    }
+    expect(roundoff).toBeGreaterThan(0);
+    expect(human.updates).toBe(1);
+    const moved = human.update(acquisition({ z: source.pose.z + 0.001 }), tr);
+    expect(moved).not.toEqual(reference);
+    expect(human.updates).toBe(2);
+    expect(human.update(source, tr)).toEqual(reference);
+    expect(human.updates).toBe(3);
+    expect(source).toEqual(saved);
+    human.dispose();
+    mat.dispose();
+  });
   it('el marco se valida también con pose en caché, sin reemplazar el último contacto válido', () => {
     const mat = new MeshStandardMaterial();
     const human = new HumanTorso(scene, mat, mat);
     const valid = acquisition();
     human.update(valid, tr);
     const updates = human.updates;
-    const invalid = { ...valid, frame: { ...valid.frame, axial: [0, 0, 0] as Vec3 } };
-    expect(() => human.update(invalid, tr)).toThrow('contacto distinto');
+    for (const axis of ['face', 'axial', 'lateral', 'elevation', 'curvatureCenter', 'skinPoint', 'skinNormal'] as const)
+      for (const x of [valid.frame[axis][0] + 0.001, NaN, Infinity]) {
+        const value: Vec3 = [x, valid.frame[axis][1], valid.frame[axis][2]];
+        const invalid = { ...valid, frame: { ...valid.frame, [axis]: value } };
+        expect(() => human.update(invalid, tr)).toThrow('contacto distinto');
+      }
     human.update(valid, tr);
     expect(human.updates).toBe(updates);
     human.dispose();

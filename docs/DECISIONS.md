@@ -3453,6 +3453,13 @@ frente a 0,46–0,72 s en el banco.
     tranquila y 1,07 mm en la profunda, y la cara «muestrea» esos milímetros bajo la piel (`operator-hand-rigid`).
   - **Lo que se guarda.** La adquisición guarda la traslación (`operatorMm`). El navegador 3D dibuja la sonda de la pose, sin
     ella, y así un paciente quieto con la sonda quieta no se redibuja (`humanNavigator.spec.ts` lo comprueba en vivo).
+    Para ello usa el contacto canónico que `HumanTorso.update` ya calcula y valida contra el cuadro, no la resta de la
+    traslación como clave de caché: `(x + d) - d` puede diferir de `x` en un ulp. Esa cancelación float64 reconstruía cable y
+    sector sin movimiento de pose (CI del PR #80: 1 → 3 actualizaciones); se reprodujo también sobre su base, sin el nuevo
+    proveedor axial. La validación de cara, ejes, centro de curvatura, punto y normal de piel se ejecuta incluso con pose en
+    caché y rechaza datos no finitos. Se conserva su tolerancia numérica de 1e−5, el contacto solo se recalcula al cambiar la
+    pose o la geometría de sonda, y no se altera la adquisición ni se desactiva el operador. Regresión determinista: 512
+    traslaciones con pérdida de un ulp, cambio real de pose, vuelta al historial y rechazo de marcos incoherentes.
 - **El temblor de la mano.** El pico de resonancia del temblor postural está en 7–11 Hz, ≈ 8 Hz de media
   ([@lakie-temblor-2012]); con la carga de una sonda baja algo. La amplitud: 16, 2 y 24 µm rms por eje (30 µm el vector) en
   la punta de un instrumento sostenido en el aire ([@singh-temblor-2002], cirugía de retina). Con la sonda apoyada en el
@@ -5174,3 +5181,60 @@ Además de los 324 puntos moderados, 2916 puntos en las esquinas del dominio, un
 extremas comprueban ida/vuelta GPU→GPU y valores TS/GLSL; las guardas del rango moderado no se relajan.
 Mutaciones comprobadas: omitir el término Z del transporte hace fallar la prueba independiente TS;
 omitirlo solo en GLSL hace fallar la comparación WebGL2. Se restauraron ambos términos.
+
+## 57. Superficie axial física compartida, antes de reconstruir capas y contacto
+
+**Fecha.** 2026-10-15.
+**Contexto.** O1/O2/O6. El contrato 56 permite transportar coordenadas, pero evaluar la antigua
+anatomía en su inversa también escala espesores y calibres. La revisión independiente recomendó
+reconstruir secciones físicas y sus métricas, no deformar todo el campo de tejidos. BodyParts3D sigue
+siendo una referencia exploratoria, no una silueta cervical validada ni un paciente poblacional.
+
+**Opciones.** Deformar globalmente el campo conserva topología, no dimensiones físicas; cambiar solo
+la malla crea dos pacientes. Reconstruir por separado contacto, piel y acústica duplica las fórmulas.
+
+**Decisión.** `src/anatomy/axialRestSurface.ts` ofrece una única sección elíptica de reposo físico,
+con semiejes y centro variables en z, obtenidos del contrato 56. Expone piel, sus dos tangentes,
+profundidad radial física d y etiqueta angular φ, con sus gradientes completos TS/GLSL. Distingue
+referencia material, reposo físico y mundo con respiración/compresión; no añade aún los mapas del mundo.
+En coordenadas relativas al centro, r=√(x²+y²), ρ=√((x/a)²+(y/b)²), d=r−r/ρ. La componente axial de
+∇d incluye las derivadas del centro y de ambos radios; ∇φ incluye esas mismas dependencias.
+
+d **no es distancia euclídea**, ni d antigua evaluada en F⁻¹, ni espesor normal. En piel ∇d es
+ortogonal a ambas tangentes, pero no tiene norma uno. φ es una etiqueta local con costura en ±π,
+no longitud física; la métrica angular es ||∂p/∂φ||. Una futura pared d+W(u,z) requiere
+∇d+Wᵤ∇u+W_z e_z; ni transportar la normal antigua ni omitir z resuelve esa derivada. La transición
+es C¹, no C²: no se promete curvatura continua en sus uniones.
+
+El dominio es **técnico, no antropométrico**: hereda el mapa 56 y añade radios de referencia
+[32,256] mm, razón entre semiejes físicos ≤8 en cualquier sección, ρ≥0,25 para consultar campos y
+φ∈[−π,π] para parametrizar piel. El cociente a(z)/b(z) es monótono en la transición y se verifica
+en ambos extremos. El centro y su entorno quedan fuera: la profundidad radial tiene límite
+dependiente de la dirección en el eje de una elipse, por lo que no se le inventa un valor central.
+TS rechaza consultas fuera de dominio; el llamador GLSL debe garantizarlo antes del despacho.
+La guarda de ρ admite solo el redondeo float64 de la resta del centro, no una extensión geométrica.
+
+Las pruebas iniciales detectaron dos problemas numéricos: cos nativo de SwiftShader desviaba la
+piel moderada 0,016 mm, y admitir razones de semiejes de 128 amplificaba el error float32 más allá
+de la envolvente del contrato. GLSL usa reducción por simetría y Taylor 12/13 para cos/sin en
+[0,π/2] (restos analíticos ≤6,4·10⁻⁹ y ≤6,7·10⁻¹⁰ antes del redondeo); el constructor rechaza las
+secciones excesivamente excéntricas. No se alteran las tolerancias moderadas de posición/derivadas.
+En el borde numérico, el error angular se comprueba también en mm mediante su métrica local:
+un mismo error en radianes no representa el mismo desplazamiento en una sección de 8 o 1024 mm.
+
+**Consecuencias.** Proveedor **inactivo y no importado por la escena**. No corrige todavía el cuello,
+ni cambia huesos, tejidos, vasos, contacto, imagen, reloj o maniquí. No incorpora parámetros del
+paciente ni mallas del atlas. No sirve como campo global de distancias, clasificador del núcleo,
+paso de sphere tracing ni cota de descarte. Antes de activarlo faltan arcos físicos, capas y órganos
+con espesores/calibres verificados, primer cruce seguro de contacto, dominio y cotas, respiración,
+compresión y malla de una única anatomía. Siguen vigentes las limitaciones cilíndrica y supraclavicular.
+
+**Verificación.** `src/anatomy/axialRestSurface.test.ts`: dominio, identidad con las primitivas
+anteriores, profundidad física, gradientes frente a diferencias independientes, tangentes,
+ortogonalidad, dualidad angular, costura y uniones C¹. `e2e/axialRestSurface.spec.ts` compara el
+GLSL real mediante transform feedback WebGL2 con TS: piel, profundidad, φ, ambos gradientes y
+ambas tangentes; 1296 puntos moderados y 10800 de frontera, incluyendo coordenadas materiales ±512,
+traslaciones extremas, escalas y radios límite, ρ mínimo y transiciones junto a ±512 mm.
+La envolvente exige posición y arco angular local <0,005 mm, derivadas <0,02 y ángulo <0,0001 rad
+en frontera; en perfiles moderados, <0,001 mm, <0,001 y <0,00001 rad respectivamente.
+Son guardas numéricas de casos sintéticos, no validación clínica ni demostración exhaustiva del dominio.

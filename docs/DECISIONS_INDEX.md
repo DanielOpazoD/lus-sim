@@ -43,20 +43,21 @@ Generado por `npm run docs:index` — no editar a mano.
 | [37](DECISIONS.md#L3064) | El hígado y el bazo bajo las cúpulas: las bases de la cobertura, el signo de la cortina y el espejo (F-T34) | vigente |
 | [38](DECISIONS.md#L3238) | Lo que falta de la reverberación de la pared no cierra la neblina; el espejo la cerraría con una pleura lisa, pero choca con la caída de las líneas A | rechazada |
 | [39](DECISIONS.md#L3400) | La pared viva: la mano del ecografista mueve la sonda sobre la pared que respira, y la pila se mide como los clips | vigente |
-| [40](DECISIONS.md#L3572) | El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico | vigente |
-| [41](DECISIONS.md#L3653) | La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco | rechazada |
-| [42](DECISIONS.md#L3802) | Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos | vigente |
-| [43](DECISIONS.md#L3932) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
-| [44](DECISIONS.md#L4167) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
-| [45](DECISIONS.md#L4260) | La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador | vigente |
-| [46](DECISIONS.md#L4352) | Los vasos del hilio del bazo y de los riñones: la arteria y la vena esplénicas y las renales, anecoicas y con los calibres de la fuente | vigente |
-| [47](DECISIONS.md#L4439) | Sin las tarjetas de los puntos BLUE: la sonda se explora libre sobre el tórax | vigente |
-| [48](DECISIONS.md#L4465) | Los brazos arriba en el maniquí y la sonda hasta la fosa supraclavicular, por encima del vértice | vigente |
-| [49](DECISIONS.md#L4550) | El corazón de EchoTwin en el tórax: fase 1, estático en telediástole, horneado en un volumen y en su propio chunk | vigente |
-| [50](DECISIONS.md#L4687) | La fosa supraclavicular creíble: la depresión, las capas del cuello y los vasos subclavios | vigente |
-| [51](DECISIONS.md#L4792) | Las líneas B emergen de las trampas subpleurales que abre el agua, y un detector las cuenta sobre la señal | vigente |
-| [52](DECISIONS.md#L4922) | Los protocolos de insuficiencia cardiaca con un mando hemodinámico: de la presión de llenado al agua, a la aireación y al puntaje medido | vigente |
-| [53](DECISIONS.md#L4995) | El latido del corazón de EchoTwin: una línea de tiempo por vóxel y el reloj único | vigente |
-| [54](DECISIONS.md#L5084) | Modo M a la cadencia del reloj único | pendiente de integración del PR 76 |
-| [55](DECISIONS.md#L5092) | La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre | vigente |
-| [56](DECISIONS.md#L5132) | Contrato invertible de reposo antes de activar el contorno cervical | vigente |
+| [40](DECISIONS.md#L3579) | El costo por cuadro sincronizado con una lectura válida, y los FPS reales del modo B en el informe técnico | vigente |
+| [41](DECISIONS.md#L3660) | La neblina es el espejo de la pared: con una pleura lisa calzan su relación con la pared y la arena, pero las líneas A caen poco | rechazada |
+| [42](DECISIONS.md#L3809) | Los puntos BLUE con la regla de las manos, en los dos hemitórax, y las vistas de medida separadas de los puntos clínicos | vigente |
+| [43](DECISIONS.md#L3939) | El estómago, los riñones y el bazo normal: las bases de la cobertura, y el costo de las caras de los órganos | vigente |
+| [44](DECISIONS.md#L4174) | La ladera de la cúpula pleural sin esquina y con pendiente acotada; el recorrido de la 2.ª costilla queda para una decisión aparte | vigente |
+| [45](DECISIONS.md#L4267) | La piel del sector se mide sobre lo encendido: el detector deja de correrse con la mano del operador | vigente |
+| [46](DECISIONS.md#L4359) | Los vasos del hilio del bazo y de los riñones: la arteria y la vena esplénicas y las renales, anecoicas y con los calibres de la fuente | vigente |
+| [47](DECISIONS.md#L4446) | Sin las tarjetas de los puntos BLUE: la sonda se explora libre sobre el tórax | vigente |
+| [48](DECISIONS.md#L4472) | Los brazos arriba en el maniquí y la sonda hasta la fosa supraclavicular, por encima del vértice | vigente |
+| [49](DECISIONS.md#L4557) | El corazón de EchoTwin en el tórax: fase 1, estático en telediástole, horneado en un volumen y en su propio chunk | vigente |
+| [50](DECISIONS.md#L4694) | La fosa supraclavicular creíble: la depresión, las capas del cuello y los vasos subclavios | vigente |
+| [51](DECISIONS.md#L4799) | Las líneas B emergen de las trampas subpleurales que abre el agua, y un detector las cuenta sobre la señal | vigente |
+| [52](DECISIONS.md#L4929) | Los protocolos de insuficiencia cardiaca con un mando hemodinámico: de la presión de llenado al agua, a la aireación y al puntaje medido | vigente |
+| [53](DECISIONS.md#L5002) | El latido del corazón de EchoTwin: una línea de tiempo por vóxel y el reloj único | vigente |
+| [54](DECISIONS.md#L5091) | Modo M a la cadencia del reloj único | pendiente de integración del PR 76 |
+| [55](DECISIONS.md#L5099) | La normal acústica de la cúpula sigue el techo y la ladera, no el salto de cierre | vigente |
+| [56](DECISIONS.md#L5139) | Contrato invertible de reposo antes de activar el contorno cervical | vigente |
+| [57](DECISIONS.md#L5185) | Superficie axial física compartida, antes de reconstruir capas y contacto | vigente |
